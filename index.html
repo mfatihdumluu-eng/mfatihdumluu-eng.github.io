@@ -87,7 +87,21 @@ const STORAGE_GROUPS='denhaag_fb_groups_v4';
 const STORAGE_DONE='denhaag_fb_done_v4';
 const STORAGE_TEXT='denhaag_fb_text_v4';
 
+const defaultGroups=[
+{id:'dh-shop-1',name:'GratisVoorElkaar (Den Haag)',url:'https://www.facebook.com/groups/393508784037269/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 13.500 üye'},
+{id:'dh-shop-2',name:'Gratis Af te halen in Den Haag',url:'https://www.facebook.com/groups/521273731302902/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 6.100 üye'},
+{id:'dh-shop-3',name:'Gratis/Ruilen Gezocht/Gevraagd Den Haag',url:'https://www.facebook.com/groups/393967093995682/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 1.800 üye'},
+{id:'dh-shop-4',name:'Ik geef weg in Den Haag',url:'https://www.facebook.com/groups/ikgeefwegdenhaag/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 6.900 üye'},
+{id:'dh-shop-5',name:'WEGGEEFHOEK 070',url:'https://www.facebook.com/groups/389785917742729/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 17.100 üye'},
+{id:'dh-shop-6',name:'Gratis op te halen in Den Haag',url:'https://www.facebook.com/groups/940602929368542/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 15.200 üye'},
+{id:'dh-shop-7',name:'Free4You – Leiden/Den Haag ve çevresi',url:'https://www.facebook.com/groups/free4youleidenandsurroundings/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 4.000 üye'},
+{id:'dh-shop-8',name:'Free stuff & for Sale Den Haag & nearby places',url:'https://www.facebook.com/groups/freestuffforsaledenhaagnearbyplaces/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 34.900 üye'},
+{id:'dh-shop-9',name:'For free and for sale in Den Haag #The Original#',url:'https://www.facebook.com/groups/550948418340058/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 39.100 üye'},
+{id:'tr-job-1',name:'Hollanda / Avrupa İş ve İşçi İlanları',url:'https://www.facebook.com/groups/avrupaisveisciilanlari/',cat:'Türk İş & Eleman',note:'Türkçe iş ilanları grubu'}
+];
 let groups=JSON.parse(localStorage.getItem(STORAGE_GROUPS)||'[]');
+for(const g of defaultGroups){if(!groups.some(x=>x.id===g.id||x.url===g.url))groups.push(g)}
+localStorage.setItem(STORAGE_GROUPS,JSON.stringify(groups));
 let done=JSON.parse(localStorage.getItem(STORAGE_DONE)||'{}');
 let active='Tümü';
 
@@ -136,7 +150,7 @@ function render(){
  const q=$('q').value.toLowerCase().trim();
  const list=groups.filter(g=>(active==='Tümü'||g.cat===active)&&(!q||g.name.toLowerCase().includes(q)));
  if(!list.length){$('list').innerHTML='<div class="empty">Bu yeni sürümde eski/yanlış gruplar temizlendi. Buraya yalnızca doğrulanmış Den Haag/Lahey iş-eleman ve alışveriş-market Facebook grupları eklenecek.</div>';return}
- $('list').innerHTML=list.map(g=>'<div class="g"><h3>'+esc(g.name)+'</h3><div class="meta">'+(done[g.id]?'Paylaşıldı ✓':'Henüz paylaşılmadı')+'</div><span class="tag">'+esc(g.cat)+'</span><div class="actions"><button class="btn primary" onclick="openGroup(\''+jsq(g.url)+'\')">↗ Grubu Aç</button><button class="btn '+(done[g.id]?'ok':'ghost')+'" onclick="toggle(\''+jsq(g.id)+'\')">'+(done[g.id]?'✓ Paylaşıldı':'Paylaşıldı?')+'</button></div><button class="btn ghost" style="width:100%;margin-top:8px" onclick="del(\''+jsq(g.id)+'\')">Sil</button></div>').join('')
+ $('list').innerHTML=list.map(g=>'<div class="g"><h3>'+esc(g.name)+'</h3><div class="meta">'+(g.note?esc(g.note)+' · ':'')+(done[g.id]?'Paylaşıldı ✓':'Henüz paylaşılmadı')+'</div><span class="tag">'+esc(g.cat)+'</span><div class="actions"><button class="btn primary" onclick="openGroup(\''+jsq(g.url)+'\')">↗ Grubu Aç</button><button class="btn '+(done[g.id]?'ok':'ghost')+'" onclick="toggle(\''+jsq(g.id)+'\')">'+(done[g.id]?'✓ Paylaşıldı':'Paylaşıldı?')+'</button></div><button class="btn ghost" style="width:100%;margin-top:8px" onclick="del(\''+jsq(g.id)+'\')">Sil</button></div>').join('')
 }
 function renderJobs(){$('jobs').innerHTML=jobSites.map(s=>'<div class="g"><h3>'+esc(s.name)+'</h3><span class="tag">İş Sitesi</span><div class="actions"><button class="btn soft" onclick="window.open(\''+jsq(s.url)+'\',\'_blank\',\'noopener,noreferrer\')">↗ Siteyi Aç</button></div></div>').join('')}
 renderFilters();render();renderJobs();
