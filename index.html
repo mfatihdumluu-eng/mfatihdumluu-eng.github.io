@@ -34,13 +34,13 @@ label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}textarea,in
 <label style="margin-top:10px">Facebook grup linki</label><input id="customUrl" placeholder="https://www.facebook.com/groups/...">
 <div class="small" style="margin-top:6px">Arama linki değil, grubun gerçek Facebook adresini yapıştır. Böylece “Grubu Aç” doğrudan o gruba gider.</div>
 <label style="margin-top:10px">Kategori</label>
-<select id="customCat"><option>Türk</option><option>Arap</option><option>Surinam</option><option>Antilyan</option><option>Yerel İş</option><option>Market & Gıda</option><option>İndirim & Fırsat</option><option>Diğer</option></select>
+<select id="customCat"><option>Türk</option><option>Arap</option><option>Surinam</option><option>Antilyan</option><option>Yerel İş</option><option>Den Haag Genel</option><option>Konut</option><option>Market & Gıda</option><option>İndirim & Fırsat</option><option>Diğer</option></select>
 <button class="btn dark" style="width:100%;justify-content:center;margin-top:10px" onclick="addCustom()">＋ Grubu Kaydet</button>
-<div class="small" style="margin-top:8px">Kaydettiğin gruplar bu cihazdaki tarayıcıda kalır.</div>
+<div class="small" style="margin-top:8px">Panelde bazı doğrulanmış doğrudan grup linkleri hazır gelir. Sen de yeni grup ekleyebilirsin; kayıtlar bu cihazdaki tarayıcıda kalır.</div>
 </div>
 <div>
 <div class="card pad">
-<div style="display:flex;align-items:center;gap:10px"><div class="sectiontitle" style="margin:0">Kaydedilmiş gruplar</div><div class="counter" id="counter"></div></div>
+<div style="display:flex;align-items:center;gap:10px"><div class="sectiontitle" style="margin:0">Hazır + kaydedilmiş gruplar</div><div class="counter" id="counter"></div></div>
 <div class="filters" id="filters"></div>
 <div class="searchbox"><input id="filterText" placeholder="Grup ara..." oninput="renderGroups()"><button class="btn soft" onclick="resetDone()">Paylaşım işaretlerini sıfırla</button></div>
 <div class="groups" id="groupList"></div>
@@ -50,8 +50,18 @@ label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}textarea,in
 </div>
 <div class="toast" id="toast"></div>
 <script>
-let groups=JSON.parse(localStorage.getItem('fbGroupsV2')||'[]');
-let done=JSON.parse(localStorage.getItem('fbDoneV2')||'{}');
+const defaultGroups=[
+{id:'seed-expats-hague',name:'Expats in The Hague',url:'https://www.facebook.com/groups/2406969948',cat:'Den Haag Genel'},
+{id:'seed-expat-rental-market',name:'Expat Rental Market The Hague',url:'https://www.facebook.com/groups/713518162024562',cat:'Konut'},
+{id:'seed-expat-rentals-hague',name:'Expat Rentals The Hague',url:'https://www.facebook.com/groups/1580853698814943',cat:'Konut'},
+{id:'seed-denhaag-housing',name:'Den Haag Housing',url:'https://www.facebook.com/groups/denhaag.housing',cat:'Konut'},
+{id:'seed-thehague-studenthousing',name:'The Hague Student Housing',url:'https://www.facebook.com/groups/thehaguestudenthousing',cat:'Konut'},
+{id:'seed-statenkwartier',name:'Statenkwartier Prikbord',url:'https://www.facebook.com/groups/statenkwartier',cat:'Den Haag Genel'},
+{id:'seed-girlgone',name:'Girl Gone International The Hague',url:'https://www.facebook.com/groups/GGITheHague',cat:'Den Haag Genel'},
+{id:'seed-werkchartervaart',name:'Werk Chartervaart',url:'https://www.facebook.com/groups/werkchartervaart',cat:'Yerel İş'}
+];
+let groups=JSON.parse(localStorage.getItem('fbGroupsV2')||'null')||defaultGroups;
+let done=JSON.parse(localStorage.getItem('fbDoneV2')||'{}'); if(!localStorage.getItem('fbGroupsV2')) localStorage.setItem('fbGroupsV2',JSON.stringify(groups));
 let activeCat='Tümü';
 const $=id=>document.getElementById(id);
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
@@ -71,7 +81,7 @@ function addCustom(){
  $('customName').value='';$('customUrl').value='';save();renderGroups();toast('Grup kaydedildi ✓')
 }
 function renderFilters(){
- const cats=['Tümü','Türk','Arap','Surinam','Antilyan','Yerel İş','Market & Gıda','İndirim & Fırsat','Diğer'];
+ const cats=['Tümü','Türk','Arap','Surinam','Antilyan','Yerel İş','Den Haag Genel','Konut','Market & Gıda','İndirim & Fırsat','Diğer'];
  $('filters').innerHTML=cats.map(c=>'<button class="chip '+(activeCat===c?'active':'')+'" onclick="setCat(\''+jsq(c)+'\')">'+esc(c)+'</button>').join('')
 }
 function setCat(c){activeCat=c;renderFilters();renderGroups()}
