@@ -60,8 +60,10 @@ const defaultGroups=[
 {id:'seed-girlgone',name:'Girl Gone International The Hague',url:'https://www.facebook.com/groups/GGITheHague',cat:'Den Haag Genel'},
 {id:'seed-werkchartervaart',name:'Werk Chartervaart',url:'https://www.facebook.com/groups/werkchartervaart',cat:'Yerel İş'}
 ];
-let groups=JSON.parse(localStorage.getItem('fbGroupsV2')||'null')||defaultGroups;
-let done=JSON.parse(localStorage.getItem('fbDoneV2')||'{}'); if(!localStorage.getItem('fbGroupsV2')) localStorage.setItem('fbGroupsV2',JSON.stringify(groups));
+let groups=JSON.parse(localStorage.getItem('fbGroupsV2')||'[]');
+for(const seed of defaultGroups){if(!groups.some(g=>g.id===seed.id||g.url===seed.url))groups.push(seed)}
+localStorage.setItem('fbGroupsV2',JSON.stringify(groups));
+let done=JSON.parse(localStorage.getItem('fbDoneV2')||'{}');
 let activeCat='Tümü';
 const $=id=>document.getElementById(id);
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
