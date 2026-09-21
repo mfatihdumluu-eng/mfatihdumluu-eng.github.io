@@ -15,8 +15,8 @@ label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}textarea,in
 .row{display:flex;gap:9px;flex-wrap:wrap}.row .btn{flex:1;justify-content:center}.small{font-size:12px;color:var(--muted);line-height:1.45}
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 12px;cursor:pointer;font-weight:700;color:#475467}.chip.active{background:#101828;color:#fff}
 .groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.g{padding:15px;border:1px solid var(--line);border-radius:16px;background:#fff}.gtop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.g h3{font-size:16px;margin:0 0 4px}.meta{font-size:12px;color:var(--muted)}.tag{font-size:11px;background:#f2f4f7;color:#475467;padding:5px 8px;border-radius:999px;white-space:nowrap}
-.actions{display:flex;gap:8px;margin-top:12px}.actions button,.actions a{flex:1;text-decoration:none;justify-content:center}.searchbox{display:flex;gap:8px;margin-bottom:14px}.searchbox input{flex:1}.sectiontitle{font-size:18px;font-weight:900;margin:0 0 12px}hr{border:0;border-top:1px solid var(--line);margin:18px 0}.counter{font-size:12px;color:var(--muted);margin-left:auto}.empty{grid-column:1/-1;padding:26px;border:1px dashed #d0d5dd;border-radius:16px;color:var(--muted);text-align:center;background:#fafafa}.toast{position:fixed;right:22px;bottom:22px;background:#101828;color:#fff;padding:12px 15px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.2s;pointer-events:none;font-weight:700}.toast.show{opacity:1;transform:none}
-@media(max-width:820px){.grid{grid-template-columns:1fr}.groups{grid-template-columns:1fr}.wrap{padding:14px}h1{font-size:23px}}
+.actions{display:flex;gap:8px;margin-top:12px}.actions button{flex:1;justify-content:center}.searchbox{display:flex;gap:8px;margin-bottom:14px}.searchbox input{flex:1}.sectiontitle{font-size:18px;font-weight:900;margin:0 0 12px}hr{border:0;border-top:1px solid var(--line);margin:18px 0}.counter{font-size:12px;color:var(--muted);margin-left:auto}.empty{grid-column:1/-1;padding:26px;border:1px dashed #d0d5dd;border-radius:16px;color:var(--muted);text-align:center;background:#fafafa}.toast{position:fixed;right:22px;bottom:22px;background:#101828;color:#fff;padding:12px 15px;border-radius:12px;opacity:0;transform:translateY(10px);transition:.2s;pointer-events:none;font-weight:700}.toast.show{opacity:1;transform:none}
+@media(max-width:820px){.grid{grid-template-columns:1fr}.groups{grid-template-columns:1fr}.wrap{padding:14px}h1{font-size:23px}.top{align-items:flex-start}.badge{white-space:nowrap}}
 </style>
 </head>
 <body>
@@ -27,56 +27,71 @@ label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}textarea,in
 <div class="sectiontitle">1. İlan metni</div>
 <label>Paylaşacağın metin</label><textarea id="postText" placeholder="İlan metnini buraya yapıştır. Metin tarayıcında saklanır."></textarea>
 <div class="row" style="margin-top:10px"><button class="btn primary" onclick="copyText()">📋 Metni Kopyala</button><button class="btn ghost" onclick="clearText()">Temizle</button></div>
-<div class="small" style="margin-top:9px">Facebook bazı gruplarda dışarıdan otomatik gönderi yayınlamaya izin vermez. Panel metni kopyalar ve grubu açar; son paylaşımı Facebook içinde sen yaparsın.</div>
+<div class="small" style="margin-top:9px">Facebook bazı gruplarda dışarıdan otomatik gönderi yayınlamaya izin vermez. Bu panel metni kopyalar ve gerçek grup linkini doğrudan açar; son paylaşımı Facebook içinde sen yaparsın.</div>
 <hr>
 <div class="sectiontitle">2. Kendi grubunu ekle</div>
 <label>Grup adı</label><input id="customName" placeholder="Örn. Den Haag Türk Topluluğu">
 <label style="margin-top:10px">Facebook grup linki</label><input id="customUrl" placeholder="https://www.facebook.com/groups/...">
+<div class="small" style="margin-top:6px">Arama linki değil, grubun gerçek Facebook adresini yapıştır. Böylece “Grubu Aç” doğrudan o gruba gider.</div>
 <label style="margin-top:10px">Kategori</label>
 <select id="customCat"><option>Türk</option><option>Arap</option><option>Surinam</option><option>Antilyan</option><option>Yerel İş</option><option>Market & Gıda</option><option>İndirim & Fırsat</option><option>Diğer</option></select>
 <button class="btn dark" style="width:100%;justify-content:center;margin-top:10px" onclick="addCustom()">＋ Grubu Kaydet</button>
 <div class="small" style="margin-top:8px">Kaydettiğin gruplar bu cihazdaki tarayıcıda kalır.</div>
 </div>
 <div>
-<div class="card pad" style="margin-bottom:14px"><div class="sectiontitle">Facebook'ta hedef grupları bul</div><div class="small" style="margin-bottom:12px">Aşağıdaki butonlar Facebook grup aramasını açar. Uygun grubu bulunca linkini soldan kaydedebilirsin.</div><div class="groups" id="searchShortcuts"></div></div>
-<div class="card pad"><div style="display:flex;align-items:center;gap:10px"><div class="sectiontitle" style="margin:0">Kaydedilmiş gruplar</div><div class="counter" id="counter"></div></div><div class="filters" id="filters"></div><div class="searchbox"><input id="filterText" placeholder="Grup ara..." oninput="renderGroups()"><button class="btn soft" onclick="resetDone()">Paylaşım işaretlerini sıfırla</button></div><div class="groups" id="groupList"></div></div>
-</div></div></div>
+<div class="card pad">
+<div style="display:flex;align-items:center;gap:10px"><div class="sectiontitle" style="margin:0">Kaydedilmiş gruplar</div><div class="counter" id="counter"></div></div>
+<div class="filters" id="filters"></div>
+<div class="searchbox"><input id="filterText" placeholder="Grup ara..." oninput="renderGroups()"><button class="btn soft" onclick="resetDone()">Paylaşım işaretlerini sıfırla</button></div>
+<div class="groups" id="groupList"></div>
+</div>
+</div>
+</div>
+</div>
 <div class="toast" id="toast"></div>
 <script>
-const shortcuts=[
-['Türk','Türkler – Den Haag','Turken Den Haag'],['Türk','Türkler – Zuid-Holland','Turken Zuid Holland'],
-['Arap','Arap topluluğu – Den Haag','Arabieren Den Haag'],['Arap','Arabic community – Den Haag','Arabic community Den Haag'],
-['Surinam','Surinamlılar – Den Haag','Surinamers Den Haag'],['Surinam','Surinaamse gemeenschap','Surinaamse gemeenschap Den Haag'],
-['Antilyan','Antilyanlar – Nederland','Antillianen Nederland'],['Antilyan','Antilyanlar – Den Haag','Antillianen Den Haag'],
-['Yerel İş','Vacatures – Den Haag','Vacatures Den Haag groep'],['Yerel İş','Werk gezocht/aangeboden – Den Haag','Werk gezocht aangeboden Den Haag'],
-['Yerel İş','Banen – Zuid-Holland','Banen Zuid Holland'],['Yerel İş','Personeel gezocht – Den Haag','Personeel gezocht Den Haag'],
-['Market & Gıda','Boodschappen aanbiedingen – Den Haag','Boodschappen aanbiedingen Den Haag'],
-['Market & Gıda','Supermarkt aanbiedingen – Den Haag','Supermarkt aanbiedingen Den Haag'],
-['Market & Gıda','Turkse supermarkt – Nederland','Turkse supermarkt Nederland'],
-['Market & Gıda','Halal boodschappen – Den Haag','Halal boodschappen Den Haag'],
-['Market & Gıda','Arabische supermarkt – Den Haag','Arabische supermarkt Den Haag'],
-['Market & Gıda','Surinaamse boodschappen – Den Haag','Surinaamse boodschappen Den Haag'],
-['Market & Gıda','Antilliaanse producten – Nederland','Antilliaanse producten Nederland'],
-['İndirim & Fırsat','Aanbiedingen & koopjes – Den Haag','Aanbiedingen koopjes Den Haag'],
-['İndirim & Fırsat','Food deals – Den Haag','Food deals Den Haag'],
-['İndirim & Fırsat','Goedkoop boodschappen doen – Nederland','Goedkoop boodschappen doen Nederland'],
-['İndirim & Fırsat','Weekaanbiedingen supermarkt','Weekaanbiedingen supermarkt Nederland']
-];
-let groups=JSON.parse(localStorage.getItem('fbGroupsV2')||'[]'),done=JSON.parse(localStorage.getItem('fbDoneV2')||'{}'),activeCat='Tümü';
-const $=id=>document.getElementById(id);const fbSearch=q=>'https://www.facebook.com/search/groups/?q='+encodeURIComponent(q);
+let groups=JSON.parse(localStorage.getItem('fbGroupsV2')||'[]');
+let done=JSON.parse(localStorage.getItem('fbDoneV2')||'{}');
+let activeCat='Tümü';
+const $=id=>document.getElementById(id);
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function jsq(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
 function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1800)}
 function save(){localStorage.setItem('fbGroupsV2',JSON.stringify(groups));localStorage.setItem('fbDoneV2',JSON.stringify(done))}
 function copyText(){const t=$('postText').value;if(!t.trim())return toast('Önce ilan metnini yaz.');navigator.clipboard.writeText(t).then(()=>toast('İlan metni kopyalandı ✓')).catch(()=>toast('Kopyalama izni verilmedi.'))}
 function clearText(){$('postText').value='';localStorage.removeItem('fbPostTextV2')}
-$('postText').value=localStorage.getItem('fbPostTextV2')||'';$('postText').addEventListener('input',e=>localStorage.setItem('fbPostTextV2',e.target.value));
-function renderShortcuts(){$('searchShortcuts').innerHTML=shortcuts.map(s=>'<div class="g"><div class="gtop"><div><h3>'+esc(s[1])+'</h3><div class="meta">Facebook grup araması</div></div><span class="tag">'+esc(s[0])+'</span></div><div class="actions"><a class="btn soft" target="_blank" rel="noopener" href="'+fbSearch(s[2])+'">🔎 Facebook\'ta Bul</a></div></div>').join('')}
-function addCustom(){const name=$('customName').value.trim(),url=$('customUrl').value.trim(),cat=$('customCat').value;if(!name||!url)return toast('Grup adı ve link gerekli.');if(!/^https?:\/\/(www\.)?facebook\.com\//i.test(url))return toast('Geçerli bir Facebook linki gir.');groups.push({id:Date.now().toString(),name,url,cat});$('customName').value='';$('customUrl').value='';save();renderGroups();toast('Grup kaydedildi ✓')}
-function renderFilters(){const cats=['Tümü','Türk','Arap','Surinam','Antilyan','Yerel İş','Market & Gıda','İndirim & Fırsat','Diğer'];$('filters').innerHTML=cats.map(c=>'<button class="chip '+(activeCat===c?'active':'')+'" onclick="setCat(\''+c.replace(/'/g,"\\'")+'\')">'+c+'</button>').join('')}
+$('postText').value=localStorage.getItem('fbPostTextV2')||'';
+$('postText').addEventListener('input',e=>localStorage.setItem('fbPostTextV2',e.target.value));
+function normalizeFacebookUrl(url){url=url.trim();if(!/^https?:\/\/(www\.|m\.)?facebook\.com\/groups\//i.test(url))return null;return url}
+function addCustom(){
+ const name=$('customName').value.trim(),raw=$('customUrl').value.trim(),cat=$('customCat').value,url=normalizeFacebookUrl(raw);
+ if(!name||!raw)return toast('Grup adı ve link gerekli.');
+ if(!url)return toast('Doğrudan Facebook grup linki gir: facebook.com/groups/...');
+ groups.push({id:Date.now().toString(),name,url,cat});
+ $('customName').value='';$('customUrl').value='';save();renderGroups();toast('Grup kaydedildi ✓')
+}
+function renderFilters(){
+ const cats=['Tümü','Türk','Arap','Surinam','Antilyan','Yerel İş','Market & Gıda','İndirim & Fırsat','Diğer'];
+ $('filters').innerHTML=cats.map(c=>'<button class="chip '+(activeCat===c?'active':'')+'" onclick="setCat(\''+jsq(c)+'\')">'+esc(c)+'</button>').join('')
+}
 function setCat(c){activeCat=c;renderFilters();renderGroups()}
-function openAndCopy(id,url){window.open(url,'_blank','noopener');const t=$('postText').value;if(t.trim())navigator.clipboard.writeText(t).then(()=>toast('Metin kopyalandı, grup açıldı ✓')).catch(()=>toast('Grup açıldı; metni elle kopyala.'));else toast('Grup açıldı. İlan metni boş.')}
-function toggleDone(id){done[id]=!done[id];save();renderGroups()}function delGroup(id){groups=groups.filter(g=>g.id!==id);delete done[id];save();renderGroups()}function resetDone(){done={};save();renderGroups();toast('Paylaşım işaretleri sıfırlandı.')}
-function renderGroups(){const q=$('filterText').value.toLowerCase().trim();const list=groups.filter(g=>(activeCat==='Tümü'||g.cat===activeCat)&&(!q||g.name.toLowerCase().includes(q)));$('counter').textContent=groups.length+' grup kayıtlı';if(!list.length){$('groupList').innerHTML='<div class="empty">Henüz bu kategoride kaydedilmiş grup yok. Yukarıdaki aramalardan uygun grupları bulup kaydet.</div>';return}$('groupList').innerHTML=list.map(g=>'<div class="g"><div class="gtop"><div><h3>'+esc(g.name)+'</h3><div class="meta">'+(done[g.id]?'Son durum: paylaşıldı ✓':'Henüz işaretlenmedi')+'</div></div><span class="tag">'+esc(g.cat)+'</span></div><div class="actions"><button class="btn primary" onclick="openAndCopy(\''+g.id+'\',\''+g.url.replace(/'/g,"\\'")+'\')">📋 + ↗ Aç</button><button class="btn '+(done[g.id]?'ok':'ghost')+'" onclick="toggleDone(\''+g.id+'\')">'+(done[g.id]?'✓ Paylaşıldı':'Paylaşıldı?')+'</button></div><button class="btn ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="delGroup(\''+g.id+'\')">Sil</button></div>').join('')}
-renderShortcuts();renderFilters();renderGroups();
+function openAndCopy(url){
+ window.open(url,'_blank','noopener,noreferrer');
+ const t=$('postText').value;
+ if(t.trim())navigator.clipboard.writeText(t).then(()=>toast('Metin kopyalandı, grup doğrudan açıldı ✓')).catch(()=>toast('Grup açıldı; metni elle kopyala.'));
+ else toast('Grup doğrudan açıldı. İlan metni boş.')
+}
+function toggleDone(id){done[id]=!done[id];save();renderGroups()}
+function delGroup(id){groups=groups.filter(g=>g.id!==id);delete done[id];save();renderGroups()}
+function resetDone(){done={};save();renderGroups();toast('Paylaşım işaretleri sıfırlandı.')}
+function renderGroups(){
+ const q=$('filterText').value.toLowerCase().trim();
+ const list=groups.filter(g=>(activeCat==='Tümü'||g.cat===activeCat)&&(!q||g.name.toLowerCase().includes(q)));
+ $('counter').textContent=groups.length+' grup kayıtlı';
+ if(!list.length){$('groupList').innerHTML='<div class="empty">Henüz bu kategoride kaydedilmiş grup yok. Gerçek Facebook grup linkini soldaki alandan ekle; sonra “Grubu Aç” doğrudan o gruba gider.</div>';return}
+ $('groupList').innerHTML=list.map(g=>'<div class="g"><div class="gtop"><div><h3>'+esc(g.name)+'</h3><div class="meta">'+(done[g.id]?'Son durum: paylaşıldı ✓':'Henüz işaretlenmedi')+'</div></div><span class="tag">'+esc(g.cat)+'</span></div><div class="actions"><button class="btn primary" onclick="openAndCopy(\''+jsq(g.url)+'\')">↗ Grubu Aç</button><button class="btn '+(done[g.id]?'ok':'ghost')+'" onclick="toggleDone(\''+jsq(g.id)+'\')">'+(done[g.id]?'✓ Paylaşıldı':'Paylaşıldı?')+'</button></div><button class="btn ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="delGroup(\''+jsq(g.id)+'\')">Sil</button></div>').join('')
+}
+renderFilters();renderGroups();
 </script>
-</body></html>
+</body>
+</html>
