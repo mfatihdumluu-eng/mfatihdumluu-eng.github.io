@@ -97,7 +97,10 @@ const defaultGroups=[
 {id:'dh-shop-7',name:'Free4You – Leiden/Den Haag ve çevresi',url:'https://www.facebook.com/groups/free4youleidenandsurroundings/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 4.000 üye'},
 {id:'dh-shop-8',name:'Free stuff & for Sale Den Haag & nearby places',url:'https://www.facebook.com/groups/freestuffforsaledenhaagnearbyplaces/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 34.900 üye'},
 {id:'dh-shop-9',name:'For free and for sale in Den Haag #The Original#',url:'https://www.facebook.com/groups/550948418340058/',cat:'Den Haag Alışveriş & Market',note:'Yaklaşık 39.100 üye'},
-{id:'tr-job-1',name:'Hollanda / Avrupa İş ve İşçi İlanları',url:'https://www.facebook.com/groups/avrupaisveisciilanlari/',cat:'Türk İş & Eleman',note:'Türkçe iş ilanları grubu'}
+{id:'tr-job-1',name:'Hollanda / Avrupa İş ve İşçi İlanları',url:'https://www.facebook.com/groups/avrupaisveisciilanlari/',cat:'Türk İş & Eleman',note:'Türkçe iş ilanları grubu'},
+{id:'job-horeca-chefs',name:'Chefkoks / Koks / Gastheren / Gastvrouwen / Patissiers',url:'https://www.facebook.com/groups/163862250482875/',cat:'Den Haag İş & Eleman',note:'Horeca · yaklaşık 44.000+ üye · iş ilanı paylaşımı var'},
+{id:'job-horeca-friends',name:'Horeca & Friends',url:'https://www.facebook.com/groups/298607936995194/',cat:'Den Haag İş & Eleman',note:'Horeca · yaklaşık 10.800+ üye · belirli günlerde iş ilanı paylaşımı'},
+{id:'job-vrienden-horeca',name:'Vrienden van de Horeca',url:'https://www.facebook.com/groups/609861119189395/',cat:'Den Haag İş & Eleman',note:'Horeca · yaklaşık 10.200+ üye · işverenler ücretsiz ilan paylaşabiliyor'}
 ];
 let groups=JSON.parse(localStorage.getItem(STORAGE_GROUPS)||'[]');
 for(const g of defaultGroups){if(!groups.some(x=>x.id===g.id||x.url===g.url))groups.push(g)}
