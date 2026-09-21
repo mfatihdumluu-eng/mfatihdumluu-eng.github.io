@@ -45,6 +45,12 @@ label{font-size:13px;font-weight:700;display:block;margin-bottom:7px}textarea,in
 <div class="searchbox"><input id="filterText" placeholder="Grup ara..." oninput="renderGroups()"><button class="btn soft" onclick="resetDone()">Paylaşım işaretlerini sıfırla</button></div>
 <div class="groups" id="groupList"></div>
 </div>
+
+<div class="card pad" style="margin-top:14px">
+<div style="display:flex;align-items:center;gap:10px"><div class="sectiontitle" style="margin:0">İş & Eleman Siteleri</div></div>
+<div class="small" style="margin:8px 0 14px">İlan vermek, personel bulmak veya bölgede kimlerin eleman aradığını görmek için doğrudan aç.</div>
+<div class="groups" id="jobSites"></div>
+</div>
 </div>
 </div>
 </div>
@@ -60,6 +66,17 @@ const defaultGroups=[
 {id:'seed-girlgone',name:'Girl Gone International The Hague',url:'https://www.facebook.com/groups/GGITheHague',cat:'Den Haag Genel'},
 {id:'seed-werkchartervaart',name:'Werk Chartervaart',url:'https://www.facebook.com/groups/werkchartervaart',cat:'Yerel İş'}
 ];
+
+const jobSites=[
+{name:'Indeed – İşverenler',url:'https://nl.indeed.com/personeel/plaats-vacature',note:'Ücretsiz veya sponsorlu iş ilanı oluştur'},
+{name:'Randstad – Personel Bul',url:'https://www.randstad.nl/werkgevers/diensten/online-personeel-gezocht',note:'Vacature oluştur ve aday bul'},
+{name:'Tempo-Team – Vacature Plaatsen',url:'https://www.tempo-team.nl/werkgevers/personeel-gezocht/vacature-plaatsen',note:'Personel talebini doğrudan ilet'},
+{name:'YoungCapital – Vacature Plaatsen',url:'https://www.youngcapital.nl/werkgevers/vacature-plaatsen',note:'İş ilanını gönder ve aday bul'},
+{name:'Nationale Vacaturebank – İşveren',url:'https://www.nationalevacaturebank.nl/werkgever/vacature-plaatsen',note:'İşveren ilanı yayınlama sayfası'},
+{name:'Olympia – Vacatures / İşveren',url:'https://www.olympia.nl/vacatures/',note:'İş ilanları ve işveren hizmetleri'},
+{name:'Werken voor Den Haag',url:'https://werkenvoor.denhaag.nl/',note:'Den Haag belediyesi açık pozisyonları'}
+];
+
 let groups=JSON.parse(localStorage.getItem('fbGroupsV2')||'[]');
 for(const seed of defaultGroups){if(!groups.some(g=>g.id===seed.id||g.url===seed.url))groups.push(seed)}
 localStorage.setItem('fbGroupsV2',JSON.stringify(groups));
@@ -96,6 +113,11 @@ function openAndCopy(url){
 function toggleDone(id){done[id]=!done[id];save();renderGroups()}
 function delGroup(id){groups=groups.filter(g=>g.id!==id);delete done[id];save();renderGroups()}
 function resetDone(){done={};save();renderGroups();toast('Paylaşım işaretleri sıfırlandı.')}
+
+function renderJobSites(){
+ $('jobSites').innerHTML=jobSites.map(s=>'<div class="g"><div class="gtop"><div><h3>'+esc(s.name)+'</h3><div class="meta">'+esc(s.note)+'</div></div><span class="tag">İş Sitesi</span></div><div class="actions"><button class="btn soft" onclick="window.open(\''+jsq(s.url)+'\',\'_blank\',\'noopener,noreferrer\')">↗ Siteyi Aç</button></div></div>').join('')
+}
+
 function renderGroups(){
  const q=$('filterText').value.toLowerCase().trim();
  const list=groups.filter(g=>(activeCat==='Tümü'||g.cat===activeCat)&&(!q||g.name.toLowerCase().includes(q)));
@@ -103,7 +125,7 @@ function renderGroups(){
  if(!list.length){$('groupList').innerHTML='<div class="empty">Henüz bu kategoride kaydedilmiş grup yok. Gerçek Facebook grup linkini soldaki alandan ekle; sonra “Grubu Aç” doğrudan o gruba gider.</div>';return}
  $('groupList').innerHTML=list.map(g=>'<div class="g"><div class="gtop"><div><h3>'+esc(g.name)+'</h3><div class="meta">'+(done[g.id]?'Son durum: paylaşıldı ✓':'Henüz işaretlenmedi')+'</div></div><span class="tag">'+esc(g.cat)+'</span></div><div class="actions"><button class="btn primary" onclick="openAndCopy(\''+jsq(g.url)+'\')">↗ Grubu Aç</button><button class="btn '+(done[g.id]?'ok':'ghost')+'" onclick="toggleDone(\''+jsq(g.id)+'\')">'+(done[g.id]?'✓ Paylaşıldı':'Paylaşıldı?')+'</button></div><button class="btn ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="delGroup(\''+jsq(g.id)+'\')">Sil</button></div>').join('')
 }
-renderFilters();renderGroups();
+renderFilters();renderGroups();renderJobSites();
 </script>
 </body>
 </html>
