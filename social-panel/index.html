@@ -323,4 +323,53 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
  },{capture:true});
 })();
 </script>
+
+<script>
+(function(){
+ const DB='https://hroarfuwpfsqilsijwpp.supabase.co/rest/v1/emigro_dagdeals?select=*&status=neq.Niet%20publiceren&order=deal_date.asc,start_time.asc';
+ const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXAiLCJyZWYiOiJocm9hcmZ1d3Bmc3FpbHNpandwcCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzkwMDkyOTI2LCJleHAiOjIxMDU2Njg5MjZ9.sXaqy76ktdZJiesW1ZSppJH6t4Qi3AdLIhHc1umzBks';
+ const catEmoji=s=>{s=String(s||"").toLowerCase();if(s.includes("drank"))return"🧃";if(s.includes("zuivel"))return"🥛";if(s.includes("slager"))return"🥩";if(s.includes("groente"))return"🌶️";if(s.includes("bakker"))return"🍰";if(s.includes("huish"))return"🧺";return"🛒"};
+ const money=v=>"€"+Number(v||0).toFixed(2).replace(".",",");
+ function nowNL(){const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()),o={};parts.forEach(x=>o[x.type]=x.value);return{date:o.year+"-"+o.month+"-"+o.day,time:o.hour+":"+o.minute}}
+ function state(p){if(p.sold)return"expired";const n=nowNL(),d=String(p.deal_date||"");if(d<n.date)return"expired";if(d>n.date)return"upcoming";return String(p.start_time||"00:00").slice(0,5)<=n.time?"live":"upcoming"}
+ function esc(s){return String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
+ function visual(p,cls="productpic"){return p.image_url?'<div class="'+cls+'"><img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain"></div>':'<div class="'+cls+'">'+catEmoji(p.category)+'</div>'}
+ function detailHtml(p,day,st){
+   const label=st==="live"?"● LIVE VANDAAG":st==="expired"?"AFGELOPEN":"BINNENKORT";
+   const op=p.op_op?'<div class="stockalert"><span>🔥</span><div><b>OP = OP</b><small>Beperkte voorraad · zolang de voorraad strekt</small></div></div>':'';
+   const price=st==="live"?'<div class="detail-price"><del>'+money(p.regular_price)+'</del><strong>'+money(p.deal_price)+'</strong><em>/ '+esc(p.unit||"")+'</em></div>':
+    st==="expired"?'<div class="locked"><div class="lockicon">✓</div><div><small>DEAL AFGELOPEN</small><b>'+money(p.deal_price)+'</b><p>Deze Dagdeal is afgelopen.</p></div></div>':
+    '<div class="locked"><div class="lockicon">🔒</div><div><small>NORMALE PRIJS</small><b>'+money(p.regular_price)+'</b><p>De Dagdealprijs onthullen we op '+day+' september.</p></div></div>';
+   const action=st==="upcoming"?'<a class="primary action" href="#rem'+day+'">🔔 Herinner mij</a>':'<a class="primary action" href="#share">Deel deze deal <span>↗</span></a>';
+   return '<div class="grab"></div><a class="close" href="#calendar">×</a><div class="detailvisual"><div class="glow"></div>'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="position:relative;z-index:2;max-width:75%;max-height:190px;object-fit:contain">':'<span>'+catEmoji(p.category)+'</span>')+'</div><div class="status '+(st==="live"?"live-status":"")+'">'+label+' · '+String(day).padStart(2,"0")+' SEPTEMBER</div><h2>'+esc(p.name)+'</h2><p class="sub">'+esc(p.unit||"")+'</p>'+price+op+'<div class="info"><b>'+esc(p.description||"Dagdeal bij Emigro")+'</b><span>Geldig zolang de voorraad strekt.</span></div>'+action+'<a class="secondary action" href="#share">Stuur door</a>';
+ }
+ function applyCentralDeals(items){
+   if(!Array.isArray(items)||!items.length)return;
+   window.__emigroCentralDeals=items;
+   items.forEach(p=>{
+     const d=String(p.deal_date||"").split("-"),day=Number(d[2]);if(!day)return;
+     const fav=document.querySelector('.favbtn[data-fav="'+day+'"]'),card=fav&&fav.closest(".dealcard");if(!card)return;
+     const st=state(p);card.classList.remove("live","upcoming","expired");card.classList.add(st);
+     if(card.tagName==="A")card.setAttribute("href","#deal"+day);
+     const top=card.querySelector(".ctop");if(top)top.innerHTML='<b>'+String(day).padStart(2,"0")+'</b><span>'+(st==="live"?"VANDAAG":st==="expired"?"AFGELOPEN":"BINNENKORT")+'</span>';
+     const pic=card.querySelector(".productpic");if(pic)pic.outerHTML=p.image_url?'<div class="productpic"><img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain"></div>':'<div class="productpic">'+catEmoji(p.category)+'</div>';
+     const h=card.querySelector("h4");if(h)h.textContent=p.name||"";
+     const sm=card.querySelector("small");if(sm)sm.textContent=p.unit||"";
+     card.querySelectorAll(".old,.dealprice,.regular,.mystery,.expiredtxt,.chev").forEach(x=>x.remove());
+     if(st==="live")card.insertAdjacentHTML("beforeend",'<div class="old">'+money(p.regular_price)+'</div><div class="dealprice">'+money(p.deal_price)+'</div><div class="chev">›</div>');
+     else if(st==="upcoming")card.insertAdjacentHTML("beforeend",'<div class="regular">Normaal '+money(p.regular_price)+'</div><div class="mystery">Prijs op '+day+' sep.</div><div class="chev">›</div>');
+     else card.insertAdjacentHTML("beforeend",'<div class="expiredtxt">Deal afgelopen</div>');
+     const modal=document.getElementById("deal"+day);if(modal){const sh=modal.querySelector(".sheet");if(sh)sh.innerHTML=detailHtml(p,day,st)}
+   });
+   const live=items.find(x=>state(x)==="live")||items.find(x=>state(x)==="upcoming")||items[items.length-1];
+   if(live){
+     const st=state(live),day=Number(String(live.deal_date).slice(-2)),hero=document.querySelector(".hero");
+     if(hero){hero.href="#deal"+day;hero.innerHTML='<div class="herohead"><span class="livepill">'+(st==="live"?"● LIVE VANDAAG":st==="upcoming"?"BINNENKORT":"AFGELOPEN")+'</span>'+(live.op_op?'<span class="opop">OP = OP</span>':'')+'<time>'+String(day).padStart(2,"0")+' SEPTEMBER</time></div><div class="herobody"><div class="heroimg">'+(live.image_url?'<img src="'+esc(live.image_url)+'" alt="'+esc(live.name)+'" style="width:100%;height:100%;object-fit:contain">':catEmoji(live.category))+'</div><div class="herotxt"><h2>'+esc(live.name)+'</h2><small>'+esc(live.unit||"")+'</small><del>'+money(live.regular_price)+'</del>'+(st==="live"?'<div class="heroprice">'+money(live.deal_price)+'</div>':'<div class="herocta">Dagdealprijs blijft geheim</div>')+'<div class="herocta">Bekijk Dagdeal →</div></div></div>'}
+   }
+ }
+ window.__applyCentralDeals=applyCentralDeals;
+ window.addEventListener("message",e=>{if(e&&e.data&&e.data.type==="emigro-preview-products")applyCentralDeals(e.data.items||[])});
+ fetch(DB+"&_="+Date.now(),{cache:"no-store",headers:{apikey:ANON,Authorization:"Bearer "+ANON}}).then(r=>r.ok?r.json():Promise.reject(r.status)).then(applyCentralDeals).catch(()=>{});
+})();
+</script>
 </body></html>
