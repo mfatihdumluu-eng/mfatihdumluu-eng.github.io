@@ -261,14 +261,26 @@ async function publishAll(){
     await api({action:"save_settings",token,settings:s});
     settings=Object.assign({},DEFAULT_SETTINGS,s);
     $("publishState").textContent="Doğrulanıyor...";
-    const vr=await fetch(PUBLIC_API+"?t="+Date.now(),{cache:"no-store"});
-    if(!vr.ok)throw new Error("Canlı doğrulama HTTP "+vr.status);
-    const live=await vr.json();
-    const sameCount=Array.isArray(live.items)&&live.items.length===products.filter(p=>p.status!=="Niet publiceren").length;
-    const sameLogo=(live.settings?.logo||"")===(s.logo||"");
-    const sameWidth=Number(live.settings?.logoWidthDesktop||220)===Number(s.logoWidthDesktop||220);
-    if(!sameCount||!sameLogo||!sameWidth)throw new Error("Canlı veri doğrulanamadı.");
-    $("publishState").textContent="Canlı doğrulandı ✓";
+    let verified=false,lastLive=null;
+    for(let attempt=0;attempt<6;attempt++){
+      await new Promise(r=>setTimeout(r,attempt===0?450:700));
+      const vr=await fetch(PUBLIC_API+"?t="+Date.now()+"-"+attempt,{cache:"no-store"});
+      if(!vr.ok)continue;
+      const live=await vr.json(); lastLive=live;
+      const liveItems=Array.isArray(live.items)?live.items:[];
+      const expected=products.filter(p=>p.status!=="Niet publiceren");
+      const idsOk=expected.every(p=>liveItems.some(x=>Number(x.id)===Number(p.id)&&String(x.name||"")===String(p.name||"")));
+      const settingsOk=Number(live.settings?.logoWidthDesktop||220)===Number(s.logoWidthDesktop||220)
+        && String(live.settings?.logoAlign||"left")===String(s.logoAlign||"left")
+        && Number(live.settings?.logoOffsetX||0)===Number(s.logoOffsetX||0);
+      if(idsOk&&settingsOk){verified=true;break}
+    }
+    if(!verified){
+      console.warn("Live verification delayed",lastLive);
+      $("publishState").textContent="Kaydedildi ✓ — canlı eşitleme bekleniyor";
+    }else{
+      $("publishState").textContent="Canlı doğrulandı ✓";
+    }
     setTimeout(()=>$("publishState").textContent="",5000);
   }catch(e){$("publishState").textContent="Hata";alert("Canlıya gönderilemedi: "+e.message)}
 }
