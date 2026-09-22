@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emigro Review</title><meta name="build" content="social-panel-unified-v4.4-selector-fix">
+<title>Emigro Review</title><meta name="build" content="social-panel-unified-v4.5-selector-fix-real">
 <style>
 :root{--navy:#27336f;--red:#ef1425;--bg:#f5f7fb;--text:#172033;--muted:#6d7487;--line:#e2e6ef}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
@@ -735,9 +735,9 @@ $("#logout").addEventListener("click",()=>{
   localStorage.removeItem("emigroAdminToken");
   showAdmin();
 });
-$$(".nav").forEach(btn=>btn.addEventListener("click",()=>{
-  $$(".nav").forEach(x=>x.classList.remove("active"));btn.classList.add("active");
-  $$(".view").forEach(x=>x.classList.remove("active"));$("#"+btn.dataset.tab).classList.add("active");
+$$$(".nav").forEach(btn=>btn.addEventListener("click",()=>{
+  $$$(".nav").forEach(x=>x.classList.remove("active"));btn.classList.add("active");
+  $$$(".view").forEach(x=>x.classList.remove("active"));$("#"+btn.dataset.tab).classList.add("active");
   $("#adminTitle").textContent=btn.textContent;if(btn.dataset.tab==="dagdeals")ddEnsureAdminData()
 }));
 async function saveAll(message){
@@ -861,10 +861,10 @@ function renderDagdeals(){if(!$("#ddGrid"))return;
     const st=ddState(p),fav=favs.includes(Number(p.id)),locked=st==="upcoming",day=String(p.deal_date||"").slice(-2);
     return '<article class="dd-card '+st+'" data-dd-id="'+p.id+'"><div class="dd-cardtop"><b class="dd-day">'+day+'</b><span class="dd-state">'+(st==="live"?"LIVE":st==="upcoming"?"BINNENKORT":"AFGELOPEN")+'</span></div><button class="dd-fav '+(fav?"saved":"")+'" data-dd-fav="'+p.id+'" type="button">♥</button><div class="dd-cardpic">'+ddVisual(p)+'</div><h4>'+escapeHtml(p.name)+'</h4><small>'+escapeHtml(p.unit||"")+'</small>'+(locked?'<div class="dd-locked-price">🔒 Prijs geheim tot deze dag</div>':st==="expired"?'<div class="dd-locked-price">Deal afgelopen</div>':'<div class="dd-old">'+ddMoney(p.regular_price)+'</div><div class="dd-price">'+ddMoney(p.deal_price)+'</div>')+'</article>';
   }).join("");
-  $$("[data-dd-id]").forEach(el=>el.addEventListener("click",e=>{if(e.target.closest("[data-dd-fav]"))return;ddOpen(Number(el.dataset.ddId))}));
-  $$("[data-dd-fav]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();ddToggleFav(b.dataset.ddFav)}));
-  $$("[data-dd-cat]").forEach(b=>b.addEventListener("click",()=>{__ddFilter=b.dataset.ddCat;renderDagdeals()}));
-  $$("[data-dd-filter]").forEach(b=>{b.classList.toggle("active",b.dataset.ddFilter===__ddFilter);b.onclick=()=>{__ddFilter=b.dataset.ddFilter;renderDagdeals()}});
+  $$$("[data-dd-id]").forEach(el=>el.addEventListener("click",e=>{if(e.target.closest("[data-dd-fav]"))return;ddOpen(Number(el.dataset.ddId))}));
+  $$$("[data-dd-fav]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();ddToggleFav(b.dataset.ddFav)}));
+  $$$("[data-dd-cat]").forEach(b=>b.addEventListener("click",()=>{__ddFilter=b.dataset.ddCat;renderDagdeals()}));
+  $$$("[data-dd-filter]").forEach(b=>{b.classList.toggle("active",b.dataset.ddFilter===__ddFilter);b.onclick=()=>{__ddFilter=b.dataset.ddFilter;renderDagdeals()}});
 }
 function ddOpen(id){if(!$("#ddSheet"))return;
   const p=(__ddItems||[]).find(x=>Number(x.id)===Number(id));if(!p)return;
@@ -886,12 +886,12 @@ function ddRenderAdmin(){
   $("#ddSTotal").textContent=list.length;$("#ddSActive").textContent=list.filter(p=>!p.sold&&p.status!=="Niet publiceren").length;$("#ddSSold").textContent=list.filter(p=>p.sold).length;$("#ddSPhoto").textContent=list.filter(p=>p.image_url).length;
   $("#ddSessionNote").classList.toggle("hide",!!ddToken());
   $("#ddRows").innerHTML=list.map(p=>'<tr class="dd-row" data-dd-row="'+p.id+'"><td><div class="dd-thumb">'+(p.image_url?'<img src="'+String(p.image_url).replace(/"/g,"&quot;")+'">':'<span>'+ddEmoji(p.category)+'</span>')+'</div><input type="file" accept="image/*" data-dd-photo="'+p.id+'" style="width:110px;font-size:9px;margin-top:4px"></td><td><b>'+p.deal_date+'</b><br>'+String(p.start_time||"").slice(0,5)+'</td><td><b>'+escapeHtml(p.name)+'</b><br><span style="color:#7b8294">'+escapeHtml(p.unit||"")+' · '+escapeHtml(p.category||"")+'</span></td><td><s>'+ddMoney(p.regular_price)+'</s><br><b style="color:var(--red)">'+ddMoney(p.deal_price)+'</b></td><td>'+escapeHtml(p.description||"—")+'</td><td>'+escapeHtml(p.status||"")+(p.sold?" · Bitti":"")+'</td><td><div class="dd-row-actions"><button class="dd-mini edit" data-dd-edit="'+p.id+'">Düzenle</button><button class="dd-mini sold" data-dd-sold="'+p.id+'">'+(p.sold?"Aktif":"Bitti")+'</button><button class="dd-mini delete" data-dd-delete="'+p.id+'">Sil</button></div></td></tr>').join("");
-  $$("[data-dd-row]").forEach(tr=>tr.addEventListener("click",()=>ddOpenEditor(Number(tr.dataset.ddRow))));
-  $$("[data-dd-edit]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();ddOpenEditor(Number(b.dataset.ddEdit))}));
-  $$("[data-dd-sold]").forEach(b=>b.addEventListener("click",async e=>{e.stopPropagation();const p=__ddAdminItems.find(x=>Number(x.id)===Number(b.dataset.ddSold));if(p){p.sold=!p.sold;ddRenderAdmin();await ddSaveAll(false)}}));
-  $$("[data-dd-delete]").forEach(b=>b.addEventListener("click",async e=>{e.stopPropagation();if(confirm("Product verwijderen?")){__ddAdminItems=__ddAdminItems.filter(x=>Number(x.id)!==Number(b.dataset.ddDelete));ddRenderAdmin();await ddSaveAll(false)}}));
-  $$("[data-dd-photo]").forEach(inp=>inp.addEventListener("click",e=>e.stopPropagation()));
-  $$("[data-dd-photo]").forEach(inp=>inp.addEventListener("change",e=>ddUploadPhoto(e,Number(inp.dataset.ddPhoto))));
+  $$$("[data-dd-row]").forEach(tr=>tr.addEventListener("click",()=>ddOpenEditor(Number(tr.dataset.ddRow))));
+  $$$("[data-dd-edit]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();ddOpenEditor(Number(b.dataset.ddEdit))}));
+  $$$("[data-dd-sold]").forEach(b=>b.addEventListener("click",async e=>{e.stopPropagation();const p=__ddAdminItems.find(x=>Number(x.id)===Number(b.dataset.ddSold));if(p){p.sold=!p.sold;ddRenderAdmin();await ddSaveAll(false)}}));
+  $$$("[data-dd-delete]").forEach(b=>b.addEventListener("click",async e=>{e.stopPropagation();if(confirm("Product verwijderen?")){__ddAdminItems=__ddAdminItems.filter(x=>Number(x.id)!==Number(b.dataset.ddDelete));ddRenderAdmin();await ddSaveAll(false)}}));
+  $$$("[data-dd-photo]").forEach(inp=>inp.addEventListener("click",e=>e.stopPropagation()));
+  $$$("[data-dd-photo]").forEach(inp=>inp.addEventListener("change",e=>ddUploadPhoto(e,Number(inp.dataset.ddPhoto))));
 }
 function ddOpenEditor(id){
   const p=id?__ddAdminItems.find(x=>Number(x.id)===Number(id)):null;
@@ -945,8 +945,8 @@ function showPublicView(view,opts={}){
   $("#socialHomeView")?.classList.toggle("hide",isDag);
   $("#dagdealsView")?.classList.toggle("hide",!isDag);
   document.body.dataset.publicView=isDag?"dagdeals":"home";
-  $$(".socialTopNav a").forEach(a=>a.classList.toggle("ddNavDeal",a.dataset.publicView==="dagdeals"&&isDag));
-  $$(".appFooter [data-public-view]").forEach(a=>{
+  $$$(".socialTopNav a").forEach(a=>a.classList.toggle("ddNavDeal",a.dataset.publicView==="dagdeals"&&isDag));
+  $$$(".appFooter [data-public-view]").forEach(a=>{
     a.style.color=(a.dataset.publicView===(isDag?"dagdeals":"home"))?"var(--red)":"";
   });
   if(isDag){
@@ -958,7 +958,7 @@ function showPublicView(view,opts={}){
     if(location.hash==="#dagdeals") history.replaceState(null,"","#home");
   }
 }
-$$("[data-public-view]").forEach(a=>a.addEventListener("click",e=>{
+$$$("[data-public-view]").forEach(a=>a.addEventListener("click",e=>{
   const target=a.dataset.publicView;
   if(target==="dagdeals"){
     e.preventDefault();
