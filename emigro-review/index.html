@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emigro Review</title><meta name="build" content="2026-09-22-mobile-layout-v12">
+<title>Emigro Review</title><meta name="build" content="2026-09-22-mobile-app-v13">
 <style>
 :root{--navy:#27336f;--red:#ef1425;--bg:#f5f7fb;--text:#172033;--muted:#6d7487;--line:#e2e6ef}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
@@ -23,11 +23,85 @@ header{background:#fff;border-bottom:1px solid var(--line);padding:12px 18px;pos
 .login{min-height:100vh;display:grid;place-items:center;padding:20px}.loginBox{width:min(430px,100%);background:#fff;padding:28px;border-radius:24px;box-shadow:0 20px 50px rgba(39,51,111,.15)}.loginBox .logo{width:230px;margin-bottom:20px}.loginBox h1{color:var(--navy)}label{display:block;margin:13px 0 6px;font-size:12px;font-weight:800;color:#4d5670}input,textarea{width:100%;border:1px solid #d7dce8;border-radius:11px;padding:11px 12px;outline:none}textarea{min-height:90px}.btn{border:0;border-radius:11px;padding:11px 13px;font-weight:800;cursor:pointer}.primary{background:var(--navy);color:#fff}.red{background:var(--red);color:#fff}.soft{background:#eef1f8;color:var(--navy)}
 .admin{min-height:100vh;display:grid;grid-template-columns:260px 1fr}.side{background:#202b63;padding:18px 14px;color:#fff}.side .logo{width:210px;background:#fff;border-radius:12px;padding:8px;margin-bottom:20px}.nav{display:block;width:100%;text-align:left;border:0;background:transparent;color:#dce1f5;padding:11px 12px;border-radius:10px;margin:4px 0;font-weight:700;cursor:pointer}.nav.active{background:#fff;color:var(--navy)}.main{padding:24px}.topbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}.topbar h1{margin:0;color:var(--navy)}.view{display:none}.view.active{display:block}.panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;max-width:900px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.item{border:1px dashed #cfd5e3;padding:12px;border-radius:13px;margin-top:10px}.itemTop{display:flex;justify-content:space-between;align-items:center}.item select{width:100%;border:1px solid #d7dce8;border-radius:11px;padding:11px 12px;background:#fff}.danger{border:0;background:#fff0f2;color:#c20d1d;border-radius:9px;padding:7px 10px;font-weight:800;cursor:pointer}.uploadBox{border:2px dashed #c9d0e2;background:#f8f9fd;border-radius:14px;padding:14px;margin-top:8px}.uploadBox b{display:block;color:var(--navy);margin-bottom:6px}.uploadInput{width:100%;padding:9px;background:#fff;border:1px solid #d7dce8;border-radius:10px}.fileBtn{display:inline-flex;align-items:center;gap:8px;background:#eef1f8;color:var(--navy);padding:9px 11px;border-radius:10px;font-weight:800;cursor:pointer;margin-top:8px}.fileBtn input{display:none}.imgFallback{height:100%;display:grid;place-items:center;color:#7a8297;font-weight:700;background:#eef1f8}.share{background:#f4f6fa;border:1px solid var(--line);padding:12px;border-radius:10px;word-break:break-all;margin:10px 0;font-size:12px}.note{background:#fff6f7;border-left:4px solid var(--red);padding:10px 12px;border-radius:8px;font-size:13px;color:#5b6275;margin-top:8px}
 @media(max-width:800px){.hero{grid-template-columns:1fr}.cards{grid-template-columns:1fr 1fr}.admin{grid-template-columns:1fr}.side{display:flex;overflow:auto;gap:4px;align-items:center}.side .logo{width:150px;margin:0 8px 0 0}.nav{width:auto;white-space:nowrap}.main{padding:16px}}
-@media(max-width:560px){header{padding:9px 12px}.headerInner .logo{width:170px}.public{padding:12px 10px 84px}.hero{padding:22px 18px;border-radius:20px}.hero h1{font-size:31px}.hero p{font-size:15px}.review{width:100%;justify-content:center}.cards,.grid2{grid-template-columns:1fr}.media{height:190px}
-.section{margin-top:20px}.section h2{font-size:27px;margin-bottom:3px}.instagramSection{margin-top:18px}.instagramSection .sub{font-size:13px;margin-bottom:9px}
-#instagramCards{gap:10px}#instagramCards .card{display:grid;grid-template-columns:112px 1fr;column-gap:13px;align-items:center;padding:11px;border-radius:17px}#instagramCards .media{grid-row:1/5;width:112px;height:112px;margin:0;border-radius:13px}#instagramCards .tag{align-self:end}#instagramCards h3{font-size:18px;margin:4px 0}#instagramCards p{font-size:14px;margin:0 0 5px;line-height:1.3}#instagramCards a{font-size:14px}
-.whatsappSection{margin-top:18px}.whatsappSection>h2{font-size:25px}.whatsappCard{grid-template-columns:96px 1fr;gap:12px;padding:11px;border-radius:17px}.whatsappCard .media{width:96px;height:96px;border-radius:13px}.whatsappCard h3{font-size:18px;margin:3px 0 4px}.whatsappCard p{font-size:13px;line-height:1.3;margin:0 0 5px}.whatsappCard a{font-size:14px}
-.mobileBar{display:flex;position:fixed;left:8px;right:8px;bottom:8px;background:#fff;border:1px solid var(--line);padding:7px;border-radius:16px;box-shadow:0 12px 35px rgba(20,30,70,.2);z-index:30}.mobileBar a,.mobileBar button{flex:1;text-align:center;text-decoration:none;padding:12px 8px;border-radius:11px;font-weight:800;border:0}.mobileReview{background:var(--red);color:#fff}.mobileShare{background:#eef1f8;color:var(--navy);margin-left:6px}}
+@media(max-width:560px){
+body{background:#f3f5fa;font-size:14px}
+header{padding:7px 10px;position:sticky;top:0;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);box-shadow:0 1px 0 rgba(0,0,0,.05)}
+.headerInner{min-height:50px}
+.headerInner .logo{width:142px;max-width:48vw}
+.lang{padding:6px 9px;font-size:12px;border-radius:12px}
+
+.public{padding:8px 8px 76px}
+.hero{padding:16px 14px;border-radius:18px;gap:12px;box-shadow:0 8px 24px rgba(39,51,111,.12)}
+.hero h1{font-size:24px;line-height:1.1;margin:6px 0 7px}
+.hero p{font-size:13px;line-height:1.4;margin:0 0 8px}
+.pill{padding:5px 8px;font-size:11px}
+.stars{font-size:18px;letter-spacing:2px;margin:5px 0 10px}
+.review,.shareBtn{padding:10px 12px;border-radius:11px;font-size:13px}
+.shareBtn{margin-left:5px}
+
+.info{padding:14px;border-radius:16px}
+.info b{font-size:20px;margin:2px 0}
+.info small{font-size:11px}
+.socialBtns{gap:5px;margin-top:8px}
+.socialBtns a{padding:6px 8px;border-radius:8px;font-size:11px}
+
+.section{margin-top:14px}
+.section h2{font-size:21px;line-height:1.1;margin:0 0 2px}
+.sub{font-size:11px;margin-bottom:7px}
+.cards{grid-template-columns:1fr;gap:8px}
+
+.card{padding:10px;border-radius:15px;box-shadow:0 4px 14px rgba(27,38,83,.05)}
+.card h3{font-size:16px;line-height:1.2;margin:4px 0}
+.card p{font-size:12px;line-height:1.35;margin:4px 0 6px}
+.card a{font-size:12px}
+.tag{font-size:9px}
+
+.media{height:128px;border-radius:12px;margin-bottom:8px}
+
+.instagramSection{margin-top:12px}
+#instagramCards{gap:8px}
+#instagramCards .card{display:grid;grid-template-columns:92px 1fr;column-gap:10px;align-items:center;padding:9px}
+#instagramCards .media{grid-row:1/5;width:92px;height:92px;margin:0;border-radius:11px}
+#instagramCards .tag{align-self:end}
+#instagramCards h3{font-size:15px;margin:2px 0}
+#instagramCards p{font-size:11px;line-height:1.3;margin:0 0 4px}
+#instagramCards a{font-size:11px}
+
+#customSection .card{display:grid;grid-template-columns:92px 1fr;column-gap:10px;align-items:center;padding:9px}
+#customSection .media{grid-row:1/5;width:92px;height:92px;margin:0;border-radius:11px}
+#customSection .tag{align-self:end}
+#customSection h3{font-size:15px;margin:2px 0}
+#customSection p{font-size:11px;line-height:1.3;margin:0 0 4px}
+#customSection a{font-size:11px}
+
+.whatsappSection{margin-top:12px}
+.whatsappSection>h2{font-size:20px}
+.whatsappCard{grid-template-columns:78px 1fr;gap:9px;padding:9px;border-radius:15px}
+.whatsappCard .media{width:78px;height:78px;border-radius:10px}
+.whatsappCard h3{font-size:15px;margin:2px 0}
+.whatsappCard p{font-size:11px;line-height:1.3;margin:0 0 4px}
+.whatsappCard a{font-size:11px}
+
+.mobileBar{display:flex;position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);backdrop-filter:blur(14px);border:1px solid rgba(39,51,111,.10);padding:5px;border-radius:15px;box-shadow:0 8px 24px rgba(20,30,70,.16);z-index:30}
+.mobileBar a,.mobileBar button{flex:1;text-align:center;text-decoration:none;padding:10px 6px;border-radius:10px;font-weight:800;border:0;font-size:12px}
+.mobileReview{background:var(--red);color:#fff}
+.mobileShare{background:#eef1f8;color:var(--navy);margin-left:5px}
+
+.admin{grid-template-columns:1fr}
+.side{display:flex;overflow:auto;gap:3px;align-items:center;padding:8px}
+.side .logo{width:115px;margin:0 6px 0 0;padding:5px}
+.nav{width:auto;white-space:nowrap;padding:8px 9px;font-size:12px}
+.main{padding:10px}
+.topbar{margin-bottom:10px}
+.topbar h1{font-size:20px}
+.panel{padding:12px;border-radius:14px}
+.grid2{grid-template-columns:1fr}
+.item{padding:9px;border-radius:11px}
+input,textarea,.item select{padding:9px 10px;font-size:13px}
+textarea{min-height:72px}
+.btn{padding:9px 10px;font-size:12px}
+.uploadBox{padding:10px}
+}
 </style>
 </head>
 <body>
