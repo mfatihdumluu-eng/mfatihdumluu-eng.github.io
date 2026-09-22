@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Emigro Review</title><meta name="theme-color" content="#173f2a">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div id="publicApp" class="hidden">
+<header class="top"><div class="brand"><span class="mark">E</span><div><b>EMIGRO</b><small>Fresh • Friendly • Always near</small></div></div></header>
+<main class="wrap">
+<section class="hero"><div><span class="pill">✓ Bedankt voor je bezoek</span><h1 id="pubTitle">Hoe was je ervaring?</h1><div class="stars">★★★★★</div><p id="pubText">Jouw mening helpt ons om elke dag beter te worden.</p><a id="reviewBtn" class="primary" target="_blank" rel="noopener">⭐ Schrijf een Google-review</a></div><aside><span>Locatie</span><b id="pubBranch">Emigro</b><small id="pubAddress"></small></aside></section>
+<section id="igSection" class="section hidden"><div class="sectionHead"><h2>Laatste Instagram-posts</h2><span>Bekijk wat er nieuw is</span></div><div id="igGrid" class="grid"></div></section>
+<section id="waSection" class="section hidden"><div class="sectionHead"><h2>WhatsApp-groepen</h2><span>Blijf op de hoogte</span></div><div id="waGrid" class="grid"></div></section>
+<footer>© Emigro • Review & community page</footer>
+</main></div>
+<div id="loginView" class="loginBg hidden"><div class="loginCard"><div class="brand dark"><span class="mark">E</span><div><b>EMIGRO REVIEW</b><small>Admin portal</small></div></div><h1>Inloggen</h1><p>Beheer Google Review, Instagram en WhatsApp-content.</p><label>E-mail</label><input id="loginEmail" type="email"><label>Wachtwoord</label><input id="loginPass" type="password"><button id="loginBtn" class="loginBtn">Inloggen</button><div id="loginError" class="error hidden">E-mail of wachtwoord is onjuist.</div></div></div>
+<div id="adminView" class="admin hidden">
+<aside class="sidebar"><div class="sideTitle"><b>EMIGRO Review</b><span>Content dashboard</span></div><div class="nav active">◉ Overzicht</div><div class="nav">★ Google Review</div><div class="nav">◎ Instagram</div><div class="nav">◈ WhatsApp</div><div class="nav">▣ Publiceer</div></aside>
+<main class="adminMain"><div class="adminTop"><div><h1>Review dashboard</h1><p>Vul je gegevens in en publiceer één klantlink.</p></div><button id="logoutBtn" class="ghost">Uitloggen</button></div>
+<div class="adminGrid">
+<section class="panel"><h2>Google Review</h2><p>Hoofdgegevens die klanten bovenaan zien.</p><div class="two"><div><label>Vestiging</label><input id="branch" placeholder="Emigro Den Haag"></div><div><label>Adres</label><input id="address" placeholder="Straat 1, Den Haag"></div></div><label>Google Review-link</label><input id="reviewUrl" placeholder="https://g.page/r/.../review"><label>Titel</label><input id="title"><label>Tekst</label><textarea id="text"></textarea></section>
+<section class="panel"><h2>Publiceren</h2><p>Maak van je huidige gegevens een deelbare klantlink.</p><button id="publishBtn" class="publish">Link genereren</button><div id="shareBox" class="shareBox">Nog geen link gegenereerd.</div><img id="qrImg" class="qr hidden" alt="QR code"><div class="btnRow"><button id="copyBtn" class="ghost">Link kopiëren</button><button id="openBtn" class="ghost">Klantpagina openen</button></div><div class="notice">De gegenereerde klantlink bevat je actuele instellingen. Deel die link of QR met klanten.</div></section>
+<section class="panel"><h2>Instagram</h2><p>Voeg je laatste posts toe.</p><div id="igAdmin"></div><button id="addIg" class="add">+ Instagram-post toevoegen</button></section>
+<section class="panel"><h2>WhatsApp</h2><p>Voeg groepen of kanalen toe.</p><div id="waAdmin"></div><button id="addWa" class="add">+ WhatsApp-groep toevoegen</button></section>
+</div>
+<div class="savebar"><button id="saveBtn" class="save">✓ Opslaan op dit apparaat</button><span id="savedMsg"></span></div>
+</main></div>
+<script src="./app.js"></script>
+</body></html>
