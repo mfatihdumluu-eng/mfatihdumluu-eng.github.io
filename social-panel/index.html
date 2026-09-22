@@ -288,9 +288,38 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
    if(s.logo){brand.classList.add("has-logo");brand.innerHTML='<img src="'+String(s.logo).replace(/"/g,"&quot;")+'" alt="Emigro">'}
    else{brand.classList.remove("has-logo");brand.innerHTML=(s.brand||"EMIGRO")+'<small>'+(s.subtitle||"SUPERMARKT")+'</small>'}
  }
+ window.__applyEmigroSettings=apply;
+ window.addEventListener("message",e=>{if(e&&e.data&&e.data.type==="emigro-preview-settings")apply(e.data.settings||{})});
  fetch(SETTINGS_URL+"&_="+Date.now(),{cache:"no-store",headers:{apikey:ANON,Authorization:"Bearer "+ANON}})
   .then(r=>r.ok?r.json():Promise.reject(r.status)).then(rows=>apply(rows&&rows[0]?rows[0].data:{})).catch(()=>{});
 })();
 </script>
 
+
+<script>
+(function(){
+ const URL='https://hroarfuwpfsqilsijwpp.supabase.co/rest/v1/emigro_dagdeals_analytics';
+ const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhyb2FyZnV3cGZzcWlsc2lqd3BwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTI5MjYsImV4cCI6MjEwNTY2ODkyNn0.sXaqy76ktdZJiesW1ZSppJH6t4Qi3AdLIhHc1umzBks';
+ let sid=sessionStorage.getItem("emigroAnalyticsSid");
+ if(!sid){sid=(crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(16).slice(2));sessionStorage.setItem("emigroAnalyticsSid",sid)}
+ function device(){return innerWidth<700?"mobile":innerWidth<1100?"tablet":"desktop"}
+ function ref(){try{return document.referrer?new URL(document.referrer).hostname:"Direct"}catch{return"Direct"}}
+ function send(event,target=""){
+   const q=new URLSearchParams(location.search);
+   const body={session_id:sid,event,page:location.pathname,target:String(target||"").slice(0,120),device:device(),referrer:ref(),screen_w:screen.width||innerWidth,language:navigator.language||"",utm_source:q.get("utm_source")||""};
+   fetch(URL,{method:"POST",keepalive:true,headers:{apikey:ANON,Authorization:"Bearer "+ANON,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(body)}).catch(()=>{});
+ }
+ send("page_view");
+ document.addEventListener("click",e=>{
+   const el=e.target.closest("a,button"); if(!el)return;
+   let ev="click",target=el.id||el.dataset.filter||el.dataset.fav||el.getAttribute("href")||el.textContent.trim().slice(0,60);
+   if(el.closest(".hero"))ev="hero_open";
+   else if(el.classList.contains("favbtn"))ev="favorite";
+   else if(String(el.getAttribute("href")||"").includes("whatsapp"))ev="whatsapp";
+   else if(String(el.getAttribute("href")||"").includes("instagram"))ev="instagram";
+   else if(el.closest(".desktopnav")||el.closest(".bottom"))ev="navigation";
+   send(ev,target);
+ },{capture:true});
+})();
+</script>
 </body></html>
