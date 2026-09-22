@@ -107,7 +107,7 @@ body.adminLocked>header,body.adminLocked>main,body.adminLocked>.modal{visibility
  <div class="field"><label>SECUNDAIRE TEKST</label><div class="colorRow"><input id="setMuted" type="color" value="#777777"><input id="setMutedText" value="#777777"></div></div>
  <div class="field wide"><div class="settingsHint">Je bent als beheerder ingelogd. Instellingen worden centraal opgeslagen; bezoekers zien het nieuwe logo en de kleuren automatisch.</div></div>
 </div>
-<div class="previewPane">
+<div class="previewPane" id="previewPane">
   <div class="previewHead"><div><b>Live preview</b><div class="muted">Değişiklikleri canlıya göndermeden gör.</div></div><div class="previewDevices"><button id="previewDesktop" class="on" type="button">Desktop</button><button id="previewMobile" type="button">Mobile</button></div></div>
   <div class="previewStage"><iframe id="previewFrame" class="desktop" src="./index.html?preview=1" title="Dagdeals preview"></iframe></div>
 </div></div>
@@ -309,4 +309,33 @@ $("xlsxInput").addEventListener("change",e=>{
 
 $("templateBtn").addEventListener("click",()=>{if(typeof XLSX==="undefined"){alert("Excel-module wordt nog geladen. Probeer over een paar seconden opnieuw.");return}const rows=[{"Datum":"2026-09-23","Starttijd":"08:00","Productnaam":"Voorbeeld product","Eenheid":"1 kg","Categorie":"Dranken","Normale prijs":5.99,"Dagdeal prijs":3.99,"OP=OP":"Nee","Omschrijving":"Omschrijving","Status":"Klaar","Opmerking":""}];const ws=XLSX.utils.json_to_sheet(rows),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Dagdeals");XLSX.writeFile(wb,"emigro-dagdeals-import.xlsx")});
 render();setTimeout(sendPreview,700);
-</script></body></html>
+</script>
+<script>
+/* ADMIN_BUTTON_RESCUE_V1 */
+(function(){
+  function byId(id){return document.getElementById(id)}
+  function openModal(id){const el=byId(id);if(el)el.classList.add("on")}
+  function closeModal(id){const el=byId(id);if(el)el.classList.remove("on")}
+  document.addEventListener("click",function(e){
+    const b=e.target.closest("button,[role=button]");
+    if(!b)return;
+    const id=b.id||"";
+    try{
+      if(id==="settingsBtn"){e.preventDefault(); if(typeof openSettings==="function")openSettings(); else openModal("settingsModal")}
+      else if(id==="previewBtn"){e.preventDefault(); if(typeof openSettings==="function")openSettings(); else openModal("settingsModal");setTimeout(()=>byId("previewPane")?.scrollIntoView({behavior:"smooth",block:"center"}),180)}
+      else if(id==="statsBtn"){e.preventDefault(); if(typeof openAnalytics==="function")openAnalytics(); else openModal("analyticsModal")}
+      else if(id==="publishBtn"){e.preventDefault(); if(typeof publishProducts==="function")publishProducts(); else alert("Yayın fonksiyonu yüklenemedi. Sayfayı yenileyip tekrar deneyin.")}
+      else if(id==="newBtn"){e.preventDefault(); if(typeof openEditor==="function")openEditor(null); else openModal("editor")}
+      else if(id==="settingsClose"||id==="settingsCancel"){e.preventDefault();closeModal("settingsModal")}
+      else if(id==="statsClose"){e.preventDefault();closeModal("analyticsModal")}
+      else if(id==="closeBtn"||id==="cancelBtn"){e.preventDefault();closeModal("editor")}
+      else if(id==="previewDesktop"){
+        e.preventDefault();const f=byId("previewFrame");if(f){f.className="desktop"};b.classList.add("on");byId("previewMobile")?.classList.remove("on")
+      } else if(id==="previewMobile"){
+        e.preventDefault();const f=byId("previewFrame");if(f){f.className="mobile"};b.classList.add("on");byId("previewDesktop")?.classList.remove("on")
+      }
+    }catch(err){console.error("Admin button rescue:",err);alert("İşlem sırasında hata oluştu: "+(err.message||err))}
+  },true);
+})();
+</script>
+</body></html>
