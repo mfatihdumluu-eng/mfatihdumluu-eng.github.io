@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emigro Review</title><meta name="build" content="social-panel-unified-v4.6-failsafe">
+<title>Emigro Review</title><meta name="build" content="social-panel-unified-v4.7-home-daily-ad">
 <style>
 :root{--navy:#27336f;--red:#ef1425;--bg:#f5f7fb;--text:#172033;--muted:#6d7487;--line:#e2e6ef}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
@@ -439,6 +439,36 @@ textarea{min-height:72px}
   #dagdealsView{padding-top:8px}
   #dagdealsView .community{margin:0 12px 22px!important}
 }
+
+/* homepage daily Dagdeal */
+.homeDailyWrap{background:#fff;border:1px solid var(--line);border-radius:28px;padding:24px;box-shadow:0 12px 34px rgba(27,38,83,.07)}
+.homeDailyHead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.homeDailyEyebrow{font-size:10px;font-weight:1000;color:var(--red);letter-spacing:1px}
+.homeDailyHead h2{margin:4px 0 0;font-size:30px;color:var(--navy)}
+#homeDailyAll{border:0;background:var(--navy);color:#fff;font-weight:900;border-radius:12px;padding:10px 14px;cursor:pointer}
+.homeDailyCard{display:grid;grid-template-columns:1fr 1fr;min-height:260px;border-radius:24px;overflow:hidden;background:linear-gradient(135deg,var(--red),#b40818);color:#fff;cursor:pointer;position:relative}
+.homeDailyVisual{display:grid;place-items:center;padding:18px}
+.homeDailyVisual img{width:100%;height:220px;object-fit:contain;filter:drop-shadow(0 14px 14px #7004)}
+.homeDailyEmoji{font-size:120px}
+.homeDailyCopy{display:flex;flex-direction:column;justify-content:center;padding:28px}
+.homeDailyCopy .pillrow{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.homeDailyCopy .livepill{background:#fff;color:var(--red);font-size:9px;font-weight:1000;border-radius:99px;padding:7px 10px}
+.homeDailyCopy .opop{background:#171717;color:#fff;font-size:9px;font-weight:1000;border-radius:99px;padding:7px 10px}
+.homeDailyCopy h3{font-size:40px;line-height:1;margin:12px 0 6px}
+.homeDailyCopy .unit{font-size:13px;opacity:.82}
+.homeDailyCopy del{margin-top:16px;opacity:.7}
+.homeDailyCopy .price{font-size:54px;font-weight:1000;line-height:1}
+.homeDailyCopy .locked{font-size:18px;font-weight:900;margin-top:16px}
+.homeDailyLoading{grid-column:1/-1;display:grid;place-items:center;min-height:220px;font-weight:900}
+@media(max-width:800px){
+ .homeDailyWrap{padding:14px;border-radius:22px}
+ .homeDailyHead h2{font-size:23px}
+ #homeDailyAll{font-size:10px;padding:8px 10px}
+ .homeDailyCard{grid-template-columns:.9fr 1.1fr;min-height:190px;border-radius:20px}
+ .homeDailyVisual{padding:8px}.homeDailyVisual img{height:155px}.homeDailyEmoji{font-size:82px}
+ .homeDailyCopy{padding:18px 12px 18px 0}.homeDailyCopy h3{font-size:25px}.homeDailyCopy .price{font-size:38px}.homeDailyCopy .locked{font-size:14px}
+}
+
 </style>
 <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -503,6 +533,20 @@ textarea{min-height:72px}
 </div>
 </section>
 
+<section id="homeDailyDeal" class="section">
+  <div class="homeDailyWrap">
+    <div class="homeDailyHead">
+      <div>
+        <span class="homeDailyEyebrow">LIVE VANDAAG</span>
+        <h2>Dagdeal van vandaag</h2>
+      </div>
+      <button id="homeDailyAll" type="button">Alle Dagdeals →</button>
+    </div>
+    <div id="homeDailyCard" class="homeDailyCard">
+      <div class="homeDailyLoading">Dagdeal wordt geladen...</div>
+    </div>
+  </div>
+</section>
 
 <section id="updatesSection" class="section instagramSection"><h2 id="igTitle"></h2><div id="igSub" class="sub"></div><div id="instagramCards" class="cards"></div></section>
 <section id="customSection" class="section hide"><h2 id="customTitle">Öne Çıkanlar</h2><div id="customSub" class="sub"></div><div id="customCards" class="cards"></div></section>
@@ -697,7 +741,7 @@ async function showPublic(){
     const d=await fetchRemoteData();
     $("#reviewBtn").href=d.reviewUrl||DEFAULT.reviewUrl;
     $("#mobileReview").href=d.reviewUrl||DEFAULT.reviewUrl;
-    renderInstagram(d);renderItems(d);
+    renderInstagram(d);renderItems(d);await refreshDagdeals();
     applyLang(localStorage.getItem("emigroLang")||detectLang());
     if(d.title) $("#pubTitle").textContent=d.title;
     if(d.text) $("#pubText").textContent=d.text;
@@ -901,8 +945,20 @@ function ddOpen(id){if(!$("#ddSheet"))return;
   $("#ddSheet .dd-share").onclick=()=>{const txt="Emigro Dagdeal: "+p.name+" - "+location.href.split("#")[0]+"#dagdealsSection";location.href="https://wa.me/?text="+encodeURIComponent(txt)};
 }
 async function refreshDagdeals(){
-  try{__ddItems=await fetchDagdealsPublic();renderDagdeals()}catch(e){console.warn("Dagdeals read failed",e)}
+  try{__ddItems=await fetchDagdealsPublic();renderDagdeals();renderHomeDailyDeal()}catch(e){console.warn("Dagdeals read failed",e)}
 }
+
+function renderHomeDailyDeal(){
+  const box=$("#homeDailyCard"); if(!box)return;
+  const all=(__ddItems||[]).filter(x=>x.status!=="Niet publiceren");
+  const p=all.find(x=>ddState(x)==="live")||all.find(x=>ddState(x)==="upcoming")||all[all.length-1];
+  if(!p){box.innerHTML='<div class="homeDailyLoading">Nog geen Dagdeal beschikbaar.</div>';return}
+  const st=ddState(p),locked=st==="upcoming";
+  box.innerHTML='<div class="homeDailyVisual">'+(p.image_url?'<img src="'+String(p.image_url).replace(/"/g,"&quot;")+'" alt="'+escapeHtml(p.name)+'">':'<span class="homeDailyEmoji">'+ddEmoji(p.category)+'</span>')+'</div><div class="homeDailyCopy"><div class="pillrow"><span class="livepill">'+(st==="live"?"● LIVE VANDAAG":st==="upcoming"?"BINNENKORT":"AFGELOPEN")+'</span>'+(p.op_op?'<span class="opop">OP = OP</span>':'')+'</div><h3>'+escapeHtml(p.name)+'</h3><div class="unit">'+escapeHtml(p.unit||"")+'</div><del>'+ddMoney(p.regular_price)+'</del>'+(locked?'<div class="locked">🔒 Dagdealprijs blijft nog geheim</div>':'<div class="price">'+ddMoney(p.deal_price)+'</div>')+'</div>';
+  box.onclick=()=>showPublicView("dagdeals");
+}
+$("#homeDailyAll")?.addEventListener("click",()=>showPublicView("dagdeals"));
+
 
 /* Dagdeals admin */
 async function ddEnsureAdminData(){try{__ddAdminItems=await fetchDagdealsAdmin();ddRenderAdmin()}catch(e){console.warn(e);__ddAdminItems=[];ddRenderAdmin()}}
