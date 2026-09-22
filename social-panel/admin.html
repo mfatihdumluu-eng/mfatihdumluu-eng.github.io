@@ -1,0 +1,148 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Emigro Dagdeals Beheer</title>
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f3f0;color:#171717}
+header{height:76px;background:#171717;color:#fff;display:flex;align-items:center;padding:0 34px;font-size:27px;font-weight:1000}header i{color:#e30613;font-style:normal}
+main{max-width:1450px;margin:auto;padding:30px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}.top h1{margin:0 0 4px;font-size:30px}.muted{font-size:11px;color:#777}
+button,.btn{border:1px solid #ddd;background:#fff;border-radius:11px;padding:10px 14px;font-weight:850;cursor:pointer}.red{background:#e30613;color:#fff;border-color:#e30613}.black{background:#171717;color:#fff}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}.stat,.card{background:#fff;border:1px solid #e6e2dc;border-radius:18px}.stat{padding:17px}.stat small{font-size:9px;color:#888;font-weight:900}.stat b{display:block;font-size:28px;margin-top:3px}
+.card{padding:17px}.tabletop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.scroll{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:1050px}th,td{padding:11px 9px;border-bottom:1px solid #eee;text-align:left;font-size:10px;vertical-align:middle}th{background:#faf9f7;color:#777;font-size:9px}tbody tr{cursor:pointer}tbody tr:hover{background:#fff8f8}
+.photo{width:55px;height:55px;border:1px dashed #bbb;border-radius:11px;display:grid;place-items:center;overflow:hidden;cursor:pointer}.photo img{width:100%;height:100%;object-fit:contain}.photo input{display:none}.description{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sold{color:#e30613;font-weight:1000}.actions{display:flex;gap:5px;flex-wrap:wrap}.actions button{padding:7px 9px;font-size:9px}
+.modal{display:none;position:fixed;inset:0;background:#0009;z-index:50;align-items:center;justify-content:center;padding:25px}.modal.on{display:flex}.box{background:#fff;width:min(820px,100%);max-height:92vh;overflow:auto;border-radius:24px;padding:24px;box-shadow:0 25px 80px #0004}.boxhead{display:flex;justify-content:space-between;align-items:flex-start}.boxhead h2{margin:0}.x{width:38px;height:38px;border-radius:50%;padding:0;font-size:20px}.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px;margin-top:20px}.field label{font-size:9px;font-weight:900;display:block;margin-bottom:5px}.field input,.field select,.field textarea{width:100%;border:1px solid #ddd;border-radius:10px;padding:10px;font:inherit}.field textarea{min-height:115px;resize:vertical}.wide{grid-column:1/-1}.savebar{display:flex;gap:8px;margin-top:18px}
+.importnote{font-size:10px;color:#777;background:#faf8f5;padding:11px;border-radius:11px;margin-top:10px}
+@media(max-width:700px){main{padding:15px}.stats{grid-template-columns:1fr 1fr}.formgrid{grid-template-columns:1fr}.wide{grid-column:auto}}
+
+.settingsGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:18px}.settingsGrid .wide{grid-column:1/-1}.colorRow{display:grid;grid-template-columns:54px 1fr;gap:10px;align-items:center}.colorRow input[type=color]{width:54px;height:42px;padding:3px;border:1px solid #ddd;border-radius:10px;background:#fff}.logoPreview{min-height:100px;border:1px dashed #d7d4ce;background:#faf9f6;border-radius:15px;display:grid;place-items:center;padding:15px}.logoPreview img{max-width:260px;max-height:90px;object-fit:contain}.settingsHint{font-size:10px;line-height:1.5;color:#777;background:#faf8f5;border-radius:12px;padding:11px}.settingsStatus{font-size:11px;font-weight:800;margin-top:10px}.settingsStatus.ok{color:#11824b}.settingsStatus.err{color:#b40613}
+@media(max-width:700px){.settingsGrid{grid-template-columns:1fr}.settingsGrid .wide{grid-column:auto}}
+
+</style></head><body>
+<header>emi<i>gro</i>&nbsp; Dagdeals Beheer</header>
+<main><div class="top"><div><h1>Productbeheer</h1><div class="muted">Klik op een product om alle instellingen en de omschrijving in een popup te openen.</div></div><div>
+<label class="btn red">Excel uploaden<input id="xlsxInput" type="file" accept=".xlsx,.xls" hidden></label>
+<button class="btn" id="templateBtn" type="button">Excel sjabloon</button>
+<button class="btn" id="settingsBtn">⚙ Instellingen</button>
+<button class="btn red" id="newBtn">+ Product</button></div></div>
+<div class="stats"><div class="stat"><small>TOTAAL</small><b id="sTotal">0</b></div><div class="stat"><small>ACTIEF</small><b id="sActive">0</b></div><div class="stat"><small>UITVERKOCHT</small><b id="sSold">0</b></div><div class="stat"><small>MET FOTO</small><b id="sPhoto">0</b></div></div>
+<div class="card"><div class="tabletop"><b>Dagdeal producten</b><span class="muted">Foto uploaden kan direct in de eerste kolom.</span></div>
+<div class="scroll"><table><thead><tr><th>FOTO</th><th>DATUM</th><th>PRODUCT</th><th>PRIJS</th><th>OMSCHRIJVING</th><th>STATUS</th><th>ACTIES</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="importnote">Excel (.xlsx/.xls): Datum, Starttijd, Productnaam, Eenheid, Categorie, Normale prijs, Dagdeal prijs, OP=OP, Omschrijving, Status, Opmerking. Rijen met “Niet publiceren” worden overgeslagen.</div></div></main>
+
+
+<div class="modal" id="settingsModal"><div class="box">
+<div class="boxhead"><div><h2>Instellingen</h2><div class="muted">Logo, merknaam en kleuren van de live Dagdeals-site.</div></div><button class="x" id="settingsClose">×</button></div>
+<div class="settingsGrid">
+ <div class="field"><label>MERKNAAM</label><input id="setBrand" value="EMIGRO"></div>
+ <div class="field"><label>SUBTITEL</label><input id="setSubtitle" value="SUPERMARKT"></div>
+ <div class="field wide"><label>LOGO</label><div class="logoPreview" id="logoPreview"><span class="muted">Geen logo — tekstlogo wordt gebruikt.</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><label class="btn">Logo kiezen<input id="setLogoFile" type="file" accept="image/*" hidden></label><button class="btn" id="removeLogo" type="button">Logo verwijderen</button></div></div>
+ <div class="field"><label>HOOFDKLEUR</label><div class="colorRow"><input id="setPrimary" type="color" value="#cf1019"><input id="setPrimaryText" value="#cf1019"></div></div>
+ <div class="field"><label>DONKERE HOOFDKLEUR</label><div class="colorRow"><input id="setPrimaryDark" type="color" value="#a8070d"><input id="setPrimaryDarkText" value="#a8070d"></div></div>
+ <div class="field"><label>ACHTERGROND</label><div class="colorRow"><input id="setPaper" type="color" value="#f6f5f2"><input id="setPaperText" value="#f6f5f2"></div></div>
+ <div class="field"><label>TEKSTKLEUR</label><div class="colorRow"><input id="setInk" type="color" value="#151515"><input id="setInkText" value="#151515"></div></div>
+ <div class="field"><label>SECUNDAIRE TEKST</label><div class="colorRow"><input id="setMuted" type="color" value="#777777"><input id="setMutedText" value="#777777"></div></div>
+ <div class="field wide"><label>BEHEER WACHTWOORD</label><input id="settingsPassword" type="password" placeholder="Vul je beheerwachtwoord in om live op te slaan"><div class="settingsHint">De instellingen worden centraal opgeslagen. Na opslaan ziet iedere bezoeker automatisch het nieuwe logo en de nieuwe kleuren.</div></div>
+</div>
+<div class="savebar"><button class="red" id="settingsSave">Live opslaan</button><button id="settingsCancel">Annuleren</button></div><div id="settingsStatus" class="settingsStatus"></div>
+</div></div>
+
+<div class="modal" id="editor"><div class="box">
+<div class="boxhead"><div><h2 id="editorTitle">Productinstellingen</h2><div class="muted">Alle wijzigingen worden opgeslagen wanneer je op “Wijzigingen opslaan” klikt.</div></div><button class="x" id="closeBtn">×</button></div>
+<div class="formgrid">
+<input type="hidden" id="pId">
+<div class="field"><label>DATUM</label><input id="pDate" type="date"></div>
+<div class="field"><label>STARTTIJD</label><input id="pTime" type="time"></div>
+<div class="field"><label>PRODUCTNAAM</label><input id="pName"></div>
+<div class="field"><label>EENHEID</label><input id="pUnit"></div>
+<div class="field"><label>CATEGORIE</label><select id="pCat"><option>Zuivel</option><option>Slagerij</option><option>Groente & fruit</option><option>Dranken</option><option>Voorraadkast</option><option>Huishouden</option><option>Bakkerij</option></select></div>
+<div class="field"><label>NORMALE PRIJS (€)</label><input id="pOld" type="number" step="0.01"></div>
+<div class="field"><label>DAGDEAL PRIJS (€)</label><input id="pDeal" type="number" step="0.01"></div>
+<div class="field"><label>OP = OP</label><select id="pOp"><option>Nee</option><option>Ja</option></select></div>
+<div class="field"><label>STATUS</label><select id="pStatus"><option>Klaar</option><option>Correctie nodig</option><option>Niet publiceren</option></select></div>
+<div class="field wide"><label>OMSCHRIJVING — ALLEEN ZICHTBAAR IN PRODUCTDETAIL</label><textarea id="pDesc"></textarea></div>
+</div><div class="savebar"><button class="red" id="saveBtn">Wijzigingen opslaan</button><button id="cancelBtn">Annuleren</button></div></div></div>
+
+<script>
+const DEMO=[{"id": 1, "date": "2026-09-22", "time": "08:00", "name": "Mogu Mogu", "unit": "320 ml", "cat": "Dranken", "old": 1.69, "deal": 0.99, "opop": "Ja", "description": "Verfrissende fruitdrank. Alleen vandaag extra voordelig.", "status": "Klaar", "sold": false}, {"id": 2, "date": "2026-09-23", "time": "08:00", "name": "Rundersucuk", "unit": "450 g", "cat": "Slagerij", "old": 8.99, "deal": 5.99, "opop": "Nee", "description": "Kruidige rundersucuk voor ontbijt en warme gerechten.", "status": "Klaar", "sold": false}, {"id": 3, "date": "2026-09-24", "time": "08:00", "name": "Ayran", "unit": "1 L", "cat": "Zuivel", "old": 1.79, "deal": 1.19, "opop": "Nee", "description": "Frisse yoghurtdrank. Koel serveren.", "status": "Klaar", "sold": false}, {"id": 4, "date": "2026-09-25", "time": "08:00", "name": "Roomboter", "unit": "500 g", "cat": "Zuivel", "old": 5.99, "deal": 4.29, "opop": "Nee", "description": "Romige boter voor ontbijt, bakken en koken.", "status": "Klaar", "sold": false}, {"id": 5, "date": "2026-09-26", "time": "08:00", "name": "Rode paprika", "unit": "1 kg", "cat": "Groente & fruit", "old": 4.49, "deal": 2.99, "opop": "Ja", "description": "Verse rode paprika's per kilo.", "status": "Klaar", "sold": false}, {"id": 6, "date": "2026-09-27", "time": "08:00", "name": "Baklava", "unit": "1 kg", "cat": "Bakkerij", "old": 14.99, "deal": 10.99, "opop": "Ja", "description": "Knapperige baklava voor bij koffie of thee.", "status": "Klaar", "sold": false}];
+const KEY="emigro_admin_v8_products", IMGKEY="emigro_admin_v8_images";
+let products=JSON.parse(localStorage.getItem(KEY)||"null") || structuredClone(DEMO);
+let images=JSON.parse(localStorage.getItem(IMGKEY)||"{}");
+const $=id=>document.getElementById(id);
+
+const SUPABASE_URL='https://hroarfuwpfsqilsijwpp.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhyb2FyZnV3cGZzcWlsc2lqd3BwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTI5MjYsImV4cCI6MjEwNTY2ODkyNn0.sXaqy76ktdZJiesW1ZSppJH6t4Qi3AdLIhHc1umzBks';
+const DD_ADMIN_API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-admin";
+const SETTINGS_URL=SUPABASE_URL+"/rest/v1/emigro_dagdeals_settings?id=eq.main&select=data";
+let liveSettings={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:""};
+let settingsToken=sessionStorage.getItem("emigroDagSettingsToken")||localStorage.getItem("emigroDagSettingsToken")||"";
+function setStatus(msg,ok=true){const el=$("settingsStatus");el.textContent=msg||"";el.className="settingsStatus "+(ok?"ok":"err")}
+function syncColor(a,b){$(a).addEventListener("input",()=>$(b).value=$(a).value);$(b).addEventListener("input",()=>{if(/^#[0-9a-f]{6}$/i.test($(b).value))$(a).value=$(b).value})}
+[["setPrimary","setPrimaryText"],["setPrimaryDark","setPrimaryDarkText"],["setPaper","setPaperText"],["setInk","setInkText"],["setMuted","setMutedText"]].forEach(x=>syncColor(x[0],x[1]));
+function fillSettings(s){liveSettings=Object.assign({},liveSettings,s||{});$("setBrand").value=liveSettings.brand||"EMIGRO";$("setSubtitle").value=liveSettings.subtitle||"SUPERMARKT";const colorPairs=[["setPrimary","setPrimaryText","primary"],["setPrimaryDark","setPrimaryDarkText","primaryDark"],["setPaper","setPaperText","paper"],["setInk","setInkText","ink"],["setMuted","setMutedText","muted"]];
+ colorPairs.forEach(([a,b,k])=>{const v=liveSettings[k]||$(a).value;$(a).value=v;$(b).value=v});
+ $("logoPreview").innerHTML=liveSettings.logo?'<img src="'+liveSettings.logo.replace(/"/g,"&quot;")+'" alt="Logo">':'<span class="muted">Geen logo — tekstlogo wordt gebruikt.</span>';
+}
+async function loadSettings(){try{const r=await fetch(SETTINGS_URL+"&_="+Date.now(),{cache:"no-store",headers:{apikey:SUPABASE_ANON,Authorization:"Bearer "+SUPABASE_ANON}});const rows=await r.json();fillSettings(rows&&rows[0]?rows[0].data:{})}catch(e){setStatus("Instellingen konden niet worden geladen.",false)}}
+async function settingsApi(payload){const r=await fetch(DD_ADMIN_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
+async function ensureSettingsToken(){if(settingsToken)return settingsToken;const password=$("settingsPassword").value;if(!password)throw new Error("Vul eerst het beheerwachtwoord in.");const j=await settingsApi({action:"login",email:"mfatihdumluu@gmail.com",password});settingsToken=j.token;sessionStorage.setItem("emigroDagSettingsToken",settingsToken);return settingsToken}
+function openSettings(){$("settingsModal").classList.add("on");setStatus("");loadSettings()}
+function closeSettings(){$("settingsModal").classList.remove("on")}
+$("settingsBtn").addEventListener("click",openSettings);$("settingsClose").addEventListener("click",closeSettings);$("settingsCancel").addEventListener("click",closeSettings);$("settingsModal").addEventListener("click",e=>{if(e.target===$("settingsModal"))closeSettings()});
+$("setLogoFile").addEventListener("change",e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(img.width,img.height)),cv=document.createElement("canvas");cv.width=Math.round(img.width*scale);cv.height=Math.round(img.height*scale);cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);liveSettings.logo=cv.toDataURL("image/png",0.92);fillSettings(liveSettings)};img.src=r.result};r.readAsDataURL(f)});
+$("removeLogo").addEventListener("click",()=>{liveSettings.logo="";fillSettings(liveSettings)});
+$("settingsSave").addEventListener("click",async()=>{try{setStatus("Opslaan...");const token=await ensureSettingsToken();const settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimaryText").value,primaryDark:$("setPrimaryDarkText").value,paper:$("setPaperText").value,ink:$("setInkText").value,muted:$("setMutedText").value,logo:liveSettings.logo||""};await settingsApi({action:"save_settings",token,settings});liveSettings=settings;setStatus("Live opgeslagen ✓");}catch(e){if(String(e.message).includes("unauthorized")){settingsToken="";sessionStorage.removeItem("emigroDagSettingsToken")}setStatus(e.message||"Opslaan mislukt",false)}});
+
+function money(v){return "€"+Number(v||0).toFixed(2).replace(".",",")}
+function persist(){localStorage.setItem(KEY,JSON.stringify(products));localStorage.setItem(IMGKEY,JSON.stringify(images));render()}
+function render(){
+ products.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+ $("rows").innerHTML=products.map(p=>`<tr data-row="${p.id}">
+ <td><label class="photo" data-photo-wrap="${p.id}">${images[p.id]?`<img src="${images[p.id]}">`:"Foto +"}<input type="file" accept="image/*" data-photo="${p.id}"></label></td>
+ <td><b>${p.date}</b><br>${p.time}</td><td><b>${p.name}</b><br><span class="muted">${p.unit} · ${p.cat}</span></td>
+ <td><s>${money(p.old)}</s><br><b>${money(p.deal)}</b></td><td class="description">${p.description||"—"}</td>
+ <td class="${p.sold?"sold":""}">${p.sold?"UITVERKOCHT":p.status}</td>
+ <td><div class="actions"><button data-edit="${p.id}">Bewerk</button><button class="black" data-sold="${p.id}">${p.sold?"Beschikbaar":"Product is op"}</button><button data-delete="${p.id}">Verwijder</button></div></td></tr>`).join("");
+ $("sTotal").textContent=products.length;$("sActive").textContent=products.filter(p=>!p.sold&&p.status!=="Niet publiceren").length;$("sSold").textContent=products.filter(p=>p.sold).length;$("sPhoto").textContent=products.filter(p=>images[p.id]).length;
+ document.querySelectorAll("[data-row]").forEach(tr=>tr.addEventListener("click",()=>openEditor(+tr.dataset.row)));
+ document.querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();openEditor(+b.dataset.edit)}));
+ document.querySelectorAll("[data-sold]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();let p=products.find(x=>x.id===+b.dataset.sold);p.sold=!p.sold;persist()}));
+ document.querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();if(confirm("Product verwijderen?")){products=products.filter(x=>x.id!==+b.dataset.delete);delete images[b.dataset.delete];persist()}}));
+ document.querySelectorAll("[data-photo-wrap]").forEach(x=>x.addEventListener("click",e=>e.stopPropagation()));
+ document.querySelectorAll("[data-photo]").forEach(inp=>inp.addEventListener("change",uploadPhoto));
+}
+function openEditor(id){
+ let p=products.find(x=>x.id===id);
+ $("editorTitle").textContent=p?"Productinstellingen":"Nieuw product";
+ $("pId").value=p?p.id:"";$("pDate").value=p?p.date:"";$("pTime").value=p?p.time:"08:00";$("pName").value=p?p.name:"";$("pUnit").value=p?p.unit:"";$("pCat").value=p?p.cat:"Dranken";$("pOld").value=p?p.old:"";$("pDeal").value=p?p.deal:"";$("pOp").value=p?p.opop:"Nee";$("pStatus").value=p?p.status:"Klaar";$("pDesc").value=p?p.description:"";$("editor").classList.add("on");
+}
+function closeEditor(){$("editor").classList.remove("on")}
+function saveEditor(){
+ const name=$("pName").value.trim(), date=$("pDate").value;
+ if(!name||!date){alert("Productnaam en datum zijn verplicht.");return}
+ const id=$("pId").value?Number($("pId").value):Date.now();
+ const previous=products.find(x=>x.id===id);
+ const p={id,date,time:$("pTime").value||"08:00",name,unit:$("pUnit").value.trim(),cat:$("pCat").value,old:Number($("pOld").value||0),deal:Number($("pDeal").value||0),opop:$("pOp").value,description:$("pDesc").value.trim(),status:$("pStatus").value,sold:previous?previous.sold:false};
+ const ix=products.findIndex(x=>x.id===id);if(ix>=0)products[ix]=p;else products.push(p);
+ persist();closeEditor();
+}
+function uploadPhoto(e){const f=e.target.files[0];if(!f)return;const id=Number(e.target.dataset.photo),r=new FileReader();r.onload=()=>{images[id]=r.result;persist()};r.readAsDataURL(f)}
+$("newBtn").addEventListener("click",()=>openEditor(null));$("closeBtn").addEventListener("click",closeEditor);$("cancelBtn").addEventListener("click",closeEditor);$("saveBtn").addEventListener("click",saveEditor);$("editor").addEventListener("click",e=>{if(e.target===$("editor"))closeEditor()});
+$("xlsxInput").addEventListener("change",e=>{
+ const file=e.target.files[0];if(!file)return;
+ if(typeof XLSX==="undefined"){alert("Excel okuyucu yüklenemedi. İnternet bağlantısını kontrol edip sayfayı yenileyin.");return}
+ const r=new FileReader();r.onload=ev=>{try{
+   const wb=XLSX.read(ev.target.result,{type:"array",cellDates:true}), ws=wb.Sheets[wb.SheetNames[0]], rows=XLSX.utils.sheet_to_json(ws,{defval:"",raw:false});
+   let count=0;
+   rows.forEach((x,i)=>{
+     const status=String(x["Status"]||"Klaar").trim();if(status.toLowerCase()==="niet publiceren")return;
+     let d=x["Datum"]; if(d instanceof Date)d=d.toISOString().slice(0,10); else d=String(d).trim();
+     const p={id:Date.now()+i,date:d,time:String(x["Starttijd"]||"08:00"),name:String(x["Productnaam"]||"").trim(),unit:String(x["Eenheid"]||""),cat:String(x["Categorie"]||"Dranken"),old:Number(String(x["Normale prijs"]||0).replace(",",".")),deal:Number(String(x["Dagdeal prijs"]||0).replace(",",".")),opop:String(x["OP=OP"]||"Nee"),description:String(x["Omschrijving"]||x["Açıklama"]||""),status,sold:false};
+     if(p.name&&p.date){products.push(p);count++}
+   });persist();alert(count+" product(en) uit Excel geladen.");
+ }catch(err){alert("Excel kon niet worden gelezen: "+err.message)}
+ };r.readAsArrayBuffer(file);e.target.value="";
+});
+
+$("templateBtn").addEventListener("click",()=>{if(typeof XLSX==="undefined"){alert("Excel-module wordt nog geladen. Probeer over een paar seconden opnieuw.");return}const rows=[{"Datum":"2026-09-23","Starttijd":"08:00","Productnaam":"Voorbeeld product","Eenheid":"1 kg","Categorie":"Dranken","Normale prijs":5.99,"Dagdeal prijs":3.99,"OP=OP":"Nee","Omschrijving":"Omschrijving","Status":"Klaar","Opmerking":""}];const ws=XLSX.utils.json_to_sheet(rows),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Dagdeals");XLSX.writeFile(wb,"emigro-dagdeals-import.xlsx")});
+render();
+</script></body></html>
