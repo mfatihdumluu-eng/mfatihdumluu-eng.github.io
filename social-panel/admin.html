@@ -125,6 +125,12 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
       <div class="field"><label>ARKA PLAN</label><input id="setPaper" type="color"></div>
       <div class="field"><label>YAZI</label><input id="setInk" type="color"></div>
       <div class="field"><label>İKİNCİL YAZI</label><input id="setMuted" type="color"></div>
+      
+      <div class="field widefield"><label>WHATSAPP CHANNEL</label><input id="setWhatsapp" type="url" placeholder="https://whatsapp.com/channel/..."></div>
+      <div class="field widefield"><label>INSTAGRAM</label><input id="setInstagram" type="url" placeholder="https://instagram.com/..."></div>
+      <div class="field widefield"><label>FACEBOOK</label><input id="setFacebook" type="url" placeholder="https://facebook.com/..."></div>
+      <div class="field widefield"><label>TIKTOK</label><input id="setTiktok" type="url" placeholder="TikTok linki (opsiyonel)"></div>
+      <div class="field widefield"><label>GOOGLE REVIEW</label><input id="setGoogleReview" type="url" placeholder="Google review linki"></div>
       <div class="widefield notice">Buradaki değişiklikler Preview’de hemen görünür. Canlıya sadece “Canlıya Gönder” ile gider.</div>
     </div>
     <div class="previewPane">
@@ -152,7 +158,7 @@ const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const ANON="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-admin";
 const PUBLIC_API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-public";
-const DEFAULT_SETTINGS={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:"",logoWidthDesktop:220,logoWidthMobile:150,logoAlign:"left",logoOffsetX:0,logoOffsetY:0};
+const DEFAULT_SETTINGS={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:"",logoWidthDesktop:320,logoWidthMobile:190,logoAlign:"left",logoOffsetX:0,logoOffsetY:0,whatsapp:"https://whatsapp.com/channel/0029Vb70VbT7DAX1LRsxpF2W",instagram:"https://www.instagram.com/emigrogroothandel/",facebook:"https://www.facebook.com/p/Emigro-international-BV-100067500402784/?locale=tr_TR",tiktok:"",googleReview:"https://search.google.com/local/writereview?placeid=ChIJUUAxdd62xUcRRu_Hneah3x4&source=g.page.m.nr._&laa=nmx-review-solicitation-recommendation-card"};
 let token=sessionStorage.getItem("emigroAdminToken")||localStorage.getItem("emigroAdminToken")||"";
 let products=[];
 let settings=Object.assign({},DEFAULT_SETTINGS);
@@ -233,9 +239,14 @@ function fillSettings(){
   $("setBrand").value=settings.brand;$("setSubtitle").value=settings.subtitle;$("setPrimary").value=settings.primary;$("setPrimaryDark").value=settings.primaryDark;$("setPaper").value=settings.paper;$("setInk").value=settings.ink;$("setMuted").value=settings.muted;
   $("setLogoWidthDesktop").value=Number(settings.logoWidthDesktop||220);$("setLogoWidthMobile").value=Number(settings.logoWidthMobile||150);$("setLogoAlign").value=settings.logoAlign||"left";$("setLogoOffsetX").value=Number(settings.logoOffsetX||0);$("setLogoOffsetY").value=Number(settings.logoOffsetY||0);
   $("logoPreview").dataset.value=settings.logo||"";$("logoPreview").innerHTML=settings.logo?'<img src="'+esc(settings.logo)+'">':'<span class="muted">Logo yok</span>';
+  $("setWhatsapp").value=settings.whatsapp||DEFAULT_SETTINGS.whatsapp;
+  $("setInstagram").value=settings.instagram||DEFAULT_SETTINGS.instagram;
+  $("setFacebook").value=settings.facebook||DEFAULT_SETTINGS.facebook;
+  $("setTiktok").value=settings.tiktok||"";
+  $("setGoogleReview").value=settings.googleReview||DEFAULT_SETTINGS.googleReview;
 }
 function collectSettings(){
-  settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0)};
+  settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0),whatsapp:$("setWhatsapp").value.trim(),instagram:$("setInstagram").value.trim(),facebook:$("setFacebook").value.trim(),tiktok:$("setTiktok").value.trim(),googleReview:$("setGoogleReview").value.trim()};
   return settings;
 }
 $("settingsBtn").onclick=()=>{fillSettings();openModal("settingsModal");setTimeout(sendPreview,300)};
