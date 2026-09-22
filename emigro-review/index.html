@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emigro Review</title><meta name="build" content="2026-09-22-supabase-central-v10">
+<title>Emigro Review</title><meta name="build" content="2026-09-22-central-read-v11">
 <style>
 :root{--navy:#27336f;--red:#ef1425;--bg:#f5f7fb;--text:#172033;--muted:#6d7487;--line:#e2e6ef}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
@@ -96,6 +96,7 @@ const ADMIN_EMAIL="mfatihdumluu@gmail.com";
 const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhyb2FyZnV3cGZzcWlsc2lqd3BwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTI5MjYsImV4cCI6MjEwNTY2ODkyNn0.sXaqy76ktdZJiesW1ZSppJH6t4Qi3AdLIhHc1umzBks";
 const ADMIN_API=SUPABASE_URL+"/functions/v1/emigro-admin";
+const PUBLIC_API=SUPABASE_URL+"/functions/v1/emigro-public";
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
 const DEFAULT={
@@ -125,13 +126,15 @@ function loadData(){try{return Object.assign({},DEFAULT,JSON.parse(localStorage.
 function cacheData(d){localStorage.setItem("emigroDataV5",JSON.stringify(d));return d}
 async function fetchRemoteData(){
   try{
-    const r=await fetch(SUPABASE_URL+"/rest/v1/emigro_site_state?id=eq.main&select=data,updated_at",{
-      headers:{"apikey":SUPABASE_ANON,"Authorization":"Bearer "+SUPABASE_ANON}
+    const r=await fetch(PUBLIC_API+"?t="+Date.now(),{
+      method:"GET",
+      cache:"no-store",
+      headers:{"Accept":"application/json"}
     });
     if(!r.ok) throw new Error("remote_read_"+r.status);
-    const rows=await r.json();
-    if(rows&&rows[0]&&rows[0].data) return cacheData(Object.assign({},DEFAULT,rows[0].data));
-  }catch(e){console.warn("Supabase read failed",e)}
+    const j=await r.json();
+    if(j&&j.data) return cacheData(Object.assign({},DEFAULT,j.data));
+  }catch(e){console.warn("Central read failed",e)}
   return loadData();
 }
 function adminToken(){return localStorage.getItem("emigroAdminToken")||sessionStorage.getItem("emigroAdminToken")||""}
@@ -179,6 +182,8 @@ async function showPublic(){
     $("#mobileReview").href=d.reviewUrl||DEFAULT.reviewUrl;
     renderInstagram(d);renderItems(d);
     applyLang(localStorage.getItem("emigroLang")||detectLang());
+    if(d.title) $("#pubTitle").textContent=d.title;
+    if(d.text) $("#pubText").textContent=d.text;
   }
   await refresh();
   clearInterval(window.__emigroTimer);
