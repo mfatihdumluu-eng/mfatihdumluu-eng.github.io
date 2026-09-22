@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emigro Review</title><meta name="build" content="2026-09-22-manual-upload-v8">
+<title>Emigro Review</title><meta name="build" content="2026-09-22-supabase-central-v9">
 <style>
 :root{--navy:#27336f;--red:#ef1425;--bg:#f5f7fb;--text:#172033;--muted:#6d7487;--line:#e2e6ef}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
@@ -93,7 +93,9 @@ header{background:#fff;border-bottom:1px solid var(--line);padding:12px 18px;pos
 
 <script>
 const ADMIN_EMAIL="mfatihdumluu@gmail.com";
-const ADMIN_HASH="c1a9f2b636304ee56a6cd7c4666d5a1f4bb8f93690f001cfdd2118eaa7d963e1";
+const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
+const SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhyb2FyZnV3cGZzcWlsc2lqd3BwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTI5MjYsImV4cCI6MjEwNTY2ODkyNn0.sXaqy76ktdZJiesW1ZSppJH6t4Qi3AdLIhHc1umzBks";
+const ADMIN_API=SUPABASE_URL+"/functions/v1/emigro-admin";
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
 const DEFAULT={
@@ -120,35 +122,149 @@ de:{eyebrow:"Danke für Ihren Besuch",title:"Wie war Ihr Erlebnis bei Emigro?",t
 function detectLang(){const l=(navigator.language||"nl").toLowerCase();if(l.startsWith("tr"))return"tr";if(l.startsWith("en"))return"en";if(l.startsWith("de"))return"de";return"nl"}
 function applyLang(code){const t=LANG[code]||LANG.nl;$("#lang").value=code;$("#eyebrow").textContent=t.eyebrow;$("#pubTitle").textContent=t.title;$("#pubText").textContent=t.text;$("#reviewBtn").textContent=t.review;$("#mobileReview").textContent=t.review;$("#locLabel").textContent=t.location;$("#igTitle").textContent=t.igTitle;$("#igSub").textContent=t.igSub;$("#waText").textContent=t.wa;$("#waA").textContent=t.openWa;$("#shareBtn").textContent=t.share;$("#mobileShare").textContent=t.share;localStorage.setItem("emigroLang",code)}
 function loadData(){try{return Object.assign({},DEFAULT,JSON.parse(localStorage.getItem("emigroDataV5"))||{})}catch(e){return DEFAULT}}
-function encObj(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
-function decObj(s){try{s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";return JSON.parse(decodeURIComponent(escape(atob(s))))}catch(e){return null}}
-function publicUrl(d){return location.origin+location.pathname+"?d="+encodeURIComponent(encObj(d))}
+function cacheData(d){localStorage.setItem("emigroDataV5",JSON.stringify(d));return d}
+async function fetchRemoteData(){
+  try{
+    const r=await fetch(SUPABASE_URL+"/rest/v1/emigro_site_state?id=eq.main&select=data,updated_at",{
+      headers:{"apikey":SUPABASE_ANON,"Authorization":"Bearer "+SUPABASE_ANON}
+    });
+    if(!r.ok) throw new Error("remote_read_"+r.status);
+    const rows=await r.json();
+    if(rows&&rows[0]&&rows[0].data) return cacheData(Object.assign({},DEFAULT,rows[0].data));
+  }catch(e){console.warn("Supabase read failed",e)}
+  return loadData();
+}
+function adminToken(){return localStorage.getItem("emigroAdminToken")||sessionStorage.getItem("emigroAdminToken")||""}
+async function adminCall(payload){
+  const r=await fetch(ADMIN_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error||("request_"+r.status));
+  return j;
+}
+async function loginRemote(email,password){return adminCall({action:"login",email,password})}
+async function saveRemoteState(d){
+  const token=adminToken(); if(!token) throw new Error("Oturum bulunamadı");
+  const j=await adminCall({action:"save_state",token,data:d});
+  cacheData(d); return j;
+}
+async function uploadRemoteImage(dataUrl){
+  const token=adminToken(); if(!token) throw new Error("Oturum bulunamadı");
+  const j=await adminCall({action:"upload_image",token,fileDataUrl:dataUrl});
+  return j.url;
+}
+function currentAdminData(){
+  const old=loadData();
+  return {...old,
+    branch:$("#branch").value.trim(),
+    address:$("#address").value.trim(),
+    reviewUrl:$("#reviewUrl").value.trim(),
+    title:$("#title").value.trim(),
+    text:$("#text").value.trim(),
+    items:collectItems(),
+    instagramPosts:collectInstagram()
+  };
+}
+function publicUrl(){return location.origin+location.pathname}
 function isActiveItem(x){const now=Date.now();const s=x.start?new Date(x.start).getTime():null;const e=x.end?new Date(x.end).getTime():null;if(s&&now<s)return false;if(e&&now>=e)return false;return true}
 function renderInstagram(d){const posts=(Array.isArray(d.instagramPosts)?d.instagramPosts:DEFAULT.instagramPosts||[]).filter(isActiveItem);$("#instagramCards").innerHTML=posts.map(x=>'<article class="card">'+(x.image?'<div class="media"><img src="'+String(x.image).replace(/"/g,"&quot;")+'" alt="" onerror="this.parentElement.innerHTML=\'<div class=&quot;imgFallback&quot;>Görsel yüklenemedi</div>\'"></div>':'')+'<span class="tag">Instagram</span><h3>'+escapeHtml(x.title||"")+'</h3><p>'+escapeHtml(x.text||"")+'</p>'+(x.url?'<a href="'+String(x.url).replace(/"/g,"&quot;")+'" target="_blank" rel="noopener">'+((LANG[localStorage.getItem("emigroLang")||detectLang()]||LANG.nl).view)+'</a>':'')+'</article>').join("")}
 function renderItems(d){window.__emigroCurrentData=d;const items=(Array.isArray(d.items)?d.items:[]).filter(isActiveItem);$("#customSection").classList.toggle("hide",!items.length);$("#customCards").innerHTML=items.map(x=>'<article class="card">'+(x.image?'<div class="media"><img src="'+String(x.image).replace(/"/g,"&quot;")+'" alt="" onerror="this.parentElement.innerHTML=\'<div class=&quot;imgFallback&quot;>Görsel yüklenemedi</div>\'"></div>':'')+'<span class="tag">'+escapeHtml(x.type||"İçerik")+'</span><h3>'+escapeHtml(x.title||"")+'</h3><p>'+escapeHtml(x.text||"")+'</p>'+(x.url?'<a href="'+String(x.url).replace(/"/g,"&quot;")+'" target="_blank" rel="noopener">Devamını gör →</a>':'')+'</article>').join("")}
 function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
-function showPublic(){const q=new URLSearchParams(location.search);const shared=q.get("d")?decObj(q.get("d")):null;const d=shared||loadData();$("#publicPage").classList.remove("hide");$("#loginPage").classList.add("hide");$("#adminPage").classList.add("hide");$("#reviewBtn").href=d.reviewUrl||DEFAULT.reviewUrl;$("#mobileReview").href=d.reviewUrl||DEFAULT.reviewUrl;renderInstagram(d);renderItems(d);applyLang(localStorage.getItem("emigroLang")||detectLang());clearInterval(window.__emigroTimer);window.__emigroTimer=setInterval(()=>{if(window.__emigroCurrentData){renderInstagram(window.__emigroCurrentData);renderItems(window.__emigroCurrentData)}},30000)}
+async function showPublic(){
+  $("#publicPage").classList.remove("hide");
+  $("#loginPage").classList.add("hide");
+  $("#adminPage").classList.add("hide");
+  async function refresh(){
+    const d=await fetchRemoteData();
+    $("#reviewBtn").href=d.reviewUrl||DEFAULT.reviewUrl;
+    $("#mobileReview").href=d.reviewUrl||DEFAULT.reviewUrl;
+    renderInstagram(d);renderItems(d);
+    applyLang(localStorage.getItem("emigroLang")||detectLang());
+  }
+  await refresh();
+  clearInterval(window.__emigroTimer);
+  window.__emigroTimer=setInterval(refresh,3000);
+}
 function compressImageFile(file,cb){const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=900;let w=img.width,h=img.height;if(w>h&&w>max){h=Math.round(h*max/w);w=max}else if(h>=w&&h>max){w=Math.round(w*max/h);h=max}const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;canvas.getContext("2d").drawImage(img,0,0,w,h);cb(canvas.toDataURL("image/jpeg",0.78))};img.src=r.result};r.readAsDataURL(file)}
-function addInstagramItem(v={}){const box=document.createElement("div");box.className="item instagramItem";box.innerHTML='<div class="itemTop"><strong>Instagram Postu</strong><button type="button" class="danger">Sil</button></div><div class="instagramPreview" style="margin:10px 0"></div><label>Başlık</label><input class="ititle"><label>Açıklama</label><textarea class="itext"></textarea><label>Görsel URL (isteğe bağlı)</label><input class="iimage" placeholder="https://...jpg"><div class="uploadBox"><b>📷 Elle resim yükle</b><div style="font-size:12px;color:#6d7487;margin-bottom:8px">Bilgisayarından veya telefonundan görsel seç.</div><input class="ifile uploadInput" type="file" accept="image/*"></div><label>Instagram post linki</label><input class="iurl" placeholder="https://www.instagram.com/p/..."><div class="grid2"><div><label>Başlangıç tarihi ve saati</label><input class="istart" type="datetime-local"></div><div><label>Bitiş tarihi ve saati</label><input class="iend" type="datetime-local"></div></div>';box.querySelector(".ititle").value=v.title||"";box.querySelector(".itext").value=v.text||"";box.querySelector(".iimage").value=v.image||"";box.querySelector(".iurl").value=v.url||"";box.querySelector(".istart").value=v.start||"";box.querySelector(".iend").value=v.end||"";const pv=box.querySelector(".instagramPreview");function draw(){const u=box.querySelector(".iimage").value.trim();pv.innerHTML=u?'<img src="'+u.replace(/"/g,"&quot;")+'" style="width:150px;height:110px;object-fit:cover;border-radius:12px;border:1px solid #e2e6ef" alt="Instagram post" onerror="this.outerHTML=\'<div style=&quot;font-size:12px;color:#c20d1d&quot;>Bu görsel linki yüklenemiyor. Cihazdan Görsel Seç kullan.</div>\'">':'<div style="font-size:12px;color:#6d7487">Görsel önizlemesi yok</div>'}box.querySelector(".iimage").addEventListener("input",draw);box.querySelector(".ifile").addEventListener("change",e=>{const file=e.target.files&&e.target.files[0];if(file)compressImageFile(file,data=>{box.querySelector(".iimage").value=data;draw()})});draw();box.querySelector(".danger").onclick=()=>box.remove();$("#instagramList").appendChild(box)}
+function addInstagramItem(v={}){const box=document.createElement("div");box.className="item instagramItem";box.innerHTML='<div class="itemTop"><strong>Instagram Postu</strong><button type="button" class="danger">Sil</button></div><div class="instagramPreview" style="margin:10px 0"></div><label>Başlık</label><input class="ititle"><label>Açıklama</label><textarea class="itext"></textarea><label>Görsel URL (isteğe bağlı)</label><input class="iimage" placeholder="https://...jpg"><div class="uploadBox"><b>📷 Elle resim yükle</b><div style="font-size:12px;color:#6d7487;margin-bottom:8px">Bilgisayarından veya telefonundan görsel seç.</div><input class="ifile uploadInput" type="file" accept="image/*"></div><label>Instagram post linki</label><input class="iurl" placeholder="https://www.instagram.com/p/..."><div class="grid2"><div><label>Başlangıç tarihi ve saati</label><input class="istart" type="datetime-local"></div><div><label>Bitiş tarihi ve saati</label><input class="iend" type="datetime-local"></div></div>';box.querySelector(".ititle").value=v.title||"";box.querySelector(".itext").value=v.text||"";box.querySelector(".iimage").value=v.image||"";box.querySelector(".iurl").value=v.url||"";box.querySelector(".istart").value=v.start||"";box.querySelector(".iend").value=v.end||"";const pv=box.querySelector(".instagramPreview");function draw(){const u=box.querySelector(".iimage").value.trim();pv.innerHTML=u?'<img src="'+u.replace(/"/g,"&quot;")+'" style="width:150px;height:110px;object-fit:cover;border-radius:12px;border:1px solid #e2e6ef" alt="Instagram post" onerror="this.outerHTML=\'<div style=&quot;font-size:12px;color:#c20d1d&quot;>Bu görsel linki yüklenemiyor. Cihazdan Görsel Seç kullan.</div>\'">':'<div style="font-size:12px;color:#6d7487">Görsel önizlemesi yok</div>'}box.querySelector(".iimage").addEventListener("input",draw);box.querySelector(".ifile").addEventListener("change",e=>{const file=e.target.files&&e.target.files[0];if(!file)return;const st=document.createElement("div");st.style.cssText="font-size:12px;margin-top:7px;color:#27336f;font-weight:700";st.textContent="Görsel yükleniyor...";box.querySelector(".uploadBox").appendChild(st);compressImageFile(file,async data=>{try{const u=await uploadRemoteImage(data);box.querySelector(".iimage").value=u;draw();st.textContent="Görsel yüklendi ✓"}catch(err){st.textContent="Yükleme hatası: "+err.message}})});draw();box.querySelector(".danger").onclick=()=>box.remove();$("#instagramList").appendChild(box)}
 function collectInstagram(){return Array.from(document.querySelectorAll(".instagramItem")).map(x=>({title:x.querySelector(".ititle").value.trim(),text:x.querySelector(".itext").value.trim(),image:x.querySelector(".iimage").value.trim(),url:x.querySelector(".iurl").value.trim(),start:x.querySelector(".istart").value,end:x.querySelector(".iend").value})).filter(x=>x.title||x.image||x.url)}
-function addContentItem(v={}){const box=document.createElement("div");box.className="item contentItem";box.innerHTML='<div class="itemTop"><strong>Ön Panel Kartı</strong><button type="button" class="danger">Sil</button></div><label>Tür</label><select class="ctype"><option>Ürün</option><option>Instagram Post</option><option>Kampanya</option></select><label>Başlık</label><input class="ctitle"><label>Açıklama</label><textarea class="ctext"></textarea><label>Görsel URL (isteğe bağlı)</label><input class="cimage" placeholder="https://...jpg"><div class="uploadBox"><b>📷 Elle resim yükle</b><div style="font-size:12px;color:#6d7487;margin-bottom:8px">Bilgisayarından veya telefonundan görsel seç.</div><input class="cfile uploadInput" type="file" accept="image/*"></div><label>Tıklama linki</label><input class="curl" placeholder="https://..."><div class="grid2"><div><label>Başlangıç tarihi ve saati</label><input class="cstart" type="datetime-local"></div><div><label>Bitiş tarihi ve saati</label><input class="cend" type="datetime-local"></div></div>';box.querySelector(".ctype").value=v.type||"Ürün";box.querySelector(".ctitle").value=v.title||"";box.querySelector(".ctext").value=v.text||"";box.querySelector(".cimage").value=v.image||"";box.querySelector(".curl").value=v.url||"";if(v.image){const p=document.createElement("div");p.className="contentPreview";p.style.margin="10px 0";p.innerHTML=`<img src="${String(v.image).replace(/"/g,"&quot;")}" style="width:150px;height:110px;object-fit:cover;border-radius:12px;border:1px solid #e2e6ef">`;box.querySelector(".uploadBox").after(p)}box.querySelector(".cstart").value=v.start||"";box.querySelector(".cend").value=v.end||"";box.querySelector(".cfile").addEventListener("change",e=>{const file=e.target.files&&e.target.files[0];if(file)compressImageFile(file,data=>{box.querySelector(".cimage").value=data;let old=box.querySelector(".contentPreview");if(old)old.remove();const p=document.createElement("div");p.className="contentPreview";p.style.margin="10px 0";p.innerHTML=`<img src="${data}" style="width:150px;height:110px;object-fit:cover;border-radius:12px;border:1px solid #e2e6ef">`;box.querySelector(".uploadBox").after(p)})});box.querySelector(".danger").onclick=()=>box.remove();$("#contentList").appendChild(box)}
+function addContentItem(v={}){const box=document.createElement("div");box.className="item contentItem";box.innerHTML='<div class="itemTop"><strong>Ön Panel Kartı</strong><button type="button" class="danger">Sil</button></div><label>Tür</label><select class="ctype"><option>Ürün</option><option>Instagram Post</option><option>Kampanya</option></select><label>Başlık</label><input class="ctitle"><label>Açıklama</label><textarea class="ctext"></textarea><label>Görsel URL (isteğe bağlı)</label><input class="cimage" placeholder="https://...jpg"><div class="uploadBox"><b>📷 Elle resim yükle</b><div style="font-size:12px;color:#6d7487;margin-bottom:8px">Bilgisayarından veya telefonundan görsel seç.</div><input class="cfile uploadInput" type="file" accept="image/*"></div><label>Tıklama linki</label><input class="curl" placeholder="https://..."><div class="grid2"><div><label>Başlangıç tarihi ve saati</label><input class="cstart" type="datetime-local"></div><div><label>Bitiş tarihi ve saati</label><input class="cend" type="datetime-local"></div></div>';box.querySelector(".ctype").value=v.type||"Ürün";box.querySelector(".ctitle").value=v.title||"";box.querySelector(".ctext").value=v.text||"";box.querySelector(".cimage").value=v.image||"";box.querySelector(".curl").value=v.url||"";if(v.image){const p=document.createElement("div");p.className="contentPreview";p.style.margin="10px 0";p.innerHTML=`<img src="${String(v.image).replace(/"/g,"&quot;")}" style="width:150px;height:110px;object-fit:cover;border-radius:12px;border:1px solid #e2e6ef">`;box.querySelector(".uploadBox").after(p)}box.querySelector(".cstart").value=v.start||"";box.querySelector(".cend").value=v.end||"";box.querySelector(".cfile").addEventListener("change",e=>{const file=e.target.files&&e.target.files[0];if(!file)return;const st=document.createElement("div");st.style.cssText="font-size:12px;margin-top:7px;color:#27336f;font-weight:700";st.textContent="Görsel yükleniyor...";box.querySelector(".uploadBox").appendChild(st);compressImageFile(file,async data=>{try{const u=await uploadRemoteImage(data);box.querySelector(".cimage").value=u;let old=box.querySelector(".contentPreview");if(old)old.remove();const p=document.createElement("div");p.className="contentPreview";p.style.margin="10px 0";p.innerHTML=`<img src="${u}" style="width:150px;height:110px;object-fit:cover;border-radius:12px;border:1px solid #e2e6ef">`;box.querySelector(".uploadBox").after(p);st.textContent="Görsel yüklendi ✓"}catch(err){st.textContent="Yükleme hatası: "+err.message}})});box.querySelector(".danger").onclick=()=>box.remove();$("#contentList").appendChild(box)}
 function collectItems(){return Array.from(document.querySelectorAll(".contentItem")).map(x=>({type:x.querySelector(".ctype").value,title:x.querySelector(".ctitle").value.trim(),text:x.querySelector(".ctext").value.trim(),image:x.querySelector(".cimage").value.trim(),url:x.querySelector(".curl").value.trim(),start:x.querySelector(".cstart").value,end:x.querySelector(".cend").value})).filter(x=>x.title||x.image||x.url)}
-function showAdmin(){const ok=localStorage.getItem("emigroRemember")==="1"||sessionStorage.getItem("emigroAdmin")==="1";$("#publicPage").classList.add("hide");$("#loginPage").classList.toggle("hide",ok);$("#adminPage").classList.toggle("hide",!ok);if(ok){const d=loadData();$("#branch").value=d.branch;$("#address").value=d.address;$("#reviewUrl").value=d.reviewUrl;$("#title").value=d.title;$("#text").value=d.text;$("#contentList").innerHTML="";(d.items||[]).forEach(addContentItem);$("#instagramList").innerHTML="";(d.instagramPosts||DEFAULT.instagramPosts||[]).forEach(addInstagramItem)}}
-async function hash(v){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join("")}
-$("#loginBtn").addEventListener("click",async()=>{const good=$("#email").value.trim().toLowerCase()===ADMIN_EMAIL && await hash($("#pass").value)===ADMIN_HASH;if(good){sessionStorage.setItem("emigroAdmin","1");if($("#rememberMe").checked)localStorage.setItem("emigroRemember","1");else localStorage.removeItem("emigroRemember");showAdmin()}else{$("#loginErr").classList.remove("hide")}});
-$("#logout").addEventListener("click",()=>{sessionStorage.removeItem("emigroAdmin");localStorage.removeItem("emigroRemember");showAdmin()});
-$$(".nav").forEach(btn=>btn.addEventListener("click",()=>{$$(".nav").forEach(x=>x.classList.remove("active"));btn.classList.add("active");$$(".view").forEach(x=>x.classList.remove("active"));$("#"+btn.dataset.tab).classList.add("active");$("#adminTitle").textContent=btn.textContent}));
-$("#saveBtn").addEventListener("click",()=>{const old=loadData();const d={...old,branch:$("#branch").value.trim(),address:$("#address").value.trim(),reviewUrl:$("#reviewUrl").value.trim(),title:$("#title").value.trim(),text:$("#text").value.trim(),items:collectItems(),instagramPosts:collectInstagram()};localStorage.setItem("emigroDataV5",JSON.stringify(d));alert("Kaydedildi")});
-function saveInstagramNow(){const d=loadData();d.instagramPosts=collectInstagram();d.items=collectItems();localStorage.setItem("emigroDataV5",JSON.stringify(d));alert("Instagram içerikleri kaydedildi ✓")}
+async function populateAdmin(){
+  const d=await fetchRemoteData();
+  $("#branch").value=d.branch||"";
+  $("#address").value=d.address||"";
+  $("#reviewUrl").value=d.reviewUrl||"";
+  $("#title").value=d.title||"";
+  $("#text").value=d.text||"";
+  $("#contentList").innerHTML="";
+  (d.items||[]).forEach(addContentItem);
+  $("#instagramList").innerHTML="";
+  (d.instagramPosts||[]).forEach(addInstagramItem);
+}
+async function showAdmin(){
+  const ok=!!adminToken();
+  $("#publicPage").classList.add("hide");
+  $("#loginPage").classList.toggle("hide",ok);
+  $("#adminPage").classList.toggle("hide",!ok);
+  if(ok) await populateAdmin();
+}
+$("#loginBtn").addEventListener("click",async()=>{
+  $("#loginErr").classList.add("hide");
+  $("#loginBtn").disabled=true;
+  try{
+    const j=await loginRemote($("#email").value.trim(),$("#pass").value);
+    if($("#rememberMe").checked){localStorage.setItem("emigroAdminToken",j.token);sessionStorage.removeItem("emigroAdminToken")}
+    else{sessionStorage.setItem("emigroAdminToken",j.token);localStorage.removeItem("emigroAdminToken")}
+    $("#pass").value="";
+    await showAdmin();
+  }catch(e){
+    $("#loginErr").textContent="E-posta veya şifre hatalı.";
+    $("#loginErr").classList.remove("hide");
+  }finally{$("#loginBtn").disabled=false}
+});
+$("#logout").addEventListener("click",()=>{
+  sessionStorage.removeItem("emigroAdminToken");
+  localStorage.removeItem("emigroAdminToken");
+  showAdmin();
+});
+$$(".nav").forEach(btn=>btn.addEventListener("click",()=>{
+  $$(".nav").forEach(x=>x.classList.remove("active"));btn.classList.add("active");
+  $$(".view").forEach(x=>x.classList.remove("active"));$("#"+btn.dataset.tab).classList.add("active");
+  $("#adminTitle").textContent=btn.textContent
+}));
+async function saveAll(message){
+  try{
+    const d=currentAdminData();
+    await saveRemoteState(d);
+    alert(message+" ✓\nMüşteri sayfası da güncellendi.");
+    return true;
+  }catch(e){
+    if(String(e.message).includes("unauthorized")){sessionStorage.removeItem("emigroAdminToken");localStorage.removeItem("emigroAdminToken");alert("Oturum süresi doldu. Tekrar giriş yap.");showAdmin()}
+    else alert("Kaydetme hatası: "+e.message);
+    return false;
+  }
+}
+$("#saveBtn").addEventListener("click",()=>saveAll("Kaydedildi"));
+function saveInstagramNow(){return saveAll("Instagram içerikleri kaydedildi")}
 $("#addInstagram").addEventListener("click",()=>addInstagramItem());
 $("#saveInstagram").addEventListener("click",saveInstagramNow);
 $("#saveInstagramTop").addEventListener("click",saveInstagramNow);
-function saveContentNow(){const d=loadData();d.items=collectItems();d.instagramPosts=collectInstagram();localStorage.setItem("emigroDataV5",JSON.stringify(d));alert("Ön panel içerikleri kaydedildi ✓")}
+function saveContentNow(){return saveAll("Ön panel içerikleri kaydedildi")}
 $("#addContent").addEventListener("click",()=>addContentItem());
 $("#saveContent").addEventListener("click",saveContentNow);
-$("#saveContentTop").addEventListener("click",saveContentNow);$("#previewBtn").addEventListener("click",()=>{const d=Object.assign({},loadData(),{items:collectItems(),instagramPosts:collectInstagram()});localStorage.setItem("emigroDataV5",JSON.stringify(d));window.location.href=location.origin+location.pathname+"?v=6"});
-$("#makeLink").addEventListener("click",()=>{const old=loadData();const d={...old,branch:$("#branch").value.trim(),address:$("#address").value.trim(),reviewUrl:$("#reviewUrl").value.trim(),title:$("#title").value.trim(),text:$("#text").value.trim(),items:collectItems(),instagramPosts:collectInstagram()};localStorage.setItem("emigroDataV5",JSON.stringify(d));const u=publicUrl(d);$("#share").textContent=u;$("#share").dataset.link=u});
-$("#copyBtn").addEventListener("click",async()=>{const v=$("#share").dataset.link||publicUrl(Object.assign(loadData(),{items:collectItems(),instagramPosts:collectInstagram()}));await navigator.clipboard.writeText(v)});
+$("#saveContentTop").addEventListener("click",saveContentNow);
+$("#previewBtn").addEventListener("click",async()=>{if(await saveAll("Kaydedildi")) window.location.href=publicUrl()+"?v=9"});
+$("#makeLink").addEventListener("click",async()=>{
+  if(await saveAll("Kaydedildi")){
+    const u=publicUrl()+"?v=9";
+    $("#share").textContent=u;$("#share").dataset.link=u;
+  }
+});
+$("#copyBtn").addEventListener("click",async()=>{
+  const v=$("#share").dataset.link||publicUrl()+"?v=9";
+  await navigator.clipboard.writeText(v);
+  alert("Müşteri linki kopyalandı");
+});
 function shareCustomerPage(){
   const u=location.href;
   const lang=localStorage.getItem("emigroLang")||detectLang();
