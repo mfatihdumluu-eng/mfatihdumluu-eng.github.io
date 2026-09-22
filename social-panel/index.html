@@ -381,4 +381,21 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
  fetch(DB+"&_="+Date.now(),{cache:"no-store",headers:{apikey:ANON,Authorization:"Bearer "+ANON}}).then(r=>r.ok?r.json():Promise.reject(r.status)).then(applyCentralDeals).catch(()=>{});
 })();
 </script>
+<script>
+(function(){
+  const PUBLIC_API="https://hroarfuwpfsqilsijwpp.supabase.co/functions/v1/emigro-dagdeals-public";
+  async function syncLive(){
+    try{
+      const r=await fetch(PUBLIC_API+"?t="+Date.now(),{cache:"no-store"});
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      const j=await r.json();
+      if(window.__applyEmigroSettings)window.__applyEmigroSettings(j.settings||{});
+      if(window.__applyCentralDeals)window.__applyCentralDeals(j.items||[]);
+      window.__emigroLiveSync=j;
+    }catch(e){console.warn("Live sync failed",e)}
+  }
+  syncLive();
+  window.addEventListener("focus",syncLive);
+})();
+</script>
 </body></html>
