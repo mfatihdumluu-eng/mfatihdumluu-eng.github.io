@@ -309,7 +309,8 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
    const body={session_id:sid,event,page:location.pathname,target:String(target||"").slice(0,120),device:device(),referrer:ref(),screen_w:screen.width||innerWidth,language:navigator.language||"",utm_source:q.get("utm_source")||""};
    fetch(URL,{method:"POST",keepalive:true,headers:{apikey:ANON,Authorization:"Bearer "+ANON,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(body)}).catch(()=>{});
  }
- send("page_view");
+ const previewMode=new URLSearchParams(location.search).get("preview")==="1";
+ if(!previewMode)send("page_view");
  document.addEventListener("click",e=>{
    const el=e.target.closest("a,button"); if(!el)return;
    let ev="click",target=el.id||el.dataset.filter||el.dataset.fav||el.getAttribute("href")||el.textContent.trim().slice(0,60);
@@ -318,7 +319,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
    else if(String(el.getAttribute("href")||"").includes("whatsapp"))ev="whatsapp";
    else if(String(el.getAttribute("href")||"").includes("instagram"))ev="instagram";
    else if(el.closest(".desktopnav")||el.closest(".bottom"))ev="navigation";
-   send(ev,target);
+   if(!previewMode)send(ev,target);
  },{capture:true});
 })();
 </script>
