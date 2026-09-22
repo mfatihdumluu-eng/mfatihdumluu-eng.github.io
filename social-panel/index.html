@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emigro Review</title><meta name="build" content="social-panel-base-v1">
+<title>Emigro Review</title><meta name="build" content="social-panel-dagdeals-v2">
 <style>
 :root{--navy:#27336f;--red:#ef1425;--bg:#f5f7fb;--text:#172033;--muted:#6d7487;--line:#e2e6ef}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
@@ -313,13 +313,140 @@ textarea{min-height:72px}
   #customCards .media{height:340px}
 }
 
+
+/* ===== Social Panel + Dagdeals integrated UI ===== */
+.socialTopNav{display:flex;align-items:center;gap:6px;margin-left:auto}
+.socialTopNav a{color:var(--navy);text-decoration:none;font-weight:800;font-size:13px;padding:9px 12px;border-radius:11px}
+.socialTopNav a:hover{background:#eef1f8}
+.socialTopNav a.ddNavDeal{background:var(--red);color:#fff}
+.dd-section{margin-top:30px}
+.dd-shell{background:#fff;border:1px solid var(--line);border-radius:28px;overflow:hidden;box-shadow:0 12px 34px rgba(27,38,83,.07)}
+.dd-welcome{padding:30px 34px 8px}
+.dd-kicker{font-size:11px;letter-spacing:1.4px;font-weight:1000;color:var(--red)}
+.dd-welcome h2{font-size:42px;line-height:1.02;color:var(--navy);margin:8px 0 10px;letter-spacing:-1.2px}
+.dd-welcome p{color:var(--muted);margin:0;font-size:15px}
+.dd-hero{margin:18px 34px 28px;display:grid;grid-template-columns:1.05fr .95fr;min-height:300px;text-decoration:none;color:#fff;background:linear-gradient(140deg,var(--red) 0%,#b40818 78%);border-radius:26px;overflow:hidden;position:relative;box-shadow:0 18px 38px rgba(239,20,37,.22);cursor:pointer}
+.dd-hero:before{content:"";position:absolute;width:320px;height:320px;border-radius:50%;right:-100px;top:-160px;background:#ffffff12}
+.dd-hero-visual{display:grid;place-items:center;min-height:300px;position:relative;z-index:2;padding:24px}
+.dd-hero-visual img{width:100%;height:250px;object-fit:contain;filter:drop-shadow(0 14px 16px #71000035)}
+.dd-hero-emoji{font-size:125px;filter:drop-shadow(0 12px 12px #71000044)}
+.dd-hero-copy{padding:34px 38px 32px 10px;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2}
+.dd-live-row{display:flex;gap:7px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.dd-live-pill,.dd-opop{font-size:10px;font-weight:1000;border-radius:99px;padding:7px 10px;background:#fff;color:var(--red)}
+.dd-opop{background:#171717;color:#fff}
+.dd-date{font-size:11px;font-weight:900;opacity:.85}
+.dd-hero-copy h3{font-size:46px;line-height:1;margin:0 0 8px}
+.dd-hero-unit{font-size:14px;opacity:.8}
+.dd-hero-old{font-size:14px;text-decoration:line-through;opacity:.72;margin-top:18px}
+.dd-hero-price{font-size:58px;line-height:1;font-weight:1000;letter-spacing:-2px;margin-top:3px}
+.dd-hero-lock{font-size:22px;font-weight:900;margin-top:16px}
+.dd-hero-cta{font-size:13px;font-weight:1000;margin-top:16px}
+.dd-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 34px 16px}
+.dd-month{font-size:18px;font-weight:900;color:var(--navy)}
+.dd-actions{display:flex;gap:7px;flex-wrap:wrap}
+.dd-chip{border:1px solid #e3e6ef;background:#fff;color:var(--navy);border-radius:12px;padding:8px 10px;font-weight:800;font-size:11px;cursor:pointer}
+.dd-chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.dd-tip{margin:0 34px 16px;background:#f7f8fc;border:1px solid #e8eaf2;border-radius:13px;padding:10px 12px;font-size:11px;color:#6d7487}
+.dd-cats{display:flex;gap:7px;flex-wrap:wrap;padding:0 34px 18px}
+.dd-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:0 34px 34px}
+.dd-card{min-height:270px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:12px;color:var(--text);position:relative;overflow:hidden;box-shadow:0 5px 16px rgba(27,38,83,.05);cursor:pointer;transition:.15s}
+.dd-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(27,38,83,.10)}
+.dd-card.live{border:2px solid var(--red);background:#fffafa}
+.dd-card.expired{background:#efefed;opacity:.58;filter:grayscale(1)}
+.dd-card.expired:after{content:"AFGELOPEN";position:absolute;left:-30px;top:30px;width:125px;transform:rotate(-42deg);background:#686868;color:#fff;text-align:center;font-size:8px;font-weight:1000;padding:4px}
+.dd-cardtop{display:flex;justify-content:space-between;align-items:center}
+.dd-day{font-size:22px;font-weight:1000;color:var(--navy)}
+.dd-state{font-size:8px;font-weight:1000;background:#efefed;color:#777;border-radius:99px;padding:5px 7px}
+.dd-card.live .dd-state{background:var(--red);color:#fff}
+.dd-fav{position:absolute;right:10px;top:47px;width:34px;height:34px;border:1px solid #e5e7ef;background:#fff;border-radius:50%;display:grid;place-items:center;color:#7d8496;font-size:17px;cursor:pointer;z-index:3}
+.dd-fav.saved{background:#fff0f2;color:var(--red);border-color:#ffd1d5}
+.dd-cardpic{height:120px;display:grid;place-items:center;margin:2px 0 5px}
+.dd-cardpic img{width:100%;height:112px;object-fit:contain}
+.dd-emoji{font-size:70px}
+.dd-card h4{font-size:16px;line-height:1.15;margin:0 0 4px;color:#1b2440}
+.dd-card small{font-size:11px;color:#8b8b8b}
+.dd-old{font-size:10px;text-decoration:line-through;color:#999;margin-top:7px}
+.dd-price{font-size:28px;color:var(--red);font-weight:1000;line-height:1;margin-top:1px}
+.dd-locked-price{font-size:11px;font-weight:900;color:#6d7487;margin-top:10px}
+.dd-modal{position:fixed;inset:0;z-index:90;display:none;align-items:flex-end;justify-content:center;padding:20px;background:#0009;backdrop-filter:blur(2px)}
+.dd-modal.on{display:flex}
+.dd-sheet{width:min(620px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:28px;padding:20px;box-shadow:0 -15px 55px #0003;position:relative}
+.dd-close{position:absolute;right:16px;top:14px;width:38px;height:38px;border:0;border-radius:50%;background:#f0f1f5;font-size:22px;cursor:pointer}
+.dd-detailvisual{height:240px;border-radius:20px;background:linear-gradient(#fff,#f8f7f3);display:grid;place-items:center;overflow:hidden}
+.dd-detailvisual img{width:100%;height:220px;object-fit:contain}
+.dd-detailvisual .dd-emoji{font-size:120px}
+.dd-detailstatus{font-size:10px;font-weight:1000;color:var(--red);letter-spacing:.8px;margin-top:16px}
+.dd-sheet h2{font-size:30px;color:var(--navy);margin:6px 0 2px}
+.dd-detailsub{font-size:12px;color:#888;margin:0}
+.dd-detailprice{display:flex;gap:9px;align-items:baseline;margin:15px 0}
+.dd-detailprice del{color:#999}
+.dd-detailprice strong{font-size:42px;color:var(--red)}
+.dd-locked{background:#f6f5f2;border:1px dashed #d5d2cc;border-radius:17px;padding:14px;margin:15px 0}
+.dd-desc{border-left:3px solid var(--red);padding-left:11px;color:#666;font-size:13px;line-height:1.5}
+.dd-detailactions{display:flex;gap:8px;margin-top:14px}
+.dd-detailactions button{flex:1;border:0;border-radius:13px;padding:13px;font-weight:900;cursor:pointer}
+.dd-remind{background:var(--red);color:#fff}.dd-share{background:#eef1f8;color:var(--navy)}
+
+/* Dagdeals admin */
+.dd-admin-panel{max-width:1200px!important}
+.dd-admin-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.dd-admin-actions{display:flex;gap:8px;flex-wrap:wrap}
+.dd-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+.dd-stat{background:#f6f7fb;border:1px solid var(--line);border-radius:14px;padding:13px}.dd-stat b{display:block;font-size:24px;color:var(--navy)}.dd-stat span{font-size:11px;color:var(--muted)}
+.dd-tablewrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
+.dd-table{width:100%;border-collapse:collapse;min-width:930px}
+.dd-table th,.dd-table td{padding:10px;border-bottom:1px solid #eceef4;text-align:left;font-size:12px;vertical-align:middle}
+.dd-table th{background:#f7f8fc;color:#5b6275;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.dd-row{cursor:pointer}.dd-row:hover{background:#fafbfe}
+.dd-thumb{width:54px;height:54px;border-radius:10px;background:#f1f2f6;display:grid;place-items:center;overflow:hidden;font-size:28px}
+.dd-thumb img{width:100%;height:100%;object-fit:cover}
+.dd-row-actions{display:flex;gap:5px}
+.dd-mini{border:0;border-radius:8px;padding:7px 8px;font-weight:800;font-size:10px;cursor:pointer}
+.dd-mini.edit{background:#eef1f8;color:var(--navy)}.dd-mini.sold{background:#fff4dd;color:#9d6400}.dd-mini.delete{background:#fff0f2;color:#c20d1d}
+.dd-admin-modal{position:fixed;inset:0;background:#0009;z-index:120;display:none;align-items:center;justify-content:center;padding:22px}
+.dd-admin-modal.on{display:flex}
+.dd-admin-box{background:#fff;width:min(850px,100%);max-height:92vh;overflow:auto;border-radius:24px;padding:22px;box-shadow:0 25px 80px #0004}
+.dd-admin-head{display:flex;justify-content:space-between;align-items:center}
+.dd-admin-form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
+.dd-admin-form .wide{grid-column:1/-1}
+.dd-admin-form label{font-size:10px;font-weight:900;color:#4d5670;margin-bottom:5px}
+.dd-admin-form input,.dd-admin-form select,.dd-admin-form textarea{width:100%;border:1px solid #d7dce8;border-radius:10px;padding:10px}
+.dd-admin-form textarea{min-height:100px}
+.dd-savebar{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.dd-session-note{background:#fff7e9;border-left:4px solid #f0a000;padding:10px;border-radius:9px;margin:10px 0;font-size:12px}
+@media(max-width:800px){
+  .socialTopNav{display:none}
+  .dd-section{margin-top:16px}
+  .dd-shell{border-radius:22px}
+  .dd-welcome{padding:20px 16px 6px}.dd-welcome h2{font-size:30px}.dd-welcome p{font-size:12px}
+  .dd-hero{margin:12px 12px 20px;grid-template-columns:.9fr 1.1fr;min-height:220px;border-radius:22px}
+  .dd-hero-visual{min-height:220px;padding:12px}.dd-hero-visual img{height:185px}.dd-hero-emoji{font-size:88px}
+  .dd-hero-copy{padding:20px 14px 20px 0}.dd-hero-copy h3{font-size:30px}.dd-hero-price{font-size:42px}.dd-hero-lock{font-size:16px}
+  .dd-toolbar{padding:0 12px 12px}.dd-month{font-size:15px}.dd-actions{gap:5px}.dd-chip{font-size:9px;padding:7px 8px}
+  .dd-tip{margin:0 12px 12px;font-size:10px}.dd-cats{padding:0 12px 12px;gap:5px}
+  .dd-grid{grid-template-columns:repeat(2,1fr);gap:9px;padding:0 12px 22px}
+  .dd-card{min-height:225px;border-radius:18px;padding:9px}.dd-day{font-size:19px}.dd-cardpic{height:90px}.dd-cardpic img{height:86px}.dd-emoji{font-size:56px}
+  .dd-card h4{font-size:14px}.dd-card small{font-size:9px}.dd-price{font-size:24px}.dd-fav{top:40px;right:8px;width:31px;height:31px}
+  .dd-sheet{border-radius:26px 26px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));margin:0 -20px -20px;width:calc(100% + 40px)}
+  .dd-detailvisual{height:190px}.dd-detailvisual img{height:175px}
+  .dd-stats{grid-template-columns:repeat(2,1fr)}
+  .dd-admin-form{grid-template-columns:1fr}.dd-admin-form .wide{grid-column:auto}
+}
+
 </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
 <div id="publicPage" class="hide"><div id="appTop"></div>
 <header><div class="headerInner">
 <img class="logo" src="data:image/webp;base64,UklGRugwAABXRUJQVlA4INwwAADQoQCdASoIAqAAPmEqkkYkIqGhJtM9KIAMCWJu/Hx7ABifKS/0+w48R6j7dPfgtP+m8pHcpIo7hf8f+O/F75Zf8D1i/qz2A/2B6Y/mA/Zn9wfeg9G/+P9Qj+8f6PrOP3Q9hzy6f3Q+HT+w/8/9y/as///sAb4j5K/tP9v/Z7zJ/nP9h+1jyLfSf2j8o/7j+0/Rp898E/4t9ifyH9z/dv+6+7f++8D/kX/p+oF+H/yX/G/1n++/7H/D/ud9UT1PpB996Avud9W/1/97/J/08f6X0O+yv/O9wH+mf1//beVr4Kfpf/G9wD+ef2H/uf333Xv5v/z/4z/VemX83/yX/p/ynwG/zD+xf9D+6/5r9o/nI///ul/an//+6j+5f//Q3suWjVPrE8Or9/y6KhqLoCU/cuEQh/2XMKR25rto4mBh78B+MHqwqhV4MIRKCe2rcwkL/nhYMXVzCkduD0WxrKYzJVMlyqDDCdS4ho9bn//DlG2uhCkro40mk/L09eHb0tz7xM8P5JrC9u8UXr7uypx3CiQ1N3eCYiVMbaN3Jlnkc0NOqo+34jVaHvW4OlQc+5FJvSczcoKRXbc7uL2Kdfm8/pzlHYx94uB748FD0y//Y68V5fnmrWDeeVxrXJWMKr9184FNPewHCMhS9LeHGL86Oh7rq6KWUVsh8kDrF13vFgVntQTGzTm9hqO4xmoGSdwHbZDq32hppV3hM+banPzBj9g3xMCzoLSWL5qncAh+DiNC3e04XjBbjNF4ZGz+1LDKonSKzVT0ejXidKRjrWfzxbN0PSylTzvo96C6IDeWQCezi3O7wYNKBnAvPT1Ipc5N2dl9Y0SMEoDkosnPjlgSjeZUKk7TXtQtfqvZ9HLlnq3B82gvBeymaq3Z+1DEXT/345DmyhzIQYa+bs94latH0TtvTsQSKhS42n4t8mdJ/EqTomzif0gXqXFnMPsG83Y6FNOl8UHxxTBpZBTz5W9ys4d4tfvfQrED2cR6itATWtlSmITAXSJcGFgrEY/+97nLQRZXkC2/OMrtl3i76PCfB/Ze8A0Z3WWWHhZx9PvLV7Y17v0ZLsLjUxBBPhB5klmjKSp43ykLd29hlfu442xebf/QNVPblNCYPxKmzhZ/rq0ePHILdJEqVtmyDkdFz5j4egNFlD/edMjous7psah13ZVBws/xCgPvlkB9MWcCebvnKo52HWW8CIYQXq8DhzKdePyl+geNWDVv8rGd//2MM3cRxnew3PWVq2xEZq9aq7tmDsBiw6sP0BW2hL3Zcj9J0fWzb+qFGdlLWN73Vm4MWkgpdQlDbw/onML+uJAzryKqmT1kTd9mqitpoCNirFrVrBqmAy0CrMlsDMVxf8BK+sl/epOljGrxj8HQVft7lfHLbKkLHebKUUu8sgjicKy/pSYtuCedIE6qmujLgPE0UU8zcuRBn/8BIIoBhldmGaeTL9HnjQL4o9S6WtxVt96qhPF2WwzH4JorawH9YjEz0s0/oZWVwd7H5MgTdLoWUAD/PbHc//qRXtEpIHZv6eMh9i9j5zv77jyhrxaRUDBohk/PtVK20PGlT0u5344Y4TRgBQp1KTfsU/hCylzYnVDLUn7yf3r4RlbSKbtT2/PPrJFEZM/OZ+B8w/8lqJLdExiDjwb3+CaB+anRSfjIup9KIcyXMefOrc5UTMD51zciLLQNRrxqNeNRrxqNeNRrxqYMUUT49Tsqd7EvnHq9+iX0ZuMfljYAAP7VkAmH1+CWIkF36dmMWn7W/nSTn7Vq3TL4vuKZNugaRXNo2069ORHIUu8XuWzy6TfbTvus2y+fqZoJRWUo+1ZgAPZF6AI7ED89miYc0fxInYiEwfLIbmnphY65PgAPverb8dE9ZuclTKgE3Jwft4cfz0rXwk07oMADoeKM8/qvCS2JmDX52IiX9/WULZWLeBWhEyvl6BIkIdR7ZhtpNEi5DoEQpWre3+HVoWXSjH5JXcx7o38nsUo8ZFBUNmY4t7fwactXE2AbJa9DO3YkOZRpj6gS7gMZis0aUGqolZ9koJTTgN8jI8hL7+97v8d9VqTHCm/EYtb5o35DlFqFfI8uLy8yDWt3Y7S0IWvtC/NPtzAiDXRfF+GTkCX0oruuztG4RjYmCuUPejN9iI30XYPt2t0Q4Zj/jYHC5E3LQsJhfXL23M89wSAgsuVH9d8qpyM2AOtJ60YoztEjR65R2VA+Asf7UFvfqbHQYqgvYa/WJI8CyyDg6drCkLFiYdwDmpEDHF1S6cmuUhxAsrjxB4L4ia8EHL4fT+Nt966YFKfcEV4RiOxjH1tOQqTsHyvMcqfKbbGiZjRC3MET4ERuiwA7zfDgaV1Fw6lrX0R8aS7lsiuoiQrlOoU4FOhVZG6ggMmQZrdrWCNnrFuaWPMumOFZA+wN+I4aNvNL/HbiBsb43E0ci/BNJj2kdkM2tdjJyl+DGNpCKhpmkhsgamE0B8yJ9Lxp7G4o96JFsJH8eePJeiidv7R0UGtmoewdiFkpwqqUHesIk1+nEFNCMoiCyCR1REOAn0jswVUIU7OZaL8uFmQcKPgMZ63X+dCPcLPkrxvqPjrNLcHe2oWn9TItgz5znhdyf44oLEdodCG2TX28Vuig+BjtZEfmYxFwfIbZKVBQnr4FPORYhRinlLkaXubtaR/tAkqfQipMWpeFekIgSdq/w/2sSBv/evK9BnVZtuAfE4Zsji48afqv63Fbxn5gD9S1OA+AoWjYGXGnnXpxPQcoQLl5wFvzpIK3Tm+eTUqILf/yMsiyFKF5UexZF1qXHBAR6ocAkgK08Msl1xXqpRo6jB5Ni48QqQ7FJl0jNXixddYt8Cw19IJH73nv1jUlxaMc4dv+qgGn/U3iJ4tETwQNgqlnsjIE5n2esC6FIT/yPZunexG7GkQ3dey6f+SAEl5nz75iNwE3JwxLq30qdxdcxbC8G1KH8qQ+D3p7ur0H0gbUgIhvMAqydBfjKLL9icldTSsSXM8wMkrgLXuKtqr9tm1+rM5V83HFl2H2DyETKCT4k8TSs/Bpsyy9zpiNqiVIYJib7dLm85RvszZGuNzACeJFJdSI0kJf7zk08q3q/G2PF5MKiEVFJaNxkt2wYOw6AjtVuHj/1/Zi3QKnhpUm3ERiOUwavqr2zZyRDh2Px3tSgdlT6iSfB2ZcrRHe5U90swSGdkn/sBljfnVmHsWFQkCMxVHy9tnJHzroPt4qckCcUyTIKnhX4HtoZCeZSBka08GHb5zlgSYoWOdMHGHUAhsx9YVhBkJDa4pHBvfreR2TPiNe29GPAptSiHwTS4/HiHu1Oe8harlMaXvPiz3c3xWRSUlZc+Frh9OCbRAhnGIE0oDkJ2uJ9BrpY8yUUTjXIGGTR/8f7Gu9+UwEl9+LSeWOS/u9oBrVtb4piF3KVcnWTqlOxs3VSih8YvpzZDZYoq05dpZ/s7Q7n9J/lP3dtnWbwAtH9OoBgFpEZ6i1NwTJVj0pXlCjE2wQj9rqLFP8P0YdB2IDFLPVl7fVque6esSUDs0NMNmdl0Pkcbtd9vxgz6USoFKE/nt+XwYnsqU5lyNWNbKapxG7z8n1wnV7oT+GAjzaps7N6txoXiXYL1VnB/V0bXg2Jmc8B1/ymTGCF7MVH7zxS/TZECrx/NC2JZN5GU/+lEHhKz2aRf46cgkl4r/Sesqd21i9LgO3lQIkVCW/C8XWGmFgFzAH6P9FF4v3VczAzBfiMDKtLio05HscZ6nGxTU2qhwWsHYx8wdXNoKEe8YgdB+osgyt2kNQdxq9zNqiUxfSaGK0BG6gk5p3c/mCVhaf85nkDYFZs1aJviuzb+XZSdQyS27YBGWFJwq/7ShCEhxb8Dy4iZqeq3z8QbkcMOXLjrsL3sz5ee8HstZv4QRJV/CBdmE6SROcGsHs7Bi/AT9rlI9mu0Wq/KzGVOXMVdZcXDjG/3dxUfJxJ2RhFypDifOO29yEAx5rYRDR8xh2JioFrvhbSABbsVS+Sg9W2j/PBJK1bbkg7barj0QVJD4Rw57HQib01dhitcU3OJeRyx3Rqrnq+nG7P6u62k9spvNDLR1KviiHM/l8CfAoPG3biKT4S6U9VX03T4wua8AOWDOgtqrDsL0JNSWnn1C8iI8cshcph0lwbt+rpMvDGsNFwlWr7/6ElkIFa2ZwLx3ElKtyMt6zKFePswXOOdvaFIcH8bCB/EGFPJhGlImRLN41sXVSZaTFT8cHUUH+Q/WPsFo7/5pmJvdwu2sD6NBTJ/Ea44Ly9y2Uw1yvad6nFofy6KHXsp8rfJV60C3HfAaxRG7V08Lpwrg/+YeYAKSIuW062ln1wkmjMBlBTgjMYsT1D7bmkXWUx0ZxuBYX5BqIPvzEbflXm64H2PSnd6XD9HEzR3OOTXTdgf3L7KhcIB44ErQRRmVF+7hOzfWGNAmEmGaYS/ED5Sng/bSdjPB/0JejpX8Bnh1apXAMySyRwml1FzVTP6MyurTfCisDr0aSjhQKjqambjNW2m9dpRxCpUm3n7EpivGjuJrMO6LOFzA5DvuwuanIjCVNS50ifjx4wTxQEQqTN6s6PZKLz1GMQaoGEC7kBszRMli3HB3Jnu1xPiUa4JoZk7wCA65Ovzt1kdCa3+PYYp8uIWj8qti4ewtHOG5GlWhVEQucMiSOyP4TCJxE+v8GUWdoEWZBcXWf3p1PGEEXg1Z7eMdAxqnfUZcAwbWwyT6bUcMRfXcw1WXBw8jks9BXB53zRfQYXpu5f7U0VifRzMPtTXf2bqazY1f9CQHdUi7K6m7Hh4FFVW239ff3mZq/giTH/+z8V15BFo32Gj/MjBOlah0V0b7KDDjieDfPgQ+AYsWSnNsAl5UvtRkl6+4bt7h1RIen2+87PAJ/io+qqhXuCXewAavYRP5AAFmbSMXn6nJTsoN6lcELD/mKFqDsMOZvCUfvTeJLx4n2136+zrav8Q9d9CKCf8IZvWOwG/PFLK9awYOnmAA9ISA9nuMagg03t0Lqfmj7NSxkF73/7gsDeboelXBO74FDutE6l3AI8UEejjQNG5AQw8DOOMMSV+wlIi6cyyMsUnmt/FhpgzycqkGdcDUXMaOzkMtzwm6nxcE7lcQc3yGykZzXddCsU/AkyzOAlMFHeZ/Rp8M6lQAppUdZklh+CBcxy5K6ei+hODitzCtO/y3hXNVDYqKSQ4ZLkfIn/myYMp+UHZgUdsvQm3B6RLEITIcr3y3rDHeo/MEE69CfFLYf+PHZ/0nzv1yPXonLm0CiqhiF7Heca12PruS3ERPRR4Nfk6ZQDRNRlvN+hKaLj6ah5ekjek3aftpQ34yt81TvEPjtYtGhgXAtTivwQDGdreoeqQW/1NIF9S8KynJ0b0jJpa3i5ZVqC690bJBj5ZyCua1wDy5azqeJOnD54xwGbRSoid8b0m6HIUaeMMoYsY8LL2TtWSi6e3gxPstVkjxThLmW4lWKf87ZF1d/VqyVyU7Kb9R/bMzEK4aC14mp6k6xY76Mcm5RRBBxS5vzyialfLOcFmslAuLx1FWP+/VMHzsWzTGzyqZ9W/AtUF6mriPH1JAAaIaMtYoCa4o5d4qxgs44bd01UgE6zjDgHJ/5Sxm2b4hpW5vVRg3fpDZB5ACAHORB/xeUpjFzUEU4Yjh2cfw87WGE8AUXpsxADDOqsFDe8V4s81/4A4Bqtl3sAcWYuvkXL8Se6qkl4Lzsbrc0QR/Wy/iefN10IqA82yxYAKoXSKsMVdMOt+WbHTiHuPrrCik3eUWLKdGx42w78vy0u489/mkQ53+eLnJZQhX7lkvN3ifummDk+xvPrRc6+0g97m8GpRMBFLZoQZL3B4rFNSBLll64dJ9hian3ui1NB9R9C6zFZ3PHeIOhRxru47jKs7insZhslazekcBh72zE7MAEAbFXycwMWgb4DFkTyjOKOarQk3wKJAn2cy3EsNNiJt5AYXlkUF/w3eO0cLXjFKYlHKkEi034tgGRoSPGhybUxPNQRmCRdrTWDk6q7OmLN4A5dB9JKURE6CxcxxSCnabulTGLxsfu2PTiEt9sXa195FYzfA984X0WUumx3Xb+TiSWrWse6l7zLJIeT3n5gp8xuZdfbYd+D1PGD5r3sNVyHy5cVRoJEnx7OVkf3JEQ232UmryQ2QjQVMkGYiSICyh3vUvTRl73kItKMgmA08UNZdKg2IVdeTkkhWCJa3wu9R2TjnlhmezqxuSrpsq1rgkoIwQs+3nL8+DSUoaPnnEeyPwl71mqJizu+J53iAnens/ymkTJeWg+YiBsChhK8D71SJ8qLjyDTl5ZmpijhOkzmHDY9+QedqpdwSa/cnmrAKJTZNCNF7W8xcotNjdZpVloppd6eMAb3Y19v8QAZcPUTj3KSiE5YTIfM8sDuhC/TMIwoBBktxgEkuZgWNcb6lFRRVDixj6NGvCqpoporSPdyIDc/FXiSJ9ziFzj6SaldBOUMUxFyMjYItxZr/TQrm0ECqTjC7KaP3nggrcRtmUrpMtpOJS2l1fJoci7ggSWEbnpsBP3B6TcyJYi9CMiBUsGbatsZvedMO1R8XH68T2tIAtFzJauhoF5fUwVGBynGz5qw8Zw31mYpVPP1t7CqXME60K3+/TgtuZauJTEwE7Od/uOoWUwSGmtUst4QHT1f9KvbMcsE+LwFJFpnVC24FI6lHKmLTu+pP8Ky1J2bKjkf2xr9YbxAntH8eWu9WYoZrIUD8Uq8n05yCVeOkSne84fglTwuQchfQ8NXV37A8F3lOGhK7S5w4ExatiImuDT3hlpX8Ry21EULzfKb/hmFnAG7rxUFGfcZmGx+ivmdVmJbDo0Ir9ejCNvuHKPbNRuLPbxd7OT4z929EFZA/55wzyv13bd6PmWKO6o0LmDdYNaH53YLPN5k/qw/eCLfj/2Ahk6oK19Tpc9M5A9q3N2wM7TBa38s4X8oHmm4v1fUEusgYqgzviQYuoreYUfSr9sfXkiDVMSPsHRyH7rZHKfW72KLuWEwqfWlrrfXgVnzIukM4lbf3ZQXTfblHpGhiCqxTcFr6/pvVI2O19cf5WGQSPR0nmadyNAS5ITGsMnuyhcQJjCRnoBObLxv7qfafZ98IaOgI66w5SFHfR91QJbae312FezMtJCiT0xhHQGSGs1Co7kgKz55PS8uw56x0NuoagBdUslFwKtk+jkLMifad0A82i0K7zmkAJjEpzLSS0LgFvDf/aou3Wz+UiiGc0xYVwK1xEkLS3jMoiCJvGdJStgr1DxzyUNJmbN3aNDKYpYpUJfRS1U36T3K7/ZF7D3lGn0OmKZ6tFH1PkGf2ZjHD8vinuEF6IPVRJlvKx7cfiXAAXSA8WZ08+BVFD30mQuL/JHYU/leHm2YGazxpA2/7+UwI/rIZEeW548ZHzMRN6XClgHrjh+f0NW+QMc+o7LSz2iX4Y8Vcs75nIyZk8oo4jtHc9rRykalQiydYisuUUpikFnQcnNXTxWresY3sqBp/Wo2DS4aIFpV7e1FndROQFfFnvTAjp8X7d7kTe2gHRksfhEQ8LrBpQarlwpySu36ROxscESXmu6rPrGaCA8KHWuk9p34nAp7TvH1NVHuTBqbnzY/zYuayhpyltfVzgGJ4MSYrJL1g5IbbWVLzioD5HOp6jvjAa5wGq817mb1unK1oCTwukiERtyf39NrFmgINa2Oa/N9kXS5/Juc41irlNIVX93b6ZFqN9S5Py1JYdsPORPqZDHU7eIOlpW9aNyBxEF+qindoUWZxFaBVbGEE9Nn2A9GyWLQ5tLKXgOt+IBAsu0KvH/xlo6J18YctBkV6uTFn6EJRliizF8x3mG/cQxY5T9SKD5tH5RIatf+Fy3xDSHjg2/F0asulEWqfHJZx6yk4c1dPWV9zyAYIyWc1AG/X/k/zDk4kLz8MupsfasaPYqiZU+ChnDLTrBhJAGGY+tmMbgfUAChYH91OYjgRLNnICZ92XjcWJos6W3djGPppvUuZyOgPvxWSMIlwwFdfWVR4MB95Sw/0eLmXVPF2Wfu10REkHyc1FsmkUVLZTnPMF59N+64wn9/bEsp83jiy2kd5cym/QU+a6RF50PH8omt1zYxbjtpMd7r9gtQn2jTYYk1JcTIvL7jKTlEt/PjSeH2TvKWOHX3gktNrjUXu+cXAfet3ljrd3lLjaImeEJLrnhd+NsER4wg6rygyE5s/f20O2Sp3iiZMa3xc3VpQ94DSlxJl911olLU73Qgvxls894rqbAPxiolR+FPEEV8bidrwdYZKOJ5nhT6aeSmAyQaMQ3qyMpKvzycelw4luvRfHwuSdAR1jEcgtPPTBI4yDShLdTF5+GivtZonYxcyWq9M+R3Byenn6WnuezJcTG6/ZuFGOPzKpkqtB8g7x5izJ9Pr0SxZtuyRfYeaGfgJVW5y4qs/JUggDMq7uNqM37lGxeW4gXpD1nS8bqriG0vRF5FGqQl9j1KkQ1CAZKDwjNBoh1pnWngze+913m2r88iu29PQWub0+b9zixBbjoPL3RPzrpMlTo+w3pF0CWFth63W7KNCEoZeGK5yLzhGMciwN13/iC0WqBZdojNZOgg4+B7tITdOl4eqQIfM5HNqZEGr0cruqafvl7oqW5UB0SYQNVH9Zt0ayrmbcRZ0qzSSFGuaa5xbA2+wfx21MljTSzrIOiHD4guXE1sser43+wIyrD4aBBCMVLmyyNXsr0EXMNCyK1uJuuy71XL/KkZHch2vxf0f+wUISd9ghrredKxR5LptzR/mmgyhc/2uThZiydteEFw/S5YTOT63gQecMC/tAblf4JXpYvSbgUQM7oC1C3PbP+gKO58Ao+5jEbvV8DAdc+uuKX9wsU/QA0EAwy2J+1axmYOXSYXGbu3XDdJAHlCngeBN+KCSnW7YKEnDD8EVgB0xBKUtSQ9GlykEa9lTLU1MRfgwCz9JSALmz/zv0VYRR45MymQoK3J8qBnoYmHpPoCJhVjp2n4e49dkljEuzLvy12IeYQVL38MtC/E9hQ6U2DvhTYOGK/3zHRJqXIzOXKNxhqLGJZ5GkDaKo3g9OUsstbuERkp2bwY8gR974Re3rLMxC/HOc3+Ha8KSeY8nOrV1x5LqHsMS9RjSWEhV8KQspUooAZM7kqkjRbQb+sh35C8g5lWVQFWKd6VmyxZV9MyUlt3CsqjBR9/gPvpMY0vyYi+h/HCM7R+tM5fYP+GL03/yb+TCX5lP1lEvNM2V/AQcluQ6F9qicKWw5h73YwXan+9EkPKj/QTK8EG+dlUAP+UX0GvjScsmFmwL/o7ceq1tJcTrtfeeBofOsOOkFeeXbDQkM1VVtOhf2JpoQU6yn+MEFFRofNZ6vreaS2DXTTBwQ05j9dJJxdcRBfhlNLB98NFUr4IX01K7D2ftkJpHKWoawAEKVN2L4itJykEUwyz42XKI6aQ22IZxpV+GoNZwByt/qzvsH0vkZhfj4jLdHcjJMbWbAuqJyj6FVzb5+CTe8LXx2KwiJJdRDfTExbz0YnONALO59+e6s0qaMEX1VsoJDM3JCJ3eJSkS0HyJM5zM8l8Jm5Wa48Q81wh1MRIhDbC6jdS2ZkN2tlqnl8ebgkF5/Ub2KyXBj541iRKWyBwO/Igniy4UcKcHYJ1bp+hQ4bdH4gtB9z9qh/cTR5QbvnDzkoZbVRsgvCihnwUwfOnVmZSRSpCtAOc0bfechN8WfZtvIjMoLRjaGj+dktbMWz7hDRyZoKLq/sppnTaLujIxvKCH2DWO9HgQp0dyVWJTvePLXxCkWIv5aQTOw4urrPh3Tq/iqx+IOa/hzIixHvkPjNgK/Jiqu2V/p7JxIAx8fH2A6TKu6/zHoxXJr+zqfMFqhHJirDYYyRhfA8lJEBPUXWfAPrc8bKlp8QhML/Iy5ZCebM0WDA06Vr2MkPkNF9UVH3yKTXyKY5hEIVkiTgmNz7xpuRvqmbNJx4ES2zRycsUgYyx7yDYa3xRfU/PyMQssosEgyxfLykYfsunEjBsQUDyJM0rHJL0RoeXEydH4fSU8aATzpqpAYQyyKGTpmDHT/i/+n7KvQcRomXQoGuzILVE4GH0oZqGIPF1rp/Y+A2ajt+Q5iUZi/TvcPeLtgS0Upy+tfhZdUFLagFnwon9PwjJaJ0wuDbxxHVR0EonDHH3ZXrvyu6LQZtkTNo0LoXdujMeJ8+P7/NHZdrE35eXFHJuFV30w9UNAckPD5GAfbOoIrA5W1Vv1pLOyGDcN4rM3I3xUx74pWx9Mq506TRv6OLDLm/VVZXW8dhyzvd0UsAeSg3FCMsThbzr/qVGfkzoSf7/oSNvJoearQOot1WhHQzEyGhKAD+kc3YYIhqNvvmifMla7Z7lp8hjIxkAACWM5rGSoTR1dTSM1odLFdeMQ3kQkbSrkdTa0H5sQQlmxzFuiXJyVhpzUPLlzlR/3ZvMfvcvoD4xqGhTtfcoQvDu2O/z+eF2tGuDRgb4EuTDAT0zu7rMb8BH2nTU+aSKi3lUTiltcSDN3JO5ng4fGzzj9X5VTr1jcsMdEOYDKYqCwDFifWLwgeQUjhOtfDj1ZpzyGOYcAziFvW5HYjxfvH5KrXl3BY7NVLymBoYO9LNKkqZ3laEUVtklsyzC1jht7TD5D7pH9WAMgP6tyDcogDdrFXm5jwLWJV4hdiFnwnc9nS1VFWWDzWXpX3MJpLkGVHrVJzJ8s7bXFt7S6GLRQLgGZmAKdbPA9bkNygcNQmUGVxJ+uetb3WLJ7P3OZAzAl7uF21gd/DFMPSKK8i1vW4xEsmwHHAlI4PjnLshDJHCU7H8nHDWsentooyFchnAd5/IiCM2deA3kV26ZosA1HraYDaByMDz7PpobDF8hGX5KA5SRfzDnGVshSqndU4JpZ8b3vPTYGzUaU5svJtMI2Z2b/5xNXsgxVkTV10IL7IakfxtyiiD5NceU0NweuE7Og69wrsZFYW+C0WBPHmZvFVUjW8HP6cPDxCWPrbJhU02pUDjttWUI0wgIGNBfUyiJ42gdiiHd2wz2K/U0xdPNEgQsUQAu3E3HTWmQ2PMeK0eJR/ERM2WWVz+XoLGE2TV9Jo76slnAGVk0vuLYUJV2XrLSjXNcB81lfjrYVBEea0Qw35vTn+xLX+7hGVTkMl7K90GVp6Zf80SQts+i3bJo1NGqUOnDn5kQTDxbIeCG2/t5i/BjU6vzZQtYTj2QUmWuumOiiUFoIZTLFv2dbwRyNmt/APujGZLZ2RaOe070/K/96Yc1vCBO1eFpt5mlffS+zG9RWD9JRG3i9HQ7UV/miaGkJf3W6eHoaauIAtNvwvvMLeWeEISoxlEPFDzKtOKgz6QiOB+s/thpFCspU66P4A6qSPmcbuCF6qZYHvW6BxWn3yYH1hcobjy6ajwswowG2z4F+HXnnkOXqwBIBjGr4LFX/TrlM/CkTXYraFyGQ1BEwiMhay/ln6+tw84n9UWmo0V320Ct5pL6HvwCLRKdQ+Bcm1+nMH/WN1VtImua7k/rsJzL/JSTgE879t5VJbKNNWcA8V8/3ZoyQpkfW6nYOLr6XEBkqMjOScttpOXQy4noVcQ4BwPkaqthrt5GYe5cH1leWfeE/Iz45SIUzD3a+VlT2MPnJcP5RqUJcZ89bOu2N3mI6gHfzhOfRqsKtvBf/MuVhaMzoN6mNCW/TCHfffysf3kWkt+PkKMwhXRvp3ANap/G8IplPOC5S6OlQAoch5Ur1praWeoS6Ld9fv4sXijOLDSmOdkuq+gh9UhADmKIXQuz3V9McLUhaJlUXLsrXWfWKHywgroWQexo4yT0fJPmJ9mIp7/0iaRGYQgfkqmSpA1mEK0vGt68RsFRKPzcU7ifTxTIAA87a2aVqXOy2OVcfsO+8ptfxvPNI09iEpWmLPL4kSxCKu/Q5MVoL6j7QzkCxJl+bABr95skXdzbCMbHoHmbheuNac6xemBEMGjtQO2hWnlvhNBQLxVDw/dY5C/zU1Q7WnA16XUFBd+eNJqjDtCb7/Lz8ewseRnNWcn5cR8DXn7cUKB/07//qwGUldKXNAT4jVYL0SuIVj2FYg20RYO1AGNvid1hBxzIswXfmI3odKridCVeITedxs6eHpks3kTlqSy0Je/QY3PpAcdKIntLr5d/UQxUwW0ONVf7GYSqawDMWMGLMLBV69jztthyWh5dYVF+Nz8l5oO+KX6F/BadinppTEv5f3lwhfw/PTcHFxbpqpuZ2m/LCFIr1x3Bmw8ybqYiKPBs9oJMeNc8w9FSmmOCRRY/iH6+ibWIuxCsEGzVp/Q79gFAY9e0C22QM9WtzIduos2krFyQs96gPPAXWZRmxdoGY+0Bpm0mfT5QhIRClLBOfa3UzczguSkKOszBVKOFOqOFv9gecyY20nXv+ol0/mVnBg0a+WpLfO1b8oVqUL2ykYIGt8cAw715T6szpOGXSB3UTuA/wUmF/ia3vFlLrmeJKdPXJXkf9CfUTVipw0OsZ2v0AeF42MVkBQPwNxBSSfBZh8JPK11HPReZ0roD+XTnHud3A7XqHx/tNF3MH8nbehDMB895J2oLNAkgDlGrKGufDw9Xsq7FoNauNbzvtOpBahtiKLEh7da0eZkD8ydtgz60T2GkYhWrbUF88CvnmLbzpvg4Z4zMEuwKLmgKpSm3i1cy55uqIxnMjFCWWHGINUjcHhvXxRtJ84320rftrh7ioXRfD9Heb5sW7vKLb5+7BrylGBWAt1bqwFni56lFI/zkBBuKheDTX7wv+ARJIrWaC/QZJnJcm+j9L4PElsxBzpscnm6P3Q1YNs6un7XCCOHZQTBlv3RtTQKvtEHCZZoZV+PlBK3C9MDoTYQ/RjExj64InaJ8qQL847UnV5HVSdkRCy++KOr0UfOalFSFxMezY8uLvHWLWyr1knYeq2cZuV3UTFAFLcHSe6uPaNaenE4cVRE0OOaL6o7ajd3Q9kTHAtdIN36p22BKiwS8o3DHjuis7eAkoXHFEwUxGlo2Llveqe2OEI82BX4skvpPpxDmWGLcCzOMWBvHL7M/37l9K7KIPwg3ZFG0xkeWTyvzcFZmKG+JDeCjwExH1sMJLaH0IMyKj6PSoRUswXHDy1Mt5GOfq817JAh7QbhR2ES2hpxGKEB+ibFvWCoZZGrLMhc2lKVM9qKwhgdxfOF7N/iyC0NFTOsNbsOiagNIAQzWrA+fpbVbGC7vjCh6V6wfpbXlSLwdOTep8UvDf5K9AP8AgNWOk9rHAryd6kvU9gxLbyiCyAPZKm3a1VVkfsgH+5dzTqSBYyOGQ0IjyJtafqoiQSxjYdMrUm7zzCIm97HzbnJc89eAcKEFPl5mChMFZAUlWhWDfm+lzqDOCP7Nu9gzMOM0AZkNVGT8cz5Ozmsv74aPtJATnHwc0vR5N9add0U2yZIGkY/KTeYdRKLiaxbrVHmw9ZN5sAnO3nX+0QqNm7REkL0wpb7+IyAsHAQzK9NQWH0vfl+ZszNPzo7kjtTVbxHppD43x3fYQ83GB7q11ak0eF+bOaZ3Uf8frlV+cIvPKNcH4H33CTErL6Wj/vwSqu2nE16IPsfcaD2owLIRC68mcSxU5Ln2LK+LMRIayCtCXUPsSP9ezsA5A5XIIBRGxMV8fR6/1ujZuV+YeIPdf093ndzm3dyAifVokPjL4mvw4qB5/qlJI4Rtfb60F6G8QS6GXMNuiq7gVKJDdFLOvPRpmqNUrXraKfyBtPUyy8uq2XXUM7UFvFhOoS7pj1z5j6K4rjV5rBq9of+K5DkKcypj0p/3FcjY1H5G0RXz4urCejdbVlYSheshi78doaj0Q9TBBrJN4oG/BW4INgtCjqlriIVgKddX7xRlu+fFVTzHh5dq6bx78QiuUlSpprbLDOTKFww4hIojRxrElwJK+XbNaPULX5ds6gcjXGGp0kmRqOTTwxEzdgoqz0V01Doyk6yEbGsijYCWeTAwKgBdNLR33V7JkKm/wLR2/6r2xxDS84MKmDBBpe6sslBwlml7w5ZTS+Wjks+o1CsND1nLwbipWuV3IqozPqGJv86xZV6ZP2u2l/fkTw1u1samC0Kv/iF4j7XibnsNz04b22j6uo7cIa4Hgzuaex9pcAP/0o3WEJI5v2wKRoJ/NEzfiehD3iF8NcVDOyDupQ2pg/KoJHL/xHtGtnTCbeNSsHBQKjdIi4J/Xw0aIEYc7GeSUzcJeYA1UvFJJhWP9YSHwQioIfTnNWcBA6NkC7JIQmE4S6O8Rf7/xdGjN7LhkmMKhJhxO7cL3L8YEj9FsTkqHzZzFZtmtCytZkDU63060RToGIYJlsnHpriBUeCVJDr3W9W9ezuUBy9pbpwnRUny8jTjopxVK6QMG/7BndIe/i0v86PvXmguq58BqyNMnCQ2JgT1dDMCFEjE0ksHlhfGYtHQG3gm9RShuIG5BxkaSYx1w+Y8BX+URfqv+dKf2tRoX4SY2TlS7V0ApD2MZV6zK0p7Wt6JWyThkQOtDij1QXqZGWTgELPWfqzS7A7uQCzwe4aRq7i4RLMWyY+NkcC7KGBCRdT52CFNpA2+Ups8fjhl/jCaAyvSUIYZY4SmswlYsBywKozjnXEPLzdTmilEStDDmBS/hNgbnM/23brUX2Kx36zADgBJbz+PhzpD35LcrLoaRaruXGdzGakAXyyS7fxNTXQx1yfFOhTz146QLPMbydGvu3PjP6gbrXeGO+tkdYgMuKDnlD1OPSEESHZ6WDzcGvS/qsxXETvOozUwyUougdYpm/2sbVyxuHK7mPNzuIwjqQnRZwBZbciy1BvMzn8MCCdBSret9don3LLmUB7LhQDXml/8OPHa7/tzWKz9XnsCBTNvhuDvAC6VdD1CgsUKUzLzxCpoT+x8m9cAUIuZWLdCEktJUGP6YVt9aPDUwc6WFPSBT9/voIfVH2177hsqg8G8O29i525VEZUSaub94sla+lqRCIu8EVK3lhjuYdZEFSjspAg3S58yrlRzO/GPQ+KCdsAMqVhE9rqDaweKZ69LqDuVofoWwXJWOo8rbJ6cMlANa+zCaYxlhmJ0m/B/6oMc3Lf8XdbB8So19Ff0Itj5ZG7gcc4j/nGrZObwkjUnK35LWzwXpHa33FGwyRtChW6ZwEB6yFBvd8v0FcV0IYxIpBm9aRFQRVAAvvMKX/LCe8Wcc2WMEngGeaPIjt90EqsQ9yC71O5veW8qgxLm9H4f269uXMJl81uWmV7/3qoUfbe5XkE474lEwDFleIs70nUGD3XRJcC9oQbjdP1cjCxPNej8meqI7+uzO8lPyVlqBd/OUrkn6LuuuewTea++//5m3tNdShX6f18zivwSKYOJS4qauY3+PxX+/A4zoO7kCOsOCYx/CbRAdfLBLTRoVAqLViPpAdr0TlAOj4YJHMouNod6vVmKaQsA7PjzEBahj2xTBcKnzX/IygfB0njicAa0WvkI3hCWMoaai4PY/806+ZTydRRZUn5d+Mx43EFdtx7Co5ppxvEC8NuWPtTJ42ui/F2EWSaG4uwuxbvGM0k7tOfX7g6zF7hF8ePuw33AQhIvthQKpyQdB31B4B1qr7erG8CTVA6RC78ctZ5NMFbKi84X3dgorMUhLJP7BI9kckB1HAR2XO74XXzf4nt/9e9KPCvxtRp0sUtgDkXAsO+5mjC0blqFzD8zp5/UmWrz8SukSW0UBG41AATtwA72CwGKAgKwTD84FYWMAAgG9Ak/BHpDlpW9BHy4Y+5NaZWr+MKGn+G9NOS/eondqGWjcrWdyAt1OIwBAfifMdYNz1cv6EHvwRT3s9AI3BasT2QckdlHnzRVyQ8eMa/iitXJYeA6h23jqZWre3e5t7EFL/4ALAyr1aRJom0B9KpgXwrx+YvjEVgWXe4BsFfFbhY4wxRQgZVy4F5oh0Dj0HqZ8YW2pFHTuqwPOYd9TXykrH5htkHdaHuX/O72Om4a3VFd2goWVezIbnOzpKcyqUrLvOSJa68qO7f7Q0LwPKtF2LmJx4Gy4OBrBgKXPxLKtJs1rCEyFIx9+kDCqB5cJxC6pARQAAAAAAAADARyYFjfAwH7a7wlTpoDGfrj0lRqqoGke3yDvod69kp7CGMG/Ky3jdScyzDC03nzXtKzD3s5jO/l59Nn3iTYDLNDCdVRrTCVtrXe+4mqnfDkfW8GLoEDw1MAtlBOwSV34uMixHM1z+vKFmy6X/KQswXrmpVGuYN7fd96KxNHYNNu0xgjfOlc2u8ehZ6j+rAIaR6FHYLeZJcOb/c9FTzBrPwLDj73tTgmxrrwzppOU7NiMhJRoOFDuzfg4d2hTlsZRszvZEhUMRSyuBHpmpU23bibFbIgrR+JHJs8OroEOLfCpSYqD2sg/oKZzk9P03fbXWuKjfl5LaceRANpmtZCmK1GlmFkznHedxhDAL8bZv8qq1Pwwp81QKfq4g5zf3l2kbdXGBsJ3Yg7XHakv3HPcHpawIuq1sqUAAAAAAAAAAAAAAAAA0UG7EDM25wffv3tJpC+oVrrAIJ2aIpFafjaOOZYZD5Z3BjAiBV7sFAI1dR5rFFzS/8bn4O10QZPa2R04sqHX3LlJFX6/n25TGkB2ma1aT6LlZKTzsumAQtC5lNBbdXOTfOtIcnETeSnQ+3ydstdHrAIxkDqMrWLg2VQ5RLwYgR2Skz5slYa4vkcWgEXDtAaRZEbFiy5fJkDfzZKWFSmzTeK/84idjcJzFRJWOuFigu31ygOg7Wv/Q4+QAAAAAA">
+<nav class="socialTopNav" aria-label="Social Panel">
+<a href="#appTop">Home</a>
+<a class="ddNavDeal" href="#dagdealsSection">Dagdeals</a>
+<a href="#updatesSection">Updates</a>
+<a href="#whatsappSection">WhatsApp</a>
+</nav>
 <select id="lang" class="lang"><option value="nl">NL</option><option value="tr">TR</option><option value="en">EN</option><option value="de">DE</option></select>
 </div></header>
 <main class="public">
@@ -345,16 +472,29 @@ textarea{min-height:72px}
 </div>
 </section>
 
+
+<section id="dagdealsSection" class="dd-section">
+  <div class="dd-shell">
+    <div class="dd-welcome"><div class="dd-kicker">ELKE DAG IETS NIEUWS</div><h2>Jouw dagelijkse voordeel.</h2><p>Elke dag een verrassend scherpe Emigro Dagdeal.</p></div>
+    <div id="ddHero" class="dd-hero"></div>
+    <div class="dd-toolbar"><div id="ddMonth" class="dd-month"></div><div class="dd-actions"><button class="dd-chip active" data-dd-filter="all">Alle deals</button><button class="dd-chip" data-dd-filter="favorites">♥ Favorieten</button></div></div>
+    <div class="dd-tip">🔒 De prijs van een toekomstige Dagdeal blijft geheim tot die dag.</div>
+    <div id="ddCats" class="dd-cats"></div>
+    <div id="ddGrid" class="dd-grid"></div>
+  </div>
+</section>
+<div id="ddModal" class="dd-modal"><div id="ddSheet" class="dd-sheet"></div></div>
+
 <section id="updatesSection" class="section instagramSection"><h2 id="igTitle"></h2><div id="igSub" class="sub"></div><div id="instagramCards" class="cards"></div></section>
 <section id="customSection" class="section hide"><h2 id="customTitle">Öne Çıkanlar</h2><div id="customSub" class="sub"></div><div id="customCards" class="cards"></div></section>
 <section id="whatsappSection" class="section whatsappSection"><h2>WhatsApp</h2><div class="cards"><article class="card whatsappCard"><div class="media"><img src="https://www.emigro.nl/img/cms/homepage/2.webp" alt="Emigro"></div><div><span class="tag">WhatsApp</span><h3>Emigro WhatsApp</h3><p id="waText"></p><a id="waA" href="https://whatsapp.com/channel/0029Vb70VbT7DAX1LRsxpF2W" target="_blank"></a></div></article></div></section>
 </main>
 <nav class="appFooter" aria-label="Mobil menü">
-<a class="footerItem" href="#appTop"><span class="footerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5v8a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H4.5A1.5 1.5 0 0 1 3 19.5z"/></svg></span><span>Ana Sayfa</span></a>
-<a class="footerItem" href="#updatesSection"><span class="footerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></span><span>Güncellemeler</span></a>
-<a id="mobileReview" class="footerItem footerReview" target="_blank"><span class="footerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.9z"/></svg></span><span class="footerLabelReview">Yorum</span></a>
-<a class="footerItem" href="#whatsappSection"><span class="footerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.7A8 8 0 0 1 8.2 18.8L4 20l1.2-4.1A8 8 0 1 1 20 11.7z"/><path d="M9 8.5c.3-.6.7-.6 1-.6h.3c.2 0 .4.1.5.4l.7 1.7c.1.3.1.5-.1.7l-.6.8c-.2.2-.2.4 0 .7.4.7 1 1.4 1.7 1.8.7.4 1.2.6 1.5.7.3.1.5 0 .7-.2l.8-1c.2-.3.5-.3.8-.2l1.7.8c.3.1.5.3.5.5 0 .3-.2 1.4-.9 2-.7.6-1.6.9-2.7.6-1-.3-2.2-.7-3.7-1.7-1.3-.8-2.4-1.9-3.2-3.2-.9-1.4-1.4-2.8-1.4-3.6 0-.8.2-1.5.4-2z"/></svg></span><span>WhatsApp</span></a>
-<button id="mobileShare" class="footerItem footerShare" type="button"><span class="footerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><rect x="5" y="12" width="14" height="8" rx="2"/></svg></span><span class="footerLabelShare">Davet Et</span></button>
+<a class="footerItem" href="#appTop"><span class="footerIcon"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5v8a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H4.5A1.5 1.5 0 0 1 3 19.5z"/></svg></span><span>Ana Sayfa</span></a>
+<a class="footerItem" href="#dagdealsSection"><span class="footerIcon"><svg viewBox="0 0 24 24"><path d="M5 7h14l-1 12H6z"/><path d="M8 7a4 4 0 0 1 8 0"/></svg></span><span>Dagdeals</span></a>
+<a class="footerItem" href="#updatesSection"><span class="footerIcon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></span><span>Updates</span></a>
+<a id="mobileReview" class="footerItem footerReview" target="_blank"><span class="footerIcon"><svg viewBox="0 0 24 24"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.9z"/></svg></span><span class="footerLabelReview">Yorum</span></a>
+<a class="footerItem" href="#whatsappSection"><span class="footerIcon"><svg viewBox="0 0 24 24"><path d="M20 11.7A8 8 0 0 1 8.2 18.8L4 20l1.2-4.1A8 8 0 1 1 20 11.7z"/><path d="M9 8.5c.3-.6.7-.6 1-.6h.3c.2 0 .4.1.5.4l.7 1.7c.1.3.1.5-.1.7l-.6.8c-.2.2-.2.4 0 .7.4.7 1 1.4 1.7 1.8.7.4 1.2.6 1.5.7.3.1.5 0 .7-.2l.8-1c.2-.3.5-.3.8-.2l1.7.8"/></svg></span><span>WhatsApp</span></a>
 </nav>
 </div>
 
@@ -375,6 +515,7 @@ textarea{min-height:72px}
 <button class="nav" data-tab="instagram">Instagram</button>
 <button class="nav" data-tab="whatsapp">WhatsApp</button>
 <button class="nav" data-tab="content">Ön Panel İçerikleri</button>
+<button class="nav" data-tab="dagdeals">Dagdeals Yönetimi</button>
 <button class="nav" data-tab="links">QR ve Linkler</button>
 </aside>
 <main class="main">
@@ -384,6 +525,32 @@ textarea{min-height:72px}
 <section id="instagram" class="view"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><h2 style="margin-bottom:4px">Instagram İçerikleri</h2><p style="margin-top:0">Hazır ve eklediğin tüm postları buradan yönet.</p></div><button id="saveInstagramTop" class="btn primary">✓ Kaydet</button></div><p><a href="https://www.instagram.com/emigrogroothandel/" target="_blank">@emigrogroothandel</a></p><div id="instagramList"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button id="addInstagram" class="btn soft">+ Instagram Postu Ekle</button><button id="saveInstagram" class="btn primary">✓ Instagram İçeriklerini Kaydet</button></div><div class="note">Buradaki hazır postları da düzenleyebilir veya silebilirsin. Başlangıç ve bitiş zamanı verirsen müşteri tarafında otomatik açılıp kapanır.</div></div></section>
 <section id="whatsapp" class="view"><div class="panel"><h2>WhatsApp</h2><p>Gerçek kanal bağlı:</p><a href="https://whatsapp.com/channel/0029Vb70VbT7DAX1LRsxpF2W" target="_blank">Emigro WhatsApp Kanalı</a></div></section>
 <section id="content" class="view"><div class="panel"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><h2 style="margin-bottom:4px">Ön Panel İçerikleri</h2><p style="margin-top:0">Müşteri ekranındaki “Öne Çıkanlar” kartlarının tamamı burada.</p></div><button id="saveContentTop" class="btn primary">✓ Kaydet</button></div><div id="contentList"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button id="addContent" class="btn soft">+ Yeni içerik ekle</button><button id="saveContent" class="btn primary">✓ Ön Panel İçeriklerini Kaydet</button></div><div class="note">Burada gördüğün hazır kartları düzenleyebilir veya “Sil” ile kaldırabilirsin. Kaydetten sonra müşteri önizlemesine geçebilirsin.</div></div></section>
+
+<section id="dagdeals" class="view"><div class="panel dd-admin-panel">
+<div class="dd-admin-top"><div><h2 style="margin:0 0 5px">Dagdeals Yönetimi</h2><p style="margin:0;color:#6d7487">ZIP sürümündeki ürün, tarih, fiyat, açıklama, fotoğraf, durum ve Excel akışı merkezi veritabanına bağlıdır.</p></div>
+<div class="dd-admin-actions"><label class="btn red">Excel Yükle<input id="ddExcelInput" type="file" accept=".xlsx,.xls" hidden></label><button id="ddTemplateBtn" class="btn soft">Excel Şablonu</button><button id="ddNewBtn" class="btn soft">+ Yeni Ürün</button><button id="ddSaveBtn" class="btn primary">✓ Kaydet</button></div></div>
+<div id="ddSessionNote" class="dd-session-note hide">Dagdeals yazma oturumu kapalı. <input id="ddUnlockPass" type="password" placeholder="Şifre" style="width:180px;margin:0 6px"><button id="ddUnlockBtn" class="btn primary">Bağla</button></div>
+<div class="dd-stats"><div class="dd-stat"><b id="ddSTotal">0</b><span>Toplam</span></div><div class="dd-stat"><b id="ddSActive">0</b><span>Yayında</span></div><div class="dd-stat"><b id="ddSSold">0</b><span>Bitti</span></div><div class="dd-stat"><b id="ddSPhoto">0</b><span>Fotoğraflı</span></div></div>
+<div class="dd-tablewrap"><table class="dd-table"><thead><tr><th>Foto</th><th>Tarih</th><th>Ürün</th><th>Fiyat</th><th>Açıklama</th><th>Durum</th><th>İşlem</th></tr></thead><tbody id="ddRows"></tbody></table></div>
+<div class="note">Excel (.xlsx/.xls): Datum, Starttijd, Productnaam, Eenheid, Categorie, Normale prijs, Dagdeal prijs, OP=OP, Omschrijving, Status, Opmerking. “Niet publiceren” satırları müşteri tarafında görünmez.</div>
+</div></section>
+<div id="ddAdminModal" class="dd-admin-modal"><div class="dd-admin-box"><div class="dd-admin-head"><h2 id="ddEditorTitle" style="margin:0">Ürün ayarları</h2><button id="ddCloseEditor" class="btn soft">✕</button></div>
+<input id="ddPId" type="hidden">
+<div class="dd-admin-form">
+<div><label>TARİH</label><input id="ddPDate" type="date"></div><div><label>BAŞLANGIÇ SAATİ</label><input id="ddPTime" type="time"></div>
+<div><label>ÜRÜN ADI</label><input id="ddPName"></div><div><label>BİRİM</label><input id="ddPUnit"></div>
+<div><label>KATEGORİ</label><select id="ddPCat"><option>Dranken</option><option>Zuivel</option><option>Slagerij</option><option>Groente & fruit</option><option>Bakkerij</option><option>Voorraadkast</option><option>Overig</option></select></div>
+<div><label>OP=OP</label><select id="ddPOp"><option>Nee</option><option>Ja</option></select></div>
+<div><label>NORMAL FİYAT</label><input id="ddPOld" type="number" step="0.01"></div><div><label>DAGDEAL FİYAT</label><input id="ddPDeal" type="number" step="0.01"></div>
+<div><label>DURUM</label><select id="ddPStatus"><option>Klaar</option><option>Concept</option><option>Niet publiceren</option></select></div>
+<div><label>GÖRSEL URL</label><input id="ddPImage" placeholder="https://..."></div>
+<div class="wide"><label>GÖRSEL YÜKLE</label><input id="ddPFile" type="file" accept="image/*"></div>
+<div class="wide"><label>AÇIKLAMA</label><textarea id="ddPDesc"></textarea></div>
+<div class="wide"><label>NOT</label><textarea id="ddPNote"></textarea></div>
+</div>
+<div class="dd-savebar"><button id="ddCancelEditor" class="btn soft">İptal</button><button id="ddSaveEditor" class="btn primary">Kaydet</button></div>
+</div></div>
+
 <section id="links" class="view"><div class="panel"><h2>QR ve Linkler</h2><button id="makeLink" class="btn red">Müşteri Linki Oluştur</button><div id="share" class="share">Henüz link oluşturulmadı.</div><button id="copyBtn" class="btn soft">Linki Kopyala</button></div></section>
 </main>
 </div>
@@ -477,7 +644,7 @@ async function showPublic(){
     const d=await fetchRemoteData();
     $("#reviewBtn").href=d.reviewUrl||DEFAULT.reviewUrl;
     $("#mobileReview").href=d.reviewUrl||DEFAULT.reviewUrl;
-    renderInstagram(d);renderItems(d);
+    renderInstagram(d);renderItems(d);await refreshDagdeals();
     applyLang(localStorage.getItem("emigroLang")||detectLang());
     if(d.title) $("#pubTitle").textContent=d.title;
     if(d.text) $("#pubText").textContent=d.text;
@@ -519,7 +686,7 @@ async function showAdmin(){
   $("#publicPage").classList.add("hide");
   $("#loginPage").classList.toggle("hide",ok);
   $("#adminPage").classList.toggle("hide",!ok);
-  if(ok){await migrateLegacyIfNeeded();await populateAdmin()}
+  if(ok){await migrateLegacyIfNeeded();await populateAdmin();await ddEnsureAdminData()}
 }
 $("#loginBtn").addEventListener("click",async()=>{
   $("#loginErr").classList.add("hide");
@@ -543,7 +710,7 @@ $("#logout").addEventListener("click",()=>{
 $$(".nav").forEach(btn=>btn.addEventListener("click",()=>{
   $$(".nav").forEach(x=>x.classList.remove("active"));btn.classList.add("active");
   $$(".view").forEach(x=>x.classList.remove("active"));$("#"+btn.dataset.tab).classList.add("active");
-  $("#adminTitle").textContent=btn.textContent
+  $("#adminTitle").textContent=btn.textContent;if(btn.dataset.tab==="dagdeals")ddEnsureAdminData()
 }));
 async function saveAll(message){
   try{
@@ -591,8 +758,159 @@ function shareCustomerPage(){
   window.location.href="https://wa.me/?text="+encodeURIComponent(msg+u);
 }
 $("#shareBtn").addEventListener("click",shareCustomerPage);
-$("#mobileShare").addEventListener("click",shareCustomerPage);
+$("#mobileShare")?.addEventListener("click",shareCustomerPage);
 $("#lang").addEventListener("change",e=>applyLang(e.target.value));
+
+/* ===== Dagdeals central data + UI ===== */
+const DD_ADMIN_API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-admin";
+let __ddItems=[];
+let __ddAdminItems=[];
+let __ddFilter="all";
+const DD_FAV_KEY="socialPanelDagFavs";
+const DD_REM_KEY="socialPanelDagReminders";
+function ddToken(){return localStorage.getItem("emigroDagToken")||sessionStorage.getItem("emigroDagToken")||""}
+async function ddApi(payload){
+  const r=await fetch(DD_ADMIN_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const j=await r.json().catch(()=>({})); if(!r.ok)throw new Error(j.error||("request_"+r.status)); return j;
+}
+async function ddLogin(email,password){
+  const j=await ddApi({action:"login",email,password});
+  if($("#rememberMe")?.checked){localStorage.setItem("emigroDagToken",j.token);sessionStorage.removeItem("emigroDagToken")}
+  else{sessionStorage.setItem("emigroDagToken",j.token);localStorage.removeItem("emigroDagToken")}
+  return j;
+}
+async function fetchDagdealsPublic(){
+  const r=await fetch(SUPABASE_URL+"/rest/v1/emigro_dagdeals?select=*&status=neq.Niet%20publiceren&order=deal_date.asc,start_time.asc&t="+Date.now(),{
+    cache:"no-store",headers:{"apikey":SUPABASE_ANON,"Authorization":"Bearer "+SUPABASE_ANON}
+  });
+  if(!r.ok)throw new Error("dagdeals_read_"+r.status);
+  return await r.json();
+}
+async function fetchDagdealsAdmin(){
+  if(!ddToken())return fetchDagdealsPublic();
+  const j=await ddApi({action:"get_all",token:ddToken()}); return j.items||[];
+}
+function ddAmsterdamNow(){
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date());
+  const o={};parts.forEach(p=>o[p.type]=p.value);return {date:o.year+"-"+o.month+"-"+o.day,time:o.hour+":"+o.minute};
+}
+function ddState(p){
+  if(p.sold)return "expired";
+  const n=ddAmsterdamNow(), d=String(p.deal_date||"");
+  if(d<n.date)return "expired";
+  if(d>n.date)return "upcoming";
+  return String(p.start_time||"00:00").slice(0,5)<=n.time?"live":"upcoming";
+}
+function ddMoney(v){return "€"+Number(v||0).toFixed(2).replace(".",",")}
+function ddEmoji(cat){
+  const c=String(cat||"").toLowerCase();
+  if(c.includes("drank"))return "🧃";if(c.includes("zuivel"))return "🥛";if(c.includes("slager"))return "🥩";if(c.includes("groente"))return "🥬";if(c.includes("bakker"))return "🥐";if(c.includes("voorraad"))return "🛒";return "🛍️";
+}
+function ddVisual(p,cls=""){
+  return p.image_url?'<img class="'+cls+'" src="'+String(p.image_url).replace(/"/g,"&quot;")+'" alt="'+escapeHtml(p.name||"")+'">':'<span class="dd-emoji">'+ddEmoji(p.category)+'</span>';
+}
+function ddFavs(){try{return JSON.parse(localStorage.getItem(DD_FAV_KEY)||"[]")}catch{return []}}
+function ddToggleFav(id){let f=ddFavs(),n=Number(id);f=f.includes(n)?f.filter(x=>x!==n):[...f,n];localStorage.setItem(DD_FAV_KEY,JSON.stringify(f));renderDagdeals()}
+function ddMonthLabel(items){
+  const p=items[0];if(!p)return "Dagdeals";const d=new Date(String(p.deal_date)+"T12:00:00");return new Intl.DateTimeFormat("nl-NL",{month:"long",year:"numeric"}).format(d);
+}
+function renderDagdeals(){
+  const all=(__ddItems||[]).filter(x=>x.status!=="Niet publiceren");
+  $("#ddMonth").textContent=ddMonthLabel(all);
+  const favs=ddFavs();
+  let filtered=all;
+  if(__ddFilter==="favorites")filtered=all.filter(x=>favs.includes(Number(x.id)));
+  else if(__ddFilter!=="all")filtered=all.filter(x=>String(x.category)===__ddFilter);
+  const live=all.find(x=>ddState(x)==="live")||all.find(x=>ddState(x)==="upcoming")||all[all.length-1];
+  if(live){
+    const st=ddState(live),locked=st==="upcoming";
+    $("#ddHero").innerHTML='<div class="dd-hero-visual">'+ddVisual(live)+'</div><div class="dd-hero-copy"><div class="dd-live-row"><span class="dd-live-pill">'+(st==="live"?"● LIVE VANDAAG":st==="upcoming"?"BINNENKORT":"AFGELOPEN")+'</span>'+(live.op_op?'<span class="dd-opop">OP = OP</span>':'')+'<span class="dd-date">'+new Intl.DateTimeFormat("nl-NL",{day:"numeric",month:"long"}).format(new Date(live.deal_date+"T12:00:00")).toUpperCase()+'</span></div><h3>'+escapeHtml(live.name)+'</h3><div class="dd-hero-unit">'+escapeHtml(live.unit||"")+'</div>'+(locked?'<div class="dd-hero-old">'+ddMoney(live.regular_price)+'</div><div class="dd-hero-lock">🔒 Dagdealprijs blijft nog geheim</div>':'<div class="dd-hero-old">'+ddMoney(live.regular_price)+'</div><div class="dd-hero-price">'+ddMoney(live.deal_price)+'</div>')+'<div class="dd-hero-cta">Bekijk Dagdeal →</div></div>';
+    $("#ddHero").onclick=()=>ddOpen(live.id);
+  }else $("#ddHero").innerHTML='<div style="padding:30px">Nog geen Dagdeals.</div>';
+  const cats=[...new Set(all.map(x=>x.category).filter(Boolean))];
+  $("#ddCats").innerHTML=cats.map(cat=>'<button class="dd-chip '+(__ddFilter===cat?"active":"")+'" data-dd-cat="'+escapeHtml(cat)+'">'+escapeHtml(cat)+'</button>').join("");
+  $("#ddGrid").innerHTML=filtered.map(p=>{
+    const st=ddState(p),fav=favs.includes(Number(p.id)),locked=st==="upcoming",day=String(p.deal_date||"").slice(-2);
+    return '<article class="dd-card '+st+'" data-dd-id="'+p.id+'"><div class="dd-cardtop"><b class="dd-day">'+day+'</b><span class="dd-state">'+(st==="live"?"LIVE":st==="upcoming"?"BINNENKORT":"AFGELOPEN")+'</span></div><button class="dd-fav '+(fav?"saved":"")+'" data-dd-fav="'+p.id+'" type="button">♥</button><div class="dd-cardpic">'+ddVisual(p)+'</div><h4>'+escapeHtml(p.name)+'</h4><small>'+escapeHtml(p.unit||"")+'</small>'+(locked?'<div class="dd-locked-price">🔒 Prijs geheim tot deze dag</div>':st==="expired"?'<div class="dd-locked-price">Deal afgelopen</div>':'<div class="dd-old">'+ddMoney(p.regular_price)+'</div><div class="dd-price">'+ddMoney(p.deal_price)+'</div>')+'</article>';
+  }).join("");
+  $("[data-dd-id]").forEach(el=>el.addEventListener("click",e=>{if(e.target.closest("[data-dd-fav]"))return;ddOpen(Number(el.dataset.ddId))}));
+  $("[data-dd-fav]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();ddToggleFav(b.dataset.ddFav)}));
+  $("[data-dd-cat]").forEach(b=>b.addEventListener("click",()=>{__ddFilter=b.dataset.ddCat;renderDagdeals()}));
+  $("[data-dd-filter]").forEach(b=>{b.classList.toggle("active",b.dataset.ddFilter===__ddFilter);b.onclick=()=>{__ddFilter=b.dataset.ddFilter;renderDagdeals()}});
+}
+function ddOpen(id){
+  const p=(__ddItems||[]).find(x=>Number(x.id)===Number(id));if(!p)return;
+  const st=ddState(p),locked=st==="upcoming";
+  $("#ddSheet").innerHTML='<button class="dd-close" type="button">×</button><div class="dd-detailvisual">'+ddVisual(p)+'</div><div class="dd-detailstatus">'+(st==="live"?"LIVE VANDAAG":st==="upcoming"?"BINNENKORT":"AFGELOPEN")+' · '+new Intl.DateTimeFormat("nl-NL",{day:"numeric",month:"long"}).format(new Date(p.deal_date+"T12:00:00")).toUpperCase()+'</div><h2>'+escapeHtml(p.name)+'</h2><p class="dd-detailsub">'+escapeHtml(p.unit||"")+'</p>'+(locked?'<div class="dd-locked"><b>NORMALE PRIJS '+ddMoney(p.regular_price)+'</b><p>De Dagdealprijs onthullen we op '+new Intl.DateTimeFormat("nl-NL",{day:"numeric",month:"long"}).format(new Date(p.deal_date+"T12:00:00"))+'.</p></div>':'<div class="dd-detailprice"><del>'+ddMoney(p.regular_price)+'</del><strong>'+ddMoney(p.deal_price)+'</strong></div>')+'<div class="dd-desc">'+escapeHtml(p.description||"Emigro Dagdeal")+'</div><div class="dd-detailactions"><button class="dd-remind" type="button">🔔 Herinner mij</button><button class="dd-share" type="button">Deel ↗</button></div>';
+  $("#ddModal").classList.add("on");
+  $("#ddSheet .dd-close").onclick=()=>$("#ddModal").classList.remove("on");
+  $("#ddSheet .dd-remind").onclick=()=>{let a=[];try{a=JSON.parse(localStorage.getItem(DD_REM_KEY)||"[]")}catch{};if(!a.includes(Number(p.id)))a.push(Number(p.id));localStorage.setItem(DD_REM_KEY,JSON.stringify(a));alert("Herinnering opgeslagen ✓")};
+  $("#ddSheet .dd-share").onclick=()=>{const txt="Emigro Dagdeal: "+p.name+" - "+location.href.split("#")[0]+"#dagdealsSection";location.href="https://wa.me/?text="+encodeURIComponent(txt)};
+}
+$("#ddModal")?.addEventListener("click",e=>{if(e.target===$("#ddModal"))$("#ddModal").classList.remove("on")});
+async function refreshDagdeals(){
+  try{__ddItems=await fetchDagdealsPublic();renderDagdeals()}catch(e){console.warn("Dagdeals read failed",e)}
+}
+
+/* Dagdeals admin */
+async function ddEnsureAdminData(){try{__ddAdminItems=await fetchDagdealsAdmin();ddRenderAdmin()}catch(e){console.warn(e);__ddAdminItems=[];ddRenderAdmin()}}
+function ddRenderAdmin(){
+  const list=[...(__ddAdminItems||[])].sort((a,b)=>(a.deal_date+a.start_time).localeCompare(b.deal_date+b.start_time));
+  $("#ddSTotal").textContent=list.length;$("#ddSActive").textContent=list.filter(p=>!p.sold&&p.status!=="Niet publiceren").length;$("#ddSSold").textContent=list.filter(p=>p.sold).length;$("#ddSPhoto").textContent=list.filter(p=>p.image_url).length;
+  $("#ddSessionNote").classList.toggle("hide",!!ddToken());
+  $("#ddRows").innerHTML=list.map(p=>'<tr class="dd-row" data-dd-row="'+p.id+'"><td><div class="dd-thumb">'+(p.image_url?'<img src="'+String(p.image_url).replace(/"/g,"&quot;")+'">':'<span>'+ddEmoji(p.category)+'</span>')+'</div><input type="file" accept="image/*" data-dd-photo="'+p.id+'" style="width:110px;font-size:9px;margin-top:4px"></td><td><b>'+p.deal_date+'</b><br>'+String(p.start_time||"").slice(0,5)+'</td><td><b>'+escapeHtml(p.name)+'</b><br><span style="color:#7b8294">'+escapeHtml(p.unit||"")+' · '+escapeHtml(p.category||"")+'</span></td><td><s>'+ddMoney(p.regular_price)+'</s><br><b style="color:var(--red)">'+ddMoney(p.deal_price)+'</b></td><td>'+escapeHtml(p.description||"—")+'</td><td>'+escapeHtml(p.status||"")+(p.sold?" · Bitti":"")+'</td><td><div class="dd-row-actions"><button class="dd-mini edit" data-dd-edit="'+p.id+'">Düzenle</button><button class="dd-mini sold" data-dd-sold="'+p.id+'">'+(p.sold?"Aktif":"Bitti")+'</button><button class="dd-mini delete" data-dd-delete="'+p.id+'">Sil</button></div></td></tr>').join("");
+  $("[data-dd-row]").forEach(tr=>tr.addEventListener("click",()=>ddOpenEditor(Number(tr.dataset.ddRow))));
+  $("[data-dd-edit]").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();ddOpenEditor(Number(b.dataset.ddEdit))}));
+  $("[data-dd-sold]").forEach(b=>b.addEventListener("click",async e=>{e.stopPropagation();const p=__ddAdminItems.find(x=>Number(x.id)===Number(b.dataset.ddSold));if(p){p.sold=!p.sold;ddRenderAdmin();await ddSaveAll(false)}}));
+  $("[data-dd-delete]").forEach(b=>b.addEventListener("click",async e=>{e.stopPropagation();if(confirm("Product verwijderen?")){__ddAdminItems=__ddAdminItems.filter(x=>Number(x.id)!==Number(b.dataset.ddDelete));ddRenderAdmin();await ddSaveAll(false)}}));
+  $("[data-dd-photo]").forEach(inp=>inp.addEventListener("click",e=>e.stopPropagation()));
+  $("[data-dd-photo]").forEach(inp=>inp.addEventListener("change",e=>ddUploadPhoto(e,Number(inp.dataset.ddPhoto))));
+}
+function ddOpenEditor(id){
+  const p=id?__ddAdminItems.find(x=>Number(x.id)===Number(id)):null;
+  $("#ddEditorTitle").textContent=p?"Ürün ayarları":"Yeni ürün";
+  $("#ddPId").value=p?p.id:"";$("#ddPDate").value=p?p.deal_date:"";$("#ddPTime").value=p?String(p.start_time||"08:00").slice(0,5):"08:00";$("#ddPName").value=p?p.name:"";$("#ddPUnit").value=p?p.unit:"";$("#ddPCat").value=p?p.category:"Dranken";$("#ddPOld").value=p?p.regular_price:"";$("#ddPDeal").value=p?p.deal_price:"";$("#ddPOp").value=p&&p.op_op?"Ja":"Nee";$("#ddPStatus").value=p?p.status:"Klaar";$("#ddPImage").value=p?p.image_url:"";$("#ddPDesc").value=p?p.description:"";$("#ddPNote").value=p?p.note:"";$("#ddAdminModal").classList.add("on");
+}
+function ddCloseEditor(){$("#ddAdminModal").classList.remove("on")}
+async function ddSaveEditor(){
+  const name=$("#ddPName").value.trim(),date=$("#ddPDate").value;if(!name||!date){alert("Ürün adı ve tarih zorunlu.");return}
+  const id=$("#ddPId").value?Number($("#ddPId").value):Date.now();const prev=__ddAdminItems.find(x=>Number(x.id)===id);
+  const p={id,deal_date:date,start_time:$("#ddPTime").value||"08:00",name,unit:$("#ddPUnit").value.trim(),category:$("#ddPCat").value,regular_price:Number($("#ddPOld").value||0),deal_price:Number($("#ddPDeal").value||0),op_op:$("#ddPOp").value==="Ja",description:$("#ddPDesc").value.trim(),status:$("#ddPStatus").value,sold:prev?!!prev.sold:false,image_url:$("#ddPImage").value.trim(),note:$("#ddPNote").value.trim()};
+  const ix=__ddAdminItems.findIndex(x=>Number(x.id)===id);if(ix>=0)__ddAdminItems[ix]=p;else __ddAdminItems.push(p);ddCloseEditor();ddRenderAdmin();await ddSaveAll(true);
+}
+async function ddSaveAll(show=true){
+  if(!ddToken()){if(show)alert("Dagdeals oturumu kapalı. Şifre ile Bağla.");$("#ddSessionNote").classList.remove("hide");return false}
+  try{const j=await ddApi({action:"save_all",token:ddToken(),items:__ddAdminItems});if(show)alert(j.count+" Dagdeal kaydedildi ✓");await refreshDagdeals();return true}catch(e){if(String(e.message).includes("unauthorized")){localStorage.removeItem("emigroDagToken");sessionStorage.removeItem("emigroDagToken");$("#ddSessionNote").classList.remove("hide")}if(show)alert("Dagdeals kayıt hatası: "+e.message);return false}
+}
+async function ddUploadPhoto(e,id){
+  const file=e.target.files&&e.target.files[0];if(!file)return;
+  compressImageFile(file,async data=>{try{const u=await uploadRemoteImage(data);const p=__ddAdminItems.find(x=>Number(x.id)===Number(id));if(p){p.image_url=u;ddRenderAdmin();await ddSaveAll(false)}}catch(err){alert("Fotoğraf yükleme hatası: "+err.message)}});
+}
+$("#ddNewBtn")?.addEventListener("click",()=>ddOpenEditor(null));
+$("#ddSaveBtn")?.addEventListener("click",()=>ddSaveAll(true));
+$("#ddCloseEditor")?.addEventListener("click",ddCloseEditor);$("#ddCancelEditor")?.addEventListener("click",ddCloseEditor);$("#ddSaveEditor")?.addEventListener("click",ddSaveEditor);
+$("#ddAdminModal")?.addEventListener("click",e=>{if(e.target===$("#ddAdminModal"))ddCloseEditor()});
+$("#ddPFile")?.addEventListener("change",e=>{const file=e.target.files&&e.target.files[0];if(!file)return;compressImageFile(file,async data=>{try{$("#ddPImage").value=await uploadRemoteImage(data);alert("Görsel yüklendi ✓")}catch(err){alert("Yükleme hatası: "+err.message)}})});
+$("#ddUnlockBtn")?.addEventListener("click",async()=>{try{await ddLogin(ADMIN_EMAIL,$("#ddUnlockPass").value);$("#ddUnlockPass").value="";$("#ddSessionNote").classList.add("hide");await ddEnsureAdminData();alert("Dagdeals bağlı ✓")}catch(e){alert("Şifre hatalı")}});
+
+/* Capture credentials once during normal Social Panel login to open Dagdeals session too. */
+$("#loginBtn")?.addEventListener("click",()=>{const email=$("#email").value.trim(),password=$("#pass").value;if(email&&password)ddLogin(email,password).catch(()=>{})},{capture:true});
+$("#logout")?.addEventListener("click",()=>{localStorage.removeItem("emigroDagToken");sessionStorage.removeItem("emigroDagToken")});
+
+$("#ddExcelInput")?.addEventListener("change",e=>{
+  const file=e.target.files&&e.target.files[0];if(!file)return;if(typeof XLSX==="undefined"){alert("Excel okuyucu yüklenemedi.");return}
+  const r=new FileReader();r.onload=async ev=>{try{
+    const wb=XLSX.read(ev.target.result,{type:"array",cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{defval:"",raw:false});let count=0;
+    rows.forEach((x,i)=>{let d=x["Datum"];if(d instanceof Date)d=d.toISOString().slice(0,10);else d=String(d||"").trim();const status=String(x["Status"]||"Klaar").trim();const p={id:Date.now()+i,deal_date:d,start_time:String(x["Starttijd"]||"08:00").slice(0,5),name:String(x["Productnaam"]||"").trim(),unit:String(x["Eenheid"]||""),category:String(x["Categorie"]||"Dranken"),regular_price:Number(String(x["Normale prijs"]||0).replace(",",".")),deal_price:Number(String(x["Dagdeal prijs"]||0).replace(",",".")),op_op:String(x["OP=OP"]||"Nee").toLowerCase()==="ja",description:String(x["Omschrijving"]||x["Açıklama"]||""),status,sold:false,image_url:"",note:String(x["Opmerking"]||"")};if(p.name&&p.deal_date){__ddAdminItems.push(p);count++}});
+    ddRenderAdmin();await ddSaveAll(false);alert(count+" product Excel'den yüklendi ✓");
+  }catch(err){alert("Excel okunamadı: "+err.message)}};r.readAsArrayBuffer(file);
+});
+$("#ddTemplateBtn")?.addEventListener("click",()=>{
+  if(typeof XLSX==="undefined"){alert("Excel okuyucu yüklenemedi.");return}
+  const rows=[{"Datum":"2026-09-23","Starttijd":"08:00","Productnaam":"Örnek Ürün","Eenheid":"1 kg","Categorie":"Dranken","Normale prijs":5.99,"Dagdeal prijs":3.99,"OP=OP":"Nee","Omschrijving":"Açıklama","Status":"Klaar","Opmerking":""}];
+  const ws=XLSX.utils.json_to_sheet(rows),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Dagdeals");XLSX.writeFile(wb,"emigro-dagdeals-import.xlsx");
+});
+
 new URLSearchParams(location.search).get("admin")==="1"?showAdmin():showPublic();
 </script>
 </body></html>
