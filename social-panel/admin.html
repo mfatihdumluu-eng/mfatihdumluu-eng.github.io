@@ -151,6 +151,7 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
 const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const ANON="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-admin";
+const PUBLIC_API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-public";
 const DEFAULT_SETTINGS={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:"",logoWidthDesktop:220,logoWidthMobile:150,logoAlign:"left",logoOffsetX:0,logoOffsetY:0};
 let token=sessionStorage.getItem("emigroAdminToken")||localStorage.getItem("emigroAdminToken")||"";
 let products=[];
@@ -259,8 +260,16 @@ async function publishAll(){
     const a=await api({action:"save_all",token,items:products});
     await api({action:"save_settings",token,settings:s});
     settings=Object.assign({},DEFAULT_SETTINGS,s);
-    $("publishState").textContent="Canlı ✓ "+(a.count||0)+" ürün";
-    setTimeout(()=>$("publishState").textContent="",4000);
+    $("publishState").textContent="Doğrulanıyor...";
+    const vr=await fetch(PUBLIC_API+"?t="+Date.now(),{cache:"no-store"});
+    if(!vr.ok)throw new Error("Canlı doğrulama HTTP "+vr.status);
+    const live=await vr.json();
+    const sameCount=Array.isArray(live.items)&&live.items.length===products.filter(p=>p.status!=="Niet publiceren").length;
+    const sameLogo=(live.settings?.logo||"")===(s.logo||"");
+    const sameWidth=Number(live.settings?.logoWidthDesktop||220)===Number(s.logoWidthDesktop||220);
+    if(!sameCount||!sameLogo||!sameWidth)throw new Error("Canlı veri doğrulanamadı.");
+    $("publishState").textContent="Canlı doğrulandı ✓";
+    setTimeout(()=>$("publishState").textContent="",5000);
   }catch(e){$("publishState").textContent="Hata";alert("Canlıya gönderilemedi: "+e.message)}
 }
 $("publishBtn").onclick=publishAll;$("publishFromSettingsBtn").onclick=publishAll;
