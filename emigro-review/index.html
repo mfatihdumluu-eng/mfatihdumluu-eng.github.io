@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emigro Review</title><meta name="build" content="2026-09-22-mobile-preserve-v17">
+<title>Emigro Review</title><meta name="build" content="2026-09-22-desktop-v18">
 <style>
 :root{--navy:#27336f;--red:#ef1425;--bg:#f5f7fb;--text:#172033;--muted:#6d7487;--line:#e2e6ef}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
@@ -227,6 +227,90 @@ textarea{min-height:72px}
   #instagramCards .media,#customSection .media{min-height:245px}
   .footerItem{font-size:8px}
   .footerIcon,.footerIcon svg{width:21px;height:21px}
+}
+
+
+/* v18: desktop-only refinement; mobile v17 remains unchanged */
+@media (min-width:801px){
+  header{padding:14px 24px}
+  .headerInner{max-width:1400px}
+  .headerInner .logo{width:255px;max-width:none}
+  .lang{padding:9px 13px}
+
+  .public{
+    max-width:1400px;
+    padding:30px 28px 80px;
+  }
+
+  .hero{
+    grid-template-columns:minmax(0,1.35fr) minmax(360px,.65fr);
+    gap:34px;
+    padding:46px 48px;
+    border-radius:32px;
+    min-height:420px;
+    align-items:center;
+  }
+  .hero h1{font-size:52px;max-width:760px}
+  .hero p{font-size:18px;max-width:760px}
+  .review,.shareBtn{padding:16px 24px;font-size:16px}
+  .info{padding:28px;border-radius:24px}
+  .info b{font-size:30px}
+  .socialBtns a{padding:10px 14px}
+
+  .section{margin-top:36px}
+  .section h2{font-size:34px}
+  .sub{font-size:15px;margin-bottom:18px}
+
+  #instagramCards,
+  #customCards{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:22px;
+  }
+  #instagramCards .card,
+  #customCards .card{
+    padding:18px;
+    border-radius:24px;
+  }
+  #instagramCards .media,
+  #customCards .media{
+    height:300px;
+    border-radius:18px;
+    margin-bottom:16px;
+  }
+  #instagramCards h3,
+  #customCards h3{font-size:25px;margin:8px 0}
+  #instagramCards p,
+  #customCards p{font-size:15px;line-height:1.5}
+  #instagramCards a,
+  #customCards a{font-size:14px}
+
+  .whatsappSection .cards{grid-template-columns:1fr}
+  .whatsappCard{
+    grid-template-columns:320px 1fr;
+    gap:28px;
+    padding:20px;
+    border-radius:24px;
+    align-items:center;
+  }
+  .whatsappCard .media{
+    width:100%;
+    height:220px;
+    margin:0;
+    border-radius:18px;
+  }
+  .whatsappCard h3{font-size:27px;margin:7px 0 10px}
+  .whatsappCard p{font-size:16px;line-height:1.5;max-width:680px}
+  .whatsappCard a{font-size:15px}
+
+  .appFooter{display:none!important}
+}
+
+@media (min-width:1440px){
+  .public{max-width:1480px}
+  .headerInner{max-width:1480px}
+  .hero{grid-template-columns:minmax(0,1.45fr) minmax(390px,.55fr)}
+  #instagramCards .media,
+  #customCards .media{height:340px}
 }
 
 </style>
