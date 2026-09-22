@@ -138,8 +138,12 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 
 /* Live appearance settings */
 .brand.has-logo{font-size:0;line-height:1}
-.brand.has-logo img{display:block;max-width:220px;max-height:46px;width:auto;height:auto;object-fit:contain}
-@media(max-width:700px){.brand.has-logo img{max-width:150px;max-height:38px}}
+.brand{--logo-desktop:220px;--logo-mobile:150px;--logo-x:0px;--logo-y:0px}
+.brand.has-logo{font-size:0;line-height:1;transform:translate(var(--logo-x),var(--logo-y))}
+.brand.has-logo img{display:block;width:min(var(--logo-desktop),100%);max-height:58px;height:auto;object-fit:contain}
+.desktop-header.logo-center .brand{margin-left:auto;margin-right:auto}.desktop-header.logo-center .desktopnav{margin-left:0}
+.desktop-header.logo-right .brand{order:3;margin-left:24px}.desktop-header.logo-right .desktopnav{margin-left:auto}
+@media(max-width:700px){.brand.has-logo img{width:min(var(--logo-mobile),100%);max-height:48px}}
 
 </style></head><body><div class="app" id="calendar"><header class="desktop-header">
 <div class="brand">EMIGRO<small>SUPERMARKT</small></div>
@@ -285,6 +289,11 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
    root.setProperty("--ink",validColor(s.ink,"#151515"));
    root.setProperty("--muted",validColor(s.muted,"#777777"));
    const brand=document.querySelector(".brand"); if(!brand)return;
+   brand.style.setProperty("--logo-desktop",(Number(s.logoWidthDesktop||220))+"px");
+   brand.style.setProperty("--logo-mobile",(Number(s.logoWidthMobile||150))+"px");
+   brand.style.setProperty("--logo-x",(Number(s.logoOffsetX||0))+"px");
+   brand.style.setProperty("--logo-y",(Number(s.logoOffsetY||0))+"px");
+   const header=brand.closest("header"); if(header){header.classList.remove("logo-center","logo-right");if(s.logoAlign==="center")header.classList.add("logo-center");else if(s.logoAlign==="right")header.classList.add("logo-right")}
    if(s.logo){brand.classList.add("has-logo");brand.innerHTML='<img src="'+String(s.logo).replace(/"/g,"&quot;")+'" alt="Emigro">'}
    else{brand.classList.remove("has-logo");brand.innerHTML=(s.brand||"EMIGRO")+'<small>'+(s.subtitle||"SUPERMARKT")+'</small>'}
  }
@@ -327,7 +336,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 <script>
 (function(){
  const DB='https://hroarfuwpfsqilsijwpp.supabase.co/rest/v1/emigro_dagdeals?select=*&status=neq.Niet%20publiceren&order=deal_date.asc,start_time.asc';
- const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXAiLCJyZWYiOiJocm9hcmZ1d3Bmc3FpbHNpandwcCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzkwMDkyOTI2LCJleHAiOjIxMDU2Njg5MjZ9.sXaqy76ktdZJiesW1ZSppJH6t4Qi3AdLIhHc1umzBks';
+ const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhyb2FyZnV3cGZzcWlsc2lqd3BwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTI5MjYsImV4cCI6MjEwNTY2ODkyNn0.sXaqy76ktdZJiesW1ZSppJH6t4Qi3AdLIhHc1umzBks';
  const catEmoji=s=>{s=String(s||"").toLowerCase();if(s.includes("drank"))return"🧃";if(s.includes("zuivel"))return"🥛";if(s.includes("slager"))return"🥩";if(s.includes("groente"))return"🌶️";if(s.includes("bakker"))return"🍰";if(s.includes("huish"))return"🧺";return"🛒"};
  const money=v=>"€"+Number(v||0).toFixed(2).replace(".",",");
  function nowNL(){const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()),o={};parts.forEach(x=>o[x.type]=x.value);return{date:o.year+"-"+o.month+"-"+o.day,time:o.hour+":"+o.minute}}
