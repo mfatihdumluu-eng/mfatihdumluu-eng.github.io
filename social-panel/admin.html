@@ -95,6 +95,11 @@ body.adminLocked>header,body.adminLocked>main,body.adminLocked>.modal{visibility
  <div class="field"><label>MERKNAAM</label><input id="setBrand" value="EMIGRO"></div>
  <div class="field"><label>SUBTITEL</label><input id="setSubtitle" value="SUPERMARKT"></div>
  <div class="field wide"><label>LOGO</label><div class="logoPreview" id="logoPreview"><span class="muted">Geen logo — tekstlogo wordt gebruikt.</span></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><label class="btn">Logo kiezen<input id="setLogoFile" type="file" accept="image/*" hidden></label><button class="btn" id="removeLogo" type="button">Logo verwijderen</button></div></div>
+ <div class="field"><label>LOGO BREEDTE DESKTOP (px)</label><input id="setLogoWidthDesktop" type="number" min="60" max="420" value="220"></div>
+ <div class="field"><label>LOGO BREEDTE MOBILE (px)</label><input id="setLogoWidthMobile" type="number" min="50" max="300" value="150"></div>
+ <div class="field"><label>LOGO UITLIJNING</label><select id="setLogoAlign"><option value="left">Links</option><option value="center">Midden</option><option value="right">Rechts</option></select></div>
+ <div class="field"><label>HORIZONTALE POSITIE X (px)</label><input id="setLogoOffsetX" type="number" min="-200" max="200" value="0"></div>
+ <div class="field"><label>VERTICALE POSITIE Y (px)</label><input id="setLogoOffsetY" type="number" min="-100" max="100" value="0"></div>
  <div class="field"><label>HOOFDKLEUR</label><div class="colorRow"><input id="setPrimary" type="color" value="#cf1019"><input id="setPrimaryText" value="#cf1019"></div></div>
  <div class="field"><label>DONKERE HOOFDKLEUR</label><div class="colorRow"><input id="setPrimaryDark" type="color" value="#a8070d"><input id="setPrimaryDarkText" value="#a8070d"></div></div>
  <div class="field"><label>ACHTERGROND</label><div class="colorRow"><input id="setPaper" type="color" value="#f6f5f2"><input id="setPaperText" value="#f6f5f2"></div></div>
@@ -144,7 +149,7 @@ const SUPABASE_URL='https://hroarfuwpfsqilsijwpp.supabase.co';
 const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhyb2FyZnV3cGZzcWlsc2lqd3BwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTI5MjYsImV4cCI6MjEwNTY2ODkyNn0.sXaqy76ktdZJiesW1ZSppJH6t4Qi3AdLIhHc1umzBks';
 const DD_ADMIN_API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-admin";
 const SETTINGS_URL=SUPABASE_URL+"/rest/v1/emigro_dagdeals_settings?id=eq.main&select=data";
-let liveSettings={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:""};
+let liveSettings={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:"",logoWidthDesktop:220,logoWidthMobile:150,logoAlign:"left",logoOffsetX:0,logoOffsetY:0};
 let settingsToken=sessionStorage.getItem("emigroDagSettingsToken")||localStorage.getItem("emigroDagSettingsToken")||"";
 function setStatus(msg,ok=true){const el=$("settingsStatus");el.textContent=msg||"";el.className="settingsStatus "+(ok?"ok":"err")}
 function syncColor(a,b){$(a).addEventListener("input",()=>$(b).value=$(a).value);$(b).addEventListener("input",()=>{if(/^#[0-9a-f]{6}$/i.test($(b).value))$(a).value=$(b).value})}
@@ -152,6 +157,11 @@ function syncColor(a,b){$(a).addEventListener("input",()=>$(b).value=$(a).value)
 function fillSettings(s){liveSettings=Object.assign({},liveSettings,s||{});$("setBrand").value=liveSettings.brand||"EMIGRO";$("setSubtitle").value=liveSettings.subtitle||"SUPERMARKT";const colorPairs=[["setPrimary","setPrimaryText","primary"],["setPrimaryDark","setPrimaryDarkText","primaryDark"],["setPaper","setPaperText","paper"],["setInk","setInkText","ink"],["setMuted","setMutedText","muted"]];
  colorPairs.forEach(([a,b,k])=>{const v=liveSettings[k]||$(a).value;$(a).value=v;$(b).value=v});
  $("logoPreview").innerHTML=liveSettings.logo?'<img src="'+liveSettings.logo.replace(/"/g,"&quot;")+'" alt="Logo">':'<span class="muted">Geen logo — tekstlogo wordt gebruikt.</span>';
+ $("setLogoWidthDesktop").value=Number(liveSettings.logoWidthDesktop||220);
+ $("setLogoWidthMobile").value=Number(liveSettings.logoWidthMobile||150);
+ $("setLogoAlign").value=liveSettings.logoAlign||"left";
+ $("setLogoOffsetX").value=Number(liveSettings.logoOffsetX||0);
+ $("setLogoOffsetY").value=Number(liveSettings.logoOffsetY||0);
 }
 async function loadSettings(){try{const r=await fetch(SETTINGS_URL+"&_="+Date.now(),{cache:"no-store",headers:{apikey:SUPABASE_ANON,Authorization:"Bearer "+SUPABASE_ANON}});const rows=await r.json();fillSettings(rows&&rows[0]?rows[0].data:{})}catch(e){setStatus("Instellingen konden niet worden geladen.",false)}}
 
@@ -175,13 +185,16 @@ async function publishProducts(){
  try{
    $("publishState").textContent="Gönderiliyor...";
    const token=await ensureSettingsToken();
-   const j=await settingsApi({action:"save_all",token,items:normalizeForServer()});
-   $("publishState").textContent="Canlı ✓ "+(j.count||0)+" ürün";
-   setTimeout(()=>$("publishState").textContent="",3500);
+   const itemsResult=await settingsApi({action:"save_all",token,items:normalizeForServer()});
+   const settings=collectSettings();
+   await settingsApi({action:"save_settings",token,settings});
+   liveSettings=settings;
+   $("publishState").textContent="Canlı ✓ "+(itemsResult.count||0)+" ürün + ayarlar";
+   setTimeout(()=>$("publishState").textContent="",4500);
  }catch(e){$("publishState").textContent="Hata";alert("Canlıya gönderilemedi: "+(e.message||e))}
 }
 function collectSettings(){
- return {brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimaryText").value,primaryDark:$("setPrimaryDarkText").value,paper:$("setPaperText").value,ink:$("setInkText").value,muted:$("setMutedText").value,logo:liveSettings.logo||""};
+ return {brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimaryText").value,primaryDark:$("setPrimaryDarkText").value,paper:$("setPaperText").value,ink:$("setInkText").value,muted:$("setMutedText").value,logo:liveSettings.logo||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0)};
 }
 function sendPreview(){
  const frame=$("previewFrame");if(!frame||!frame.contentWindow)return;
