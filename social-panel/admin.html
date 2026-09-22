@@ -17,7 +17,42 @@ table{width:100%;border-collapse:collapse;min-width:1050px}th,td{padding:11px 9p
 .settingsGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:18px}.settingsGrid .wide{grid-column:1/-1}.colorRow{display:grid;grid-template-columns:54px 1fr;gap:10px;align-items:center}.colorRow input[type=color]{width:54px;height:42px;padding:3px;border:1px solid #ddd;border-radius:10px;background:#fff}.logoPreview{min-height:100px;border:1px dashed #d7d4ce;background:#faf9f6;border-radius:15px;display:grid;place-items:center;padding:15px}.logoPreview img{max-width:260px;max-height:90px;object-fit:contain}.settingsHint{font-size:10px;line-height:1.5;color:#777;background:#faf8f5;border-radius:12px;padding:11px}.settingsStatus{font-size:11px;font-weight:800;margin-top:10px}.settingsStatus.ok{color:#11824b}.settingsStatus.err{color:#b40613}
 @media(max-width:700px){.settingsGrid{grid-template-columns:1fr}.settingsGrid .wide{grid-column:auto}}
 
-</style></head><body>
+
+
+/* Admin login gate */
+body.adminLocked>header,body.adminLocked>main,body.adminLocked>.modal{visibility:hidden}
+.adminLogin{position:fixed;inset:0;z-index:9999;background:#f4f3f0;display:grid;place-items:center;padding:22px}
+.adminLogin.hide{display:none}
+.adminLoginCard{width:min(430px,100%);background:#fff;border:1px solid #e6e2dc;border-radius:24px;padding:26px;box-shadow:0 24px 70px #0002}
+.adminLoginBrand{font-size:31px;font-weight:1000;margin-bottom:3px;color:#171717}
+.adminLoginBrand i{color:#e30613;font-style:normal}
+.adminLoginCard h1{font-size:22px;margin:18px 0 5px}
+.adminLoginCard p{font-size:12px;color:#777;margin:0 0 18px;line-height:1.5}
+.adminLoginCard label{display:block;font-size:10px;font-weight:900;color:#666;margin:12px 0 5px}
+.adminLoginCard input[type="email"],.adminLoginCard input[type="password"]{width:100%;padding:12px 13px;border:1px solid #d9d6d1;border-radius:11px;font:inherit}
+.adminRemember{display:flex!important;align-items:center;gap:8px;font-size:12px!important;font-weight:700!important;margin:12px 0!important}
+.adminRemember input{width:auto}
+.adminLoginBtn{width:100%;margin-top:8px}
+.adminLoginErr{min-height:18px;margin-top:10px;color:#b40613;font-size:11px;font-weight:800}
+
+</style></head><body class="adminLocked">
+
+<div id="adminLogin" class="adminLogin">
+  <div class="adminLoginCard">
+    <div class="adminLoginBrand">emi<i>gro</i></div>
+    <div class="muted">Dagdeals Beheer</div>
+    <h1>Beheerder inloggen</h1>
+    <p>Log in om producten, Dagdeals en live instellingen te beheren.</p>
+    <label>E-MAIL</label>
+    <input id="adminEmail" type="email" value="mfatihdumluu@gmail.com" autocomplete="username">
+    <label>WACHTWOORD</label>
+    <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Beheerwachtwoord">
+    <label class="adminRemember"><input id="adminRemember" type="checkbox"> Beni hatırla / Onthouden</label>
+    <button id="adminLoginBtn" class="btn red adminLoginBtn" type="button">Inloggen</button>
+    <div id="adminLoginErr" class="adminLoginErr"></div>
+  </div>
+</div>
+
 <header>emi<i>gro</i>&nbsp; Dagdeals Beheer</header>
 <main><div class="top"><div><h1>Productbeheer</h1><div class="muted">Klik op een product om alle instellingen en de omschrijving in een popup te openen.</div></div><div>
 <label class="btn red">Excel uploaden<input id="xlsxInput" type="file" accept=".xlsx,.xls" hidden></label>
@@ -41,7 +76,7 @@ table{width:100%;border-collapse:collapse;min-width:1050px}th,td{padding:11px 9p
  <div class="field"><label>ACHTERGROND</label><div class="colorRow"><input id="setPaper" type="color" value="#f6f5f2"><input id="setPaperText" value="#f6f5f2"></div></div>
  <div class="field"><label>TEKSTKLEUR</label><div class="colorRow"><input id="setInk" type="color" value="#151515"><input id="setInkText" value="#151515"></div></div>
  <div class="field"><label>SECUNDAIRE TEKST</label><div class="colorRow"><input id="setMuted" type="color" value="#777777"><input id="setMutedText" value="#777777"></div></div>
- <div class="field wide"><label>BEHEER WACHTWOORD</label><input id="settingsPassword" type="password" placeholder="Vul je beheerwachtwoord in om live op te slaan"><div class="settingsHint">De instellingen worden centraal opgeslagen. Na opslaan ziet iedere bezoeker automatisch het nieuwe logo en de nieuwe kleuren.</div></div>
+ <div class="field wide"><div class="settingsHint">Je bent als beheerder ingelogd. Instellingen worden centraal opgeslagen; bezoekers zien het nieuwe logo en de kleuren automatisch.</div></div>
 </div>
 <div class="savebar"><button class="red" id="settingsSave">Live opslaan</button><button id="settingsCancel">Annuleren</button></div><div id="settingsStatus" class="settingsStatus"></div>
 </div></div>
@@ -83,8 +118,36 @@ function fillSettings(s){liveSettings=Object.assign({},liveSettings,s||{});$("se
  $("logoPreview").innerHTML=liveSettings.logo?'<img src="'+liveSettings.logo.replace(/"/g,"&quot;")+'" alt="Logo">':'<span class="muted">Geen logo — tekstlogo wordt gebruikt.</span>';
 }
 async function loadSettings(){try{const r=await fetch(SETTINGS_URL+"&_="+Date.now(),{cache:"no-store",headers:{apikey:SUPABASE_ANON,Authorization:"Bearer "+SUPABASE_ANON}});const rows=await r.json();fillSettings(rows&&rows[0]?rows[0].data:{})}catch(e){setStatus("Instellingen konden niet worden geladen.",false)}}
+
 async function settingsApi(payload){const r=await fetch(DD_ADMIN_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
-async function ensureSettingsToken(){if(settingsToken)return settingsToken;const password=$("settingsPassword").value;if(!password)throw new Error("Vul eerst het beheerwachtwoord in.");const j=await settingsApi({action:"login",email:"mfatihdumluu@gmail.com",password});settingsToken=j.token;sessionStorage.setItem("emigroDagSettingsToken",settingsToken);return settingsToken}
+function unlockAdmin(){document.body.classList.remove("adminLocked");$("adminLogin").classList.add("hide");$("adminLoginErr").textContent=""}
+function lockAdmin(msg=""){$("adminLogin").classList.remove("hide");document.body.classList.add("adminLocked");$("adminLoginErr").textContent=msg}
+async function validateAdminToken(token){
+  if(!token)return false;
+  try{await settingsApi({action:"get_settings",token});return true}catch(e){return false}
+}
+async function doAdminLogin(){
+  const email=$("adminEmail").value.trim(),password=$("adminPassword").value;
+  if(!email||!password){$("adminLoginErr").textContent="Vul e-mail en wachtwoord in.";return}
+  $("adminLoginBtn").disabled=true;$("adminLoginBtn").textContent="Inloggen...";
+  try{
+    const j=await settingsApi({action:"login",email,password});
+    settingsToken=j.token;
+    if($("adminRemember").checked){localStorage.setItem("emigroDagSettingsToken",settingsToken);sessionStorage.removeItem("emigroDagSettingsToken")}
+    else{sessionStorage.setItem("emigroDagSettingsToken",settingsToken);localStorage.removeItem("emigroDagSettingsToken")}
+    unlockAdmin();
+    loadSettings();
+  }catch(e){
+    settingsToken="";
+    localStorage.removeItem("emigroDagSettingsToken");sessionStorage.removeItem("emigroDagSettingsToken");
+    $("adminLoginErr").textContent="E-posta veya şifre hatalı.";
+  }finally{$("adminLoginBtn").disabled=false;$("adminLoginBtn").textContent="Inloggen"}
+}
+$("adminLoginBtn").addEventListener("click",doAdminLogin);
+$("adminPassword").addEventListener("keydown",e=>{if(e.key==="Enter")doAdminLogin()});
+(async()=>{if(await validateAdminToken(settingsToken))unlockAdmin();else lockAdmin()})();
+
+async function ensureSettingsToken(){if(settingsToken)return settingsToken;lockAdmin("Oturum süresi doldu. Tekrar giriş yap.");throw new Error("Oturum süresi doldu.")}
 function openSettings(){$("settingsModal").classList.add("on");setStatus("");loadSettings()}
 function closeSettings(){$("settingsModal").classList.remove("on")}
 $("settingsBtn").addEventListener("click",openSettings);$("settingsClose").addEventListener("click",closeSettings);$("settingsCancel").addEventListener("click",closeSettings);$("settingsModal").addEventListener("click",e=>{if(e.target===$("settingsModal"))closeSettings()});
