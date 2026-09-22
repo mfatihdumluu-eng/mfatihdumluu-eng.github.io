@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emigro Review</title><meta name="build" content="social-panel-unified-v4.5-selector-fix-real">
+<title>Emigro Review</title><meta name="build" content="social-panel-unified-v4.6-failsafe">
 <style>
 :root{--navy:#27336f;--red:#ef1425;--bg:#f5f7fb;--text:#172033;--muted:#6d7487;--line:#e2e6ef}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
@@ -443,6 +443,31 @@ textarea{min-height:72px}
 <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+<script>
+(function(){
+  function reveal(){
+    try{
+      var admin=new URLSearchParams(location.search).get("admin")==="1";
+      var pub=document.getElementById("publicPage");
+      var login=document.getElementById("loginPage");
+      var panel=document.getElementById("adminPage");
+      if(admin){
+        if(pub) pub.classList.add("hide");
+        if(login) login.classList.remove("hide");
+        if(panel) panel.classList.add("hide");
+      }else{
+        if(pub) pub.classList.remove("hide");
+        if(login) login.classList.add("hide");
+        if(panel) panel.classList.add("hide");
+      }
+    }catch(e){}
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",reveal);
+  else reveal();
+  window.addEventListener("error",function(){setTimeout(reveal,0)});
+  window.addEventListener("unhandledrejection",function(){setTimeout(reveal,0)});
+})();
+</script>
 
 <div id="publicPage" class="hide"><div id="appTop"></div>
 <header><div class="headerInner">
