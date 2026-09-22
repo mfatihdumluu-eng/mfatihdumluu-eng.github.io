@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emigro Review</title><meta name="build" content="2026-09-22-mobile-app-v14">
+<title>Emigro Review</title><meta name="build" content="2026-09-22-mobile-app-v15">
 <style>
 :root{--navy:#27336f;--red:#ef1425;--bg:#f5f7fb;--text:#172033;--muted:#6d7487;--line:#e2e6ef}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
@@ -102,33 +102,35 @@ header{
 #instagramCards{gap:12px}
 #instagramCards .card{
   display:block;
-  padding:12px;
-  border-radius:19px;
+  padding:14px;
+  border-radius:22px;
+  box-shadow:0 8px 24px rgba(27,38,83,.08);
 }
 #instagramCards .media{
   width:100%;
-  height:220px;
-  margin:0 0 11px;
-  border-radius:15px;
+  height:300px;
+  margin:0 0 13px;
+  border-radius:18px;
 }
-#instagramCards h3{font-size:20px;margin:6px 0}
-#instagramCards p{font-size:13px;line-height:1.45;margin:4px 0 8px}
-#instagramCards a{font-size:13px}
+#instagramCards h3{font-size:23px;margin:7px 0}
+#instagramCards p{font-size:14px;line-height:1.5;margin:5px 0 10px}
+#instagramCards a{font-size:14px}
 
 #customSection .card{
   display:block;
-  padding:12px;
-  border-radius:19px;
+  padding:14px;
+  border-radius:22px;
+  box-shadow:0 8px 24px rgba(27,38,83,.08);
 }
 #customSection .media{
   width:100%;
-  height:220px;
-  margin:0 0 11px;
-  border-radius:15px;
+  height:300px;
+  margin:0 0 13px;
+  border-radius:18px;
 }
-#customSection h3{font-size:20px;margin:6px 0}
-#customSection p{font-size:13px;line-height:1.45;margin:4px 0 8px}
-#customSection a{font-size:13px}
+#customSection h3{font-size:23px;margin:7px 0}
+#customSection p{font-size:14px;line-height:1.5;margin:5px 0 10px}
+#customSection a{font-size:14px}
 
 .whatsappSection{margin-top:16px}
 .whatsappSection>h2{font-size:22px}
@@ -169,15 +171,17 @@ header{
   align-items:center;
   justify-content:center;
   gap:2px;
-  padding:5px 2px;
-  border-radius:10px;
+  padding:6px 2px;
+  border-radius:11px;
   font-size:9px;
   font-weight:800;
   line-height:1.1;
   cursor:pointer;
 }
-.footerIcon{font-size:19px;line-height:1}
+.footerIcon{width:23px;height:23px;display:grid;place-items:center}
+.footerIcon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .footerReview{color:var(--red)}
+.footerReview .footerIcon svg{fill:currentColor;stroke:currentColor}
 .footerShare{font-family:inherit}
 .mobileBar{display:none!important}
 
@@ -234,11 +238,11 @@ textarea{min-height:72px}
 <section id="whatsappSection" class="section whatsappSection"><h2>WhatsApp</h2><div class="cards"><article class="card whatsappCard"><div class="media"><img src="https://www.emigro.nl/img/cms/homepage/2.webp" alt="Emigro"></div><div><span class="tag">WhatsApp</span><h3>Emigro WhatsApp</h3><p id="waText"></p><a id="waA" href="https://whatsapp.com/channel/0029Vb70VbT7DAX1LRsxpF2W" target="_blank"></a></div></article></div></section>
 </main>
 <nav class="appFooter" aria-label="Mobil menü">
-<a class="footerItem" href="#appTop"><span class="footerIcon">⌂</span><span>Ana Sayfa</span></a>
-<a class="footerItem" href="#updatesSection"><span class="footerIcon">▦</span><span>Güncellemeler</span></a>
-<a id="mobileReview" class="footerItem footerReview" target="_blank"><span class="footerIcon">★</span><span>Yorum</span></a>
-<a class="footerItem" href="#whatsappSection"><span class="footerIcon">☏</span><span>WhatsApp</span></a>
-<button id="mobileShare" class="footerItem footerShare" type="button"><span class="footerIcon">↗</span><span>Davet Et</span></button>
+<a class="footerItem" href="#appTop"><span class="footerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5v8a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H4.5A1.5 1.5 0 0 1 3 19.5z"/></svg></span><span>Ana Sayfa</span></a>
+<a class="footerItem" href="#updatesSection"><span class="footerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></span><span>Güncellemeler</span></a>
+<a id="mobileReview" class="footerItem footerReview" target="_blank"><span class="footerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.9z"/></svg></span><span>Yorum</span></a>
+<a class="footerItem" href="#whatsappSection"><span class="footerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.7A8 8 0 0 1 8.2 18.8L4 20l1.2-4.1A8 8 0 1 1 20 11.7z"/><path d="M9 8.5c.3-.6.7-.6 1-.6h.3c.2 0 .4.1.5.4l.7 1.7c.1.3.1.5-.1.7l-.6.8c-.2.2-.2.4 0 .7.4.7 1 1.4 1.7 1.8.7.4 1.2.6 1.5.7.3.1.5 0 .7-.2l.8-1c.2-.3.5-.3.8-.2l1.7.8c.3.1.5.3.5.5 0 .3-.2 1.4-.9 2-.7.6-1.6.9-2.7.6-1-.3-2.2-.7-3.7-1.7-1.3-.8-2.4-1.9-3.2-3.2-.9-1.4-1.4-2.8-1.4-3.6 0-.8.2-1.5.4-2z"/></svg></span><span>WhatsApp</span></a>
+<button id="mobileShare" class="footerItem footerShare" type="button"><span class="footerIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><rect x="5" y="12" width="14" height="8" rx="2"/></svg></span><span>Davet Et</span></button>
 </nav>
 </div>
 
