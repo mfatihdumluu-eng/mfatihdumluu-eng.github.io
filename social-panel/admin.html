@@ -258,6 +258,10 @@ async function publishAll(){
   try{
     const s=$("settingsModal").classList.contains("on")?collectSettings():settings;
     const a=await api({action:"save_all",token,items:products});
+    if(Array.isArray(a.ids)&&a.ids.length===products.length){
+      products=products.map((p,i)=>Object.assign({},p,{id:Number(a.ids[i])}));
+      renderTable();sendPreview();
+    }
     await api({action:"save_settings",token,settings:s});
     settings=Object.assign({},DEFAULT_SETTINGS,s);
     $("publishState").textContent="Doğrulanıyor...";
