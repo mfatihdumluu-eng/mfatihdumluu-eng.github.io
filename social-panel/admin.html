@@ -16,7 +16,7 @@ main{max-width:1450px;margin:auto;padding:26px}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .btn{border:1px solid #ddd;background:#fff;border-radius:11px;padding:10px 13px;font-weight:850;cursor:pointer}
 .btn.red{background:#e30613;border-color:#e30613;color:#fff}.btn.black{background:#171717;color:#fff;border-color:#171717}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:22px 0}
 .stat,.card{background:#fff;border:1px solid #e5e1db;border-radius:17px}.stat{padding:16px}.stat small{font-size:9px;font-weight:900;color:#888}.stat b{display:block;font-size:28px;margin-top:4px}
 .card{padding:16px}.tabletop{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.scroll{overflow:auto}
 table{width:100%;border-collapse:collapse;min-width:1030px}th,td{padding:10px 8px;border-bottom:1px solid #eee;text-align:left;font-size:10px;vertical-align:middle}
@@ -42,6 +42,8 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
 .analyticsCards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:15px 0}.analyticsCard{background:#f7f7f4;border:1px solid #e5e1db;border-radius:14px;padding:14px}.analyticsCard small{font-size:9px;color:#777;font-weight:900}.analyticsCard b{display:block;font-size:26px}
 .analyticsGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.analyticsList{border:1px solid #e5e1db;border-radius:13px;padding:12px}.analyticsList h3{font-size:12px;margin:0 0 7px}.analyticsRow{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #eee;font-size:11px}.analyticsRow:first-of-type{border-top:0}
 .notice{font-size:10px;line-height:1.5;background:#faf8f5;border-radius:11px;padding:10px;color:#666}
+.filterbar{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px}.filterbar button{border:1px solid #ddd;background:#fff;border-radius:999px;padding:8px 12px;font-size:10px;font-weight:900}.filterbar button.on{background:#171717;color:#fff;border-color:#171717}
+.stateBadge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:6px 8px;font-size:9px;font-weight:1000}.stateBadge.active{background:#e8f7ee;color:#148347}.stateBadge.passive{background:#f1f1f1;color:#777}.stateBadge.sold{background:#fff0f1;color:#b40613}
 @media(max-width:900px){.settingsWorkspace{grid-template-columns:1fr}.previewStage{height:500px}.analyticsGrid{grid-template-columns:1fr}}
 @media(max-width:700px){main{padding:14px}.stats{grid-template-columns:1fr 1fr}.formgrid,.settingsGrid{grid-template-columns:1fr}.widefield{grid-column:auto}.analyticsCards{grid-template-columns:1fr 1fr}}
 </style>
@@ -79,12 +81,14 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
   <div class="stats">
     <div class="stat"><small>TOPLAM</small><b id="sTotal">0</b></div>
     <div class="stat"><small>AKTİF</small><b id="sActive">0</b></div>
+    <div class="stat"><small>PASİF</small><b id="sPassive">0</b></div>
     <div class="stat"><small>TÜKENDİ</small><b id="sSold">0</b></div>
     <div class="stat"><small>FOTOĞRAFLI</small><b id="sPhoto">0</b></div>
   </div>
 
   <div class="card">
-    <div class="tabletop"><b>Dagdeal ürünleri</b><span class="muted">Fotoğraf ve açıklama düzenlemek için ürün satırını aç.</span></div>
+    <div class="tabletop"><b>Dagdeal ürünleri</b><span class="muted">Aktif/pasif tüm yüklenen ürünler burada görünür.</span></div>
+    <div class="filterbar"><button class="on" data-list-filter="all">Tümü</button><button data-list-filter="active">Aktif</button><button data-list-filter="passive">Pasif</button><button data-list-filter="sold">Tükendi</button></div>
     <div class="scroll"><table><thead><tr><th>FOTO</th><th>TARİH</th><th>ÜRÜN</th><th>FİYAT</th><th>AÇIKLAMA</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody id="rows"></tbody></table></div>
   </div>
 </main>
@@ -163,6 +167,7 @@ let token=sessionStorage.getItem("emigroAdminToken")||localStorage.getItem("emig
 let products=[];
 let settings=Object.assign({},DEFAULT_SETTINGS);
 let editingId=null;
+let listFilter="all";
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const money=v=>"€"+Number(v||0).toFixed(2).replace(".",",");
@@ -205,15 +210,21 @@ async function loadAll(){
   renderTable();fillSettings();sendPreview();
 }
 function renderTable(){
-  $("rows").innerHTML=products.map(p=>'<tr><td><div class="photo">'+(p.image_url?'<img src="'+esc(p.image_url)+'">':"Foto +")+'</div></td><td><b>'+esc(p.deal_date)+'</b><br>'+esc(String(p.start_time||"").slice(0,5))+'</td><td><b>'+esc(p.name)+'</b><br><span class="muted">'+esc(p.unit)+' · '+esc(p.category)+'</span></td><td><s>'+money(p.regular_price)+'</s><br><b>'+money(p.deal_price)+'</b></td><td>'+esc(p.description||"—")+'</td><td>'+(p.sold?"UITVERKOCHT":esc(p.status))+'</td><td><div class="actions"><button class="btn" data-edit="'+p.id+'">Düzenle</button><button class="btn black" data-sold="'+p.id+'">'+(p.sold?"Aktif yap":"Tükendi")+'</button><button class="btn" data-del="'+p.id+'">Sil</button></div></td></tr>').join("");
+  const visible=products.filter(p=>listFilter==="all"||(listFilter==="active"&&!p.sold&&p.status!=="Niet publiceren")||(listFilter==="passive"&&p.status==="Niet publiceren")||(listFilter==="sold"&&p.sold));
+  $("rows").innerHTML=visible.map(p=>{
+    const state=p.sold?'<span class="stateBadge sold">● TÜKENDİ</span>':p.status==="Niet publiceren"?'<span class="stateBadge passive">● PASİF</span>':'<span class="stateBadge active">● AKTİF</span>';
+    return '<tr><td><div class="photo">'+(p.image_url?'<img src="'+esc(p.image_url)+'">':"Foto +")+'</div></td><td><b>'+esc(p.deal_date)+'</b><br>'+esc(String(p.start_time||"").slice(0,5))+'</td><td><b>'+esc(p.name)+'</b><br><span class="muted">'+esc(p.unit)+' · '+esc(p.category)+'</span></td><td><s>'+money(p.regular_price)+'</s><br><b>'+money(p.deal_price)+'</b></td><td>'+esc(p.description||"—")+'</td><td>'+state+'</td><td><div class="actions"><button class="btn" data-edit="'+p.id+'">Düzenle</button><button class="btn black" data-sold="'+p.id+'">'+(p.sold?"Aktif yap":"Tükendi")+'</button><button class="btn" data-del="'+p.id+'">Sil</button></div></td></tr>';
+  }).join("");
   $("sTotal").textContent=products.length;
   $("sActive").textContent=products.filter(p=>!p.sold&&p.status!=="Niet publiceren").length;
+  $("sPassive").textContent=products.filter(p=>p.status==="Niet publiceren").length;
   $("sSold").textContent=products.filter(p=>p.sold).length;
   $("sPhoto").textContent=products.filter(p=>p.image_url).length;
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEditor(Number(b.dataset.edit)));
   document.querySelectorAll("[data-sold]").forEach(b=>b.onclick=()=>{const p=products.find(x=>Number(x.id)===Number(b.dataset.sold));if(p){p.sold=!p.sold;renderTable();sendPreview()}});
   document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Ürün silinsin mi?")){products=products.filter(x=>Number(x.id)!==Number(b.dataset.del));renderTable();sendPreview()}});
 }
+document.querySelectorAll("[data-list-filter]").forEach(b=>b.onclick=()=>{listFilter=b.dataset.listFilter;document.querySelectorAll("[data-list-filter]").forEach(x=>x.classList.toggle("on",x===b));renderTable()});
 function blankProduct(){return{id:Date.now(),deal_date:new Date().toISOString().slice(0,10),start_time:"08:00",name:"",unit:"",category:"Dranken",regular_price:0,deal_price:0,op_op:false,description:"",status:"Klaar",sold:false,image_url:"",note:""}}
 function openEditor(id){
   const p=id?products.find(x=>Number(x.id)===Number(id)):blankProduct();
