@@ -148,11 +148,11 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 
 /* ===== V16 clean header + search + social + all products ===== */
 .desktop-header{position:sticky;top:0;z-index:40;border-bottom:1px solid #ece9e4;box-shadow:0 6px 22px #0000000a}
-.headerActions{display:flex;align-items:center;gap:8px;margin-left:14px}
-.headerSearchBtn{width:44px;height:44px;border:1px solid #e5e1db;background:#fff;border-radius:13px;display:grid;place-items:center;font-size:18px;cursor:pointer}
+.headerActions{display:flex;align-items:center;gap:8px;margin-left:18px}
+.headerSearchBtn{height:42px;border:1px solid #e5e1db;background:#fff;border-radius:12px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;font-size:12px;font-weight:900;cursor:pointer;color:#222}
 .headerSearchBtn:hover{background:#f7f5f2}
-.brand.has-logo img{max-height:78px!important}
-.socialStrip{display:flex;gap:8px;align-items:center;padding:10px 86px;background:#fff;border-bottom:1px solid #f0ede8;overflow:auto;scrollbar-width:none}
+.brand.has-logo img{max-height:84px!important}
+.socialStrip{display:none!important}
 .socialStrip::-webkit-scrollbar{display:none}
 .socialStrip a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:#222;background:#f7f5f2;border:1px solid #ebe7e0;padding:8px 12px;border-radius:999px;font-size:11px;font-weight:850;white-space:nowrap}
 .socialStrip a:hover{background:#fff0f1;color:var(--red);border-color:#ffd2d5}
@@ -172,9 +172,9 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 .searchOverlay{display:none;position:fixed;inset:0;background:#0009;z-index:200;padding:24px;align-items:flex-start;justify-content:center}.searchOverlay.on{display:flex}
 .searchPanel{width:min(760px,100%);background:#fff;border-radius:24px;margin-top:7vh;max-height:82vh;overflow:hidden;box-shadow:0 30px 90px #0005}
 .searchTop{display:flex;gap:9px;padding:16px;border-bottom:1px solid #eee}.searchTop input{flex:1;border:1px solid #ddd;border-radius:12px;padding:12px 14px;font-size:15px}.searchTop button{border:0;background:#f2f0ed;border-radius:12px;width:44px}
-.searchResults{padding:12px;overflow:auto;max-height:64vh}.searchResult{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;padding:10px;border-radius:13px}.searchResult:hover{background:#f8f6f3}.searchThumb{width:58px;height:58px;background:#f5f3ef;border-radius:11px;display:grid;place-items:center;font-size:30px;overflow:hidden}.searchThumb img{width:100%;height:100%;object-fit:contain}.searchResult b{display:block}.searchResult small{color:#777}.searchPrice{font-weight:1000}
-@media(min-width:1100px){.desktop-header{height:104px!important;padding:0 86px!important}.desktop-header .brand{min-width:220px;display:flex;align-items:center}.desktopnav{margin-left:auto!important}.brand.has-logo img{max-height:78px!important}.headerActions{margin-left:18px}}
-@media(max-width:1099px){.desktop-header{height:72px!important;padding:0 14px!important;display:flex;align-items:center;justify-content:space-between}.desktop-header .brand{flex:1}.desktop-header .brand.has-logo img{max-height:56px!important}.headerActions{margin-left:auto}.socialStrip{padding:9px 12px}.allDealsSection{padding:8px 12px 110px}.allDealsGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.allDealCard{min-height:215px;padding:11px}.allDealVisual{height:100px}.socialHub{margin:0 12px 110px;padding:22px;grid-template-columns:1fr}.socialHubLinks{justify-content:flex-start}.headerSearchBtn{width:40px;height:40px}.desktopnav{display:none!important}}
+.searchResults{padding:12px;overflow:auto;max-height:64vh}.searchResult{display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center;padding:10px;border-radius:13px}.searchResult:hover{background:#f8f6f3}.searchThumb{width:58px;height:58px;background:#f5f3ef;border-radius:11px;display:grid;place-items:center;font-size:30px;overflow:hidden}.searchThumb img{width:100%;height:100%;object-fit:contain}.searchResult b{display:block}.searchResult small{color:#777}.searchPrice{font-weight:1000}.searchStatus{display:inline-block;margin-top:4px;font-size:9px;font-weight:1000;border-radius:999px;padding:4px 7px;background:#f2f0ed;color:#666}.searchStatus.live{background:#e8f7ee;color:#148347}.searchStatus.upcoming{background:#fff6df;color:#8c6500}.searchStatus.expired{background:#f1f1f1;color:#777}.searchEmpty{padding:28px;text-align:center;color:#777;font-size:12px}
+@media(min-width:1100px){.desktop-header{height:96px!important;padding:0 86px!important;background:#fff!important}.desktop-header .brand{min-width:280px;display:flex;align-items:center;justify-content:flex-start}.desktopnav{margin-left:auto!important;gap:4px!important}.desktopnav a{padding:10px 14px!important;font-size:13px!important}.brand.has-logo img{max-height:84px!important}.headerActions{margin-left:14px}}
+@media(max-width:1099px){.desktop-header{height:72px!important;padding:0 14px!important;display:flex;align-items:center;justify-content:space-between}.desktop-header .brand{flex:1}.desktop-header .brand.has-logo img{max-height:58px!important}.headerActions{margin-left:auto}.headerSearchBtn{width:42px;padding:0;justify-content:center;font-size:0}.headerSearchBtn::before{content:"⌕";font-size:19px}.socialStrip{display:none!important}.allDealsSection{padding:8px 12px 110px}.allDealsGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.allDealCard{min-height:215px;padding:11px}.allDealVisual{height:100px}.socialHub{margin:0 12px 110px;padding:22px;grid-template-columns:1fr}.socialHubLinks{justify-content:flex-start}.headerSearchBtn{width:40px;height:40px}.desktopnav{display:none!important}}
 @media(max-width:520px){.allDealsGrid{grid-template-columns:1fr 1fr}.allDealCard h3{font-size:14px}.allDealPrice strong{font-size:18px}.searchOverlay{padding:10px}.searchPanel{margin-top:4vh}}
 
 </style></head><body><div class="app" id="calendar"><header class="desktop-header">
@@ -185,7 +185,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 <a href="#favorites">Favorieten</a>
 <a href="#catdrawer">Categorieën</a>
 </nav>
-<div class="headerActions"><button id="openSearch" class="headerSearchBtn" type="button" aria-label="Zoeken">⌕</button></div>
+<div class="headerActions"><button id="openSearch" class="headerSearchBtn" type="button" aria-label="Zoeken">⌕ <span>Zoeken</span></button></div>
 </header>
 <div id="socialStrip" class="socialStrip">
 <a id="socialWaTop" href="#" target="_blank" rel="noopener">💬 WhatsApp</a>
@@ -461,11 +461,17 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     count.textContent=allItems.length+" producten";
     grid.innerHTML=allItems.map(p=>'<article class="allDealCard"><div class="allDealVisual">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'">':catEmoji(p.category))+'</div><div class="allDealDate">'+esc(p.deal_date||"")+(p.sold?' · UITVERKOCHT':'')+'</div><h3>'+esc(p.name)+'</h3><div class="unit">'+esc(p.unit||"")+' · '+esc(p.category||"")+'</div><div class="allDealPrice"><del>'+money(p.regular_price)+'</del><strong>'+money(p.deal_price)+'</strong></div></article>').join("");
   }
+  function searchState(p){
+    const now=new Date(),parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(now),o={};parts.forEach(x=>o[x.type]=x.value);
+    const today=o.year+"-"+o.month+"-"+o.day,tm=o.hour+":"+o.minute,d=String(p.deal_date||"");
+    if(p.sold||d<today)return"expired";if(d>today)return"upcoming";return String(p.start_time||"00:00").slice(0,5)<=tm?"live":"upcoming";
+  }
   function renderSearch(q){
     const box=document.getElementById("searchResults");if(!box)return;
     q=String(q||"").trim().toLowerCase();
-    const list=(q?allItems.filter(p=>(String(p.name)+" "+String(p.category)+" "+String(p.description)).toLowerCase().includes(q)):allItems).slice(0,30);
-    box.innerHTML=list.length?list.map(p=>'<div class="searchResult"><div class="searchThumb">'+(p.image_url?'<img src="'+esc(p.image_url)+'">':catEmoji(p.category))+'</div><div><b>'+esc(p.name)+'</b><small>'+esc(p.unit||"")+' · '+esc(p.category||"")+'</small></div><div class="searchPrice">'+money(p.deal_price)+'</div></div>').join(""):'<div class="muted" style="padding:18px">Geen producten gevonden.</div>';
+    if(!q){box.innerHTML='<div class="searchEmpty">Typ een productnaam om in alle Dagdeals te zoeken.</div>';return}
+    const list=allItems.filter(p=>(String(p.name)+" "+String(p.category)+" "+String(p.description)).toLowerCase().includes(q)).slice(0,30);
+    box.innerHTML=list.length?list.map(p=>{const st=searchState(p),label=st==="live"?"LIVE VANDAAG":st==="upcoming"?"BINNENKORT":"AFGELOPEN";return '<div class="searchResult"><div class="searchThumb">'+(p.image_url?'<img src="'+esc(p.image_url)+'">':catEmoji(p.category))+'</div><div><b>'+esc(p.name)+'</b><small>'+esc(p.unit||"")+' · '+esc(p.category||"")+'</small><span class="searchStatus '+st+'">'+label+'</span></div><div class="searchPrice">'+money(p.deal_price)+'</div></div>'}).join(""):'<div class="searchEmpty">Geen producten gevonden.</div>';
   }
   const baseDeals=window.__applyCentralDeals;
   window.__applyCentralDeals=function(items){if(baseDeals)baseDeals(items);renderAll(items);};
@@ -497,7 +503,8 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   }
   syncLive();
   window.addEventListener("focus",syncLive);
+  setInterval(syncLive,60000);
 })();
 </script>
-<div id="searchOverlay" class="searchOverlay"><div class="searchPanel"><div class="searchTop"><input id="searchInput" placeholder="Zoek een product..."><button id="closeSearch" type="button">×</button></div><div id="searchResults" class="searchResults"></div></div></div>
+<div id="searchOverlay" class="searchOverlay"><div class="searchPanel"><div class="searchTop"><input id="searchInput" placeholder="Zoek op productnaam..."><button id="closeSearch" type="button">×</button></div><div id="searchResults" class="searchResults"></div></div></div>
 </body></html>
