@@ -244,6 +244,12 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 .monthEmpty .emptyDayIcon{font-size:30px;margin:auto 0 8px;opacity:.45}
 .monthEmpty h4{color:#999!important}.monthEmpty small{color:#aaa!important}
 .monthSlotState{font-size:7.5px;font-weight:1000;margin-top:6px;color:#999}
+
+/* V21 synchronized hero */
+.hero{cursor:pointer}
+.dealcard.selectedDeal{outline:3px solid var(--red);outline-offset:2px;box-shadow:0 10px 30px #cf101922}
+.hero .heroHiddenPrice{font-size:15px;font-weight:900;margin:12px 0;color:#fff;opacity:.95}
+.hero .heroStateText{font-size:11px;font-weight:900;letter-spacing:.4px}
 </style></head><body><div class="app" id="calendar">
 <div class="siteTopbar">
   <div class="topLeft"><a href="tel:0703888813">☎ 070 388 8813</a><span>✉ info@emigro.nl</span></div>
@@ -587,6 +593,8 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   function renderAll(items){
     allItems=(items||[]).filter(x=>String(x.status||"")!=="Niet publiceren");
     renderMonthCalendar(items||[]);
+    const selected=allItems.find(x=>String(x.id)===String(selectedProductId));
+    renderHeroProduct(selected||defaultHeroProduct(allItems));
     renderFilteredAll();
   }
 
@@ -602,6 +610,32 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
       en:["January","February","March","April","May","June","July","August","September","October","November","December"]
     };
     return (names[currentLang]||names.nl)[m-1]
+  }
+
+  let selectedProductId=null;
+  function renderHeroProduct(p){
+    const hero=document.querySelector(".hero");if(!hero||!p)return;
+    selectedProductId=String(p.id);
+    const st=dealState(p),visible=frontPriceVisible(p);
+    const label=st==="live"?"● NU ACTIEF":st==="upcoming"?"BINNENKORT":"AFGELOPEN";
+    const d=String(p.deal_date||"");
+    const [y,m,day]=d.split("-"),months=["JANUARI","FEBRUARI","MAART","APRIL","MEI","JUNI","JULI","AUGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DECEMBER"];
+    const dateLabel=day&&m?Number(day)+" "+months[Number(m)-1]:d;
+    hero.removeAttribute("href");
+    hero.dataset.heroProductId=String(p.id);
+    hero.innerHTML='<div class="herohead"><span class="livepill">'+label+'</span>'+(p.op_op?'<span class="opop">OP = OP</span>':'')+'<time>'+esc(dateLabel)+'</time></div>'+
+      '<div class="herobody"><div class="heroimg">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain">':catEmoji(p.category))+'</div>'+
+      '<div class="herotxt"><h2>'+esc(p.name)+'</h2><small>'+esc(p.unit||"")+'</small>'+
+      (visible?'<del>'+money(p.regular_price)+'</del><div class="heroprice">'+money(p.deal_price)+'</div>':'<div class="heroHiddenPrice">🔒 Dagdealprijs verborgen</div>')+
+      '<div class="herocta">Bekijk Dagdeal →</div></div></div>';
+    document.querySelectorAll("[data-month-product-id]").forEach(el=>el.classList.toggle("selectedDeal",String(el.dataset.monthProductId)===String(p.id)));
+  }
+  function defaultHeroProduct(items){
+    if(!Array.isArray(items)||!items.length)return null;
+    const active=items.find(x=>dealState(x)==="live");
+    if(active)return active;
+    const future=items.filter(x=>dealState(x)==="upcoming").sort((a,b)=>String(a.deal_date).localeCompare(String(b.deal_date)))[0];
+    return future||items[0];
   }
   function renderMonthCalendar(items){
     const grid=document.getElementById("calendarGrid");if(!grid)return;
@@ -708,7 +742,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   });
   document.addEventListener("click",e=>{const b=e.target.closest(".langSwitch button");if(b)applyLanguage(b.dataset.lang)});
   const baseDeals=window.__applyCentralDeals;
-  window.__applyCentralDeals=function(items){if(baseDeals)baseDeals(items);renderAll(items);};
+  window.__applyCentralDeals=function(items){window.__emigroCentralDeals=Array.isArray(items)?items:[];renderAll(window.__emigroCentralDeals);};
   const baseSettings=window.__applyEmigroSettings;
   window.__applyEmigroSettings=function(s){if(baseSettings)baseSettings(s);applySocial(s);applyIconSettings(s);};
   window.addEventListener("message",e=>{if(e?.data?.type==="emigro-preview-products")renderAll(e.data.items||[]);if(e?.data?.type==="emigro-preview-settings")applySocial(e.data.settings||{})});
@@ -719,8 +753,8 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     document.getElementById("searchInput")?.addEventListener("input",e=>renderSearch(e.target.value));
     document.getElementById("allDealsSearchInput")?.addEventListener("input",renderFilteredAll);
     document.getElementById("allDealsStateFilter")?.addEventListener("change",renderFilteredAll);
-    document.getElementById("allDealsGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-product-id]");if(!card)return;const p=allItems.find(x=>String(x.id)===String(card.dataset.productId));if(p)openDynamicDeal(p)});
-    document.getElementById("calendarGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-month-product-id]");if(!card||e.target.closest(".favbtn"))return;const p=allItems.find(x=>String(x.id)===String(card.dataset.monthProductId));if(p)openDynamicDeal(p)});
+    document.getElementById("allDealsGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-product-id]");if(!card)return;const p=allItems.find(x=>String(x.id)===String(card.dataset.productId));if(p){renderHeroProduct(p);document.querySelector(".hero")?.scrollIntoView({behavior:"smooth",block:"center"})}});
+    document.getElementById("calendarGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-month-product-id]");if(!card||e.target.closest(".favbtn"))return;const p=allItems.find(x=>String(x.id)===String(card.dataset.monthProductId));if(p){renderHeroProduct(p);document.querySelector(".hero")?.scrollIntoView({behavior:"smooth",block:"center"})}});
     document.getElementById("searchResults")?.addEventListener("click",e=>{const row=e.target.closest("[data-search-id]");if(!row)return;const p=allItems.find(x=>String(x.id)===String(row.dataset.searchId));if(p){document.getElementById("searchOverlay")?.classList.remove("on");openDynamicDeal(p)}});
     document.getElementById("dynamicDealModal")?.addEventListener("click",e=>{if(e.target.id==="dynamicDealModal")e.currentTarget.classList.remove("on")});
   });
