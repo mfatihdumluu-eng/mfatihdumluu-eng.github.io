@@ -265,8 +265,9 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 .favLogoWrap{display:flex;justify-content:center;align-items:center;margin:4px 0 14px;min-height:54px}
 .favLogoWrap img{max-width:180px;max-height:54px;object-fit:contain}
 .favLogoText{font-size:25px;font-weight:1000}.favLogoText small{display:block;font-size:8px;letter-spacing:2px;text-align:center;color:#888;margin-top:2px}
-.dealcard.hiddenByHeaderFilter{display:none!important}
 @media(max-width:1099px){.headerDealFilter{height:32px;max-width:145px;font-size:9px;padding-left:9px}.headerTools{gap:6px}}
+.calendarFilteredOut{display:none!important}
+.favBrand img{max-width:180px;max-height:56px;object-fit:contain}
 </style></head><body><div class="app" id="calendar">
 <div class="siteTopbar">
   <div class="topLeft"><a href="tel:0703888813">☎ 070 388 8813</a><span>✉ info@emigro.nl</span></div>
@@ -284,6 +285,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     <a href="#favorites" aria-label="Favorieten" class="headerFavorite">♡</a>
     <select id="headerStatusFilter" class="headerStatusFilter" aria-label="Deal status">
       <option value="all">Alle statussen</option>
+      <option value="hideExpired">Bitenleri gizle</option>
       <option value="live">Nu actief</option>
       <option value="upcoming">Binnenkort</option>
       <option value="expired">Afgelopen</option>
@@ -684,24 +686,26 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
       }
       const st=dealState(p),label=st==="live"?"NU ACTIEF":st==="upcoming"?"BINNENKORT":"AFGELOPEN";
       const filterState=st==="live"?"current":st==="upcoming"?"future":"expired";
-      const price=frontPriceVisible(p)
+      const hasPrice=Number(p.deal_price)>0;
+      const price=frontPriceVisible(p)&&hasPrice
         ?'<div class="old">'+money(p.regular_price)+'</div><div class="dealprice">'+money(p.deal_price)+'</div>'
-        :'<div class="mystery">🔒 Dagdealprijs verborgen</div>';
+        :st==="expired"?'<div class="expiredtxt">Deal afgelopen</div>':'<div class="mystery">🔒 Dagdealprijs verborgen</div>';
       html+='<article class="dealcard '+st+'" data-filter-state="'+filterState+'" data-month-product-id="'+esc(p.id)+'"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>'+label+'</span></div><button class="favbtn" type="button" data-fav="'+day+'" aria-label="Favoriet toevoegen">♡</button><div class="productpic">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain">':catEmoji(p.category))+'</div><h4>'+esc(p.name)+'</h4><small>'+esc(p.unit||"")+'</small>'+price+'<div class="chev">›</div></article>';
     }
     grid.innerHTML=html;
-    applyHeaderDealFilter();
+    applyCalendarStatusFilter();
   }
-  function applyHeaderDealFilter(){
-    const value=document.getElementById("headerDealFilter")?.value||"all";
+  function applyCalendarStatusFilter(){
+    const value=document.getElementById("headerStatusFilter")?.value||calendarStatusFilter||"all";
+    calendarStatusFilter=value;
     document.querySelectorAll("#calendarGrid .dealcard").forEach(card=>{
       const st=card.dataset.filterState||"";
       let show=true;
-      if(value==="future")show=st==="future";
-      else if(value==="current")show=st==="current";
-      else if(value==="hideExpired")show=st!=="expired";
+      if(value==="hideExpired")show=st!=="expired";
+      else if(value==="live")show=st==="current";
+      else if(value==="upcoming")show=st==="future";
       else if(value==="expired")show=st==="expired";
-      card.classList.toggle("hiddenByHeaderFilter",!show);
+      card.classList.toggle("calendarFilteredOut",!show);
     });
   }
   function renderFilteredAll(){
@@ -771,15 +775,15 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     document.querySelectorAll("[data-i18n-html]").forEach(el=>{const k=el.dataset.i18nHtml;if(d[k])el.innerHTML=d[k]});
     document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{const k=el.dataset.i18nPlaceholder;if(d[k])el.placeholder=d[k]});
     document.querySelectorAll(".langSwitch button").forEach(b=>b.classList.toggle("on",b.dataset.lang===currentLang));
-    const sf=document.getElementById("headerStatusFilter");if(sf){const vals={nl:["Alle statussen","Nu actief","Binnenkort","Afgelopen"],tr:["Tüm durumlar","Şu an aktif","Yakında","Geçmiş"],en:["All statuses","Active now","Coming soon","Expired"]}[currentLang]||["Alle statussen","Nu actief","Binnenkort","Afgelopen"];[...sf.options].forEach((o,i)=>o.textContent=vals[i]||o.textContent)}
+    const sf=document.getElementById("headerStatusFilter");if(sf){const vals={nl:["Alle statussen","Bitenleri gizle","Nu actief","Binnenkort","Afgelopen"],tr:["Tüm durumlar","Bitenleri gizle","Şu an aktif","Yakında","Geçmiş"],en:["All statuses","Hide expired","Active now","Coming soon","Expired"]}[currentLang]||["Alle statussen","Bitenleri gizle","Nu actief","Binnenkort","Afgelopen"];[...sf.options].forEach((o,i)=>o.textContent=vals[i]||o.textContent)}
   
     renderMonthCalendar(window.__emigroCentralDeals||allItems);
     renderFilteredAll();
   }
   function applyFavoriteLogo(s){
-    const wrap=document.getElementById("favLogoWrap");if(!wrap)return;
+    const wrap=document.querySelector(".favBrand");if(!wrap)return;
     if(s?.logo)wrap.innerHTML='<img src="'+esc(s.logo)+'" alt="Emigro">';
-    else wrap.innerHTML='<div class="favLogoText">'+esc(s?.brand||"EMIGRO")+'<small>'+esc(s?.subtitle||"SUPERMARKT")+'</small></div>';
+    else wrap.innerHTML='<div class="favBrandLogo brand">'+esc(s?.brand||"EMIGRO")+'<small>'+esc(s?.subtitle||"SUPERMARKT")+'</small></div>';
   }
   function applyIconSettings(s){
     const wrap=document.querySelector(".headerSocials");if(!wrap)return;
@@ -808,8 +812,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     document.getElementById("calendarGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-month-product-id]");if(!card||e.target.closest(".favbtn"))return;const p=allItems.find(x=>String(x.id)===String(card.dataset.monthProductId));if(p){renderHeroProduct(p);document.querySelector(".hero")?.scrollIntoView({behavior:"smooth",block:"center"})}});
     document.getElementById("searchResults")?.addEventListener("click",e=>{const row=e.target.closest("[data-search-id]");if(!row)return;const p=allItems.find(x=>String(x.id)===String(row.dataset.searchId));if(p){document.getElementById("searchOverlay")?.classList.remove("on");openDynamicDeal(p)}});
     document.getElementById("dynamicDealModal")?.addEventListener("click",e=>{if(e.target.id==="dynamicDealModal")e.currentTarget.classList.remove("on")});
-    document.getElementById("headerDealFilter")?.addEventListener("change",applyHeaderDealFilter);
-    document.getElementById("headerStatusFilter")?.addEventListener("change",e=>{calendarStatusFilter=e.target.value||"all";renderMonthCalendar(window.__emigroCentralDeals||allItems)});
+    document.getElementById("headerStatusFilter")?.addEventListener("change",e=>{calendarStatusFilter=e.target.value||"all";applyCalendarStatusFilter()});
   
   });
 document.addEventListener("click",e=>{const b=e.target.closest(".futureFavAction");if(!b)return;e.preventDefault();const day=Number(b.dataset.dynFav);if(!day)return;let f=[];try{f=JSON.parse(localStorage.getItem("emigro_dagdeals_favorites_v1")||"[]")}catch{}const i=f.indexOf(day);if(i>=0)f.splice(i,1);else f.push(day);localStorage.setItem("emigro_dagdeals_favorites_v1",JSON.stringify(f));b.textContent=f.includes(day)?"♥ In favorieten":"♡ Favorieten";});
