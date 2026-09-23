@@ -50,6 +50,16 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
 .previewClock{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:8px 0 10px;padding:9px;background:#fff;border:1px solid #e2ded8;border-radius:12px}
 .previewClock b{font-size:10px}.previewClock input{border:1px solid #ddd;border-radius:9px;padding:7px 8px;font-size:10px}.previewClock .now{margin-right:auto;color:#666;font-size:10px;font-weight:800}
 
+
+.socialManager{display:flex;flex-direction:column;gap:9px}
+.socialRowAdmin{display:grid;grid-template-columns:54px 1fr 1.5fr 72px 70px 36px;gap:8px;align-items:center;border:1px solid #e4e0da;border-radius:12px;padding:9px;background:#fff}
+.socialIconPreview{width:46px;height:46px;border-radius:10px;background:#f5f3ef;border:1px dashed #cfcac2;display:grid;place-items:center;overflow:hidden;font-size:18px}.socialIconPreview img{width:100%;height:100%;object-fit:contain}
+.socialRowAdmin input,.socialRowAdmin select{width:100%;padding:8px;border:1px solid #ddd;border-radius:9px;font-size:10px}
+.socialToggle{display:flex;align-items:center;gap:5px;font-size:9px;font-weight:900}.socialToggle input{width:auto}
+.socialRowAdmin .removeSocial{border:0;background:#fff0f1;color:#b40613;border-radius:9px;height:34px}
+.socialManagerHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.socialUploadLabel{display:inline-flex;align-items:center;justify-content:center;border:1px solid #ddd;border-radius:9px;padding:7px 8px;font-size:9px;font-weight:900;cursor:pointer}
+@media(max-width:900px){.socialRowAdmin{grid-template-columns:46px 1fr}.socialRowAdmin>*{min-width:0}.socialRowAdmin .socialUrl,.socialRowAdmin .socialOrder,.socialRowAdmin .socialToggle,.socialRowAdmin .removeSocial{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -136,11 +146,11 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
       
       <div class="field"><label>SOSYAL İKON STİLİ</label><select id="setSocialIconStyle"><option value="minimal">Minimal</option><option value="circle">Daire</option><option value="filled">Dolu</option></select></div>
 <div class="field"><label>SOSYAL İKON BOYUTU</label><input id="setSocialIconSize" type="number" min="20" max="52" value="34"></div>
-<div class="field widefield"><label>WHATSAPP CHANNEL</label><input id="setWhatsapp" type="url" placeholder="https://whatsapp.com/channel/..."></div>
-      <div class="field widefield"><label>INSTAGRAM</label><input id="setInstagram" type="url" placeholder="https://instagram.com/..."></div>
-      <div class="field widefield"><label>FACEBOOK</label><input id="setFacebook" type="url" placeholder="https://facebook.com/..."></div>
-      <div class="field widefield"><label>TIKTOK</label><input id="setTiktok" type="url" placeholder="TikTok linki (opsiyonel)"></div>
-      <div class="field widefield"><label>GOOGLE REVIEW</label><input id="setGoogleReview" type="url" placeholder="Google review linki"></div>
+<div class="field widefield">
+  <div class="socialManagerHead"><label>SOSYAL MEDYA KANALLARI</label><button id="addSocialChannel" class="btn" type="button">+ Yeni kanal</button></div>
+  <div id="socialManager" class="socialManager"></div>
+  <div class="notice" style="margin-top:8px">Her kanal için ad, link, ikon, açık/kapalı ve sıra ayarlayabilirsin. İkonu kendin yükleyebilirsin.</div>
+</div>
       <div class="widefield notice">Buradaki değişiklikler Preview’de hemen görünür. Canlıya sadece “Canlıya Gönder” ile gider.</div>
     </div>
     <div class="previewPane">
@@ -169,7 +179,7 @@ const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const ANON="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-admin";
 const PUBLIC_API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-public";
-const DEFAULT_SETTINGS={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:"",logoWidthDesktop:320,logoWidthMobile:190,logoAlign:"left",logoOffsetX:0,logoOffsetY:0,whatsapp:"https://whatsapp.com/channel/0029Vb70VbT7DAX1LRsxpF2W",instagram:"https://www.instagram.com/emigrogroothandel/",facebook:"https://www.facebook.com/p/Emigro-international-BV-100067500402784/?locale=tr_TR",tiktok:"",googleReview:"https://search.google.com/local/writereview?placeid=ChIJUUAxdd62xUcRRu_Hneah3x4&source=g.page.m.nr._&laa=nmx-review-solicitation-recommendation-card",socialIconStyle:"circle",socialIconSize:34};
+const DEFAULT_SETTINGS={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:"",logoWidthDesktop:320,logoWidthMobile:190,logoAlign:"left",logoOffsetX:0,logoOffsetY:0,whatsapp:"https://whatsapp.com/channel/0029Vb70VbT7DAX1LRsxpF2W",instagram:"https://www.instagram.com/emigrogroothandel/",facebook:"https://www.facebook.com/p/Emigro-international-BV-100067500402784/?locale=tr_TR",tiktok:"",googleReview:"https://search.google.com/local/writereview?placeid=ChIJUUAxdd62xUcRRu_Hneah3x4&source=g.page.m.nr._&laa=nmx-review-solicitation-recommendation-card",socialIconStyle:"circle",socialIconSize:34,socialChannels:[]};
 let token=sessionStorage.getItem("emigroAdminToken")||localStorage.getItem("emigroAdminToken")||"";
 let products=[];
 let settings=Object.assign({},DEFAULT_SETTINGS);
@@ -254,27 +264,56 @@ $("saveProductBtn").onclick=()=>{
 };
 $("pPhoto").onchange=e=>{const file=e.target.files&&e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(img.width,img.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(img.width*scale));cv.height=Math.max(1,Math.round(img.height*scale));cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);const data=cv.toDataURL("image/jpeg",.82);$("pPhotoPreview").dataset.value=data;$("pPhotoPreview").innerHTML='<img src="'+data+'">'};img.src=r.result};r.readAsDataURL(file)};
 
+
+function defaultSocialChannels(){
+  return [
+    {id:"whatsapp",name:"WhatsApp",url:settings.whatsapp||DEFAULT_SETTINGS.whatsapp,icon:"",enabled:true,order:1},
+    {id:"instagram",name:"Instagram",url:settings.instagram||DEFAULT_SETTINGS.instagram,icon:"",enabled:true,order:2},
+    {id:"facebook",name:"Facebook",url:settings.facebook||DEFAULT_SETTINGS.facebook,icon:"",enabled:true,order:3},
+    {id:"tiktok",name:"TikTok",url:settings.tiktok||"",icon:"",enabled:false,order:4},
+    {id:"google-review",name:"Google Review",url:settings.googleReview||DEFAULT_SETTINGS.googleReview,icon:"",enabled:true,order:5}
+  ];
+}
+function currentSocialChannels(){
+  const rows=[...document.querySelectorAll(".socialRowAdmin")];
+  return rows.map((row,i)=>({
+    id:row.dataset.id||("social-"+Date.now()+"-"+i),
+    name:row.querySelector(".socialName")?.value.trim()||"",
+    url:row.querySelector(".socialUrl")?.value.trim()||"",
+    icon:row.querySelector(".socialIconPreview")?.dataset.icon||"",
+    enabled:!!row.querySelector(".socialEnabled")?.checked,
+    order:Number(row.querySelector(".socialOrder")?.value||i+1)
+  })).filter(x=>x.name);
+}
+function renderSocialChannels(list){
+  const box=$("socialManager");if(!box)return;
+  const channels=(Array.isArray(list)&&list.length?list:defaultSocialChannels()).slice().sort((a,b)=>Number(a.order||0)-Number(b.order||0));
+  box.innerHTML=channels.map((x,i)=>'<div class="socialRowAdmin" data-id="'+esc(x.id||("social-"+i))+'"><div class="socialIconPreview" data-icon="'+esc(x.icon||"")+'">'+(x.icon?'<img src="'+esc(x.icon)+'">':'◎')+'</div><div><input class="socialName" value="'+esc(x.name||"")+'" placeholder="Ad"><label class="socialUploadLabel" style="margin-top:5px">İkon yükle<input class="socialIconFile" type="file" accept="image/*" hidden></label></div><input class="socialUrl" type="url" value="'+esc(x.url||"")+'" placeholder="https://..."><input class="socialOrder" type="number" min="0" max="99" value="'+Number(x.order??i+1)+'" title="Sıra"><label class="socialToggle"><input class="socialEnabled" type="checkbox" '+(x.enabled!==false?"checked":"")+'> Açık</label><button class="removeSocial" type="button">×</button></div>').join("");
+}
+function compressSocialIcon(file,row){
+  const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=256,scale=Math.min(1,max/Math.max(img.width,img.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(img.width*scale));cv.height=Math.max(1,Math.round(img.height*scale));cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);const data=cv.toDataURL("image/png");const prev=row.querySelector(".socialIconPreview");prev.dataset.icon=data;prev.innerHTML='<img src="'+data+'">';collectSettings();sendPreview()};img.src=r.result};r.readAsDataURL(file)
+}
 function fillSettings(){
   $("setBrand").value=settings.brand;$("setSubtitle").value=settings.subtitle;$("setPrimary").value=settings.primary;$("setPrimaryDark").value=settings.primaryDark;$("setPaper").value=settings.paper;$("setInk").value=settings.ink;$("setMuted").value=settings.muted;
   $("setLogoWidthDesktop").value=Number(settings.logoWidthDesktop||220);$("setLogoWidthMobile").value=Number(settings.logoWidthMobile||150);$("setLogoAlign").value=settings.logoAlign||"left";$("setLogoOffsetX").value=Number(settings.logoOffsetX||0);$("setLogoOffsetY").value=Number(settings.logoOffsetY||0);
   $("logoPreview").dataset.value=settings.logo||"";$("logoPreview").innerHTML=settings.logo?'<img src="'+esc(settings.logo)+'">':'<span class="muted">Logo yok</span>';
-  $("setWhatsapp").value=settings.whatsapp||DEFAULT_SETTINGS.whatsapp;
-  $("setInstagram").value=settings.instagram||DEFAULT_SETTINGS.instagram;
-  $("setFacebook").value=settings.facebook||DEFAULT_SETTINGS.facebook;
-  $("setTiktok").value=settings.tiktok||"";
-  $("setGoogleReview").value=settings.googleReview||DEFAULT_SETTINGS.googleReview;
   $("setSocialIconStyle").value=settings.socialIconStyle||"circle";
   $("setSocialIconSize").value=Number(settings.socialIconSize||34);
+  renderSocialChannels(settings.socialChannels);
 }
 function collectSettings(){
-  settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0),whatsapp:$("setWhatsapp").value.trim(),instagram:$("setInstagram").value.trim(),facebook:$("setFacebook").value.trim(),tiktok:$("setTiktok").value.trim(),googleReview:$("setGoogleReview").value.trim(),socialIconStyle:$("setSocialIconStyle").value||"circle",socialIconSize:Number($("setSocialIconSize").value||34)};
+  settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0),whatsapp:settings.whatsapp||DEFAULT_SETTINGS.whatsapp,instagram:settings.instagram||DEFAULT_SETTINGS.instagram,facebook:settings.facebook||DEFAULT_SETTINGS.facebook,tiktok:settings.tiktok||"",googleReview:settings.googleReview||DEFAULT_SETTINGS.googleReview,socialIconStyle:$("setSocialIconStyle").value||"circle",socialIconSize:Number($("setSocialIconSize").value||34),socialChannels:currentSocialChannels()};
   return settings;
-}
+}}
 $("settingsBtn").onclick=()=>{fillSettings();openModal("settingsModal");setTimeout(sendPreview,300)};
 $("previewBtn").onclick=()=>{fillSettings();openModal("settingsModal");setTimeout(sendPreview,300)};
 $("desktopPreviewBtn").onclick=()=>{$("previewFrame").classList.remove("mobile");$("desktopPreviewBtn").classList.add("on");$("mobilePreviewBtn").classList.remove("on")};
 $("mobilePreviewBtn").onclick=()=>{$("previewFrame").classList.add("mobile");$("mobilePreviewBtn").classList.add("on");$("desktopPreviewBtn").classList.remove("on")};
 $("settingsModal").addEventListener("input",()=>{collectSettings();sendPreview()});
+$("addSocialChannel").onclick=()=>{const list=currentSocialChannels();list.push({id:"social-"+Date.now(),name:"Yeni Kanal",url:"",icon:"",enabled:true,order:list.length+1});renderSocialChannels(list);collectSettings();sendPreview()};
+$("socialManager").addEventListener("change",e=>{const row=e.target.closest(".socialRowAdmin");if(e.target.matches(".socialIconFile")&&e.target.files?.[0]&&row){compressSocialIcon(e.target.files[0],row);return}collectSettings();sendPreview()});
+$("socialManager").addEventListener("click",e=>{const b=e.target.closest(".removeSocial");if(!b)return;b.closest(".socialRowAdmin")?.remove();collectSettings();sendPreview()});
+
 $("previewFrame").addEventListener("load",()=>setTimeout(sendPreview,250));
 $("applyPreviewClock").onclick=()=>{
   if(!$("previewDate").value){const n=getNlNowParts();$("previewDate").value=n.date;$("previewTime").value=n.time}
