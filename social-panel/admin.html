@@ -72,6 +72,14 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
 .campaignFields{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:12px;border:1px solid #e1ddd7;border-radius:14px;background:#faf9f7}
 .campaignToggle{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:900}.campaignToggle input{width:auto}
 @media(max-width:800px){.categoryIconManager,.campaignFields{grid-template-columns:1fr}}
+
+.heroArtSettings{border:1px solid #e4e0da;border-radius:16px;padding:13px;background:#faf9f7;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.heroArtSettings .heroArtWide{grid-column:1/-1}
+.heroArtSettings .heroArtPreview{aspect-ratio:3/1;min-height:110px;border:1px dashed #c9c4bc;border-radius:13px;background:#eae8e5;display:grid;place-items:center;overflow:hidden;color:#777;font-size:11px}
+.heroArtPreview img{width:100%;height:100%;object-fit:cover}
+.heroArtSettings .heroArtToggle{display:flex;gap:8px;align-items:center;font-size:11px;font-weight:750}
+.heroArtToggle input{width:auto}
+@media(max-width:700px){.heroArtSettings{grid-template-columns:1fr}.heroArtSettings .heroArtWide{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -183,6 +191,27 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
   <div class="notice" style="margin-top:8px">Yüklemezsen mevcut emoji kullanılır.</div>
 </div>
 <div class="field widefield">
+  <label>ANA KART GÖRSELİ VE METNİ</label>
+  <div class="heroArtSettings">
+    <div class="heroArtWide">
+      <div id="heroImagePreview" class="heroArtPreview">Henüz özel görsel yok</div>
+      <input id="heroImageFile" type="file" accept="image/jpeg,image/png,image/webp" style="margin-top:8px">
+      <button id="removeHeroImage" class="btn" type="button" style="margin-top:7px">Görseli kaldır</button>
+      <div class="notice" style="margin-top:8px">Görsel ana kartı tamamen kaplar. Önerilen oran: 1920 × 640 px. Mobil önizlemede kenarlar kırpılabilir.</div>
+    </div>
+    <div class="field heroArtWide"><label>ÖZEL BAŞLIK (BOŞSA ÜRÜN ADI)</label><input id="heroHeading" maxlength="100" placeholder="Örneğin: Bu haftanın fırsatı"></div>
+    <div class="field heroArtWide"><label>EK METİN</label><textarea id="heroCopy" maxlength="300" placeholder="Kartta gösterilecek ek metin"></textarea></div>
+    <div class="field"><label>BAŞLIK BOYUTU (PX)</label><input id="heroHeadingSize" type="number" min="24" max="80" value="58"></div>
+    <div class="field"><label>BAŞLIK RENGİ</label><input id="heroHeadingColor" type="color" value="#ffffff"></div>
+    <div class="field"><label>METİN BOYUTU (PX)</label><input id="heroCopySize" type="number" min="12" max="32" value="18"></div>
+    <div class="field"><label>METİN RENGİ</label><input id="heroCopyColor" type="color" value="#ffffff"></div>
+    <div class="field"><label>GÖRSEL KONUMU</label><select id="heroImagePosition"><option value="0">Sol</option><option value="50">Orta</option><option value="100">Sağ</option></select></div>
+    <div class="field"><label>KOYU KATMAN (%)</label><input id="heroShade" type="number" min="0" max="80" value="30"></div>
+    <label class="heroArtToggle heroArtWide"><input id="heroHideProductPhoto" type="checkbox" checked> Özel görselde ürün fotoğrafını gizle</label>
+  </div>
+  <div class="notice" style="margin-top:8px">Ürün tarihi, stok durumu ve fiyatlar canlı ürün kaydından gelmeye devam eder. Boş bıraktığın alanlarda mevcut tasarım korunur.</div>
+</div>
+<div class="field widefield">
   <label>ZAMANLANMIŞ ÖZEL MENÜ / REKLAM</label>
   <div class="campaignFields">
     <label class="campaignToggle"><input id="campaignEnabled" type="checkbox"> Reklamı kullan</label>
@@ -222,7 +251,7 @@ const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const ANON="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-admin";
 const PUBLIC_API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-public";
-const DEFAULT_SETTINGS={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:"",logoWidthDesktop:320,logoWidthMobile:190,logoAlign:"left",logoOffsetX:0,logoOffsetY:0,whatsapp:"https://whatsapp.com/channel/0029Vb70VbT7DAX1LRsxpF2W",instagram:"https://www.instagram.com/emigrogroothandel/",facebook:"https://www.facebook.com/p/Emigro-international-BV-100067500402784/?locale=tr_TR",tiktok:"",googleReview:"https://search.google.com/local/writereview?placeid=ChIJUUAxdd62xUcRRu_Hneah3x4&source=g.page.m.nr._&laa=nmx-review-solicitation-recommendation-card",socialIconStyle:"circle",socialIconSize:34,socialChannels:[],categoryIcons:{},campaignEnabled:false,campaignTitle:"Week Actie",campaignLink:"",campaignStart:"",campaignEnd:"",campaignShowInactive:true};
+const DEFAULT_SETTINGS={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:"",logoWidthDesktop:320,logoWidthMobile:190,logoAlign:"left",logoOffsetX:0,logoOffsetY:0,whatsapp:"https://whatsapp.com/channel/0029Vb70VbT7DAX1LRsxpF2W",instagram:"https://www.instagram.com/emigrogroothandel/",facebook:"https://www.facebook.com/p/Emigro-international-BV-100067500402784/?locale=tr_TR",tiktok:"",googleReview:"https://search.google.com/local/writereview?placeid=ChIJUUAxdd62xUcRRu_Hneah3x4&source=g.page.m.nr._&laa=nmx-review-solicitation-recommendation-card",socialIconStyle:"circle",socialIconSize:34,socialChannels:[],categoryIcons:{},campaignEnabled:false,campaignTitle:"Week Actie",campaignLink:"",campaignStart:"",campaignEnd:"",campaignShowInactive:true,heroImage:"",heroHeading:"",heroCopy:"",heroHeadingSize:58,heroCopySize:18,heroHeadingColor:"#ffffff",heroCopyColor:"#ffffff",heroImagePosition:50,heroShade:30,heroHideProductPhoto:true};
 let token=sessionStorage.getItem("emigroAdminToken")||localStorage.getItem("emigroAdminToken")||"";
 let products=[];
 let settings=Object.assign({},DEFAULT_SETTINGS);
@@ -391,6 +420,18 @@ function fillSettings(){
   $("setSocialIconSize").value=Number(settings.socialIconSize||34);
   renderSocialChannels(settings.socialChannels);
   renderCategoryIcons();
+  $("heroImagePreview").dataset.value=settings.heroImage||"";
+  $("heroImagePreview").innerHTML=settings.heroImage?'<img src="'+esc(settings.heroImage)+'" alt="Ana kart görseli">':'Henüz özel görsel yok';
+  $("heroImageFile").value="";
+  $("heroHeading").value=settings.heroHeading||"";
+  $("heroCopy").value=settings.heroCopy||"";
+  $("heroHeadingSize").value=Number(settings.heroHeadingSize||58);
+  $("heroCopySize").value=Number(settings.heroCopySize||18);
+  $("heroHeadingColor").value=settings.heroHeadingColor||"#ffffff";
+  $("heroCopyColor").value=settings.heroCopyColor||"#ffffff";
+  $("heroImagePosition").value=String(settings.heroImagePosition??50);
+  $("heroShade").value=Number(settings.heroShade??30);
+  $("heroHideProductPhoto").checked=settings.heroHideProductPhoto!==false;
   $("campaignEnabled").checked=!!settings.campaignEnabled;
   $("campaignShowInactive").checked=settings.campaignShowInactive!==false;
   $("campaignTitle").value=settings.campaignTitle||"Week Actie";
@@ -405,7 +446,7 @@ function normalizeExternalUrl(v){
   return "https://"+v.replace(/^\/+/, "");
 }
 function collectSettings(){
-  settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0),whatsapp:settings.whatsapp||DEFAULT_SETTINGS.whatsapp,instagram:settings.instagram||DEFAULT_SETTINGS.instagram,facebook:settings.facebook||DEFAULT_SETTINGS.facebook,tiktok:settings.tiktok||"",googleReview:settings.googleReview||DEFAULT_SETTINGS.googleReview,socialIconStyle:$("setSocialIconStyle").value||"circle",socialIconSize:Number($("setSocialIconSize").value||34),socialChannels:currentSocialChannels(),categoryIcons:collectCategoryIcons(),campaignEnabled:$("campaignEnabled").checked,campaignTitle:$("campaignTitle").value.trim()||"Week Actie",campaignLink:normalizeExternalUrl($("campaignLink").value),campaignStart:$("campaignStart").value,campaignEnd:$("campaignEnd").value,campaignShowInactive:$("campaignShowInactive").checked};
+  settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0),whatsapp:settings.whatsapp||DEFAULT_SETTINGS.whatsapp,instagram:settings.instagram||DEFAULT_SETTINGS.instagram,facebook:settings.facebook||DEFAULT_SETTINGS.facebook,tiktok:settings.tiktok||"",googleReview:settings.googleReview||DEFAULT_SETTINGS.googleReview,socialIconStyle:$("setSocialIconStyle").value||"circle",socialIconSize:Number($("setSocialIconSize").value||34),socialChannels:currentSocialChannels(),categoryIcons:collectCategoryIcons(),campaignEnabled:$("campaignEnabled").checked,campaignTitle:$("campaignTitle").value.trim()||"Week Actie",campaignLink:normalizeExternalUrl($("campaignLink").value),campaignStart:$("campaignStart").value,campaignEnd:$("campaignEnd").value,campaignShowInactive:$("campaignShowInactive").checked,heroImage:$("heroImagePreview").dataset.value||"",heroHeading:$("heroHeading").value.trim(),heroCopy:$("heroCopy").value.trim(),heroHeadingSize:Math.max(24,Math.min(80,Number($("heroHeadingSize").value)||58)),heroCopySize:Math.max(12,Math.min(32,Number($("heroCopySize").value)||18)),heroHeadingColor:$("heroHeadingColor").value,heroCopyColor:$("heroCopyColor").value,heroImagePosition:Number($("heroImagePosition").value||0),heroShade:Math.max(0,Math.min(80,Number($("heroShade").value)||0)),heroHideProductPhoto:$("heroHideProductPhoto").checked};
   return settings;
 }
 $("settingsBtn").onclick=()=>{fillSettings();openModal("settingsModal");setTimeout(sendPreview,300)};
@@ -428,6 +469,28 @@ $("resetPreviewClock").onclick=()=>{$("previewDate").value="";$("previewTime").v
 $("setLogoFile").onchange=e=>{const file=e.target.files&&e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(img.width,img.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(img.width*scale));cv.height=Math.max(1,Math.round(img.height*scale));cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);const data=cv.toDataURL("image/png");$("logoPreview").dataset.value=data;$("logoPreview").innerHTML='<img src="'+data+'">';collectSettings();sendPreview()};img.src=r.result};r.readAsDataURL(file)};
 $("removeLogo").onclick=()=>{$("logoPreview").dataset.value="";$("logoPreview").innerHTML='<span class="muted">Logo yok</span>';collectSettings();sendPreview()};
 
+
+$("heroImageFile").onchange=e=>{
+  const file=e.target.files?.[0];if(!file)return;
+  if(!/^image\/(jpeg|png|webp)$/.test(file.type)||file.size>10000000){alert("JPG, PNG veya WebP görsel seç (en fazla 10 MB).");e.target.value="";return}
+  const reader=new FileReader();
+  reader.onerror=()=>alert("Görsel okunamadı.");
+  reader.onload=()=>{const img=new Image();
+    img.onerror=()=>alert("Görsel açılamadı.");
+    img.onload=()=>{
+      const scale=Math.min(1,1920/img.width,1200/img.height),cv=document.createElement("canvas");
+      cv.width=Math.max(1,Math.round(img.width*scale));cv.height=Math.max(1,Math.round(img.height*scale));
+      const ctx=cv.getContext("2d");ctx.fillStyle="#ffffff";ctx.fillRect(0,0,cv.width,cv.height);ctx.drawImage(img,0,0,cv.width,cv.height);
+      let data=cv.toDataURL("image/jpeg",.82);
+      if(data.length>1000000)data=cv.toDataURL("image/jpeg",.65);
+      if(data.length>1000000){alert("Bu görsel çok büyük. Daha küçük bir görsel seç.");return}
+      $("heroImagePreview").dataset.value=data;
+      $("heroImagePreview").innerHTML='<img src="'+data+'" alt="Ana kart görseli">';
+      collectSettings();sendPreview();
+    };img.src=reader.result;
+  };reader.readAsDataURL(file);
+};
+$("removeHeroImage").onclick=()=>{$("heroImagePreview").dataset.value="";$("heroImagePreview").textContent="Henüz özel görsel yok";$("heroImageFile").value="";collectSettings();sendPreview()};
 
 function getNlNowParts(){
   const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).formatToParts(new Date()),o={};parts.forEach(x=>o[x.type]=x.value);
@@ -477,7 +540,17 @@ async function publishAll(){
         && String(liveSettings.campaignTitle||"")===String(s.campaignTitle||"")
         && String(liveSettings.campaignLink||"")===String(s.campaignLink||"")
         && String(liveSettings.campaignStart||"")===String(s.campaignStart||"")
-        && String(liveSettings.campaignEnd||"")===String(s.campaignEnd||"");
+        && String(liveSettings.campaignEnd||"")===String(s.campaignEnd||"")
+        && String(liveSettings.heroImage||"")===String(s.heroImage||"")
+        && String(liveSettings.heroHeading||"")===String(s.heroHeading||"")
+        && String(liveSettings.heroCopy||"")===String(s.heroCopy||"")
+        && Number(liveSettings.heroHeadingSize||58)===Number(s.heroHeadingSize||58)
+        && Number(liveSettings.heroCopySize||18)===Number(s.heroCopySize||18)
+        && String(liveSettings.heroHeadingColor||"#ffffff")===String(s.heroHeadingColor||"#ffffff")
+        && String(liveSettings.heroCopyColor||"#ffffff")===String(s.heroCopyColor||"#ffffff")
+        && Number(liveSettings.heroImagePosition??50)===Number(s.heroImagePosition??50)
+        && Number(liveSettings.heroShade??30)===Number(s.heroShade??30)
+        && Boolean(liveSettings.heroHideProductPhoto!==false)===Boolean(s.heroHideProductPhoto!==false);
       const normChannels=arr=>(Array.isArray(arr)?arr:[]).map(x=>({
         id:String(x?.id||""),name:String(x?.name||""),url:String(x?.url||""),icon:String(x?.icon||""),
         enabled:x?.enabled!==false,order:Number(x?.order||0)
