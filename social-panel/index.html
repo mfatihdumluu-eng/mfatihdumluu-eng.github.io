@@ -177,23 +177,76 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 @media(max-width:1099px){.desktop-header{height:72px!important;padding:0 14px!important;display:flex;align-items:center;justify-content:space-between}.desktop-header .brand{flex:1}.desktop-header .brand.has-logo img{max-height:58px!important}.headerActions{margin-left:auto}.headerSearchBtn{width:42px;padding:0;justify-content:center;font-size:0}.headerSearchBtn::before{content:"⌕";font-size:19px}.socialStrip{display:none!important}.allDealsSection{padding:8px 12px 110px}.allDealsGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.allDealCard{min-height:215px;padding:11px}.allDealVisual{height:100px}.socialHub{margin:0 12px 110px;padding:22px;grid-template-columns:1fr}.socialHubLinks{justify-content:flex-start}.headerSearchBtn{width:40px;height:40px}.desktopnav{display:none!important}}
 @media(max-width:520px){.allDealsGrid{grid-template-columns:1fr 1fr}.allDealCard h3{font-size:14px}.allDealPrice strong{font-size:18px}.searchOverlay{padding:10px}.searchPanel{margin-top:4vh}}
 
-</style></head><body><div class="app" id="calendar"><header class="desktop-header">
-<div class="brand">EMIGRO<small>SUPERMARKT</small></div>
-<nav class="desktopnav" aria-label="Hoofdmenu">
-<a class="active" href="#calendar">Deals</a>
-<a href="#allDeals">Alle Dagdeals</a>
-<a href="#favorites">Favorieten</a>
-<a href="#catdrawer">Categorieën</a>
-</nav>
-<div class="headerActions"><button id="openSearch" class="headerSearchBtn" type="button" aria-label="Zoeken">⌕ <span>Zoeken</span></button></div>
-</header>
-<div id="socialStrip" class="socialStrip">
-<a id="socialWaTop" href="#" target="_blank" rel="noopener">💬 WhatsApp</a>
-<a id="socialIgTop" href="#" target="_blank" rel="noopener">◎ Instagram</a>
-<a id="socialFbTop" href="#" target="_blank" rel="noopener">f Facebook</a>
-<a id="socialTtTop" href="#" target="_blank" rel="noopener">♪ TikTok</a>
-<a id="socialGrTop" href="#" target="_blank" rel="noopener">★ Google Review</a>
+
+/* ===== V17 reference-style header ===== */
+.siteTopbar{height:34px;background:#f3f3f3;border-bottom:1px solid #ececec;display:flex;align-items:center;justify-content:space-between;padding:0 86px;font-size:10px;font-weight:750;color:#8b8b8b;letter-spacing:.25px}
+.siteTopbar .topLeft,.siteTopbar .topRight{display:flex;align-items:center;gap:18px}
+.siteTopbar a{color:inherit;text-decoration:none}
+.desktop-header{position:relative!important;top:auto!important;height:132px!important;padding:0 86px!important;display:grid!important;grid-template-columns:1fr auto 1fr!important;align-items:center!important;background:#fff!important;border-bottom:1px solid #e8e8e8!important;box-shadow:none!important}
+.headerSocials{display:flex;align-items:center;gap:15px;justify-self:start}
+.headerSocials a,.headerTools a{color:#858585;text-decoration:none;font-size:13px;font-weight:900;display:grid;place-items:center;min-width:28px;height:34px}
+.headerSocials a:hover,.headerTools a:hover{color:var(--red)}
+.desktop-header .brand{grid-column:2!important;justify-self:center!important;min-width:0!important;margin:0!important;transform:none!important}
+.desktop-header .brand.has-logo img{width:var(--logo-desktop)!important;max-width:360px!important;max-height:90px!important;object-fit:contain!important}
+.headerTools{grid-column:3;display:flex;align-items:center;gap:10px;justify-self:end}
+.headerToolPill{border:1px solid #e3e3e3!important;border-radius:999px!important;padding:0 12px!important;height:36px!important;font-size:10px!important;white-space:nowrap}
+.mainMenuBar{height:62px;background:#fff;border-bottom:1px solid #ececec;display:flex;align-items:center;justify-content:center;gap:48px;padding:0 20px}
+.mainMenuBar a{text-decoration:none;color:#555;font-size:13px;font-weight:700;letter-spacing:1.25px;text-transform:uppercase}
+.mainMenuBar a:hover,.mainMenuBar a.active{color:var(--red)}
+.desktopnav,.headerActions{display:none!important}
+
+/* Real product search/filter */
+.allDealsTools{display:grid;grid-template-columns:minmax(220px,1fr) 220px;gap:10px;margin:14px 0 18px}
+.allDealsSearch{display:flex;align-items:center;gap:10px;border:1px solid #dedad4;background:#fff;border-radius:14px;padding:0 14px;height:48px}
+.allDealsSearch span{font-size:18px;color:#999}.allDealsSearch input{width:100%;border:0;outline:0;font:inherit;background:transparent}
+.allDealsTools select{height:48px;border:1px solid #dedad4;background:#fff;border-radius:14px;padding:0 12px;font-weight:750}
+.allDealCard{cursor:pointer;transition:transform .16s ease,box-shadow .16s ease}.allDealCard:hover{transform:translateY(-2px);box-shadow:0 14px 34px #0000000d}
+.futureHidden{margin-top:auto;padding-top:13px;font-size:11px;font-weight:900;color:#8a6500}.futureHidden span{display:inline-flex;align-items:center;gap:6px;background:#fff6dd;border-radius:999px;padding:7px 9px}
+.dealStateBadge{position:absolute;right:11px;top:11px;font-size:8px;font-weight:1000;border-radius:999px;padding:5px 7px;background:#f1f1f1;color:#777}.dealStateBadge.live{background:#e7f7ed;color:#137d43}.dealStateBadge.upcoming{background:#fff4d7;color:#8b6500}.dealStateBadge.expired{background:#efefef;color:#777}
+
+/* Generic detail modal for every uploaded item */
+.dynamicDealModal{display:none;position:fixed;inset:0;z-index:180;background:#0009;padding:18px;align-items:center;justify-content:center}.dynamicDealModal.on{display:flex}
+.dynamicDealBox{width:min(520px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:26px;padding:20px;position:relative;box-shadow:0 30px 90px #0005}
+.dynamicDealClose{position:absolute;right:15px;top:15px;width:38px;height:38px;border:0;border-radius:50%;background:#f2f0ed;font-size:22px}
+.dynamicDealVisual{height:220px;background:#f7f5f2;border-radius:20px;display:grid;place-items:center;font-size:100px;overflow:hidden}.dynamicDealVisual img{width:100%;height:100%;object-fit:contain}
+.dynamicDealMeta{margin-top:14px;font-size:9px;font-weight:1000;color:var(--red);letter-spacing:.7px}.dynamicDealBox h2{margin:5px 0 2px;font-size:28px}.dynamicDealUnit{color:#777;font-size:12px}
+.dynamicLocked{margin:16px 0;background:#fff5db;border-radius:16px;padding:15px;display:flex;gap:11px;align-items:center}.dynamicLocked b{display:block;font-size:13px}.dynamicLocked span{font-size:11px;color:#745d20}
+.dynamicPrice{margin:16px 0}.dynamicPrice del{display:block;color:#999;font-size:12px}.dynamicPrice strong{font-size:34px}
+.dynamicActions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}.dynamicActions button,.dynamicActions a{border:1px solid #dfdbd5;background:#fff;border-radius:12px;padding:12px;text-align:center;text-decoration:none;color:#222;font-weight:900;font-size:11px}.dynamicActions .primary{grid-column:1/-1;background:var(--red);border-color:var(--red);color:#fff}
+.dynamicActions button.saved{background:#fff0f1;color:var(--red);border-color:#ffc9cd}
+
+@media(max-width:1099px){
+ .siteTopbar{display:none}.desktop-header{height:80px!important;padding:0 14px!important;display:grid!important;grid-template-columns:1fr auto 1fr!important;position:sticky!important;top:0!important;z-index:40!important}
+ .headerSocials{display:none}.desktop-header .brand{grid-column:2!important}.desktop-header .brand.has-logo img{width:var(--logo-mobile)!important;max-width:190px!important;max-height:62px!important}
+ .headerTools{grid-column:3}.headerToolPill{display:none!important}.mainMenuBar{height:48px;justify-content:flex-start;overflow:auto;gap:25px;padding:0 14px;scrollbar-width:none}.mainMenuBar::-webkit-scrollbar{display:none}.mainMenuBar a{font-size:10px;white-space:nowrap}
+ .allDealsTools{grid-template-columns:1fr}.allDealsHead{align-items:start}.dynamicActions{grid-template-columns:1fr}.dynamicActions .primary{grid-column:auto}
+}
+
+</style></head><body><div class="app" id="calendar">
+<div class="siteTopbar">
+  <div class="topLeft"><a href="tel:0703888813">☎ 070 388 8813</a><span>✉ info@emigro.nl</span></div>
+  <div class="topRight"><span>Emigro Dagdeals</span><span>NL</span></div>
 </div>
+<header class="desktop-header">
+  <div class="headerSocials">
+    <a id="socialFbTop" href="#" target="_blank" rel="noopener" aria-label="Facebook">f</a>
+    <a id="socialIgTop" href="#" target="_blank" rel="noopener" aria-label="Instagram">◎</a>
+    <a id="socialTtTop" href="#" target="_blank" rel="noopener" aria-label="TikTok">♪</a>
+    <a id="socialWaTop" href="#" target="_blank" rel="noopener" aria-label="WhatsApp">◉</a>
+  </div>
+  <div class="brand">EMIGRO<small>SUPERMARKT</small></div>
+  <div class="headerTools">
+    <a href="#favorites" aria-label="Favorieten">♡</a>
+    <a id="socialGrTop" class="headerToolPill" href="#" target="_blank" rel="noopener">★ Review</a>
+  </div>
+</header>
+<nav class="mainMenuBar" aria-label="Hoofdmenu">
+  <a class="active" href="#calendar">Dagdeals</a>
+  <a href="#allDeals">Alle deals</a>
+  <a href="#favorites">Favorieten</a>
+  <a href="#catdrawer">Categorieën</a>
+  <a href="#socialHub">Volgen</a>
+</nav>
 <section class="welcome"><div class="kicker">ELKE DAG IETS NIEUWS</div><h1>Jouw dagelijkse<br>voordeel.</h1><p>30 dagen. Elke dag één verrassend scherpe deal.</p></section><a class="hero" href="#deal22"><div class="herohead"><span class="livepill">● LIVE VANDAAG</span><span class="opop">OP = OP</span><time>22 SEPTEMBER</time></div><div class="herobody"><div class="heroimg">🧃</div><div class="herotxt"><h2>Mogu Mogu</h2><small>320 ml</small><del>€1,69</del><div class="heroprice">€0,99</div><div class="herocta">Bekijk Dagdeal →</div></div></div></a><div class="monthhead"><span>‹</span><b>September 2026</b><span>›</span></div><div class="tip">🔒 <span>De prijs van een toekomstige Dagdeal blijft geheim tot die dag.</span></div><main class="grid"><article class="dealcard expired" data-cat="pantry"><div class="ctop"><b>01</b><span>AFGELOPEN</span></div><button class="favbtn" type="button" data-fav="1" aria-label="Favoriet toevoegen">
 <svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">🫗</div><h4>Zonnebloemolie</h4><small>5 L</small><div class="expiredtxt">Deal afgelopen</div></article><article class="dealcard expired" data-cat="dairy"><div class="ctop"><b>02</b><span>AFGELOPEN</span></div><button class="favbtn" type="button" data-fav="2" aria-label="Favoriet toevoegen">
 <svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">🥚</div><h4>Eieren</h4><small>30 stuks</small><div class="expiredtxt">Deal afgelopen</div></article><article class="dealcard expired" data-cat="butcher"><div class="ctop"><b>03</b><span>AFGELOPEN</span></div><button class="favbtn" type="button" data-fav="3" aria-label="Favoriet toevoegen">
@@ -227,9 +280,13 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 <svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">☕</div><h4>Turkse koffie</h4><small>250 g</small><div class="regular">Normaal €4,99</div><div class="mystery">Prijs op 30 sep.</div><div class="chev">›</div></a></main><div id="emptyFilter" class="emptyfilter"><b>Geen deals gevonden</b><span>Probeer een andere categorie.</span></div><section class="community"><label>BLIJF OP DE HOOGTE</label><h3>Mis morgen niet.</h3><p>Volg Emigro en zie als eerste welke Dagdeal live gaat.</p><div class="socialrow"><a href="#wa">💬 WhatsApp</a><a href="#ig">◎ Instagram</a></div></section>
 <section id="allDeals" class="allDealsSection">
   <div class="allDealsHead"><div><h2>Alle Dagdeals</h2><p>Alle producten die via Excel of handmatig zijn toegevoegd.</p></div><span id="allDealsCount" class="muted"></span></div>
+  <div class="allDealsTools">
+    <label class="allDealsSearch"><span>⌕</span><input id="allDealsSearchInput" placeholder="Zoek op productnaam..."></label>
+    <select id="allDealsStateFilter"><option value="all">Alle statussen</option><option value="live">Vandaag actief</option><option value="upcoming">Binnenkort</option><option value="expired">Afgelopen</option></select>
+  </div>
   <div id="allDealsGrid" class="allDealsGrid"></div>
 </section>
-<section class="socialHub">
+<section id="socialHub" class="socialHub">
   <div><small>VOLG EMIGRO</small><h2>Mis geen enkele deal.</h2><p>Nieuwe Dagdeals, acties en updates direct via je favoriete kanaal.</p></div>
   <div class="socialHubLinks">
     <a id="socialWaHub" class="primarySocial" href="#" target="_blank" rel="noopener">💬 WhatsApp Channel</a>
@@ -403,9 +460,10 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
    const op=p.op_op?'<div class="stockalert"><span>🔥</span><div><b>OP = OP</b><small>Beperkte voorraad · zolang de voorraad strekt</small></div></div>':'';
    const price=st==="live"?'<div class="detail-price"><del>'+money(p.regular_price)+'</del><strong>'+money(p.deal_price)+'</strong><em>/ '+esc(p.unit||"")+'</em></div>':
     st==="expired"?'<div class="locked"><div class="lockicon">✓</div><div><small>DEAL AFGELOPEN</small><b>'+money(p.deal_price)+'</b><p>Deze Dagdeal is afgelopen.</p></div></div>':
-    '<div class="locked"><div class="lockicon">🔒</div><div><small>NORMALE PRIJS</small><b>'+money(p.regular_price)+'</b><p>De Dagdealprijs onthullen we op '+day+' september.</p></div></div>';
+    '<div class="locked"><div class="lockicon">🔒</div><div><small>DAGDEALPRIJS VERBORGEN</small><b>Prijs blijft geheim</b><p>De Dagdealprijs onthullen we pas op '+day+' september.</p></div></div>';
    const action=st==="upcoming"?'<a class="primary action" href="#rem'+day+'">🔔 Herinner mij</a>':'<a class="primary action" href="#share">Deel deze deal <span>↗</span></a>';
-   return '<div class="grab"></div><a class="close" href="#calendar">×</a><div class="detailvisual"><div class="glow"></div>'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="position:relative;z-index:2;max-width:75%;max-height:190px;object-fit:contain">':'<span>'+catEmoji(p.category)+'</span>')+'</div><div class="status '+(st==="live"?"live-status":"")+'">'+label+' · '+String(day).padStart(2,"0")+' SEPTEMBER</div><h2>'+esc(p.name)+'</h2><p class="sub">'+esc(p.unit||"")+'</p>'+price+op+'<div class="info"><b>'+esc(p.description||"Dagdeal bij Emigro")+'</b><span>Geldig zolang de voorraad strekt.</span></div>'+action+'<a class="secondary action" href="#share">Stuur door</a>';
+   const favAction='<button class="secondary action futureFavAction" type="button" data-dyn-fav="'+day+'">♡ Favorieten</button>';
+   return '<div class="grab"></div><a class="close" href="#calendar">×</a><div class="detailvisual"><div class="glow"></div>'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="position:relative;z-index:2;max-width:75%;max-height:190px;object-fit:contain">':'<span>'+catEmoji(p.category)+'</span>')+'</div><div class="status '+(st==="live"?"live-status":"")+'">'+label+' · '+String(day).padStart(2,"0")+' SEPTEMBER</div><h2>'+esc(p.name)+'</h2><p class="sub">'+esc(p.unit||"")+'</p>'+price+op+'<div class="info"><b>'+esc(p.description||"Dagdeal bij Emigro")+'</b><span>'+(st==="upcoming"?"De prijs wordt pas op de Dagdeal-dag zichtbaar.":"Geldig zolang de voorraad strekt.")+'</span></div>'+action+'<a class="secondary action" href="#share">Stuur door</a>'+favAction;
  }
  function applyCentralDeals(items){
    if(!Array.isArray(items)||!items.length)return;
@@ -421,7 +479,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
      const sm=card.querySelector("small");if(sm)sm.textContent=p.unit||"";
      card.querySelectorAll(".old,.dealprice,.regular,.mystery,.expiredtxt,.chev").forEach(x=>x.remove());
      if(st==="live")card.insertAdjacentHTML("beforeend",'<div class="old">'+money(p.regular_price)+'</div><div class="dealprice">'+money(p.deal_price)+'</div><div class="chev">›</div>');
-     else if(st==="upcoming")card.insertAdjacentHTML("beforeend",'<div class="regular">Normaal '+money(p.regular_price)+'</div><div class="mystery">Prijs op '+day+' sep.</div><div class="chev">›</div>');
+     else if(st==="upcoming")card.insertAdjacentHTML("beforeend",'<div class="mystery">🔒 Dagdealprijs verborgen</div><div class="chev">›</div>');
      else card.insertAdjacentHTML("beforeend",'<div class="expiredtxt">Deal afgelopen</div>');
      const modal=document.getElementById("deal"+day);if(modal){const sh=modal.querySelector(".sheet");if(sh)sh.innerHTML=detailHtml(p,day,st)}
    });
@@ -507,4 +565,5 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 })();
 </script>
 <div id="searchOverlay" class="searchOverlay"><div class="searchPanel"><div class="searchTop"><input id="searchInput" placeholder="Zoek op productnaam..."><button id="closeSearch" type="button">×</button></div><div id="searchResults" class="searchResults"></div></div></div>
+<div id="dynamicDealModal" class="dynamicDealModal"><div id="dynamicDealBox" class="dynamicDealBox"></div></div>
 </body></html>
