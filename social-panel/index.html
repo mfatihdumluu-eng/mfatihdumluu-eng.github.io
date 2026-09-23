@@ -289,6 +289,13 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 .hero.noActiveDeal .heroimg{font-size:70px}
 @media(max-width:1099px){.scheduledCampaignWrap{padding:0 12px}.headerStatusFilter{height:34px!important;font-size:10px!important;max-width:150px!important}.headerFavorite{font-size:25px!important}}
 .categoryFilteredOut{display:none!important}
+
+/* V24 share channel panel */
+.shareChannels{display:none;grid-column:1/-1;background:#f7f5f2;border:1px solid #e3ded7;border-radius:14px;padding:10px;grid-template-columns:repeat(4,1fr);gap:8px}
+.shareChannels.on{display:grid}
+.shareChannel{border:1px solid #ddd;background:#fff;border-radius:12px;padding:10px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:#222;font-size:9px;font-weight:900;min-height:74px}
+.shareChannel img{width:28px;height:28px;object-fit:contain}.shareChannel .fallback{font-size:22px}
+@media(max-width:600px){.shareChannels{grid-template-columns:repeat(2,1fr)}}
 </style></head><body><div class="app" id="calendar">
 <div class="siteTopbar">
   <div class="topLeft"><a href="tel:0703888813">☎ 070 388 8813</a><span>✉ info@emigro.nl</span></div>
@@ -784,6 +791,18 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Emigro//Dagdeals//NL","BEGIN:VEVENT","UID:emigro-"+p.id+"@emigro.nl","DTSTART:"+start,"DTEND:"+end,"SUMMARY:"+title.replace(/[,;]/g," "), "DESCRIPTION:Emigro Dagdeal - "+String(p.name||"").replace(/[,;]/g," "), "END:VEVENT","END:VCALENDAR"].join("\r\n");
     const blob=new Blob([ics],{type:"text/calendar;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="emigro-"+String(p.deal_date||"dagdeal")+".ics";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
   }
+  function buildShareChannels(p){
+    const settings=window.__emigroSettings||{},channels=(Array.isArray(settings.socialChannels)?settings.socialChannels:[]).filter(x=>x&&x.enabled!==false&&x.url&&!(String(x.name||"").toLowerCase().includes("google")));
+    const page=encodeURIComponent(location.href),txt=encodeURIComponent((p.name||"Emigro Dagdeal")+" — "+(p.deal_date||""));
+    return channels.map(ch=>{
+      const n=String(ch.name||"").toLowerCase();
+      let href=ch.url;
+      if(n.includes("whatsapp"))href="https://wa.me/?text="+txt+"%20"+page;
+      else if(n.includes("facebook"))href="https://www.facebook.com/sharer/sharer.php?u="+page;
+      const icon=ch.icon?'<img src="'+esc(ch.icon)+'" alt="">':'<span class="fallback">'+channelFallback(ch.name)+'</span>';
+      return '<a class="shareChannel" href="'+esc(href)+'" target="_blank" rel="noopener">'+icon+'<span>'+esc(ch.name)+'</span></a>';
+    }).join("");
+  }
   function openDynamicDeal(p){
     const modal=document.getElementById("dynamicDealModal"),box=document.getElementById("dynamicDealBox");if(!modal||!box)return;
     const st=dealState(p),lang=currentLang||"nl";
@@ -803,14 +822,15 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
       '<button id="dynCalendar" type="button"><span class="actionIcon">📅</span>'+labels.cal+'</button>'+
       '<button id="dynFriend" type="button"><span class="actionIcon">💬</span>'+labels.friend+'</button>'+
       '<button id="dynShare" type="button"><span class="actionIcon">↗</span>'+labels.share+'</button>'+
-      '<button id="dynFavorite" class="'+(fav?"saved":"")+'" type="button"><span class="actionIcon">'+(fav?"♥":"♡")+'</span>'+(fav?labels.favOn:labels.fav)+'</button></div>';
+      '<button id="dynFavorite" class="'+(fav?"saved":"")+'" type="button"><span class="actionIcon">'+(fav?"♥":"♡")+'</span>'+(fav?labels.favOn:labels.fav)+'</button>'+
+      '<div id="dynShareChannels" class="shareChannels">'+buildShareChannels(p)+'</div></div>';
     modal.dataset.productId=String(p.id);modal.classList.add("on");
     box.querySelector(".dynamicDealClose").onclick=()=>modal.classList.remove("on");
     const rb=box.querySelector("#dynReminder");if(rb)rb.onclick=()=>{const on=toggleReminder(p.id);rb.innerHTML='<span class="actionIcon">🔔</span>'+(on?"✓ "+labels.remOn:labels.rem)};
     const fb=box.querySelector("#dynFavorite");if(fb)fb.onclick=()=>{const on=toggleDynFav(p.id);fb.classList.toggle("saved",on);fb.innerHTML='<span class="actionIcon">'+(on?"♥":"♡")+'</span>'+(on?labels.favOn:labels.fav)};
     const cb=box.querySelector("#dynCalendar");if(cb)cb.onclick=()=>createCalendarFile(p);
     const friend=box.querySelector("#dynFriend");if(friend)friend.onclick=()=>{const text=encodeURIComponent(p.name+" — Emigro Dagdeal "+p.deal_date+" "+location.href);window.open("https://wa.me/?text="+text,"_blank","noopener")};
-    const sb=box.querySelector("#dynShare");if(sb)sb.onclick=async()=>{const text=p.name+" — Emigro Dagdeal "+p.deal_date;try{if(navigator.share)await navigator.share({title:p.name,text,url:location.href});else{await navigator.clipboard.writeText(text+" "+location.href);sb.innerHTML='<span class="actionIcon">✓</span>Link gekopieerd'}}catch{}};
+    const sb=box.querySelector("#dynShare");if(sb)sb.onclick=()=>{const tray=box.querySelector("#dynShareChannels");if(tray)tray.classList.toggle("on")};
   }
   function renderSearch(q){
     const box=document.getElementById("searchResults");if(!box)return;
@@ -858,10 +878,11 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     Object.entries(CATEGORY_META).forEach(([name,m])=>{const icon=icons[name]?'<img src="'+esc(icons[name])+'" alt="">':m.emoji;html+='<button data-filter="'+m.id+'"><span>'+icon+'</span><b>'+esc(m.label?.[lang]||m.label?.nl||name)+'</b><small>'+countFor(name)+' · '+esc(m.desc[lang]||m.desc.nl)+'</small></button>'});
     box.innerHTML=html;
   }
+  function safeCampaignUrl(v){v=String(v||"").trim();if(!v)return "";return /^https?:\/\//i.test(v)?v:"https://"+v.replace(/^\/+/, "")}
   function campaignNowKey(){const n=frontNow();return n.date+"T"+n.time}
   function applyCampaign(s){
     const el=document.getElementById("scheduledCampaign");if(!el)return;
-    const enabled=!!s?.campaignEnabled,title=s?.campaignTitle||"Week Actie",url=s?.campaignLink||"",start=s?.campaignStart||"",end=s?.campaignEnd||"",showInactive=s?.campaignShowInactive!==false,now=campaignNowKey();
+    const enabled=!!s?.campaignEnabled,title=s?.campaignTitle||"Week Actie",url=safeCampaignUrl(s?.campaignLink||""),start=s?.campaignStart||"",end=s?.campaignEnd||"",showInactive=s?.campaignShowInactive!==false,now=campaignNowKey();
     const inWindow=enabled&&url&&(!start||now>=start)&&(!end||now<=end);
     el.classList.toggle("active",!!inWindow);el.classList.toggle("hidden",!inWindow&&!showInactive);
     el.href=inWindow?url:"#";el.target=inWindow?"_blank":"_self";el.onclick=inWindow?null:(e=>e.preventDefault());
@@ -907,7 +928,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 document.addEventListener("click",e=>{const b=e.target.closest(".futureFavAction");if(!b)return;e.preventDefault();const day=Number(b.dataset.dynFav);if(!day)return;let f=[];try{f=JSON.parse(localStorage.getItem("emigro_dagdeals_favorites_v1")||"[]")}catch{}const i=f.indexOf(day);if(i>=0)f.splice(i,1);else f.push(day);localStorage.setItem("emigro_dagdeals_favorites_v1",JSON.stringify(f));b.textContent=f.includes(day)?"♥ In favorieten":"♡ Favorieten";});
   if(window.__emigroLiveSync){window.__emigroSettings=window.__emigroLiveSync.settings||{};renderAll(window.__emigroLiveSync.items||[]);applySocial(window.__emigroSettings);applyIconSettings(window.__emigroSettings);applyFavoriteLogo(window.__emigroSettings);applyCategorySettings(window.__emigroSettings);applyCampaign(window.__emigroSettings)}
   else applySocial(defaultLinks);
-  setTimeout(()=>applyLanguage(currentLang),0);
+  setTimeout(()=>applyLanguage(currentLang),0);setInterval(()=>applyCampaign(window.__emigroSettings||{}),60000);
 })();
 </script>
 <script>
