@@ -238,6 +238,12 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 
 .headerSocials .socialIconImg{width:68%;height:68%;object-fit:contain;display:block}
 .socialHubLinks .socialIconImg{width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:7px}
+
+/* V20 month calendar */
+.monthEmpty{background:#faf9f7!important;border:1px dashed #ddd8d1!important;box-shadow:none!important;color:#999!important}
+.monthEmpty .emptyDayIcon{font-size:30px;margin:auto 0 8px;opacity:.45}
+.monthEmpty h4{color:#999!important}.monthEmpty small{color:#aaa!important}
+.monthSlotState{font-size:7.5px;font-weight:1000;margin-top:6px;color:#999}
 </style></head><body><div class="app" id="calendar">
 <div class="siteTopbar">
   <div class="topLeft"><a href="tel:0703888813">☎ 070 388 8813</a><span>✉ info@emigro.nl</span></div>
@@ -263,7 +269,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   <a href="#catdrawer" data-i18n="menu_categories">Categorieën</a>
   <a href="#socialHub" data-i18n="menu_follow">Volgen</a>
 </nav>
-<section class="welcome"><div class="kicker" data-i18n="welcome_kicker">ELKE DAG IETS NIEUWS</div><h1 data-i18n-html="welcome_title">Jouw dagelijkse<br>voordeel.</h1><p data-i18n="welcome_text">30 dagen. Elke dag één verrassend scherpe deal.</p></section><a class="hero" href="#deal22"><div class="herohead"><span class="livepill">● LIVE VANDAAG</span><span class="opop">OP = OP</span><time>22 SEPTEMBER</time></div><div class="herobody"><div class="heroimg">🧃</div><div class="herotxt"><h2>Mogu Mogu</h2><small>320 ml</small><del>€1,69</del><div class="heroprice">€0,99</div><div class="herocta">Bekijk Dagdeal →</div></div></div></a><div class="monthhead"><span>‹</span><b>September 2026</b><span>›</span></div><div class="tip">🔒 <span>De prijs van een toekomstige Dagdeal blijft geheim tot die dag.</span></div><main class="grid"><article class="dealcard expired" data-cat="pantry"><div class="ctop"><b>01</b><span>AFGELOPEN</span></div><button class="favbtn" type="button" data-fav="1" aria-label="Favoriet toevoegen">
+<section class="welcome"><div class="kicker" data-i18n="welcome_kicker">ELKE DAG IETS NIEUWS</div><h1 data-i18n-html="welcome_title">Jouw dagelijkse<br>voordeel.</h1><p data-i18n="welcome_text">30 dagen. Elke dag één verrassend scherpe deal.</p></section><a class="hero" href="#deal22"><div class="herohead"><span class="livepill">● LIVE VANDAAG</span><span class="opop">OP = OP</span><time>22 SEPTEMBER</time></div><div class="herobody"><div class="heroimg">🧃</div><div class="herotxt"><h2>Mogu Mogu</h2><small>320 ml</small><del>€1,69</del><div class="heroprice">€0,99</div><div class="herocta">Bekijk Dagdeal →</div></div></div></a><div class="monthhead"><span>‹</span><b>September 2026</b><span>›</span></div><div class="tip">🔒 <span>De prijs van een toekomstige Dagdeal blijft geheim tot die dag.</span></div><main class="grid" id="calendarGrid"><article class="dealcard expired" data-cat="pantry"><div class="ctop"><b>01</b><span>AFGELOPEN</span></div><button class="favbtn" type="button" data-fav="1" aria-label="Favoriet toevoegen">
 <svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">🫗</div><h4>Zonnebloemolie</h4><small>5 L</small><div class="expiredtxt">Deal afgelopen</div></article><article class="dealcard expired" data-cat="dairy"><div class="ctop"><b>02</b><span>AFGELOPEN</span></div><button class="favbtn" type="button" data-fav="2" aria-label="Favoriet toevoegen">
 <svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">🥚</div><h4>Eieren</h4><small>30 stuks</small><div class="expiredtxt">Deal afgelopen</div></article><article class="dealcard expired" data-cat="butcher"><div class="ctop"><b>03</b><span>AFGELOPEN</span></div><button class="favbtn" type="button" data-fav="3" aria-label="Favoriet toevoegen">
 <svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">🥩</div><h4>Rundergehakt</h4><small>1 kg</small><div class="expiredtxt">Deal afgelopen</div></article><article class="dealcard expired" data-cat="pantry"><div class="ctop"><b>04</b><span>AFGELOPEN</span></div><button class="favbtn" type="button" data-fav="4" aria-label="Favoriet toevoegen">
@@ -467,10 +473,28 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
  const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhyb2FyZnV3cGZzcWlsc2lqd3BwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTI5MjYsImV4cCI6MjEwNTY2ODkyNn0.sXaqy76ktdZJiesW1ZSppJH6t4Qi3AdLIhHc1umzBks';
  const catEmoji=s=>{s=String(s||"").toLowerCase();if(s.includes("drank"))return"🧃";if(s.includes("zuivel"))return"🥛";if(s.includes("slager"))return"🥩";if(s.includes("groente"))return"🌶️";if(s.includes("bakker"))return"🍰";if(s.includes("huish"))return"🧺";return"🛒"};
  const money=v=>"€"+Number(v||0).toFixed(2).replace(".",",");
- function nowNL(){if(window.__emigroTestClock?.date)return{date:window.__emigroTestClock.date,time:window.__emigroTestClock.time||"00:00"};const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()),o={};parts.forEach(x=>o[x.type]=x.value);return{date:o.year+"-"+o.month+"-"+o.day,time:o.hour+":"+o.minute}}
- function state(p){if(p.sold)return"expired";const n=nowNL(),d=String(p.deal_date||"");if(d<n.date)return"expired";if(d>n.date)return"upcoming";return String(p.start_time||"00:00").slice(0,5)<=n.time?"live":"upcoming"}
- function nextDateString(d){const [y,m,day]=String(d).split("-").map(Number),dt=new Date(Date.UTC(y,m-1,day));dt.setUTCDate(dt.getUTCDate()+1);return dt.toISOString().slice(0,10)}
- function priceVisible(p){const n=nowNL(),d=String(p.deal_date||"");if(d<=n.date)return true;return d===nextDateString(n.date)&&n.time>="21:00"}
+ function nowNL(){
+   if(window.__emigroTestClock?.date)return{date:window.__emigroTestClock.date,time:window.__emigroTestClock.time||"00:00"};
+   const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()),o={};
+   parts.forEach(x=>o[x.type]=x.value);
+   return{date:o.year+"-"+o.month+"-"+o.day,time:o.hour+":"+o.minute}
+ }
+ function addDays(d,n){
+   const [y,m,day]=String(d).split("-").map(Number),dt=new Date(Date.UTC(y,m-1,day));
+   dt.setUTCDate(dt.getUTCDate()+n);return dt.toISOString().slice(0,10)
+ }
+ function activeDealDate(){
+   const n=nowNL();
+   return n.time>="21:00"?addDays(n.date,1):n.date;
+ }
+ function state(p){
+   if(p.sold)return"expired";
+   const active=activeDealDate(),d=String(p.deal_date||"");
+   if(d<active)return"expired";
+   if(d>active)return"upcoming";
+   return"live"
+ }
+ function priceVisible(p){return String(p.deal_date||"")<=activeDealDate()}
  function esc(s){return String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
  function visual(p,cls="productpic"){return p.image_url?'<div class="'+cls+'"><img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain"></div>':'<div class="'+cls+'">'+catEmoji(p.category)+'</div>'}
  function detailHtml(p,day,st){
@@ -547,23 +571,57 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     const review=channels.find(x=>String(x.name||"").toLowerCase().includes("google"));
     const reviewPill=document.getElementById("socialGrTop");if(reviewPill){reviewPill.style.display=review?"":"none";if(review)reviewPill.href=review.url}
   }
-  function dealState(p,overrideDate,overrideTime){
-    let today=overrideDate||window.__emigroTestClock?.date||"",tm=overrideTime||window.__emigroTestClock?.time||"";
-    if(!today){
-      const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()),o={};
-      parts.forEach(x=>o[x.type]=x.value);today=o.year+"-"+o.month+"-"+o.day;tm=o.hour+":"+o.minute;
-    }
-    const d=String(p.deal_date||"");
-    if(p.sold||d<today)return"expired";
-    if(d>today)return"upcoming";
-    return String(p.start_time||"00:00").slice(0,5)<=tm?"live":"upcoming";
+  function frontNow(){
+    if(window.__emigroTestClock?.date)return{date:window.__emigroTestClock.date,time:window.__emigroTestClock.time||"00:00"};
+    const ps=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()),o={};
+    ps.forEach(x=>o[x.type]=x.value);return{date:o.year+"-"+o.month+"-"+o.day,time:o.hour+":"+o.minute}
   }
-  function nextDayOf(d){const [y,m,dd]=String(d).split("-").map(Number),dt=new Date(Date.UTC(y,m-1,dd));dt.setUTCDate(dt.getUTCDate()+1);return dt.toISOString().slice(0,10)}
-  function frontNow(){if(window.__emigroTestClock?.date)return{date:window.__emigroTestClock.date,time:window.__emigroTestClock.time||"00:00"};const ps=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()),o={};ps.forEach(x=>o[x.type]=x.value);return{date:o.year+"-"+o.month+"-"+o.day,time:o.hour+":"+o.minute}}
-  function frontPriceVisible(p){const n=frontNow(),d=String(p.deal_date||"");if(d<=n.date)return true;return d===nextDayOf(n.date)&&n.time>="21:00"}
+  function shiftDay(d,n){const [y,m,dd]=String(d).split("-").map(Number),dt=new Date(Date.UTC(y,m-1,dd));dt.setUTCDate(dt.getUTCDate()+n);return dt.toISOString().slice(0,10)}
+  function frontActiveDate(){const n=frontNow();return n.time>="21:00"?shiftDay(n.date,1):n.date}
+  function dealState(p){
+    if(p.sold)return"expired";
+    const d=String(p.deal_date||""),active=frontActiveDate();
+    if(d<active)return"expired";if(d>active)return"upcoming";return"live"
+  }
+  function frontPriceVisible(p){return String(p.deal_date||"")<=frontActiveDate()}
   function renderAll(items){
     allItems=(items||[]).filter(x=>String(x.status||"")!=="Niet publiceren");
+    renderMonthCalendar(items||[]);
     renderFilteredAll();
+  }
+
+  function monthInfo(){
+    const n=frontNow(),[y,m]=n.date.split("-").map(Number);
+    const days=new Date(Date.UTC(y,m,0)).getUTCDate();
+    return {year:y,month:m,days,key:y+"-"+String(m).padStart(2,"0")};
+  }
+  function monthName(m,lang){
+    const names={
+      nl:["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"],
+      tr:["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"],
+      en:["January","February","March","April","May","June","July","August","September","October","November","December"]
+    };
+    return (names[currentLang]||names.nl)[m-1]
+  }
+  function renderMonthCalendar(items){
+    const grid=document.getElementById("calendarGrid");if(!grid)return;
+    const info=monthInfo(),byDate=new Map();
+    (items||[]).filter(x=>String(x.status||"")!=="Niet publiceren").forEach(x=>{if(String(x.deal_date||"").startsWith(info.key))byDate.set(String(x.deal_date),x)});
+    const head=document.querySelector(".monthhead b");if(head)head.textContent=monthName(info.month,currentLang)+" "+info.year;
+    let html="";
+    for(let day=1;day<=info.days;day++){
+      const date=info.key+"-"+String(day).padStart(2,"0"),p=byDate.get(date);
+      if(!p){
+        html+='<article class="dealcard monthEmpty"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>LEEG</span></div><div class="emptyDayIcon">＋</div><h4>Nog geen Dagdeal</h4><small>'+date+'</small><div class="monthSlotState">Nog niet ingepland</div></article>';
+        continue;
+      }
+      const st=dealState(p),label=st==="live"?"NU ACTIEF":st==="upcoming"?"BINNENKORT":"AFGELOPEN";
+      const price=frontPriceVisible(p)
+        ?'<div class="old">'+money(p.regular_price)+'</div><div class="dealprice">'+money(p.deal_price)+'</div>'
+        :'<div class="mystery">🔒 Dagdealprijs verborgen</div>';
+      html+='<article class="dealcard '+st+'" data-month-product-id="'+esc(p.id)+'"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>'+label+'</span></div><button class="favbtn" type="button" data-fav="'+day+'" aria-label="Favoriet toevoegen">♡</button><div class="productpic">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain">':catEmoji(p.category))+'</div><h4>'+esc(p.name)+'</h4><small>'+esc(p.unit||"")+'</small>'+price+'<div class="chev">›</div></article>';
+    }
+    grid.innerHTML=html;
   }
   function renderFilteredAll(){
     const grid=document.getElementById("allDealsGrid"),count=document.getElementById("allDealsCount");if(!grid)return;
@@ -632,6 +690,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     document.querySelectorAll("[data-i18n-html]").forEach(el=>{const k=el.dataset.i18nHtml;if(d[k])el.innerHTML=d[k]});
     document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{const k=el.dataset.i18nPlaceholder;if(d[k])el.placeholder=d[k]});
     document.querySelectorAll(".langSwitch button").forEach(b=>b.classList.toggle("on",b.dataset.lang===currentLang));
+    renderMonthCalendar(window.__emigroCentralDeals||allItems);
     renderFilteredAll();
   }
   function applyIconSettings(s){
@@ -643,6 +702,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     if(e?.data?.type==="emigro-preview-clock"){
       const v=e.data.clock||null;window.__emigroTestClock=v&&v.date?v:null;
       if(window.__emigroCentralDeals)window.__applyCentralDeals(window.__emigroCentralDeals);
+      renderMonthCalendar(window.__emigroCentralDeals||allItems);
       renderFilteredAll();
     }
   });
@@ -660,6 +720,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     document.getElementById("allDealsSearchInput")?.addEventListener("input",renderFilteredAll);
     document.getElementById("allDealsStateFilter")?.addEventListener("change",renderFilteredAll);
     document.getElementById("allDealsGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-product-id]");if(!card)return;const p=allItems.find(x=>String(x.id)===String(card.dataset.productId));if(p)openDynamicDeal(p)});
+    document.getElementById("calendarGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-month-product-id]");if(!card||e.target.closest(".favbtn"))return;const p=allItems.find(x=>String(x.id)===String(card.dataset.monthProductId));if(p)openDynamicDeal(p)});
     document.getElementById("searchResults")?.addEventListener("click",e=>{const row=e.target.closest("[data-search-id]");if(!row)return;const p=allItems.find(x=>String(x.id)===String(row.dataset.searchId));if(p){document.getElementById("searchOverlay")?.classList.remove("on");openDynamicDeal(p)}});
     document.getElementById("dynamicDealModal")?.addEventListener("click",e=>{if(e.target.id==="dynamicDealModal")e.currentTarget.classList.remove("on")});
   });
