@@ -80,6 +80,9 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
 .heroArtSettings .heroArtToggle{display:flex;gap:8px;align-items:center;font-size:11px;font-weight:750}
 .heroArtToggle input{width:auto}
 @media(max-width:700px){.heroArtSettings{grid-template-columns:1fr}.heroArtSettings .heroArtWide{grid-column:auto}}
+.heroShortcut{border-color:#e30613;color:#b40613;background:#fff4f4}
+.heroShortcut:hover{background:#ffe9ea}
+#heroArtSection{scroll-margin-top:16px}
 </style>
 </head>
 <body>
@@ -105,6 +108,7 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
       <button id="templateBtn" class="btn">Excel Şablonu</button>
       <button id="previewBtn" class="btn">👁 Preview</button>
       <button id="statsBtn" class="btn">📊 İstatistik</button>
+      <button id="heroSettingsBtn" class="btn heroShortcut" type="button">🖼 Ana Kart Tasarımı</button>
       <button id="settingsBtn" class="btn">⚙ Ayarlar</button>
       <button id="publishBtn" class="btn black">Canlıya Gönder</button>
       <span id="publishState" class="pubstate"></span>
@@ -155,6 +159,28 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
   <div class="boxhead"><div><h2>Görünüm Ayarları</h2><div class="muted">Sağdaki preview canlıya göndermeden önce değişiklikleri gösterir.</div></div><button class="x" data-close="settingsModal">×</button></div>
   <div class="settingsWorkspace">
     <div class="settingsGrid">
+<div id="heroArtSection" class="field widefield">
+  <label>ANA KART GÖRSELİ VE METNİ</label>
+  <div class="heroArtSettings">
+    <div class="heroArtWide">
+      <div id="heroImagePreview" class="heroArtPreview">Henüz özel görsel yok</div>
+      <input id="heroImageFile" type="file" accept="image/jpeg,image/png,image/webp" style="margin-top:8px">
+      <button id="removeHeroImage" class="btn" type="button" style="margin-top:7px">Görseli kaldır</button>
+      <div class="notice" style="margin-top:8px">Görsel ana kartı tamamen kaplar. Önerilen oran: 1920 × 640 px. Mobil önizlemede kenarlar kırpılabilir.</div>
+    </div>
+    <div class="field heroArtWide"><label>ÖZEL BAŞLIK (BOŞSA ÜRÜN ADI)</label><input id="heroHeading" maxlength="100" placeholder="Örneğin: Bu haftanın fırsatı"></div>
+    <div class="field heroArtWide"><label>EK METİN</label><textarea id="heroCopy" maxlength="300" placeholder="Kartta gösterilecek ek metin"></textarea></div>
+    <div class="field"><label>BAŞLIK BOYUTU (PX)</label><input id="heroHeadingSize" type="number" min="24" max="80" value="58"></div>
+    <div class="field"><label>BAŞLIK RENGİ</label><input id="heroHeadingColor" type="color" value="#ffffff"></div>
+    <div class="field"><label>METİN BOYUTU (PX)</label><input id="heroCopySize" type="number" min="12" max="32" value="18"></div>
+    <div class="field"><label>METİN RENGİ</label><input id="heroCopyColor" type="color" value="#ffffff"></div>
+    <div class="field"><label>GÖRSEL KONUMU</label><select id="heroImagePosition"><option value="0">Sol</option><option value="50">Orta</option><option value="100">Sağ</option></select></div>
+    <div class="field"><label>KOYU KATMAN (%)</label><input id="heroShade" type="number" min="0" max="80" value="30"></div>
+    <label class="heroArtToggle heroArtWide"><input id="heroHideProductPhoto" type="checkbox" checked> Özel görselde ürün fotoğrafını gizle</label>
+  </div>
+  <div class="notice" style="margin-top:8px">Ürün tarihi, stok durumu ve fiyatlar canlı ürün kaydından gelmeye devam eder. Boş bıraktığın alanlarda mevcut tasarım korunur.</div>
+</div>
+
       <div class="field"><label>MARKA</label><input id="setBrand"></div>
       <div class="field"><label>ALT BAŞLIK</label><input id="setSubtitle"></div>
       <div class="field widefield"><label>LOGO</label><div id="logoPreview" class="logoPreview"></div><input id="setLogoFile" type="file" accept="image/*" style="margin-top:8px"><button id="removeLogo" class="btn" style="margin-top:7px">Logoyu kaldır</button></div>
@@ -189,27 +215,6 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
     <div class="categoryIconRow" data-category="Bakkerij"><div class="categoryIconPreview">🍰</div><b>Bakkerij</b><label class="btn">İkon yükle<input class="categoryIconFile" type="file" accept="image/*" hidden></label></div>
   </div>
   <div class="notice" style="margin-top:8px">Yüklemezsen mevcut emoji kullanılır.</div>
-</div>
-<div class="field widefield">
-  <label>ANA KART GÖRSELİ VE METNİ</label>
-  <div class="heroArtSettings">
-    <div class="heroArtWide">
-      <div id="heroImagePreview" class="heroArtPreview">Henüz özel görsel yok</div>
-      <input id="heroImageFile" type="file" accept="image/jpeg,image/png,image/webp" style="margin-top:8px">
-      <button id="removeHeroImage" class="btn" type="button" style="margin-top:7px">Görseli kaldır</button>
-      <div class="notice" style="margin-top:8px">Görsel ana kartı tamamen kaplar. Önerilen oran: 1920 × 640 px. Mobil önizlemede kenarlar kırpılabilir.</div>
-    </div>
-    <div class="field heroArtWide"><label>ÖZEL BAŞLIK (BOŞSA ÜRÜN ADI)</label><input id="heroHeading" maxlength="100" placeholder="Örneğin: Bu haftanın fırsatı"></div>
-    <div class="field heroArtWide"><label>EK METİN</label><textarea id="heroCopy" maxlength="300" placeholder="Kartta gösterilecek ek metin"></textarea></div>
-    <div class="field"><label>BAŞLIK BOYUTU (PX)</label><input id="heroHeadingSize" type="number" min="24" max="80" value="58"></div>
-    <div class="field"><label>BAŞLIK RENGİ</label><input id="heroHeadingColor" type="color" value="#ffffff"></div>
-    <div class="field"><label>METİN BOYUTU (PX)</label><input id="heroCopySize" type="number" min="12" max="32" value="18"></div>
-    <div class="field"><label>METİN RENGİ</label><input id="heroCopyColor" type="color" value="#ffffff"></div>
-    <div class="field"><label>GÖRSEL KONUMU</label><select id="heroImagePosition"><option value="0">Sol</option><option value="50">Orta</option><option value="100">Sağ</option></select></div>
-    <div class="field"><label>KOYU KATMAN (%)</label><input id="heroShade" type="number" min="0" max="80" value="30"></div>
-    <label class="heroArtToggle heroArtWide"><input id="heroHideProductPhoto" type="checkbox" checked> Özel görselde ürün fotoğrafını gizle</label>
-  </div>
-  <div class="notice" style="margin-top:8px">Ürün tarihi, stok durumu ve fiyatlar canlı ürün kaydından gelmeye devam eder. Boş bıraktığın alanlarda mevcut tasarım korunur.</div>
 </div>
 <div class="field widefield">
   <label>ZAMANLANMIŞ ÖZEL MENÜ / REKLAM</label>
@@ -449,6 +454,7 @@ function collectSettings(){
   settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0),whatsapp:settings.whatsapp||DEFAULT_SETTINGS.whatsapp,instagram:settings.instagram||DEFAULT_SETTINGS.instagram,facebook:settings.facebook||DEFAULT_SETTINGS.facebook,tiktok:settings.tiktok||"",googleReview:settings.googleReview||DEFAULT_SETTINGS.googleReview,socialIconStyle:$("setSocialIconStyle").value||"circle",socialIconSize:Number($("setSocialIconSize").value||34),socialChannels:currentSocialChannels(),categoryIcons:collectCategoryIcons(),campaignEnabled:$("campaignEnabled").checked,campaignTitle:$("campaignTitle").value.trim()||"Week Actie",campaignLink:normalizeExternalUrl($("campaignLink").value),campaignStart:$("campaignStart").value,campaignEnd:$("campaignEnd").value,campaignShowInactive:$("campaignShowInactive").checked,heroImage:$("heroImagePreview").dataset.value||"",heroHeading:$("heroHeading").value.trim(),heroCopy:$("heroCopy").value.trim(),heroHeadingSize:Math.max(24,Math.min(80,Number($("heroHeadingSize").value)||58)),heroCopySize:Math.max(12,Math.min(32,Number($("heroCopySize").value)||18)),heroHeadingColor:$("heroHeadingColor").value,heroCopyColor:$("heroCopyColor").value,heroImagePosition:Number($("heroImagePosition").value||0),heroShade:Math.max(0,Math.min(80,Number($("heroShade").value)||0)),heroHideProductPhoto:$("heroHideProductPhoto").checked};
   return settings;
 }
+$("heroSettingsBtn").onclick=()=>{fillSettings();openModal("settingsModal");$("settingsModal").querySelector(".box").scrollTop=0;setTimeout(sendPreview,300)};
 $("settingsBtn").onclick=()=>{fillSettings();openModal("settingsModal");setTimeout(sendPreview,300)};
 $("previewBtn").onclick=()=>{fillSettings();openModal("settingsModal");setTimeout(sendPreview,300)};
 $("desktopPreviewBtn").onclick=()=>{$("previewFrame").classList.remove("mobile");$("desktopPreviewBtn").classList.add("on");$("mobilePreviewBtn").classList.remove("on")};
