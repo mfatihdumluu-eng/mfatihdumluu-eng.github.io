@@ -288,6 +288,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 .hero.noActiveDeal{background:linear-gradient(135deg,#555,#777)!important;cursor:default!important}
 .hero.noActiveDeal .heroimg{font-size:70px}
 @media(max-width:1099px){.scheduledCampaignWrap{padding:0 12px}.headerStatusFilter{height:34px!important;font-size:10px!important;max-width:150px!important}.headerFavorite{font-size:25px!important}}
+.categoryFilteredOut{display:none!important}
 </style></head><body><div class="app" id="calendar">
 <div class="siteTopbar">
   <div class="topLeft"><a href="tel:0703888813">☎ 070 388 8813</a><span>✉ info@emigro.nl</span></div>
@@ -651,11 +652,14 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 
   let selectedProductId=null;
   let calendarStatusFilter="all";
+  let calendarCategoryFilter="all";
   function renderHeroProduct(p){
     const hero=document.querySelector(".hero");if(!hero||!p)return;
     selectedProductId=String(p.id);
+    hero.classList.remove("noActiveDeal");
     const st=dealState(p),visible=frontPriceVisible(p);
-    const label=st==="live"?"● NU ACTIEF":st==="upcoming"?"BINNENKORT":"AFGELOPEN";
+    const heroLabels={nl:{live:"● NU ACTIEF",soon:"BINNENKORT",past:"AFGELOPEN",cta:"Bekijk Dagdeal →",hidden:"🔒 Dagdealprijs verborgen"},tr:{live:"● ŞU AN AKTİF",soon:"YAKINDA",past:"GEÇMİŞ",cta:"Fırsatı Gör →",hidden:"🔒 Dagdeal fiyatı gizli"},en:{live:"● ACTIVE NOW",soon:"COMING SOON",past:"EXPIRED",cta:"View Daily Deal →",hidden:"🔒 Daily Deal price hidden"}}[currentLang]||{};
+    const label=st==="live"?heroLabels.live:st==="upcoming"?heroLabels.soon:heroLabels.past;
     const d=String(p.deal_date||"");
     const [y,m,day]=d.split("-"),months=["JANUARI","FEBRUARI","MAART","APRIL","MEI","JUNI","JULI","AUGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DECEMBER"];
     const dateLabel=day&&m?Number(day)+" "+months[Number(m)-1]:d;
@@ -664,8 +668,8 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     hero.innerHTML='<div class="herohead"><span class="livepill">'+label+'</span>'+(p.op_op?'<span class="opop">OP = OP</span>':'')+'<time>'+esc(dateLabel)+'</time></div>'+
       '<div class="herobody"><div class="heroimg">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain">':catEmoji(p.category))+'</div>'+
       '<div class="herotxt"><h2>'+esc(p.name)+'</h2><small>'+esc(p.unit||"")+'</small>'+
-      (visible?'<del>'+money(p.regular_price)+'</del><div class="heroprice">'+money(p.deal_price)+'</div>':'<div class="heroHiddenPrice">🔒 Dagdealprijs verborgen</div>')+
-      '<div class="herocta">Bekijk Dagdeal →</div></div></div>';
+      (visible?'<del>'+money(p.regular_price)+'</del><div class="heroprice">'+money(p.deal_price)+'</div>':'<div class="heroHiddenPrice">'+heroLabels.hidden+'</div>')+
+      '<div class="herocta">'+heroLabels.cta+'</div></div></div>';
 
   }
   function defaultHeroProduct(items){
@@ -706,19 +710,29 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
       const {day,date,p}=slot;
       if(!p){
         const past=date<active;
-        html+='<article class="dealcard monthEmpty '+(past?"expired":"upcoming")+'" data-filter-state="'+(past?"expired":"future")+'"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>'+(past?"AFGELOPEN":"LEEG")+'</span></div><div class="emptyDayIcon">＋</div><h4>Nog geen Dagdeal</h4><small>'+date+'</small><div class="monthSlotState">'+(past?"Geen Dagdeal ingepland":"Nog niet ingepland")+'</div></article>';
+        const emptyTxt=currentLang==="tr"?{past:"GEÇMİŞ",empty:"BOŞ",title:"Henüz fırsat yok",pastSub:"Fırsat planlanmadı",futureSub:"Henüz planlanmadı"}:currentLang==="en"?{past:"EXPIRED",empty:"EMPTY",title:"No Daily Deal yet",pastSub:"No deal was scheduled",futureSub:"Not scheduled yet"}:{past:"AFGELOPEN",empty:"LEEG",title:"Nog geen Dagdeal",pastSub:"Geen Dagdeal ingepland",futureSub:"Nog niet ingepland"};
+        html+='<article class="dealcard monthEmpty '+(past?"expired":"upcoming")+'" data-filter-state="'+(past?"expired":"future")+'"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>'+(past?emptyTxt.past:emptyTxt.empty)+'</span></div><div class="emptyDayIcon">＋</div><h4>'+emptyTxt.title+'</h4><small>'+date+'</small><div class="monthSlotState">'+(past?emptyTxt.pastSub:emptyTxt.futureSub)+'</div></article>';
         continue;
       }
-      const st=dealState(p),label=st==="live"?"NU ACTIEF":st==="upcoming"?"BINNENKORT":"AFGELOPEN";
+      const st=dealState(p),texts={nl:{live:"NU ACTIEF",soon:"BINNENKORT",past:"AFGELOPEN",ended:"Deal afgelopen",hidden:"🔒 Dagdealprijs verborgen"},tr:{live:"ŞU AN AKTİF",soon:"YAKINDA",past:"GEÇMİŞ",ended:"Fırsat sona erdi",hidden:"🔒 Dagdeal fiyatı gizli"},en:{live:"ACTIVE NOW",soon:"COMING SOON",past:"EXPIRED",ended:"Deal expired",hidden:"🔒 Daily Deal price hidden"}}[currentLang]||{};
+      const label=st==="live"?texts.live:st==="upcoming"?texts.soon:texts.past;
       const filterState=st==="live"?"current":st==="upcoming"?"future":"expired";
+      const catId=({"Zuivel":"dairy","Slagerij":"butcher","Groente & fruit":"produce","Dranken":"drinks","Voorraadkast":"pantry","Huishouden":"household","Bakkerij":"bakery"})[String(p.category||"")]||"";
       const hasPrice=Number(p.deal_price)>0;
       const price=frontPriceVisible(p)&&hasPrice
         ?'<div class="old">'+money(p.regular_price)+'</div><div class="dealprice">'+money(p.deal_price)+'</div>'
-        :st==="expired"?'<div class="expiredtxt">Deal afgelopen</div>':'<div class="mystery">🔒 Dagdealprijs verborgen</div>';
-      html+='<article class="dealcard '+st+'" data-filter-state="'+filterState+'" data-month-product-id="'+esc(p.id)+'"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>'+label+'</span></div><button class="favbtn" type="button" data-fav="'+day+'" aria-label="Favoriet toevoegen">♡</button><div class="productpic">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain">':catEmoji(p.category))+'</div><h4>'+esc(p.name)+'</h4><small>'+esc(p.unit||"")+'</small>'+price+'<div class="chev">›</div></article>';
+        :st==="expired"?'<div class="expiredtxt">'+texts.ended+'</div>':'<div class="mystery">'+texts.hidden+'</div>';
+      html+='<article class="dealcard '+st+'" data-filter-state="'+filterState+'" data-cat="'+catId+'" data-month-product-id="'+esc(p.id)+'"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>'+label+'</span></div><button class="favbtn" type="button" data-fav="'+day+'" aria-label="Favoriet toevoegen">♡</button><div class="productpic">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain">':catEmoji(p.category))+'</div><h4>'+esc(p.name)+'</h4><small>'+esc(p.unit||"")+'</small>'+price+'<div class="chev">›</div></article>';
     }
     grid.innerHTML=html;
     applyCalendarStatusFilter();
+  }
+  function applyCalendarCategoryFilter(){
+    document.querySelectorAll("#calendarGrid .dealcard").forEach(card=>{
+      const cat=card.dataset.cat||"",statusHidden=card.classList.contains("calendarFilteredOut");
+      const categoryMatch=calendarCategoryFilter==="all"||cat===calendarCategoryFilter;
+      card.classList.toggle("categoryFilteredOut",!categoryMatch);
+    });
   }
   function applyCalendarStatusFilter(){
     const value=document.getElementById("headerStatusFilter")?.value||calendarStatusFilter||"all";
@@ -732,6 +746,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
       else if(value==="expired")show=st==="expired";
       card.classList.toggle("calendarFilteredOut",!show);
     });
+    applyCalendarCategoryFilter();
   }
   function renderFilteredAll(){
     const grid=document.getElementById("allDealsGrid"),count=document.getElementById("allDealsCount");if(!grid)return;
@@ -821,6 +836,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     const sf=document.getElementById("headerStatusFilter");if(sf){const vals={nl:["Alle statussen","Afgelopen verbergen","Nu actief","Binnenkort","Afgelopen"],tr:["Tüm durumlar","Bitenleri gizle","Şu an aktif","Yakında","Geçmiş"],en:["All statuses","Hide expired","Active now","Coming soon","Expired"]}[currentLang]||["Alle statussen","Afgelopen verbergen","Nu actief","Binnenkort","Afgelopen"];[...sf.options].forEach((o,i)=>o.textContent=vals[i]||o.textContent)}
   
     renderMonthCalendar(window.__emigroCentralDeals||allItems);
+    const activeNow=defaultHeroProduct(allItems);if(activeNow)renderHeroProduct(activeNow);else renderHeroEmpty();
     renderFilteredAll();
     applyCategorySettings(window.__emigroSettings||{});
     applyCampaign(window.__emigroSettings||{});
@@ -885,6 +901,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     document.getElementById("searchResults")?.addEventListener("click",e=>{const row=e.target.closest("[data-search-id]");if(!row)return;const p=allItems.find(x=>String(x.id)===String(row.dataset.searchId));if(p){document.getElementById("searchOverlay")?.classList.remove("on");openDynamicDeal(p)}});
     document.getElementById("dynamicDealModal")?.addEventListener("click",e=>{if(e.target.id==="dynamicDealModal")e.currentTarget.classList.remove("on")});
     document.getElementById("headerStatusFilter")?.addEventListener("change",e=>{calendarStatusFilter=e.target.value||"all";applyCalendarStatusFilter()});
+    document.querySelector(".catoptions")?.addEventListener("click",e=>{const b=e.target.closest("[data-filter]");if(!b)return;calendarCategoryFilter=b.dataset.filter||"all";applyCalendarCategoryFilter();location.hash="#calendar"});
   
   });
 document.addEventListener("click",e=>{const b=e.target.closest(".futureFavAction");if(!b)return;e.preventDefault();const day=Number(b.dataset.dynFav);if(!day)return;let f=[];try{f=JSON.parse(localStorage.getItem("emigro_dagdeals_favorites_v1")||"[]")}catch{}const i=f.indexOf(day);if(i>=0)f.splice(i,1);else f.push(day);localStorage.setItem("emigro_dagdeals_favorites_v1",JSON.stringify(f));b.textContent=f.includes(day)?"♥ In favorieten":"♡ Favorieten";});
