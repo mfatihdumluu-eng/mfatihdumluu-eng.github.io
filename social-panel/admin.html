@@ -46,6 +46,10 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
 .stateBadge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:6px 8px;font-size:9px;font-weight:1000}.stateBadge.active{background:#e8f7ee;color:#148347}.stateBadge.passive{background:#f1f1f1;color:#777}.stateBadge.sold{background:#fff0f1;color:#b40613}
 @media(max-width:900px){.settingsWorkspace{grid-template-columns:1fr}.previewStage{height:500px}.analyticsGrid{grid-template-columns:1fr}}
 @media(max-width:700px){main{padding:14px}.stats{grid-template-columns:1fr 1fr}.formgrid,.settingsGrid{grid-template-columns:1fr}.widefield{grid-column:auto}.analyticsCards{grid-template-columns:1fr 1fr}}
+
+.previewClock{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:8px 0 10px;padding:9px;background:#fff;border:1px solid #e2ded8;border-radius:12px}
+.previewClock b{font-size:10px}.previewClock input{border:1px solid #ddd;border-radius:9px;padding:7px 8px;font-size:10px}.previewClock .now{margin-right:auto;color:#666;font-size:10px;font-weight:800}
+
 </style>
 </head>
 <body>
@@ -130,7 +134,9 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
       <div class="field"><label>YAZI</label><input id="setInk" type="color"></div>
       <div class="field"><label>İKİNCİL YAZI</label><input id="setMuted" type="color"></div>
       
-      <div class="field widefield"><label>WHATSAPP CHANNEL</label><input id="setWhatsapp" type="url" placeholder="https://whatsapp.com/channel/..."></div>
+      <div class="field"><label>SOSYAL İKON STİLİ</label><select id="setSocialIconStyle"><option value="minimal">Minimal</option><option value="circle">Daire</option><option value="filled">Dolu</option></select></div>
+<div class="field"><label>SOSYAL İKON BOYUTU</label><input id="setSocialIconSize" type="number" min="20" max="52" value="34"></div>
+<div class="field widefield"><label>WHATSAPP CHANNEL</label><input id="setWhatsapp" type="url" placeholder="https://whatsapp.com/channel/..."></div>
       <div class="field widefield"><label>INSTAGRAM</label><input id="setInstagram" type="url" placeholder="https://instagram.com/..."></div>
       <div class="field widefield"><label>FACEBOOK</label><input id="setFacebook" type="url" placeholder="https://facebook.com/..."></div>
       <div class="field widefield"><label>TIKTOK</label><input id="setTiktok" type="url" placeholder="TikTok linki (opsiyonel)"></div>
@@ -139,6 +145,7 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
     </div>
     <div class="previewPane">
       <div class="previewHead"><b>Preview</b><div class="previewDevices"><button id="desktopPreviewBtn" class="btn on">Desktop</button><button id="mobilePreviewBtn" class="btn">Mobile</button></div></div>
+<div class="previewClock"><span id="previewNow" class="now">NL tijd: --</span><b>Test:</b><input id="previewDate" type="date"><input id="previewTime" type="time"><button id="applyPreviewClock" class="btn" type="button">Test et</button><button id="resetPreviewClock" class="btn" type="button">Sıfırla</button></div>
       <div class="previewStage"><iframe id="previewFrame" src="./index.html?preview=1" title="Preview"></iframe></div>
     </div>
   </div>
@@ -162,7 +169,7 @@ const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const ANON="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-admin";
 const PUBLIC_API=SUPABASE_URL+"/functions/v1/emigro-dagdeals-public";
-const DEFAULT_SETTINGS={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:"",logoWidthDesktop:320,logoWidthMobile:190,logoAlign:"left",logoOffsetX:0,logoOffsetY:0,whatsapp:"https://whatsapp.com/channel/0029Vb70VbT7DAX1LRsxpF2W",instagram:"https://www.instagram.com/emigrogroothandel/",facebook:"https://www.facebook.com/p/Emigro-international-BV-100067500402784/?locale=tr_TR",tiktok:"",googleReview:"https://search.google.com/local/writereview?placeid=ChIJUUAxdd62xUcRRu_Hneah3x4&source=g.page.m.nr._&laa=nmx-review-solicitation-recommendation-card"};
+const DEFAULT_SETTINGS={brand:"EMIGRO",subtitle:"SUPERMARKT",primary:"#cf1019",primaryDark:"#a8070d",paper:"#f6f5f2",ink:"#151515",muted:"#777777",logo:"",logoWidthDesktop:320,logoWidthMobile:190,logoAlign:"left",logoOffsetX:0,logoOffsetY:0,whatsapp:"https://whatsapp.com/channel/0029Vb70VbT7DAX1LRsxpF2W",instagram:"https://www.instagram.com/emigrogroothandel/",facebook:"https://www.facebook.com/p/Emigro-international-BV-100067500402784/?locale=tr_TR",tiktok:"",googleReview:"https://search.google.com/local/writereview?placeid=ChIJUUAxdd62xUcRRu_Hneah3x4&source=g.page.m.nr._&laa=nmx-review-solicitation-recommendation-card",socialIconStyle:"circle",socialIconSize:34};
 let token=sessionStorage.getItem("emigroAdminToken")||localStorage.getItem("emigroAdminToken")||"";
 let products=[];
 let settings=Object.assign({},DEFAULT_SETTINGS);
@@ -213,7 +220,7 @@ function renderTable(){
   const visible=products.filter(p=>listFilter==="all"||(listFilter==="active"&&!p.sold&&p.status!=="Niet publiceren")||(listFilter==="passive"&&p.status==="Niet publiceren")||(listFilter==="sold"&&p.sold));
   $("rows").innerHTML=visible.map(p=>{
     const state=p.sold?'<span class="stateBadge sold">● TÜKENDİ</span>':p.status==="Niet publiceren"?'<span class="stateBadge passive">● PASİF</span>':'<span class="stateBadge active">● AKTİF</span>';
-    return '<tr><td><div class="photo">'+(p.image_url?'<img src="'+esc(p.image_url)+'">':"Foto +")+'</div></td><td><b>'+esc(p.deal_date)+'</b><br>'+esc(String(p.start_time||"").slice(0,5))+'</td><td><b>'+esc(p.name)+'</b><br><span class="muted">'+esc(p.unit)+' · '+esc(p.category)+'</span></td><td><s>'+money(p.regular_price)+'</s><br><b>'+money(p.deal_price)+'</b></td><td>'+esc(p.description||"—")+'</td><td>'+state+'</td><td><div class="actions"><button class="btn" data-edit="'+p.id+'">Düzenle</button><button class="btn black" data-sold="'+p.id+'">'+(p.sold?"Aktif yap":"Tükendi")+'</button><button class="btn" data-del="'+p.id+'">Sil</button></div></td></tr>';
+    return '<tr><td><div class="photo">'+(p.image_url?'<img src="'+esc(p.image_url)+'">':"Foto +")+'</div></td><td><b>'+esc(p.deal_date)+'</b><br>'+esc(String(p.start_time||"").slice(0,5))+'</td><td><b>'+esc(p.name)+'</b><br><span class="muted">'+esc(p.unit)+' · '+esc(p.category)+'</span></td><td><s>'+money(p.regular_price)+'</s><br><b>'+money(p.deal_price)+'</b></td><td>'+esc(p.description||"—")+'</td><td>'+state+'</td><td><div class="actions"><button class="btn" data-edit="'+p.id+'">Düzenle</button><button class="btn" data-passive="'+p.id+'">'+(p.status==="Niet publiceren"?"Aktif yap":"Pasif yap")+'</button><button class="btn black" data-sold="'+p.id+'">'+(p.sold?"Aktif yap":"Tükendi")+'</button><button class="btn" data-del="'+p.id+'">Sil</button></div></td></tr>';
   }).join("");
   $("sTotal").textContent=products.length;
   $("sActive").textContent=products.filter(p=>!p.sold&&p.status!=="Niet publiceren").length;
@@ -222,6 +229,7 @@ function renderTable(){
   $("sPhoto").textContent=products.filter(p=>p.image_url).length;
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEditor(Number(b.dataset.edit)));
   document.querySelectorAll("[data-sold]").forEach(b=>b.onclick=()=>{const p=products.find(x=>Number(x.id)===Number(b.dataset.sold));if(p){p.sold=!p.sold;renderTable();sendPreview()}});
+  document.querySelectorAll("[data-passive]").forEach(b=>b.onclick=()=>{const p=products.find(x=>Number(x.id)===Number(b.dataset.passive));if(p){p.status=p.status==="Niet publiceren"?"Klaar":"Niet publiceren";renderTable();sendPreview()}});
   document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Ürün silinsin mi?")){products=products.filter(x=>Number(x.id)!==Number(b.dataset.del));renderTable();sendPreview()}});
 }
 document.querySelectorAll("[data-list-filter]").forEach(b=>b.onclick=()=>{listFilter=b.dataset.listFilter;document.querySelectorAll("[data-list-filter]").forEach(x=>x.classList.toggle("on",x===b));renderTable()});
@@ -255,9 +263,11 @@ function fillSettings(){
   $("setFacebook").value=settings.facebook||DEFAULT_SETTINGS.facebook;
   $("setTiktok").value=settings.tiktok||"";
   $("setGoogleReview").value=settings.googleReview||DEFAULT_SETTINGS.googleReview;
+  $("setSocialIconStyle").value=settings.socialIconStyle||"circle";
+  $("setSocialIconSize").value=Number(settings.socialIconSize||34);
 }
 function collectSettings(){
-  settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0),whatsapp:$("setWhatsapp").value.trim(),instagram:$("setInstagram").value.trim(),facebook:$("setFacebook").value.trim(),tiktok:$("setTiktok").value.trim(),googleReview:$("setGoogleReview").value.trim()};
+  settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0),whatsapp:$("setWhatsapp").value.trim(),instagram:$("setInstagram").value.trim(),facebook:$("setFacebook").value.trim(),tiktok:$("setTiktok").value.trim(),googleReview:$("setGoogleReview").value.trim(),socialIconStyle:$("setSocialIconStyle").value||"circle",socialIconSize:Number($("setSocialIconSize").value||34)};
   return settings;
 }
 $("settingsBtn").onclick=()=>{fillSettings();openModal("settingsModal");setTimeout(sendPreview,300)};
@@ -269,11 +279,25 @@ $("previewFrame").addEventListener("load",()=>setTimeout(sendPreview,250));
 $("setLogoFile").onchange=e=>{const file=e.target.files&&e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(img.width,img.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(img.width*scale));cv.height=Math.max(1,Math.round(img.height*scale));cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);const data=cv.toDataURL("image/png");$("logoPreview").dataset.value=data;$("logoPreview").innerHTML='<img src="'+data+'">';collectSettings();sendPreview()};img.src=r.result};r.readAsDataURL(file)};
 $("removeLogo").onclick=()=>{$("logoPreview").dataset.value="";$("logoPreview").innerHTML='<span class="muted">Logo yok</span>';collectSettings();sendPreview()};
 
+
+function getNlNowParts(){
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).formatToParts(new Date()),o={};parts.forEach(x=>o[x.type]=x.value);
+  return {date:o.year+"-"+o.month+"-"+o.day,time:o.hour+":"+o.minute,full:o.day+"-"+o.month+"-"+o.year+" "+o.hour+":"+o.minute+":"+o.second};
+}
+function refreshPreviewClock(){
+  const n=getNlNowParts();if($("previewNow"))$("previewNow").textContent="NL tijd: "+n.full;
+}
+function currentPreviewClock(){
+  const date=$("previewDate")?.value||"",time=$("previewTime")?.value||"";
+  return date?{date,time:time||"00:00"}:null;
+}
+setInterval(refreshPreviewClock,1000);setTimeout(refreshPreviewClock,100);
 function sendPreview(){
   const f=$("previewFrame");if(!f||!f.contentWindow)return;
   const s=document.activeElement&&$("settingsModal").classList.contains("on")?collectSettings():settings;
   f.contentWindow.postMessage({type:"emigro-preview-settings",settings:s},"*");
   f.contentWindow.postMessage({type:"emigro-preview-products",items:products},"*");
+  f.contentWindow.postMessage({type:"emigro-preview-clock",clock:currentPreviewClock()},"*");
 }
 async function publishAll(){
   $("publishState").textContent="Gönderiliyor...";
