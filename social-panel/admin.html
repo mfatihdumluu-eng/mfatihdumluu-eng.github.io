@@ -477,9 +477,13 @@ async function publishAll(){
         && String(liveSettings.campaignTitle||"")===String(s.campaignTitle||"")
         && String(liveSettings.campaignLink||"")===String(s.campaignLink||"")
         && String(liveSettings.campaignStart||"")===String(s.campaignStart||"")
-        && String(liveSettings.campaignEnd||"")===String(s.campaignEnd||"")
-        && JSON.stringify(liveSettings.socialChannels||[])===JSON.stringify(s.socialChannels||[]);
-      if(idsOk&&settingsOk){verified=true;break}
+        && String(liveSettings.campaignEnd||"")===String(s.campaignEnd||"");
+      const normChannels=arr=>(Array.isArray(arr)?arr:[]).map(x=>({
+        id:String(x?.id||""),name:String(x?.name||""),url:String(x?.url||""),icon:String(x?.icon||""),
+        enabled:x?.enabled!==false,order:Number(x?.order||0)
+      })).sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
+      const channelsOk=JSON.stringify(normChannels(liveSettings.socialChannels))===JSON.stringify(normChannels(s.socialChannels));
+      if(idsOk&&settingsOk&&channelsOk){verified=true;break}
     }
     if(!verified){
       console.warn("Live verification delayed",lastLive);
