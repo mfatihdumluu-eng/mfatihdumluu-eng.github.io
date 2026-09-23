@@ -638,8 +638,10 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   function renderAll(items){
     allItems=(items||[]).filter(x=>String(x.status||"")!=="Niet publiceren");
     renderMonthCalendar(items||[]);
-    const active=defaultHeroProduct(allItems);
-    if(active)renderHeroProduct(active);else renderHeroEmpty();
+    const today=allItems.find(x=>String(x.deal_date||"")===frontActiveDate());
+    if(today?.sold)renderHeroSold(today);
+    else if(today)renderHeroProduct(today);
+    else renderHeroEmpty();
     renderFilteredAll();
   }
 
@@ -682,6 +684,18 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   function defaultHeroProduct(items){
     if(!Array.isArray(items)||!items.length)return null;
     return items.find(x=>dealState(x)==="live")||null;
+  }
+  function renderHeroSold(p){
+    const hero=document.querySelector(".hero");if(!hero)return;
+    selectedProductId=null;hero.removeAttribute("href");delete hero.dataset.heroProductId;hero.classList.add("noActiveDeal");
+    const copy={
+      nl:{badge:"UITVERKOCHT",title:"Deze Dagdeal is afgelopen",thanks:"Bedankt voor je interesse!",next:"De volgende Dagdeal begint om 21:00."},
+      tr:{badge:"BİTTİ",title:"Bu Dagdeal bitti",thanks:"İlginiz için teşekkürler!",next:"Sonraki Dagdeal 21:00'de başlıyor."},
+      en:{badge:"SOLD OUT",title:"This Daily Deal has ended",thanks:"Thank you for your interest!",next:"The next Daily Deal starts at 21:00."}
+    }[currentLang]||{badge:"UITVERKOCHT",title:"Deze Dagdeal is afgelopen",thanks:"Bedankt voor je interesse!",next:"De volgende Dagdeal begint om 21:00."};
+    hero.innerHTML='<div class="herohead"><span class="livepill">'+copy.badge+'</span></div>'+
+      '<div class="herobody"><div class="heroimg">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain">':catEmoji(p.category))+'</div>'+
+      '<div class="herotxt"><h2>'+esc(p.name)+'</h2><div class="heroStateText">'+copy.title+'</div><div class="herocta">'+copy.thanks+'</div><small>'+copy.next+'</small></div></div>';
   }
   function renderHeroEmpty(){
     const hero=document.querySelector(".hero");if(!hero)return;
