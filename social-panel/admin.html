@@ -276,6 +276,12 @@ $("desktopPreviewBtn").onclick=()=>{$("previewFrame").classList.remove("mobile")
 $("mobilePreviewBtn").onclick=()=>{$("previewFrame").classList.add("mobile");$("mobilePreviewBtn").classList.add("on");$("desktopPreviewBtn").classList.remove("on")};
 $("settingsModal").addEventListener("input",()=>{collectSettings();sendPreview()});
 $("previewFrame").addEventListener("load",()=>setTimeout(sendPreview,250));
+$("applyPreviewClock").onclick=()=>{
+  if(!$("previewDate").value){const n=getNlNowParts();$("previewDate").value=n.date;$("previewTime").value=n.time}
+  sendPreview();
+};
+$("resetPreviewClock").onclick=()=>{$("previewDate").value="";$("previewTime").value="";sendPreview()};
+
 $("setLogoFile").onchange=e=>{const file=e.target.files&&e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(img.width,img.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(img.width*scale));cv.height=Math.max(1,Math.round(img.height*scale));cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);const data=cv.toDataURL("image/png");$("logoPreview").dataset.value=data;$("logoPreview").innerHTML='<img src="'+data+'">';collectSettings();sendPreview()};img.src=r.result};r.readAsDataURL(file)};
 $("removeLogo").onclick=()=>{$("logoPreview").dataset.value="";$("logoPreview").innerHTML='<span class="muted">Logo yok</span>';collectSettings();sendPreview()};
 
