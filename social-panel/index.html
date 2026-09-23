@@ -250,6 +250,13 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 .dealcard.selectedDeal{outline:3px solid var(--red);outline-offset:2px;box-shadow:0 10px 30px #cf101922}
 .hero .heroHiddenPrice{font-size:15px;font-weight:900;margin:12px 0;color:#fff;opacity:.95}
 .hero .heroStateText{font-size:11px;font-weight:900;letter-spacing:.4px}
+
+/* V22 header status filter */
+.community,#allDeals{display:none!important}
+.headerStatusFilter{height:36px;border:1px solid #e3e3e3;background:#fff;border-radius:999px;padding:0 32px 0 12px;font-size:10px;font-weight:850;color:#555;cursor:pointer;outline:none}
+.headerFavorite{font-size:22px!important}
+.favBrand{display:flex;justify-content:center;margin:2px 0 10px}.favBrandLogo{font-size:24px!important;font-weight:1000!important;line-height:.9!important;text-align:center}.favBrandLogo small{display:block!important;font-size:7px!important;letter-spacing:1.2px!important;margin-top:4px!important}
+@media(max-width:1099px){.headerStatusFilter{max-width:132px;height:32px;font-size:9px}.headerToolPill{display:none!important}}
 </style></head><body><div class="app" id="calendar">
 <div class="siteTopbar">
   <div class="topLeft"><a href="tel:0703888813">☎ 070 388 8813</a><span>✉ info@emigro.nl</span></div>
@@ -264,13 +271,19 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   </div>
   <div class="brand">EMIGRO<small>SUPERMARKT</small></div>
   <div class="headerTools">
-    <a href="#favorites" aria-label="Favorieten">♡</a>
+    <a href="#favorites" aria-label="Favorieten" class="headerFavorite">♡</a>
+    <select id="headerStatusFilter" class="headerStatusFilter" aria-label="Deal status">
+      <option value="all">Alle statussen</option>
+      <option value="live">Nu actief</option>
+      <option value="upcoming">Binnenkort</option>
+      <option value="expired">Afgelopen</option>
+    </select>
     <a id="socialGrTop" class="headerToolPill" href="#" target="_blank" rel="noopener">★ Review</a>
   </div>
 </header>
 <nav class="mainMenuBar" aria-label="Hoofdmenu">
   <a class="active" href="#calendar" data-i18n="menu_deals">Dagdeals</a>
-  <a href="#allDeals" data-i18n="menu_all">Alle deals</a>
+  
   <a href="#favorites" data-i18n="menu_favs">Favorieten</a>
   <a href="#catdrawer" data-i18n="menu_categories">Categorieën</a>
   <a href="#socialHub" data-i18n="menu_follow">Volgen</a>
@@ -305,16 +318,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 <svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">🍰</div><h4>Baklava</h4><small>1 kg</small><div class="mystery">🔒 Dagdealprijs verborgen</div><div class="chev">›</div></a><a class="dealcard upcoming" href="#deal28"><div class="ctop"><b>28</b><span>BINNENKORT</span></div><button class="favbtn" type="button" data-fav="28" aria-label="Favoriet toevoegen">
 <svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">🫧</div><h4>Mineraalwater</h4><small>6-pack</small><div class="mystery">🔒 Dagdealprijs verborgen</div><div class="chev">›</div></a><a class="dealcard upcoming" href="#deal29"><div class="ctop"><b>29</b><span>BINNENKORT</span></div><button class="favbtn" type="button" data-fav="29" aria-label="Favoriet toevoegen">
 <svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">🧺</div><h4>Waspoeder</h4><small>4 kg</small><div class="mystery">🔒 Dagdealprijs verborgen</div><div class="chev">›</div></a><a class="dealcard upcoming" href="#deal30"><div class="ctop"><b>30</b><span>BINNENKORT</span></div><button class="favbtn" type="button" data-fav="30" aria-label="Favoriet toevoegen">
-<svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">☕</div><h4>Turkse koffie</h4><small>250 g</small><div class="mystery">🔒 Dagdealprijs verborgen</div><div class="chev">›</div></a></main><div id="emptyFilter" class="emptyfilter"><b>Geen deals gevonden</b><span>Probeer een andere categorie.</span></div><section class="community"><label>BLIJF OP DE HOOGTE</label><h3>Mis morgen niet.</h3><p>Volg Emigro en zie als eerste welke Dagdeal live gaat.</p><div class="socialrow"><a href="#wa">💬 WhatsApp</a><a href="#ig">◎ Instagram</a></div></section>
-<section id="allDeals" class="allDealsSection">
-  <div class="allDealsHead"><div><h2 data-i18n="all_title">Alle Dagdeals</h2><p data-i18n="all_text">Alle producten die via Excel of handmatig zijn toegevoegd.</p></div><span id="allDealsCount" class="muted"></span></div>
-  <div class="allDealsTools">
-    <label class="allDealsSearch"><span>⌕</span><input id="allDealsSearchInput" placeholder="Zoek op productnaam..." data-i18n-placeholder="search_placeholder"></label>
-    <select id="allDealsStateFilter"><option value="all" data-i18n="filter_all">Alle statussen</option><option value="live" data-i18n="filter_live">Vandaag actief</option><option value="upcoming" data-i18n="filter_upcoming">Binnenkort</option><option value="expired" data-i18n="filter_expired">Afgelopen</option></select>
-  </div>
-  <div id="allDealsGrid" class="allDealsGrid"></div>
-</section>
-<section id="socialHub" class="socialHub">
+<svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">☕</div><h4>Turkse koffie</h4><small>250 g</small><div class="mystery">🔒 Dagdealprijs verborgen</div><div class="chev">›</div></a></main><div id="emptyFilter" class="emptyfilter"><b>Geen deals gevonden</b><span>Probeer een andere categorie.</span></div><section id="socialHub" class="socialHub">
   <div><small data-i18n="follow_kicker">VOLG EMIGRO</small><h2 data-i18n="follow_title">Mis geen enkele deal.</h2><p data-i18n="follow_text">Nieuwe Dagdeals, acties en updates direct via je favoriete kanaal.</p></div>
   <div class="socialHubLinks">
     <a id="socialWaHub" class="primarySocial" href="#" target="_blank" rel="noopener">💬 WhatsApp Channel</a>
@@ -325,7 +329,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   </div>
 </section>
 </div><section id="favorites" class="modal"><a class="shade" href="#calendar"></a><div class="sheet favsheet">
-<div class="grab"></div><a class="close" href="#calendar">×</a><div class="status">JOUW LIJST</div><h2>Favorieten</h2>
+<div class="grab"></div><a class="close" href="#calendar">×</a><div class="favBrand"><div class="favBrandLogo brand">EMIGRO<small>SUPERMARKT</small></div></div><div class="status">JOUW LIJST</div><h2>Favorieten</h2>
 <p class="sub">Opgeslagen op dit apparaat.</p>
 <div id="favList" class="favlist"></div>
 <div id="favEmpty" class="favempty"><span>♡</span><b>Nog geen favorieten</b><small>Tik op het hartje bij een Dagdeal.</small></div>
@@ -613,6 +617,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   }
 
   let selectedProductId=null;
+  let calendarStatusFilter="all";
   function renderHeroProduct(p){
     const hero=document.querySelector(".hero");if(!hero||!p)return;
     selectedProductId=String(p.id);
@@ -650,6 +655,10 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
         continue;
       }
       const st=dealState(p),label=st==="live"?"NU ACTIEF":st==="upcoming"?"BINNENKORT":"AFGELOPEN";
+      if(calendarStatusFilter!=="all"&&st!==calendarStatusFilter){
+        html+='<article class="dealcard monthEmpty"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>'+label+'</span></div><div class="emptyDayIcon">·</div><h4>Verborgen door filter</h4><small>'+date+'</small><div class="monthSlotState">Filter: '+calendarStatusFilter+'</div></article>';
+        continue;
+      }
       const price=frontPriceVisible(p)
         ?'<div class="old">'+money(p.regular_price)+'</div><div class="dealprice">'+money(p.deal_price)+'</div>'
         :'<div class="mystery">🔒 Dagdealprijs verborgen</div>';
@@ -724,6 +733,8 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     document.querySelectorAll("[data-i18n-html]").forEach(el=>{const k=el.dataset.i18nHtml;if(d[k])el.innerHTML=d[k]});
     document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{const k=el.dataset.i18nPlaceholder;if(d[k])el.placeholder=d[k]});
     document.querySelectorAll(".langSwitch button").forEach(b=>b.classList.toggle("on",b.dataset.lang===currentLang));
+    const sf=document.getElementById("headerStatusFilter");if(sf){const vals={nl:["Alle statussen","Nu actief","Binnenkort","Afgelopen"],tr:["Tüm durumlar","Şu an aktif","Yakında","Geçmiş"],en:["All statuses","Active now","Coming soon","Expired"]}[currentLang]||["Alle statussen","Nu actief","Binnenkort","Afgelopen"];[...sf.options].forEach((o,i)=>o.textContent=vals[i]||o.textContent)}
+  
     renderMonthCalendar(window.__emigroCentralDeals||allItems);
     renderFilteredAll();
   }
@@ -751,12 +762,11 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     document.getElementById("closeSearch")?.addEventListener("click",()=>document.getElementById("searchOverlay")?.classList.remove("on"));
     document.getElementById("searchOverlay")?.addEventListener("click",e=>{if(e.target.id==="searchOverlay")e.currentTarget.classList.remove("on")});
     document.getElementById("searchInput")?.addEventListener("input",e=>renderSearch(e.target.value));
-    document.getElementById("allDealsSearchInput")?.addEventListener("input",renderFilteredAll);
-    document.getElementById("allDealsStateFilter")?.addEventListener("change",renderFilteredAll);
-    document.getElementById("allDealsGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-product-id]");if(!card)return;const p=allItems.find(x=>String(x.id)===String(card.dataset.productId));if(p){renderHeroProduct(p);document.querySelector(".hero")?.scrollIntoView({behavior:"smooth",block:"center"})}});
     document.getElementById("calendarGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-month-product-id]");if(!card||e.target.closest(".favbtn"))return;const p=allItems.find(x=>String(x.id)===String(card.dataset.monthProductId));if(p){renderHeroProduct(p);document.querySelector(".hero")?.scrollIntoView({behavior:"smooth",block:"center"})}});
     document.getElementById("searchResults")?.addEventListener("click",e=>{const row=e.target.closest("[data-search-id]");if(!row)return;const p=allItems.find(x=>String(x.id)===String(row.dataset.searchId));if(p){document.getElementById("searchOverlay")?.classList.remove("on");openDynamicDeal(p)}});
     document.getElementById("dynamicDealModal")?.addEventListener("click",e=>{if(e.target.id==="dynamicDealModal")e.currentTarget.classList.remove("on")});
+    document.getElementById("headerStatusFilter")?.addEventListener("change",e=>{calendarStatusFilter=e.target.value||"all";renderMonthCalendar(window.__emigroCentralDeals||allItems)});
+  
   });
 document.addEventListener("click",e=>{const b=e.target.closest(".futureFavAction");if(!b)return;e.preventDefault();const day=Number(b.dataset.dynFav);if(!day)return;let f=[];try{f=JSON.parse(localStorage.getItem("emigro_dagdeals_favorites_v1")||"[]")}catch{}const i=f.indexOf(day);if(i>=0)f.splice(i,1);else f.push(day);localStorage.setItem("emigro_dagdeals_favorites_v1",JSON.stringify(f));b.textContent=f.includes(day)?"♥ In favorieten":"♡ Favorieten";});
   if(window.__emigroLiveSync){renderAll(window.__emigroLiveSync.items||[]);applySocial(window.__emigroLiveSync.settings||{});applyIconSettings(window.__emigroLiveSync.settings||{})}
