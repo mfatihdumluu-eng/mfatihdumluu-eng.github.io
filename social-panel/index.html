@@ -513,23 +513,73 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     s=Object.assign({},defaultLinks,s||{});
     [["socialWaTop","whatsapp"],["socialIgTop","instagram"],["socialFbTop","facebook"],["socialTtTop","tiktok"],["socialGrTop","googleReview"],["socialWaHub","whatsapp"],["socialIgHub","instagram"],["socialFbHub","facebook"],["socialTtHub","tiktok"],["socialGrHub","googleReview"]].forEach(([id,k])=>setLink(id,s[k]));
   }
+  function dealState(p,overrideDate,overrideTime){
+    let today=overrideDate||"",tm=overrideTime||"";
+    if(!today){
+      const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()),o={};
+      parts.forEach(x=>o[x.type]=x.value);today=o.year+"-"+o.month+"-"+o.day;tm=o.hour+":"+o.minute;
+    }
+    const d=String(p.deal_date||"");
+    if(p.sold||d<today)return"expired";
+    if(d>today)return"upcoming";
+    return String(p.start_time||"00:00").slice(0,5)<=tm?"live":"upcoming";
+  }
   function renderAll(items){
     allItems=(items||[]).filter(x=>String(x.status||"")!=="Niet publiceren");
-    const grid=document.getElementById("allDealsGrid"),count=document.getElementById("allDealsCount");if(!grid)return;
-    count.textContent=allItems.length+" producten";
-    grid.innerHTML=allItems.map(p=>'<article class="allDealCard"><div class="allDealVisual">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'">':catEmoji(p.category))+'</div><div class="allDealDate">'+esc(p.deal_date||"")+(p.sold?' · UITVERKOCHT':'')+'</div><h3>'+esc(p.name)+'</h3><div class="unit">'+esc(p.unit||"")+' · '+esc(p.category||"")+'</div><div class="allDealPrice"><del>'+money(p.regular_price)+'</del><strong>'+money(p.deal_price)+'</strong></div></article>').join("");
+    renderFilteredAll();
   }
-  function searchState(p){
-    const now=new Date(),parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(now),o={};parts.forEach(x=>o[x.type]=x.value);
-    const today=o.year+"-"+o.month+"-"+o.day,tm=o.hour+":"+o.minute,d=String(p.deal_date||"");
-    if(p.sold||d<today)return"expired";if(d>today)return"upcoming";return String(p.start_time||"00:00").slice(0,5)<=tm?"live":"upcoming";
+  function renderFilteredAll(){
+    const grid=document.getElementById("allDealsGrid"),count=document.getElementById("allDealsCount");if(!grid)return;
+    const q=(document.getElementById("allDealsSearchInput")?.value||"").trim().toLowerCase();
+    const sf=document.getElementById("allDealsStateFilter")?.value||"all";
+    const list=allItems.filter(p=>{
+      const st=dealState(p);
+      const text=(String(p.name)+" "+String(p.category)+" "+String(p.description)).toLowerCase();
+      return (!q||text.includes(q))&&(sf==="all"||st===sf);
+    });
+    count.textContent=list.length+" / "+allItems.length+" producten";
+    grid.innerHTML=list.map(p=>{
+      const st=dealState(p),label=st==="live"?"LIVE VANDAAG":st==="upcoming"?"BINNENKORT":"AFGELOPEN";
+      const price=st==="upcoming"
+        ?'<div class="futureHidden"><span>🔒 Dagdealprijs verborgen</span></div>'
+        :'<div class="allDealPrice"><del>'+money(p.regular_price)+'</del><strong>'+money(p.deal_price)+'</strong></div>';
+      return '<article class="allDealCard" data-product-id="'+esc(p.id)+'"><span class="dealStateBadge '+st+'">'+label+'</span><div class="allDealVisual">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'">':catEmoji(p.category))+'</div><div class="allDealDate">'+esc(p.deal_date||"")+(p.sold?' · UITVERKOCHT':'')+'</div><h3>'+esc(p.name)+'</h3><div class="unit">'+esc(p.unit||"")+' · '+esc(p.category||"")+'</div>'+price+'</article>';
+    }).join("")||'<div class="searchEmpty">Geen producten gevonden.</div>';
+  }
+  function isDynFav(id){try{return JSON.parse(localStorage.getItem("emigro_uploaded_favorites_v1")||"[]").map(String).includes(String(id))}catch{return false}}
+  function toggleDynFav(id){
+    let arr=[];try{arr=JSON.parse(localStorage.getItem("emigro_uploaded_favorites_v1")||"[]")}catch{}
+    arr=arr.map(String);const key=String(id),i=arr.indexOf(key);if(i>=0)arr.splice(i,1);else arr.push(key);
+    localStorage.setItem("emigro_uploaded_favorites_v1",JSON.stringify(arr));return arr.includes(key);
+  }
+  function isReminded(id){try{return JSON.parse(localStorage.getItem("emigro_deal_reminders_v1")||"[]").map(String).includes(String(id))}catch{return false}}
+  function toggleReminder(id){
+    let arr=[];try{arr=JSON.parse(localStorage.getItem("emigro_deal_reminders_v1")||"[]")}catch{}
+    arr=arr.map(String);const key=String(id),i=arr.indexOf(key);if(i>=0)arr.splice(i,1);else arr.push(key);
+    localStorage.setItem("emigro_deal_reminders_v1",JSON.stringify(arr));return arr.includes(key);
+  }
+  function openDynamicDeal(p){
+    const modal=document.getElementById("dynamicDealModal"),box=document.getElementById("dynamicDealBox");if(!modal||!box)return;
+    const st=dealState(p),label=st==="live"?"LIVE VANDAAG":st==="upcoming"?"BINNENKORT":"AFGELOPEN";
+    const pricing=st==="upcoming"
+      ?'<div class="dynamicLocked">🔒 <div><b>Dagdealprijs blijft geheim</b><span>De prijs verschijnt automatisch op '+esc(p.deal_date||"de Dagdeal-dag")+'.</span></div></div>'
+      :'<div class="dynamicPrice"><del>'+money(p.regular_price)+'</del><strong>'+money(p.deal_price)+'</strong></div>';
+    const reminded=isReminded(p.id),fav=isDynFav(p.id);
+    box.innerHTML='<button class="dynamicDealClose" type="button">×</button><div class="dynamicDealVisual">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'">':catEmoji(p.category))+'</div><div class="dynamicDealMeta">'+label+' · '+esc(p.deal_date||"")+'</div><h2>'+esc(p.name)+'</h2><div class="dynamicDealUnit">'+esc(p.unit||"")+' · '+esc(p.category||"")+'</div>'+pricing+'<p style="font-size:12px;line-height:1.55;color:#666">'+esc(p.description||"Dagdeal bij Emigro")+'</p><div class="dynamicActions">'+
+      (st==="upcoming"?'<button class="primary" id="dynReminder" type="button">'+(reminded?"✓ Herinnering ingesteld":"🔔 Herinner mij")+'</button>':'')+
+      '<button id="dynShare" type="button">↗ Stuur door</button><button id="dynFavorite" class="'+(fav?"saved":"")+'" type="button">'+(fav?"♥ In favorieten":"♡ Favorieten")+'</button></div>';
+    modal.dataset.productId=String(p.id);modal.classList.add("on");
+    box.querySelector(".dynamicDealClose").onclick=()=>modal.classList.remove("on");
+    const rb=box.querySelector("#dynReminder");if(rb)rb.onclick=()=>{const on=toggleReminder(p.id);rb.textContent=on?"✓ Herinnering ingesteld":"🔔 Herinner mij"};
+    const fb=box.querySelector("#dynFavorite");if(fb)fb.onclick=()=>{const on=toggleDynFav(p.id);fb.classList.toggle("saved",on);fb.textContent=on?"♥ In favorieten":"♡ Favorieten"};
+    const sb=box.querySelector("#dynShare");if(sb)sb.onclick=async()=>{const text=p.name+" — Emigro Dagdeal "+p.deal_date;try{if(navigator.share)await navigator.share({title:p.name,text,url:location.href});else{await navigator.clipboard.writeText(text+" "+location.href);sb.textContent="✓ Link gekopieerd"}}catch{}};
   }
   function renderSearch(q){
     const box=document.getElementById("searchResults");if(!box)return;
     q=String(q||"").trim().toLowerCase();
     if(!q){box.innerHTML='<div class="searchEmpty">Typ een productnaam om in alle Dagdeals te zoeken.</div>';return}
     const list=allItems.filter(p=>(String(p.name)+" "+String(p.category)+" "+String(p.description)).toLowerCase().includes(q)).slice(0,30);
-    box.innerHTML=list.length?list.map(p=>{const st=searchState(p),label=st==="live"?"LIVE VANDAAG":st==="upcoming"?"BINNENKORT":"AFGELOPEN";return '<div class="searchResult"><div class="searchThumb">'+(p.image_url?'<img src="'+esc(p.image_url)+'">':catEmoji(p.category))+'</div><div><b>'+esc(p.name)+'</b><small>'+esc(p.unit||"")+' · '+esc(p.category||"")+'</small><span class="searchStatus '+st+'">'+label+'</span></div><div class="searchPrice">'+money(p.deal_price)+'</div></div>'}).join(""):'<div class="searchEmpty">Geen producten gevonden.</div>';
+    box.innerHTML=list.length?list.map(p=>{const st=dealState(p),label=st==="live"?"LIVE VANDAAG":st==="upcoming"?"BINNENKORT":"AFGELOPEN";const price=st==="upcoming"?"🔒":money(p.deal_price);return '<div class="searchResult" data-search-id="'+esc(p.id)+'"><div class="searchThumb">'+(p.image_url?'<img src="'+esc(p.image_url)+'">':catEmoji(p.category))+'</div><div><b>'+esc(p.name)+'</b><small>'+esc(p.unit||"")+' · '+esc(p.category||"")+'</small><span class="searchStatus '+st+'">'+label+'</span></div><div class="searchPrice">'+price+'</div></div>'}).join(""):'<div class="searchEmpty">Geen producten gevonden.</div>';
   }
   const baseDeals=window.__applyCentralDeals;
   window.__applyCentralDeals=function(items){if(baseDeals)baseDeals(items);renderAll(items);};
@@ -541,7 +591,13 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     document.getElementById("closeSearch")?.addEventListener("click",()=>document.getElementById("searchOverlay")?.classList.remove("on"));
     document.getElementById("searchOverlay")?.addEventListener("click",e=>{if(e.target.id==="searchOverlay")e.currentTarget.classList.remove("on")});
     document.getElementById("searchInput")?.addEventListener("input",e=>renderSearch(e.target.value));
+    document.getElementById("allDealsSearchInput")?.addEventListener("input",renderFilteredAll);
+    document.getElementById("allDealsStateFilter")?.addEventListener("change",renderFilteredAll);
+    document.getElementById("allDealsGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-product-id]");if(!card)return;const p=allItems.find(x=>String(x.id)===String(card.dataset.productId));if(p)openDynamicDeal(p)});
+    document.getElementById("searchResults")?.addEventListener("click",e=>{const row=e.target.closest("[data-search-id]");if(!row)return;const p=allItems.find(x=>String(x.id)===String(row.dataset.searchId));if(p){document.getElementById("searchOverlay")?.classList.remove("on");openDynamicDeal(p)}});
+    document.getElementById("dynamicDealModal")?.addEventListener("click",e=>{if(e.target.id==="dynamicDealModal")e.currentTarget.classList.remove("on")});
   });
+document.addEventListener("click",e=>{const b=e.target.closest(".futureFavAction");if(!b)return;e.preventDefault();const day=Number(b.dataset.dynFav);if(!day)return;let f=[];try{f=JSON.parse(localStorage.getItem("emigro_dagdeals_favorites_v1")||"[]")}catch{}const i=f.indexOf(day);if(i>=0)f.splice(i,1);else f.push(day);localStorage.setItem("emigro_dagdeals_favorites_v1",JSON.stringify(f));b.textContent=f.includes(day)?"♥ In favorieten":"♡ Favorieten";});
   if(window.__emigroLiveSync){renderAll(window.__emigroLiveSync.items||[]);applySocial(window.__emigroLiveSync.settings||{})}
   else applySocial(defaultLinks);
 })();
