@@ -333,10 +333,10 @@ body{background:#eceae6}
 
 
 /* Admin controlled artwork for the main card. Product timing and prices stay live. */
-.hero.heroArtwork{--hero-cover:none;--hero-shade:rgba(0,0,0,.25);--hero-image-position:50%;--hero-title-color:#fff;--hero-copy-color:#fff;--hero-title-size:58px;--hero-title-mobile-size:32px;--hero-copy-size:18px;--hero-copy-mobile-size:14px;background-image:linear-gradient(90deg,var(--hero-shade),transparent),var(--hero-cover)!important;background-size:cover!important;background-position:var(--hero-image-position) center!important}
+.hero.heroArtwork{--hero-cover:none;--hero-shade:rgba(0,0,0,.25);--hero-image-position:50%;--hero-image-position-y:50%;--hero-text-x:0%;--hero-text-y:0%;--hero-title-color:#fff;--hero-copy-color:#fff;--hero-title-size:58px;--hero-title-mobile-size:32px;--hero-copy-size:18px;--hero-copy-mobile-size:14px;background-image:linear-gradient(90deg,var(--hero-shade),transparent),var(--hero-cover)!important;background-size:cover!important;background-position:var(--hero-image-position) var(--hero-image-position-y)!important}
 .hero.heroArtwork::before{display:none}
 .hero.heroArtwork .herobody{justify-content:flex-end}
-.hero.heroCustomText .herotxt{flex:0 1 58%;color:var(--hero-copy-color);position:relative;z-index:2}
+.hero.heroCustomText .herotxt{flex:0 1 58%;color:var(--hero-copy-color);position:relative;z-index:2;transform:translate(var(--hero-text-x),var(--hero-text-y))}
 .hero.heroCustomText .herotxt h2{font-size:var(--hero-title-size)!important;color:var(--hero-title-color)!important;overflow-wrap:anywhere}
 .hero.heroCustomText .heroCustomCopy{font-size:var(--hero-copy-size);color:var(--hero-copy-color);line-height:1.4;font-weight:700;white-space:pre-line;overflow-wrap:anywhere;margin:8px 0}
 .hero.heroCustomText .heroProductIdentity{display:block;font-size:14px;font-weight:800;color:var(--hero-copy-color);margin:4px 0 7px}
@@ -734,6 +734,9 @@ body{background:#eceae6}
     hero.style.setProperty("--hero-title-color",color(settings.heroHeadingColor));
     hero.style.setProperty("--hero-copy-color",color(settings.heroCopyColor));
     hero.style.setProperty("--hero-image-position",clamp(settings.heroImagePosition,0,100,50)+"%");
+    hero.style.setProperty("--hero-image-position-y",clamp(settings.heroImagePositionY,0,100,50)+"%");
+    hero.style.setProperty("--hero-text-x",clamp(settings.heroTextOffsetX,-25,25,0)+"%");
+    hero.style.setProperty("--hero-text-y",clamp(settings.heroTextOffsetY,-25,25,0)+"%");
     hero.style.setProperty("--hero-shade","rgba(0,0,0,"+(clamp(settings.heroShade,0,80,30)/100)+")");
     if(validImage)hero.style.setProperty("--hero-cover",'url("'+img+'")');
     else hero.style.removeProperty("--hero-cover");
