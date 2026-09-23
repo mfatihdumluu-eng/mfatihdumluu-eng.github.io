@@ -304,7 +304,7 @@ function fillSettings(){
 function collectSettings(){
   settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0),whatsapp:settings.whatsapp||DEFAULT_SETTINGS.whatsapp,instagram:settings.instagram||DEFAULT_SETTINGS.instagram,facebook:settings.facebook||DEFAULT_SETTINGS.facebook,tiktok:settings.tiktok||"",googleReview:settings.googleReview||DEFAULT_SETTINGS.googleReview,socialIconStyle:$("setSocialIconStyle").value||"circle",socialIconSize:Number($("setSocialIconSize").value||34),socialChannels:currentSocialChannels()};
   return settings;
-}}
+}
 $("settingsBtn").onclick=()=>{fillSettings();openModal("settingsModal");setTimeout(sendPreview,300)};
 $("previewBtn").onclick=()=>{fillSettings();openModal("settingsModal");setTimeout(sendPreview,300)};
 $("desktopPreviewBtn").onclick=()=>{$("previewFrame").classList.remove("mobile");$("desktopPreviewBtn").classList.add("on");$("mobilePreviewBtn").classList.remove("on")};
