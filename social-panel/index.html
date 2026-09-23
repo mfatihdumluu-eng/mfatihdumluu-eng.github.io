@@ -539,7 +539,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
  }
  window.__applyCentralDeals=applyCentralDeals;
  window.addEventListener("message",e=>{if(e&&e.data&&e.data.type==="emigro-preview-products")applyCentralDeals(e.data.items||[])});
- fetch(DB+"&_="+Date.now(),{cache:"no-store",headers:{apikey:ANON,Authorization:"Bearer "+ANON}}).then(r=>r.ok?r.json():Promise.reject(r.status)).then(applyCentralDeals).catch(()=>{});
+ /* Legacy direct REST fetch disabled: public live API is the single source of truth. */
 })();
 </script>
 
