@@ -60,6 +60,11 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
 .socialManagerHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
 .socialUploadLabel{display:inline-flex;align-items:center;justify-content:center;border:1px solid #ddd;border-radius:9px;padding:7px 8px;font-size:9px;font-weight:900;cursor:pointer}
 @media(max-width:900px){.socialRowAdmin{grid-template-columns:46px 1fr}.socialRowAdmin>*{min-width:0}.socialRowAdmin .socialUrl,.socialRowAdmin .socialOrder,.socialRowAdmin .socialToggle,.socialRowAdmin .removeSocial{grid-column:auto}}
+
+.timelineBadge{display:inline-flex;border-radius:999px;padding:5px 7px;font-size:8px;font-weight:1000;margin-top:4px}.timelineBadge.current{background:#e7f7ed;color:#137d43}.timelineBadge.future{background:#fff4d7;color:#8b6500}.timelineBadge.past{background:#efefef;color:#777}
+.monthPlan{margin:14px 0 0;background:#fff;border:1px solid #e5e1db;border-radius:17px;padding:14px}.monthPlanHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.monthPlanHead b{font-size:13px}.monthPlanHead span{font-size:10px;color:#777}
+.monthPlanGrid{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}.monthPlanDay{border:1px solid #e7e3dd;border-radius:10px;min-height:58px;padding:6px;background:#faf9f7;cursor:pointer}.monthPlanDay b{display:block;font-size:10px}.monthPlanDay small{font-size:8px;color:#777;display:block;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.monthPlanDay.current{border-color:#93d3ae;background:#effaf3}.monthPlanDay.future{background:#fffaf0}.monthPlanDay.past{opacity:.7}.monthPlanDay.empty{border-style:dashed;color:#aaa}
+@media(max-width:900px){.monthPlanGrid{grid-template-columns:repeat(5,1fr)}}
 </style>
 </head>
 <body>
@@ -94,17 +99,22 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
 
   <div class="stats">
     <div class="stat"><small>TOPLAM</small><b id="sTotal">0</b></div>
-    <div class="stat"><small>AKTİF</small><b id="sActive">0</b></div>
+    <div class="stat"><small>ŞU AN AKTİF</small><b id="sCurrent">0</b></div>
+    <div class="stat"><small>GEÇMİŞ</small><b id="sPast">0</b></div>
+    <div class="stat"><small>GELECEK</small><b id="sFuture">0</b></div>
     <div class="stat"><small>PASİF</small><b id="sPassive">0</b></div>
     <div class="stat"><small>TÜKENDİ</small><b id="sSold">0</b></div>
-    <div class="stat"><small>FOTOĞRAFLI</small><b id="sPhoto">0</b></div>
   </div>
 
   <div class="card">
     <div class="tabletop"><b>Dagdeal ürünleri</b><span class="muted">Aktif/pasif tüm yüklenen ürünler burada görünür.</span></div>
-    <div class="filterbar"><button class="on" data-list-filter="all">Tümü</button><button data-list-filter="active">Aktif</button><button data-list-filter="passive">Pasif</button><button data-list-filter="sold">Tükendi</button></div>
+    <div class="filterbar"><button class="on" data-list-filter="all">Tümü</button><button data-list-filter="current">Şu an aktif</button><button data-list-filter="past">Geçmiş</button><button data-list-filter="future">Gelecek</button><button data-list-filter="passive">Pasif</button><button data-list-filter="sold">Tükendi</button></div>
     <div class="scroll"><table><thead><tr><th>FOTO</th><th>TARİH</th><th>ÜRÜN</th><th>FİYAT</th><th>AÇIKLAMA</th><th>DURUM</th><th>İŞLEM</th></tr></thead><tbody id="rows"></tbody></table></div>
   </div>
+  <section class="monthPlan">
+    <div class="monthPlanHead"><b id="monthPlanTitle">Ay planı</b><span id="monthPlanSummary"></span></div>
+    <div id="monthPlanGrid" class="monthPlanGrid"></div>
+  </section>
 </main>
 
 <div id="editorModal" class="modal"><div class="box">
@@ -226,21 +236,56 @@ async function loadAll(){
   settings=Object.assign({},DEFAULT_SETTINGS,s.settings||{});
   renderTable();fillSettings();sendPreview();
 }
+
+function nlNow(){
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Amsterdam",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()),o={};
+  parts.forEach(x=>o[x.type]=x.value);return{date:o.year+"-"+o.month+"-"+o.day,time:o.hour+":"+o.minute}
+}
+function shiftDate(d,n){const [y,m,dd]=String(d).split("-").map(Number),dt=new Date(Date.UTC(y,m-1,dd));dt.setUTCDate(dt.getUTCDate()+n);return dt.toISOString().slice(0,10)}
+function activeScheduleDate(){const n=nlNow();return n.time>="21:00"?shiftDate(n.date,1):n.date}
+function scheduleState(p){const d=String(p.deal_date||""),active=activeScheduleDate();if(d<active)return"past";if(d>active)return"future";return"current"}
+function scheduleLabel(st){return st==="current"?"ŞU AN AKTİF":st==="future"?"GELECEK":"GEÇMİŞ"}
+function renderMonthPlan(){
+  const n=nlNow(),[y,m]=n.date.split("-").map(Number),days=new Date(Date.UTC(y,m,0)).getUTCDate(),key=y+"-"+String(m).padStart(2,"0"),active=activeScheduleDate();
+  const byDate=new Map();products.forEach(p=>{if(String(p.deal_date||"").startsWith(key))byDate.set(String(p.deal_date),p)});
+  $("monthPlanTitle").textContent=key+" ay planı";
+  $("monthPlanSummary").textContent=days+" gün · "+byDate.size+" ürün · "+(days-byDate.size)+" boş gün";
+  let html="";
+  for(let d=1;d<=days;d++){
+    const date=key+"-"+String(d).padStart(2,"0"),p=byDate.get(date),st=date<active?"past":date>active?"future":"current";
+    html+='<div class="monthPlanDay '+st+' '+(!p?"empty":"")+'" data-plan-date="'+date+'" '+(p?'data-plan-id="'+p.id+'"':'')+'><b>'+String(d).padStart(2,"0")+'</b><small>'+(p?esc(p.name):"Boş gün")+'</small></div>';
+  }
+  $("monthPlanGrid").innerHTML=html;
+  document.querySelectorAll("[data-plan-id]").forEach(x=>x.onclick=()=>openEditor(Number(x.dataset.planId)));
+  document.querySelectorAll(".monthPlanDay.empty").forEach(x=>x.onclick=()=>{openEditor(null);$("pDate").value=x.dataset.planDate});
+}
 function renderTable(){
-  const visible=products.filter(p=>listFilter==="all"||(listFilter==="active"&&!p.sold&&p.status!=="Niet publiceren")||(listFilter==="passive"&&p.status==="Niet publiceren")||(listFilter==="sold"&&p.sold));
+  const visible=products.filter(p=>{
+    const st=scheduleState(p);
+    if(listFilter==="all")return true;
+    if(listFilter==="current")return st==="current"&&p.status!=="Niet publiceren"&&!p.sold;
+    if(listFilter==="past")return st==="past";
+    if(listFilter==="future")return st==="future";
+    if(listFilter==="passive")return p.status==="Niet publiceren";
+    if(listFilter==="sold")return !!p.sold;
+    return true;
+  });
   $("rows").innerHTML=visible.map(p=>{
-    const state=p.sold?'<span class="stateBadge sold">● TÜKENDİ</span>':p.status==="Niet publiceren"?'<span class="stateBadge passive">● PASİF</span>':'<span class="stateBadge active">● AKTİF</span>';
-    return '<tr><td><div class="photo">'+(p.image_url?'<img src="'+esc(p.image_url)+'">':"Foto +")+'</div></td><td><b>'+esc(p.deal_date)+'</b><br>'+esc(String(p.start_time||"").slice(0,5))+'</td><td><b>'+esc(p.name)+'</b><br><span class="muted">'+esc(p.unit)+' · '+esc(p.category)+'</span></td><td><s>'+money(p.regular_price)+'</s><br><b>'+money(p.deal_price)+'</b></td><td>'+esc(p.description||"—")+'</td><td>'+state+'</td><td><div class="actions"><button class="btn" data-edit="'+p.id+'">Düzenle</button><button class="btn" data-passive="'+p.id+'">'+(p.status==="Niet publiceren"?"Aktif yap":"Pasif yap")+'</button><button class="btn black" data-sold="'+p.id+'">'+(p.sold?"Aktif yap":"Tükendi")+'</button><button class="btn" data-del="'+p.id+'">Sil</button></div></td></tr>';
+    const pub=p.sold?'<span class="stateBadge sold">● TÜKENDİ</span>':p.status==="Niet publiceren"?'<span class="stateBadge passive">● PASİF</span>':'<span class="stateBadge active">● YAYINDA</span>';
+    const st=scheduleState(p),timeline='<span class="timelineBadge '+st+'">'+scheduleLabel(st)+'</span>';
+    return '<tr><td><div class="photo">'+(p.image_url?'<img src="'+esc(p.image_url)+'">':"Foto +")+'</div></td><td><b>'+esc(p.deal_date)+'</b><br><span class="muted">21:00 → ertesi gün 20:59</span></td><td><b>'+esc(p.name)+'</b><br><span class="muted">'+esc(p.unit)+' · '+esc(p.category)+'</span></td><td><s>'+money(p.regular_price)+'</s><br><b>'+money(p.deal_price)+'</b></td><td>'+esc(p.description||"—")+'</td><td>'+pub+'<br>'+timeline+'</td><td><div class="actions"><button class="btn" data-edit="'+p.id+'">Düzenle</button><button class="btn" data-passive="'+p.id+'">'+(p.status==="Niet publiceren"?"Aktif yap":"Pasif yap")+'</button><button class="btn black" data-sold="'+p.id+'">'+(p.sold?"Aktif yap":"Tükendi")+'</button><button class="btn" data-del="'+p.id+'">Sil</button></div></td></tr>';
   }).join("");
   $("sTotal").textContent=products.length;
-  $("sActive").textContent=products.filter(p=>!p.sold&&p.status!=="Niet publiceren").length;
+  $("sCurrent").textContent=products.filter(p=>scheduleState(p)==="current"&&p.status!=="Niet publiceren"&&!p.sold).length;
+  $("sPast").textContent=products.filter(p=>scheduleState(p)==="past").length;
+  $("sFuture").textContent=products.filter(p=>scheduleState(p)==="future").length;
   $("sPassive").textContent=products.filter(p=>p.status==="Niet publiceren").length;
   $("sSold").textContent=products.filter(p=>p.sold).length;
-  $("sPhoto").textContent=products.filter(p=>p.image_url).length;
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEditor(Number(b.dataset.edit)));
   document.querySelectorAll("[data-sold]").forEach(b=>b.onclick=()=>{const p=products.find(x=>Number(x.id)===Number(b.dataset.sold));if(p){p.sold=!p.sold;renderTable();sendPreview()}});
   document.querySelectorAll("[data-passive]").forEach(b=>b.onclick=()=>{const p=products.find(x=>Number(x.id)===Number(b.dataset.passive));if(p){p.status=p.status==="Niet publiceren"?"Klaar":"Niet publiceren";renderTable();sendPreview()}});
   document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Ürün silinsin mi?")){products=products.filter(x=>Number(x.id)!==Number(b.dataset.del));renderTable();sendPreview()}});
+  renderMonthPlan();
 }
 document.querySelectorAll("[data-list-filter]").forEach(b=>b.onclick=()=>{listFilter=b.dataset.listFilter;document.querySelectorAll("[data-list-filter]").forEach(x=>x.classList.toggle("on",x===b));renderTable()});
 function blankProduct(){return{id:Date.now(),deal_date:new Date().toISOString().slice(0,10),start_time:"08:00",name:"",unit:"",category:"Dranken",regular_price:0,deal_price:0,op_op:false,description:"",status:"Klaar",sold:false,image_url:"",note:""}}
