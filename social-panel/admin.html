@@ -202,7 +202,7 @@ th{font-size:9px;color:#777;background:#faf9f7}.actions{display:flex;gap:5px;fle
       <div class="previewStage"><iframe id="previewFrame" src="./index.html?preview=1" title="Preview"></iframe></div>
     </div>
   </div>
-  <div class="savebar"><button data-close="settingsModal" class="btn">Kapat</button><button id="publishFromSettingsBtn" class="btn red">Canlıya Gönder</button></div>
+  <div class="savebar"><span id="settingsPublishState" class="pubstate"></span><button data-close="settingsModal" class="btn">Kapat</button><button id="publishFromSettingsBtn" class="btn red">Canlıya Gönder</button></div>
 </div></div>
 
 <div id="statsModal" class="modal"><div class="box">
@@ -357,7 +357,7 @@ function currentSocialChannels(){
   return rows.map((row,i)=>({
     id:row.dataset.id||("social-"+Date.now()+"-"+i),
     name:row.querySelector(".socialName")?.value.trim()||"",
-    url:row.querySelector(".socialUrl")?.value.trim()||"",
+    url:normalizeExternalUrl(row.querySelector(".socialUrl")?.value||""),
     icon:row.querySelector(".socialIconPreview")?.dataset.icon||"",
     enabled:!!row.querySelector(".socialEnabled")?.checked,
     order:Number(row.querySelector(".socialOrder")?.value||i+1)
@@ -398,8 +398,14 @@ function fillSettings(){
   $("campaignStart").value=settings.campaignStart||"";
   $("campaignEnd").value=settings.campaignEnd||"";
 }
+function normalizeExternalUrl(v){
+  v=String(v||"").trim();
+  if(!v)return "";
+  if(/^https?:\/\//i.test(v))return v;
+  return "https://"+v.replace(/^\/+/, "");
+}
 function collectSettings(){
-  settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0),whatsapp:settings.whatsapp||DEFAULT_SETTINGS.whatsapp,instagram:settings.instagram||DEFAULT_SETTINGS.instagram,facebook:settings.facebook||DEFAULT_SETTINGS.facebook,tiktok:settings.tiktok||"",googleReview:settings.googleReview||DEFAULT_SETTINGS.googleReview,socialIconStyle:$("setSocialIconStyle").value||"circle",socialIconSize:Number($("setSocialIconSize").value||34),socialChannels:currentSocialChannels(),categoryIcons:collectCategoryIcons(),campaignEnabled:$("campaignEnabled").checked,campaignTitle:$("campaignTitle").value.trim()||"Week Actie",campaignLink:$("campaignLink").value.trim(),campaignStart:$("campaignStart").value,campaignEnd:$("campaignEnd").value,campaignShowInactive:$("campaignShowInactive").checked};
+  settings={brand:$("setBrand").value.trim()||"EMIGRO",subtitle:$("setSubtitle").value.trim()||"SUPERMARKT",primary:$("setPrimary").value,primaryDark:$("setPrimaryDark").value,paper:$("setPaper").value,ink:$("setInk").value,muted:$("setMuted").value,logo:$("logoPreview").dataset.value||"",logoWidthDesktop:Number($("setLogoWidthDesktop").value||220),logoWidthMobile:Number($("setLogoWidthMobile").value||150),logoAlign:$("setLogoAlign").value||"left",logoOffsetX:Number($("setLogoOffsetX").value||0),logoOffsetY:Number($("setLogoOffsetY").value||0),whatsapp:settings.whatsapp||DEFAULT_SETTINGS.whatsapp,instagram:settings.instagram||DEFAULT_SETTINGS.instagram,facebook:settings.facebook||DEFAULT_SETTINGS.facebook,tiktok:settings.tiktok||"",googleReview:settings.googleReview||DEFAULT_SETTINGS.googleReview,socialIconStyle:$("setSocialIconStyle").value||"circle",socialIconSize:Number($("setSocialIconSize").value||34),socialChannels:currentSocialChannels(),categoryIcons:collectCategoryIcons(),campaignEnabled:$("campaignEnabled").checked,campaignTitle:$("campaignTitle").value.trim()||"Week Actie",campaignLink:normalizeExternalUrl($("campaignLink").value),campaignStart:$("campaignStart").value,campaignEnd:$("campaignEnd").value,campaignShowInactive:$("campaignShowInactive").checked};
   return settings;
 }
 $("settingsBtn").onclick=()=>{fillSettings();openModal("settingsModal");setTimeout(sendPreview,300)};
@@ -443,9 +449,9 @@ function sendPreview(){
   f.contentWindow.postMessage({type:"emigro-preview-clock",clock:currentPreviewClock()},"*");
 }
 async function publishAll(){
-  $("publishState").textContent="Gönderiliyor...";
+  $("publishState").textContent="Gönderiliyor...";if($("settingsPublishState"))$("settingsPublishState").textContent="Gönderiliyor...";
   try{
-    const s=$("settingsModal").classList.contains("on")?collectSettings():settings;
+    const s=$("settingsModal").classList.contains("on")?collectSettings():Object.assign({},settings);
     const a=await api({action:"save_all",token,items:products});
     if(Array.isArray(a.ids)&&a.ids.length===products.length){
       products=products.map((p,i)=>Object.assign({},p,{id:Number(a.ids[i])}));
@@ -463,19 +469,26 @@ async function publishAll(){
       const liveItems=Array.isArray(live.items)?live.items:[];
       const expected=products.filter(p=>p.status!=="Niet publiceren");
       const idsOk=expected.every(p=>liveItems.some(x=>Number(x.id)===Number(p.id)&&String(x.name||"")===String(p.name||"")));
-      const settingsOk=Number(live.settings?.logoWidthDesktop||220)===Number(s.logoWidthDesktop||220)
-        && String(live.settings?.logoAlign||"left")===String(s.logoAlign||"left")
-        && Number(live.settings?.logoOffsetX||0)===Number(s.logoOffsetX||0);
+      const liveSettings=live.settings||{};
+      const settingsOk=Number(liveSettings.logoWidthDesktop||220)===Number(s.logoWidthDesktop||220)
+        && String(liveSettings.logoAlign||"left")===String(s.logoAlign||"left")
+        && Number(liveSettings.logoOffsetX||0)===Number(s.logoOffsetX||0)
+        && Boolean(liveSettings.campaignEnabled)===Boolean(s.campaignEnabled)
+        && String(liveSettings.campaignTitle||"")===String(s.campaignTitle||"")
+        && String(liveSettings.campaignLink||"")===String(s.campaignLink||"")
+        && String(liveSettings.campaignStart||"")===String(s.campaignStart||"")
+        && String(liveSettings.campaignEnd||"")===String(s.campaignEnd||"")
+        && JSON.stringify(liveSettings.socialChannels||[])===JSON.stringify(s.socialChannels||[]);
       if(idsOk&&settingsOk){verified=true;break}
     }
     if(!verified){
       console.warn("Live verification delayed",lastLive);
-      $("publishState").textContent="Kaydedildi ✓ — canlı eşitleme bekleniyor";
+      $("publishState").textContent="Kaydedildi ✓ — canlı eşitleme bekleniyor";if($("settingsPublishState"))$("settingsPublishState").textContent="Kaydedildi ✓ — canlı eşitleme bekleniyor";
     }else{
-      $("publishState").textContent="Canlı doğrulandı ✓";
+      $("publishState").textContent="Canlı doğrulandı ✓";if($("settingsPublishState"))$("settingsPublishState").textContent="Canlı doğrulandı ✓";
     }
     setTimeout(()=>$("publishState").textContent="",5000);
-  }catch(e){$("publishState").textContent="Hata";alert("Canlıya gönderilemedi: "+e.message)}
+  }catch(e){$("publishState").textContent="Hata";if($("settingsPublishState"))$("settingsPublishState").textContent="Hata";alert("Canlıya gönderilemedi: "+e.message)}
 }
 $("publishBtn").onclick=publishAll;$("publishFromSettingsBtn").onclick=publishAll;
 
