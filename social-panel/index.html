@@ -296,6 +296,28 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 .shareChannel{border:1px solid #ddd;background:#fff;border-radius:12px;padding:10px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:#222;font-size:9px;font-weight:900;min-height:74px}
 .shareChannel img{width:28px;height:28px;object-fit:contain}.shareChannel .fallback{font-size:22px}
 @media(max-width:600px){.shareChannels{grid-template-columns:repeat(2,1fr)}}
+
+/* Reference inspired surface and type polish: visual styles only. */
+:root{--paper:#f8f7f4;--line:#e7e4df;--muted:#66625e}
+body{background:#eceae6}
+.welcome .kicker{letter-spacing:.22em}
+.welcome h1{font-weight:900}
+.welcome p{color:#66625e;line-height:1.5}
+.tip{background:#f1f0ed;border-color:#e8e5df;color:#555;line-height:1.45}
+.dealcard{border-color:var(--line);border-radius:20px;box-shadow:0 1px 2px #0000000a,0 8px 24px -12px #00000030}
+.dealcard.live{box-shadow:0 2px 4px #cf101912,0 10px 26px #cf101924}
+.dealcard.monthEmpty{background:#fff!important;border-color:#dcd8d2!important}
+.chip,.shareChannel,.catoptions button{box-shadow:0 1px 2px #0000000a}
+.chip:hover,.shareChannel:hover,.catoptions button:hover{border-color:#cbc4bb}
+.chip:focus-visible,.dealcard:focus-visible,.headerStatusFilter:focus-visible,.shareChannel:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.monthhead b{font-weight:900}
+.scheduledCampaign:not(.active){background:#f1f0ed;color:#666;border-color:#e1ddd6}
+@media(min-width:1100px){
+  .app{background:var(--paper)}
+  .mainMenuBar a{border-radius:999px;padding:9px 14px}
+  .mainMenuBar a:hover,.mainMenuBar a.active{background:#fff0f1}
+}
+
 </style></head><body><div class="app" id="calendar">
 <div class="siteTopbar">
   <div class="topLeft"><a href="tel:0703888813">☎ 070 388 8813</a><span>✉ info@emigro.nl</span></div>
