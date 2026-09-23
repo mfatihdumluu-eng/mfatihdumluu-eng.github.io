@@ -257,6 +257,16 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 .headerFavorite{font-size:22px!important}
 .favBrand{display:flex;justify-content:center;margin:2px 0 10px}.favBrandLogo{font-size:24px!important;font-weight:1000!important;line-height:.9!important;text-align:center}.favBrandLogo small{display:block!important;font-size:7px!important;letter-spacing:1.2px!important;margin-top:4px!important}
 @media(max-width:1099px){.headerStatusFilter{max-width:132px;height:32px;font-size:9px}.headerToolPill{display:none!important}}
+
+/* V22 streamlined deals layout */
+.community,#allDeals{display:none!important}
+.headerDealFilter{height:36px;border:1px solid #e3e3e3;background:#fff;border-radius:999px;padding:0 30px 0 12px;font-size:10px;font-weight:800;color:#555;outline:none}
+.headerDealFilter:focus{border-color:#bbb}
+.favLogoWrap{display:flex;justify-content:center;align-items:center;margin:4px 0 14px;min-height:54px}
+.favLogoWrap img{max-width:180px;max-height:54px;object-fit:contain}
+.favLogoText{font-size:25px;font-weight:1000}.favLogoText small{display:block;font-size:8px;letter-spacing:2px;text-align:center;color:#888;margin-top:2px}
+.dealcard.hiddenByHeaderFilter{display:none!important}
+@media(max-width:1099px){.headerDealFilter{height:32px;max-width:145px;font-size:9px;padding-left:9px}.headerTools{gap:6px}}
 </style></head><body><div class="app" id="calendar">
 <div class="siteTopbar">
   <div class="topLeft"><a href="tel:0703888813">☎ 070 388 8813</a><span>✉ info@emigro.nl</span></div>
@@ -644,27 +654,55 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   }
   function renderMonthCalendar(items){
     const grid=document.getElementById("calendarGrid");if(!grid)return;
-    const info=monthInfo(),byDate=new Map();
+    const info=monthInfo(),byDate=new Map(),active=frontActiveDate();
     (items||[]).filter(x=>String(x.status||"")!=="Niet publiceren").forEach(x=>{if(String(x.deal_date||"").startsWith(info.key))byDate.set(String(x.deal_date),x)});
     const head=document.querySelector(".monthhead b");if(head)head.textContent=monthName(info.month,currentLang)+" "+info.year;
-    let html="";
+    const slots=[];
     for(let day=1;day<=info.days;day++){
       const date=info.key+"-"+String(day).padStart(2,"0"),p=byDate.get(date);
+      let group=3;
+      if(p){
+        const st=dealState(p);
+        group=st==="live"?0:st==="upcoming"?1:4;
+      }else{
+        group=date>=active?2:5;
+      }
+      slots.push({day,date,p,group});
+    }
+    slots.sort((a,b)=>{
+      if(a.group!==b.group)return a.group-b.group;
+      if(a.group===4||a.group===5)return b.date.localeCompare(a.date);
+      return a.date.localeCompare(b.date);
+    });
+    let html="";
+    for(const slot of slots){
+      const {day,date,p}=slot;
       if(!p){
-        html+='<article class="dealcard monthEmpty"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>LEEG</span></div><div class="emptyDayIcon">＋</div><h4>Nog geen Dagdeal</h4><small>'+date+'</small><div class="monthSlotState">Nog niet ingepland</div></article>';
+        const past=date<active;
+        html+='<article class="dealcard monthEmpty '+(past?"expired":"upcoming")+'" data-filter-state="'+(past?"expired":"future")+'"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>'+(past?"AFGELOPEN":"LEEG")+'</span></div><div class="emptyDayIcon">＋</div><h4>Nog geen Dagdeal</h4><small>'+date+'</small><div class="monthSlotState">'+(past?"Geen Dagdeal ingepland":"Nog niet ingepland")+'</div></article>';
         continue;
       }
       const st=dealState(p),label=st==="live"?"NU ACTIEF":st==="upcoming"?"BINNENKORT":"AFGELOPEN";
-      if(calendarStatusFilter!=="all"&&st!==calendarStatusFilter){
-        html+='<article class="dealcard monthEmpty"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>'+label+'</span></div><div class="emptyDayIcon">·</div><h4>Verborgen door filter</h4><small>'+date+'</small><div class="monthSlotState">Filter: '+calendarStatusFilter+'</div></article>';
-        continue;
-      }
+      const filterState=st==="live"?"current":st==="upcoming"?"future":"expired";
       const price=frontPriceVisible(p)
         ?'<div class="old">'+money(p.regular_price)+'</div><div class="dealprice">'+money(p.deal_price)+'</div>'
         :'<div class="mystery">🔒 Dagdealprijs verborgen</div>';
-      html+='<article class="dealcard '+st+'" data-month-product-id="'+esc(p.id)+'"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>'+label+'</span></div><button class="favbtn" type="button" data-fav="'+day+'" aria-label="Favoriet toevoegen">♡</button><div class="productpic">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain">':catEmoji(p.category))+'</div><h4>'+esc(p.name)+'</h4><small>'+esc(p.unit||"")+'</small>'+price+'<div class="chev">›</div></article>';
+      html+='<article class="dealcard '+st+'" data-filter-state="'+filterState+'" data-month-product-id="'+esc(p.id)+'"><div class="ctop"><b>'+String(day).padStart(2,"0")+'</b><span>'+label+'</span></div><button class="favbtn" type="button" data-fav="'+day+'" aria-label="Favoriet toevoegen">♡</button><div class="productpic">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'" style="width:100%;height:100%;object-fit:contain">':catEmoji(p.category))+'</div><h4>'+esc(p.name)+'</h4><small>'+esc(p.unit||"")+'</small>'+price+'<div class="chev">›</div></article>';
     }
     grid.innerHTML=html;
+    applyHeaderDealFilter();
+  }
+  function applyHeaderDealFilter(){
+    const value=document.getElementById("headerDealFilter")?.value||"all";
+    document.querySelectorAll("#calendarGrid .dealcard").forEach(card=>{
+      const st=card.dataset.filterState||"";
+      let show=true;
+      if(value==="future")show=st==="future";
+      else if(value==="current")show=st==="current";
+      else if(value==="hideExpired")show=st!=="expired";
+      else if(value==="expired")show=st==="expired";
+      card.classList.toggle("hiddenByHeaderFilter",!show);
+    });
   }
   function renderFilteredAll(){
     const grid=document.getElementById("allDealsGrid"),count=document.getElementById("allDealsCount");if(!grid)return;
@@ -738,6 +776,11 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     renderMonthCalendar(window.__emigroCentralDeals||allItems);
     renderFilteredAll();
   }
+  function applyFavoriteLogo(s){
+    const wrap=document.getElementById("favLogoWrap");if(!wrap)return;
+    if(s?.logo)wrap.innerHTML='<img src="'+esc(s.logo)+'" alt="Emigro">';
+    else wrap.innerHTML='<div class="favLogoText">'+esc(s?.brand||"EMIGRO")+'<small>'+esc(s?.subtitle||"SUPERMARKT")+'</small></div>';
+  }
   function applyIconSettings(s){
     const wrap=document.querySelector(".headerSocials");if(!wrap)return;
     const style=s?.socialIconStyle||"circle",size=Math.max(20,Math.min(52,Number(s?.socialIconSize||34)));
@@ -755,7 +798,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   const baseDeals=window.__applyCentralDeals;
   window.__applyCentralDeals=function(items){window.__emigroCentralDeals=Array.isArray(items)?items:[];renderAll(window.__emigroCentralDeals);};
   const baseSettings=window.__applyEmigroSettings;
-  window.__applyEmigroSettings=function(s){if(baseSettings)baseSettings(s);applySocial(s);applyIconSettings(s);};
+  window.__applyEmigroSettings=function(s){if(baseSettings)baseSettings(s);applySocial(s);applyIconSettings(s);applyFavoriteLogo(s);};
   window.addEventListener("message",e=>{if(e?.data?.type==="emigro-preview-products")renderAll(e.data.items||[]);if(e?.data?.type==="emigro-preview-settings")applySocial(e.data.settings||{})});
   document.getElementById("openSearch")?.addEventListener("click",()=>{document.getElementById("searchOverlay")?.classList.add("on");renderSearch("");setTimeout(()=>document.getElementById("searchInput")?.focus(),60)});
   window.addEventListener("DOMContentLoaded",()=>{
@@ -765,6 +808,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     document.getElementById("calendarGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-month-product-id]");if(!card||e.target.closest(".favbtn"))return;const p=allItems.find(x=>String(x.id)===String(card.dataset.monthProductId));if(p){renderHeroProduct(p);document.querySelector(".hero")?.scrollIntoView({behavior:"smooth",block:"center"})}});
     document.getElementById("searchResults")?.addEventListener("click",e=>{const row=e.target.closest("[data-search-id]");if(!row)return;const p=allItems.find(x=>String(x.id)===String(row.dataset.searchId));if(p){document.getElementById("searchOverlay")?.classList.remove("on");openDynamicDeal(p)}});
     document.getElementById("dynamicDealModal")?.addEventListener("click",e=>{if(e.target.id==="dynamicDealModal")e.currentTarget.classList.remove("on")});
+    document.getElementById("headerDealFilter")?.addEventListener("change",applyHeaderDealFilter);
     document.getElementById("headerStatusFilter")?.addEventListener("change",e=>{calendarStatusFilter=e.target.value||"all";renderMonthCalendar(window.__emigroCentralDeals||allItems)});
   
   });
