@@ -268,6 +268,26 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
 @media(max-width:1099px){.headerDealFilter{height:32px;max-width:145px;font-size:9px;padding-left:9px}.headerTools{gap:6px}}
 .calendarFilteredOut{display:none!important}
 .favBrand img{max-width:180px;max-height:56px;object-fit:contain}
+
+/* V23 final interaction */
+.headerFavorite{font-size:29px!important;color:#777!important}
+.headerStatusFilter{height:42px!important;font-size:12px!important;font-weight:900!important;border:2px solid #d7d7d7!important;color:#333!important}
+.dealcard .ctop b{font-size:22px!important;font-weight:1000!important;color:#111!important}
+.dealcard .ctop span{font-size:8px!important;font-weight:1000!important;letter-spacing:.55px!important}
+.dealcard h4{font-size:16px!important;font-weight:950!important;color:#111!important}
+.dealcard small{font-size:11px!important;color:#777!important;font-weight:650!important}
+.dynamicActions{grid-template-columns:repeat(2,1fr)!important}
+.dynamicActions .wideAction{grid-column:1/-1}
+.dynamicActions .actionIcon{font-size:18px;display:block;margin-bottom:4px}
+.scheduledCampaignWrap{padding:0 86px;background:#fff}
+.scheduledCampaign{display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid #ddd;border-radius:16px;padding:12px 16px;margin:12px 0;text-decoration:none;background:#f0f0f0;color:#999;transition:.18s}
+.scheduledCampaign.active{background:linear-gradient(90deg,var(--red),var(--red2));color:#fff;border-color:transparent;box-shadow:0 8px 24px #cf101933}
+.scheduledCampaign.hidden{display:none}
+.scheduledCampaign strong{font-size:14px}.scheduledCampaign span{font-size:11px;font-weight:800;opacity:.86}.scheduledCampaign em{font-style:normal;font-size:18px;font-weight:1000}
+.catoptions button span img{width:38px;height:38px;object-fit:contain}
+.hero.noActiveDeal{background:linear-gradient(135deg,#555,#777)!important;cursor:default!important}
+.hero.noActiveDeal .heroimg{font-size:70px}
+@media(max-width:1099px){.scheduledCampaignWrap{padding:0 12px}.headerStatusFilter{height:34px!important;font-size:10px!important;max-width:150px!important}.headerFavorite{font-size:25px!important}}
 </style></head><body><div class="app" id="calendar">
 <div class="siteTopbar">
   <div class="topLeft"><a href="tel:0703888813">☎ 070 388 8813</a><span>✉ info@emigro.nl</span></div>
@@ -300,6 +320,7 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   <a href="#catdrawer" data-i18n="menu_categories">Categorieën</a>
   <a href="#socialHub" data-i18n="menu_follow">Volgen</a>
 </nav>
+<div class="scheduledCampaignWrap"><a id="scheduledCampaign" class="scheduledCampaign hidden" href="#" target="_blank" rel="noopener"><div><strong id="scheduledCampaignTitle">Week Actie</strong><br><span id="scheduledCampaignState">Niet actief</span></div><em>→</em></a></div>
 <section class="welcome"><div class="kicker" data-i18n="welcome_kicker">ELKE DAG IETS NIEUWS</div><h1 data-i18n-html="welcome_title">Jouw dagelijkse<br>voordeel.</h1><p data-i18n="welcome_text">30 dagen. Elke dag één verrassend scherpe deal.</p></section><a class="hero" href="#deal22"><div class="herohead"><span class="livepill">● LIVE VANDAAG</span><span class="opop">OP = OP</span><time>22 SEPTEMBER</time></div><div class="herobody"><div class="heroimg">🧃</div><div class="herotxt"><h2>Mogu Mogu</h2><small>320 ml</small><del>€1,69</del><div class="heroprice">€0,99</div><div class="herocta">Bekijk Dagdeal →</div></div></div></a><div class="monthhead"><span>‹</span><b>September 2026</b><span>›</span></div><div class="tip">🔒 <span>De prijs van een toekomstige Dagdeal blijft geheim tot die dag.</span></div><main class="grid" id="calendarGrid"><article class="dealcard expired" data-cat="pantry"><div class="ctop"><b>01</b><span>AFGELOPEN</span></div><button class="favbtn" type="button" data-fav="1" aria-label="Favoriet toevoegen">
 <svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">🫗</div><h4>Zonnebloemolie</h4><small>5 L</small><div class="expiredtxt">Deal afgelopen</div></article><article class="dealcard expired" data-cat="dairy"><div class="ctop"><b>02</b><span>AFGELOPEN</span></div><button class="favbtn" type="button" data-fav="2" aria-label="Favoriet toevoegen">
 <svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.5 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button><div class="productpic">🥚</div><h4>Eieren</h4><small>30 stuks</small><div class="expiredtxt">Deal afgelopen</div></article><article class="dealcard expired" data-cat="butcher"><div class="ctop"><b>03</b><span>AFGELOPEN</span></div><button class="favbtn" type="button" data-fav="3" aria-label="Favoriet toevoegen">
@@ -609,8 +630,8 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   function renderAll(items){
     allItems=(items||[]).filter(x=>String(x.status||"")!=="Niet publiceren");
     renderMonthCalendar(items||[]);
-    const selected=allItems.find(x=>String(x.id)===String(selectedProductId));
-    renderHeroProduct(selected||defaultHeroProduct(allItems));
+    const active=defaultHeroProduct(allItems);
+    if(active)renderHeroProduct(active);else renderHeroEmpty();
     renderFilteredAll();
   }
 
@@ -645,14 +666,18 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
       '<div class="herotxt"><h2>'+esc(p.name)+'</h2><small>'+esc(p.unit||"")+'</small>'+
       (visible?'<del>'+money(p.regular_price)+'</del><div class="heroprice">'+money(p.deal_price)+'</div>':'<div class="heroHiddenPrice">🔒 Dagdealprijs verborgen</div>')+
       '<div class="herocta">Bekijk Dagdeal →</div></div></div>';
-    document.querySelectorAll("[data-month-product-id]").forEach(el=>el.classList.toggle("selectedDeal",String(el.dataset.monthProductId)===String(p.id)));
+
   }
   function defaultHeroProduct(items){
     if(!Array.isArray(items)||!items.length)return null;
-    const active=items.find(x=>dealState(x)==="live");
-    if(active)return active;
-    const future=items.filter(x=>dealState(x)==="upcoming").sort((a,b)=>String(a.deal_date).localeCompare(String(b.deal_date)))[0];
-    return future||items[0];
+    return items.find(x=>dealState(x)==="live")||null;
+  }
+  function renderHeroEmpty(){
+    const hero=document.querySelector(".hero");if(!hero)return;
+    selectedProductId=null;hero.removeAttribute("href");delete hero.dataset.heroProductId;hero.classList.add("noActiveDeal");
+    const msg=currentLang==="tr"?"Şu anda aktif Dagdeal yok":currentLang==="en"?"No Daily Deal is active right now":"Er is nu geen actieve Dagdeal";
+    const sub=currentLang==="tr"?"Yeni reklam 21:00'de otomatik açılır.":currentLang==="en"?"The next deal opens automatically at 21:00.":"De volgende deal opent automatisch om 21:00.";
+    hero.innerHTML='<div class="herohead"><span class="livepill">PAUZE</span></div><div class="herobody"><div class="heroimg">⏳</div><div class="herotxt"><h2>'+msg+'</h2><small>'+sub+'</small></div></div>';
   }
   function renderMonthCalendar(items){
     const grid=document.getElementById("calendarGrid");if(!grid)return;
@@ -738,21 +763,39 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     arr=arr.map(String);const key=String(id),i=arr.indexOf(key);if(i>=0)arr.splice(i,1);else arr.push(key);
     localStorage.setItem("emigro_deal_reminders_v1",JSON.stringify(arr));return arr.includes(key);
   }
+  function createCalendarFile(p){
+    const d=String(p.deal_date||"").replace(/-/g,""),title="Emigro Dagdeal - "+p.name;
+    const start=d+"T190000Z",end=d+"T195900Z";
+    const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Emigro//Dagdeals//NL","BEGIN:VEVENT","UID:emigro-"+p.id+"@emigro.nl","DTSTART:"+start,"DTEND:"+end,"SUMMARY:"+title.replace(/[,;]/g," "), "DESCRIPTION:Emigro Dagdeal - "+String(p.name||"").replace(/[,;]/g," "), "END:VEVENT","END:VCALENDAR"].join("\r\n");
+    const blob=new Blob([ics],{type:"text/calendar;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="emigro-"+String(p.deal_date||"dagdeal")+".ics";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }
   function openDynamicDeal(p){
     const modal=document.getElementById("dynamicDealModal"),box=document.getElementById("dynamicDealBox");if(!modal||!box)return;
-    const st=dealState(p),label=st==="live"?"LIVE VANDAAG":st==="upcoming"?"BINNENKORT":"AFGELOPEN";
-    const pricing=frontPriceVisible(p)
+    const st=dealState(p),lang=currentLang||"nl";
+    const labels={
+      nl:{live:"LIVE VANDAAG",soon:"BINNENKORT",past:"AFGELOPEN",secret:"Dagdealprijs blijft geheim",secretSub:"De prijs wordt om 21:00 uur op de avond ervoor zichtbaar.",rem:"Herinner mij",remOn:"Herinnering ingesteld",cal:"Voeg toe aan agenda",friend:"Stuur naar een vriend",share:"Delen",fav:"Favorieten",favOn:"In favorieten"},
+      tr:{live:"ŞU AN AKTİF",soon:"YAKINDA",past:"GEÇMİŞ",secret:"Dagdeal fiyatı şimdilik gizli",secretSub:"Fiyat bir önceki akşam saat 21:00'de açılır.",rem:"Hatırlat",remOn:"Hatırlatma ayarlandı",cal:"Ajandama ekle",friend:"Arkadaşıma gönder",share:"Sosyal medyada paylaş",fav:"Favorilere ekle",favOn:"Favorilerde"},
+      en:{live:"ACTIVE NOW",soon:"COMING SOON",past:"EXPIRED",secret:"Daily Deal price is hidden",secretSub:"The price becomes visible at 21:00 the evening before.",rem:"Remind me",remOn:"Reminder set",cal:"Add to calendar",friend:"Send to a friend",share:"Share",fav:"Add to favorites",favOn:"In favorites"}
+    }[lang]||{};
+    const label=st==="live"?labels.live:st==="upcoming"?labels.soon:labels.past;
+    const hasPrice=Number(p.deal_price)>0;
+    const pricing=frontPriceVisible(p)&&hasPrice
       ?'<div class="dynamicPrice"><del>'+money(p.regular_price)+'</del><strong>'+money(p.deal_price)+'</strong></div>'
-      :'<div class="dynamicLocked">🔒 <div><b>Dagdealprijs blijft geheim</b><span>De prijs wordt om 21:00 uur op de avond ervoor zichtbaar.</span></div></div>';
+      :'<div class="dynamicLocked">🔒 <div><b>'+labels.secret+'</b><span>'+labels.secretSub+'</span></div></div>';
     const reminded=isReminded(p.id),fav=isDynFav(p.id);
-    box.innerHTML='<button class="dynamicDealClose" type="button">×</button><div class="dynamicDealVisual">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'">':catEmoji(p.category))+'</div><div class="dynamicDealMeta">'+label+' · '+esc(p.deal_date||"")+'</div><h2>'+esc(p.name)+'</h2><div class="dynamicDealUnit">'+esc(p.unit||"")+' · '+esc(p.category||"")+'</div>'+pricing+'<p style="font-size:12px;line-height:1.55;color:#666">'+esc(p.description||"Dagdeal bij Emigro")+'</p><div class="dynamicActions">'+
-      (st==="upcoming"?'<button class="primary" id="dynReminder" type="button">'+(reminded?"✓ Herinnering ingesteld":"🔔 Herinner mij")+'</button>':'')+
-      '<button id="dynShare" type="button">↗ Stuur door</button><button id="dynFavorite" class="'+(fav?"saved":"")+'" type="button">'+(fav?"♥ In favorieten":"♡ Favorieten")+'</button></div>';
+    box.innerHTML='<button class="dynamicDealClose" type="button">×</button><div class="dynamicDealVisual">'+(p.image_url?'<img src="'+esc(p.image_url)+'" alt="'+esc(p.name)+'">':catEmoji(p.category))+'</div><div class="dynamicDealMeta">'+label+' · '+esc(p.deal_date||"")+'</div><h2>'+esc(p.name)+'</h2><div class="dynamicDealUnit">'+esc(p.unit||"")+' · '+esc(p.category||"")+'</div>'+pricing+'<p style="font-size:12px;line-height:1.55;color:#666">'+esc(p.description||"Emigro Dagdeal")+'</p><div class="dynamicActions">'+
+      (st==="upcoming"?'<button class="wideAction primary" id="dynReminder" type="button"><span class="actionIcon">🔔</span>'+(reminded?"✓ "+labels.remOn:labels.rem)+'</button>':'')+
+      '<button id="dynCalendar" type="button"><span class="actionIcon">📅</span>'+labels.cal+'</button>'+
+      '<button id="dynFriend" type="button"><span class="actionIcon">💬</span>'+labels.friend+'</button>'+
+      '<button id="dynShare" type="button"><span class="actionIcon">↗</span>'+labels.share+'</button>'+
+      '<button id="dynFavorite" class="'+(fav?"saved":"")+'" type="button"><span class="actionIcon">'+(fav?"♥":"♡")+'</span>'+(fav?labels.favOn:labels.fav)+'</button></div>';
     modal.dataset.productId=String(p.id);modal.classList.add("on");
     box.querySelector(".dynamicDealClose").onclick=()=>modal.classList.remove("on");
-    const rb=box.querySelector("#dynReminder");if(rb)rb.onclick=()=>{const on=toggleReminder(p.id);rb.textContent=on?"✓ Herinnering ingesteld":"🔔 Herinner mij"};
-    const fb=box.querySelector("#dynFavorite");if(fb)fb.onclick=()=>{const on=toggleDynFav(p.id);fb.classList.toggle("saved",on);fb.textContent=on?"♥ In favorieten":"♡ Favorieten"};
-    const sb=box.querySelector("#dynShare");if(sb)sb.onclick=async()=>{const text=p.name+" — Emigro Dagdeal "+p.deal_date;try{if(navigator.share)await navigator.share({title:p.name,text,url:location.href});else{await navigator.clipboard.writeText(text+" "+location.href);sb.textContent="✓ Link gekopieerd"}}catch{}};
+    const rb=box.querySelector("#dynReminder");if(rb)rb.onclick=()=>{const on=toggleReminder(p.id);rb.innerHTML='<span class="actionIcon">🔔</span>'+(on?"✓ "+labels.remOn:labels.rem)};
+    const fb=box.querySelector("#dynFavorite");if(fb)fb.onclick=()=>{const on=toggleDynFav(p.id);fb.classList.toggle("saved",on);fb.innerHTML='<span class="actionIcon">'+(on?"♥":"♡")+'</span>'+(on?labels.favOn:labels.fav)};
+    const cb=box.querySelector("#dynCalendar");if(cb)cb.onclick=()=>createCalendarFile(p);
+    const friend=box.querySelector("#dynFriend");if(friend)friend.onclick=()=>{const text=encodeURIComponent(p.name+" — Emigro Dagdeal "+p.deal_date+" "+location.href);window.open("https://wa.me/?text="+text,"_blank","noopener")};
+    const sb=box.querySelector("#dynShare");if(sb)sb.onclick=async()=>{const text=p.name+" — Emigro Dagdeal "+p.deal_date;try{if(navigator.share)await navigator.share({title:p.name,text,url:location.href});else{await navigator.clipboard.writeText(text+" "+location.href);sb.innerHTML='<span class="actionIcon">✓</span>Link gekopieerd'}}catch{}};
   }
   function renderSearch(q){
     const box=document.getElementById("searchResults");if(!box)return;
@@ -775,10 +818,39 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
     document.querySelectorAll("[data-i18n-html]").forEach(el=>{const k=el.dataset.i18nHtml;if(d[k])el.innerHTML=d[k]});
     document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{const k=el.dataset.i18nPlaceholder;if(d[k])el.placeholder=d[k]});
     document.querySelectorAll(".langSwitch button").forEach(b=>b.classList.toggle("on",b.dataset.lang===currentLang));
-    const sf=document.getElementById("headerStatusFilter");if(sf){const vals={nl:["Alle statussen","Bitenleri gizle","Nu actief","Binnenkort","Afgelopen"],tr:["Tüm durumlar","Bitenleri gizle","Şu an aktif","Yakında","Geçmiş"],en:["All statuses","Hide expired","Active now","Coming soon","Expired"]}[currentLang]||["Alle statussen","Bitenleri gizle","Nu actief","Binnenkort","Afgelopen"];[...sf.options].forEach((o,i)=>o.textContent=vals[i]||o.textContent)}
+    const sf=document.getElementById("headerStatusFilter");if(sf){const vals={nl:["Alle statussen","Afgelopen verbergen","Nu actief","Binnenkort","Afgelopen"],tr:["Tüm durumlar","Bitenleri gizle","Şu an aktif","Yakında","Geçmiş"],en:["All statuses","Hide expired","Active now","Coming soon","Expired"]}[currentLang]||["Alle statussen","Afgelopen verbergen","Nu actief","Binnenkort","Afgelopen"];[...sf.options].forEach((o,i)=>o.textContent=vals[i]||o.textContent)}
   
     renderMonthCalendar(window.__emigroCentralDeals||allItems);
     renderFilteredAll();
+    applyCategorySettings(window.__emigroSettings||{});
+    applyCampaign(window.__emigroSettings||{});
+  }
+  const CATEGORY_META={
+    "Zuivel":{id:"dairy",emoji:"🥛",desc:{nl:"Melk, kaas & yoghurt",tr:"Süt, peynir & yoğurt",en:"Milk, cheese & yoghurt"}},
+    "Slagerij":{id:"butcher",emoji:"🥩",desc:{nl:"Vlees & vleeswaren",tr:"Et & et ürünleri",en:"Meat & deli"}},
+    "Groente & fruit":{id:"produce",emoji:"🥬",desc:{nl:"Verse producten",tr:"Taze ürünler",en:"Fresh produce"}},
+    "Dranken":{id:"drinks",emoji:"🥤",desc:{nl:"Fris, water & koffie",tr:"İçecek, su & kahve",en:"Soft drinks, water & coffee"}},
+    "Voorraadkast":{id:"pantry",emoji:"🛒",desc:{nl:"Rijst, pasta & meer",tr:"Pirinç, makarna & daha fazlası",en:"Rice, pasta & more"}},
+    "Huishouden":{id:"household",emoji:"🧺",desc:{nl:"Wassen & schoonmaak",tr:"Yıkama & temizlik",en:"Laundry & cleaning"}},
+    "Bakkerij":{id:"bakery",emoji:"🍰",desc:{nl:"Zoet & gebak",tr:"Tatlı & fırın",en:"Sweets & bakery"}}
+  };
+  function applyCategorySettings(s){
+    const box=document.querySelector(".catoptions");if(!box)return;
+    const icons=s?.categoryIcons||{},lang=currentLang||"nl",items=window.__emigroCentralDeals||allItems||[];
+    const countFor=name=>items.filter(x=>String(x.category||"")===name&&String(x.status||"")!=="Niet publiceren").length;
+    let html='<button data-filter="all"><span>✨</span><b>'+(lang==="tr"?"Tümü":lang==="en"?"All":"Alles")+'</b><small>'+items.filter(x=>String(x.status||"")!=="Niet publiceren").length+' deals</small></button>';
+    Object.entries(CATEGORY_META).forEach(([name,m])=>{const icon=icons[name]?'<img src="'+esc(icons[name])+'" alt="">':m.emoji;html+='<button data-filter="'+m.id+'"><span>'+icon+'</span><b>'+esc(name)+'</b><small>'+countFor(name)+' · '+esc(m.desc[lang]||m.desc.nl)+'</small></button>'});
+    box.innerHTML=html;
+  }
+  function campaignNowKey(){const n=frontNow();return n.date+"T"+n.time}
+  function applyCampaign(s){
+    const el=document.getElementById("scheduledCampaign");if(!el)return;
+    const enabled=!!s?.campaignEnabled,title=s?.campaignTitle||"Week Actie",url=s?.campaignLink||"",start=s?.campaignStart||"",end=s?.campaignEnd||"",showInactive=s?.campaignShowInactive!==false,now=campaignNowKey();
+    const inWindow=enabled&&url&&(!start||now>=start)&&(!end||now<=end);
+    el.classList.toggle("active",!!inWindow);el.classList.toggle("hidden",!inWindow&&!showInactive);
+    el.href=inWindow?url:"#";el.target=inWindow?"_blank":"_self";el.onclick=inWindow?null:(e=>e.preventDefault());
+    const tt=document.getElementById("scheduledCampaignTitle"),st=document.getElementById("scheduledCampaignState");if(tt)tt.textContent=title;
+    if(st)st.textContent=inWindow?(currentLang==="tr"?"Şimdi aktif":currentLang==="en"?"Active now":"Nu actief"):(currentLang==="tr"?"Şu anda aktif değil":currentLang==="en"?"Not active right now":"Nu niet actief");
   }
   function applyFavoriteLogo(s){
     const wrap=document.querySelector(".favBrand");if(!wrap)return;
@@ -802,21 +874,21 @@ header{height:64px;position:sticky;top:0;z-index:10;background:#ffffffed;backdro
   const baseDeals=window.__applyCentralDeals;
   window.__applyCentralDeals=function(items){window.__emigroCentralDeals=Array.isArray(items)?items:[];renderAll(window.__emigroCentralDeals);};
   const baseSettings=window.__applyEmigroSettings;
-  window.__applyEmigroSettings=function(s){if(baseSettings)baseSettings(s);applySocial(s);applyIconSettings(s);applyFavoriteLogo(s);};
-  window.addEventListener("message",e=>{if(e?.data?.type==="emigro-preview-products")renderAll(e.data.items||[]);if(e?.data?.type==="emigro-preview-settings")applySocial(e.data.settings||{})});
+  window.__applyEmigroSettings=function(s){if(baseSettings)baseSettings(s);applySocial(s);applyIconSettings(s);applyFavoriteLogo(s);applyCategorySettings(s);applyCampaign(s);window.__emigroSettings=s||{};};
+  window.addEventListener("message",e=>{if(e?.data?.type==="emigro-preview-products"){renderAll(e.data.items||[]);applyCategorySettings(window.__emigroSettings||{})}if(e?.data?.type==="emigro-preview-settings"){window.__emigroSettings=e.data.settings||{};applySocial(window.__emigroSettings);applyIconSettings(window.__emigroSettings);applyFavoriteLogo(window.__emigroSettings);applyCategorySettings(window.__emigroSettings);applyCampaign(window.__emigroSettings)}});
   document.getElementById("openSearch")?.addEventListener("click",()=>{document.getElementById("searchOverlay")?.classList.add("on");renderSearch("");setTimeout(()=>document.getElementById("searchInput")?.focus(),60)});
   window.addEventListener("DOMContentLoaded",()=>{
     document.getElementById("closeSearch")?.addEventListener("click",()=>document.getElementById("searchOverlay")?.classList.remove("on"));
     document.getElementById("searchOverlay")?.addEventListener("click",e=>{if(e.target.id==="searchOverlay")e.currentTarget.classList.remove("on")});
     document.getElementById("searchInput")?.addEventListener("input",e=>renderSearch(e.target.value));
-    document.getElementById("calendarGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-month-product-id]");if(!card||e.target.closest(".favbtn"))return;const p=allItems.find(x=>String(x.id)===String(card.dataset.monthProductId));if(p){renderHeroProduct(p);document.querySelector(".hero")?.scrollIntoView({behavior:"smooth",block:"center"})}});
+    document.getElementById("calendarGrid")?.addEventListener("click",e=>{const card=e.target.closest("[data-month-product-id]");if(!card||e.target.closest(".favbtn"))return;const p=allItems.find(x=>String(x.id)===String(card.dataset.monthProductId));if(p)openDynamicDeal(p)});
     document.getElementById("searchResults")?.addEventListener("click",e=>{const row=e.target.closest("[data-search-id]");if(!row)return;const p=allItems.find(x=>String(x.id)===String(row.dataset.searchId));if(p){document.getElementById("searchOverlay")?.classList.remove("on");openDynamicDeal(p)}});
     document.getElementById("dynamicDealModal")?.addEventListener("click",e=>{if(e.target.id==="dynamicDealModal")e.currentTarget.classList.remove("on")});
     document.getElementById("headerStatusFilter")?.addEventListener("change",e=>{calendarStatusFilter=e.target.value||"all";applyCalendarStatusFilter()});
   
   });
 document.addEventListener("click",e=>{const b=e.target.closest(".futureFavAction");if(!b)return;e.preventDefault();const day=Number(b.dataset.dynFav);if(!day)return;let f=[];try{f=JSON.parse(localStorage.getItem("emigro_dagdeals_favorites_v1")||"[]")}catch{}const i=f.indexOf(day);if(i>=0)f.splice(i,1);else f.push(day);localStorage.setItem("emigro_dagdeals_favorites_v1",JSON.stringify(f));b.textContent=f.includes(day)?"♥ In favorieten":"♡ Favorieten";});
-  if(window.__emigroLiveSync){renderAll(window.__emigroLiveSync.items||[]);applySocial(window.__emigroLiveSync.settings||{});applyIconSettings(window.__emigroLiveSync.settings||{})}
+  if(window.__emigroLiveSync){window.__emigroSettings=window.__emigroLiveSync.settings||{};renderAll(window.__emigroLiveSync.items||[]);applySocial(window.__emigroSettings);applyIconSettings(window.__emigroSettings);applyFavoriteLogo(window.__emigroSettings);applyCategorySettings(window.__emigroSettings);applyCampaign(window.__emigroSettings)}
   else applySocial(defaultLinks);
   setTimeout(()=>applyLanguage(currentLang),0);
 })();
