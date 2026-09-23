@@ -725,7 +725,7 @@ body{background:#eceae6}
     hero.classList.toggle("heroArtwork",validImage);
     hero.classList.toggle("heroCustomText",custom);
     const color=x=>/^#[0-9a-f]{6}$/i.test(String(x||""))?x:"#ffffff";
-    const clamp=(x,a,b,f)=>Math.max(a,Math.min(b,Number(x)||f));
+    const clamp=(x,a,b,f)=>{const n=x==null||x===""?f:Number(x);return Math.max(a,Math.min(b,Number.isFinite(n)?n:f))};
     const titleSize=clamp(settings.heroHeadingSize,24,80,58),copySize=clamp(settings.heroCopySize,12,32,18);
     hero.style.setProperty("--hero-title-size",titleSize+"px");
     hero.style.setProperty("--hero-title-mobile-size",Math.min(titleSize,38)+"px");
