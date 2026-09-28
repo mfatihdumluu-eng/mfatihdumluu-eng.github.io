@@ -188,8 +188,8 @@ function demoMenu(){
   $("#exitDemo").onclick=async()=>{closeModal();await exitDemo()};
 }
 
-function setRoute(r){route=r;$$$(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.route===r));render();window.scrollTo({top:0,behavior:"smooth"})}
-$$$(".nav-btn").forEach(b=>b.onclick=()=>setRoute(b.dataset.route));
+function setRoute(r){route=r;$(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.route===r));render();window.scrollTo({top:0,behavior:"smooth"})}
+$(".nav-btn").forEach(b=>b.onclick=()=>setRoute(b.dataset.route));
 
 function moodMeta(pid){
   const m=[...state.moods].filter(x=>x.profileId===pid).sort((a,b)=>b.date.localeCompare(a.date))[0];
@@ -344,7 +344,7 @@ async function toggleMode(){
 }
 function profilePicker(){
   openModal('<h2>Kim kullanıyor?</h2><p class="muted">Ortak cihazlarda herkes kendi profilini seçebilir.</p><div class="profile-picker">'+state.profiles.map(p=>{const mm=moodMeta(p.id);return '<button class="pick-profile" data-p="'+p.id+'"><span class="halo" style="--halo:'+mm.color+'"><span style="background:'+p.color+'">'+esc(p.avatar)+'</span></span><b>'+esc(p.name)+'</b><small>'+(p.role==="child"?(p.age+" yaş"):"Ebeveyn")+'</small></button>'}).join("")+'</div>');
-  $$$("[data-p]").forEach(b=>b.onclick=()=>{state.activeProfileId=b.dataset.p;persistDeviceUi();closeModal();render()})
+  $("[data-p]").forEach(b=>b.onclick=()=>{state.activeProfileId=b.dataset.p;persistDeviceUi();closeModal();render()})
 }
 function render(){
   if(!state)return;defaults();updateHeader();
