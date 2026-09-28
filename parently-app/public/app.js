@@ -141,12 +141,41 @@ function updateHeader(){
   const db=$("#demoBtn");if(db){db.textContent=isDemo()?"● Demo aktif":"▶ Demo";db.classList.toggle("active",isDemo());db.onclick=demoMenu;}
   $("#modeBtn").onclick=toggleMode;$("#profileBtn").onclick=profilePicker;
 }
-function toggleMode(){
-  if(state.mode==="parent"){state.mode="child";markDirty();toast("Çocuk modu açıldı");render()}
-  else{
-    openModal('<h2>Ebeveyn moduna dön</h2><p class="muted">4 haneli ebeveyn PIN kodunu girin.</p><input id="pin" class="input" type="password" inputmode="numeric" maxlength="6"><button id="pinBtn" class="primary full">Devam</button>');
-    $("#pinBtn").onclick=()=>{if($("#pin").value===state.pin){state.mode="parent";markDirty();closeModal();render()}else toast("PIN yanlış")}
+async function toggleMode(){
+  if(state.mode==="parent"){
+    state.mode="child";
+    state.activeProfileId=activeChild()?.id||state.activeProfileId;
+    try{await save()}catch{}
+    toast("Çocuk modu açıldı");
+    render();
+    return;
   }
+  const demoHint=isDemo()?'<div class="demo-pin-hint">Demo PIN: <b>2026</b></div>':'';
+  openModal('<h2>Ebeveyn moduna dön</h2><p class="muted">Ebeveyn alanına geçmek için PIN kodunu girin.</p>'+demoHint+'<input id="pin" class="input pin-input" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="PIN"><div id="pinError" class="pin-error"></div><button id="pinBtn" class="primary full">Ebeveyne geç</button>');
+  const submit=async()=>{
+    const pin=String($("#pin").value||"").trim();
+    const expected=String(state.pin||"2026").trim();
+    if(pin!==expected){$("#pinError").textContent="PIN yanlış. Tekrar deneyin.";$("#pin").focus();return}
+    const parent=state.profiles.find(p=>p.role==="parent");
+    state.mode="parent";
+    if(parent)state.activeProfileId=parent.id;
+    $("#pinBtn").disabled=true;
+    $("#pinBtn").textContent="Geçiliyor…";
+    try{
+      await save();
+      closeModal();
+      route="home";
+      render();
+      toast("Ebeveyn modu açıldı");
+    }catch(e){
+      $("#pinBtn").disabled=false;
+      $("#pinBtn").textContent="Ebeveyne geç";
+      $("#pinError").textContent="Geçiş kaydedilemedi. Tekrar deneyin.";
+    }
+  };
+  $("#pinBtn").onclick=submit;
+  $("#pin").onkeydown=e=>{if(e.key==="Enter")submit()};
+  setTimeout(()=>$("#pin")?.focus(),50);
 }
 function profilePicker(){
   openModal('<h2>Kim kullanıyor?</h2><p class="muted">Ortak cihazlarda herkes kendi profilini seçebilir.</p><div class="profile-picker">'+state.profiles.map(p=>{const mm=moodMeta(p.id);return '<button class="pick-profile" data-p="'+p.id+'"><span class="halo" style="--halo:'+mm.color+'"><span style="background:'+p.color+'">'+esc(p.avatar)+'</span></span><b>'+esc(p.name)+'</b><small>'+(p.role==="child"?(p.age+" yaş"):"Ebeveyn")+'</small></button>'}).join("")+'</div>');
