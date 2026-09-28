@@ -117,5 +117,5 @@ app.post("/api/message/:code",async(req,res)=>{
     state.messages=state.messages||[]; state.messages.push(msg); await saveState(req.params.code,state); res.json(msg);
   }catch(e){console.error(e);res.status(500).json({error:"message_failed"});}
 });
-app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
+app.use((req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
 app.listen(PORT,()=>console.log("Parently running on",PORT));
