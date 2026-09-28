@@ -4,6 +4,7 @@ let state=null, route="home", familyCode=localStorage.getItem("parently_family")
 let deviceMode=localStorage.getItem("parently_mode")||"parent";
 let deviceProfileId=localStorage.getItem("parently_profile")||"";
 let syncSource=null, saveInFlight=false, lastSyncAt=0;
+let activeLanguage=localStorage.getItem("parently_language")||"tr";
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 const today=()=>new Date().toISOString().slice(0,10);
@@ -26,6 +27,7 @@ function defaults(){
   state.quietHours ||= {enabled:false,start:"20:30",end:"07:00"};
   state.encouragements ||= [];
   state.settings ||= {language:"tr",notifications:true,highContrast:false};
+  state.languagePacks ||= {};
   state.membership ||= {plan:"premium",status:"active",startedAt:today(),renewalAt:""};
   state.adminConfig ||= {ageGroups:{"2-5":{enabled:true,label:"2–5 yaş"},"6-9":{enabled:true,label:"6–9 yaş"},"10-13":{enabled:true,label:"10–13 yaş"},"14-16":{enabled:true,label:"14–16 yaş"}},plans:{trial:{name:"Trial",maxParents:1,maxChildren:1,ageGroups:["2-5","6-9","10-13","14-16"],ai:false},standard:{name:"Standard",maxParents:1,maxChildren:1,ageGroups:["2-5","6-9","10-13","14-16"],ai:false},premium:{name:"Premium",maxParents:2,maxChildren:4,ageGroups:["2-5","6-9","10-13","14-16"],ai:true}}};
   state.profiles.forEach(p=>{state.points[p.id] ??= 0});
@@ -194,6 +196,82 @@ function moodMeta(pid){
   const color={"😊":"#43c58a","😌":"#73c9d7","😐":"#b8aee0","😢":"#6f8edb","😡":"#ef6b72","😨":"#f0a95a"}[m?.mood]||"#cfc6e8";
   return {m,color};
 }
+
+const UI_TR={
+  navHome:"Ana Sayfa",navCards:"Kartlar",navAgenda:"Ajanda",navMessages:"Mesajlar",navReports:"Raporlar",navAdmin:"Yönetim",
+  parentMode:"Ebeveyn",childMode:"Çocuk Modu",cardsTitle:"Kart Kütüphanesi",favorites:"Favoriler",all:"Tümü",
+  followUp:"Takip sorusu",guide:"Rehber",reinforcement:"Pekiştirme",ritual:"Ritüel",save:"Kaydet",
+  completed:"Tamamlandı",addFavorite:"Favoriye ekle",inFavorites:"Favoride",childDone:"Bunu konuştuk",difficulty:"Zorluk"
+};
+function languageFlag(code,meta={}){
+  if(meta.flag)return meta.flag;
+  return ({tr:"🇹🇷",nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",ar:"🇸🇦",es:"🇪🇸",it:"🇮🇹",pt:"🇵🇹",pl:"🇵🇱"}[String(code||"").toLowerCase()]||"🌐");
+}
+function baseLanguageMeta(){return {code:"tr",name:"Türkçe",flag:"🇹🇷",source:"tr"}}
+function availableLanguages(){
+  return [baseLanguageMeta(),...Object.values(state.languagePacks||{}).map(p=>p.meta).filter(Boolean).filter(m=>m.code!=="tr")];
+}
+function activeLanguagePack(){return activeLanguage==="tr"?null:(state.languagePacks||{})[activeLanguage]||null}
+function t(key,fallback){
+  const pack=activeLanguagePack();
+  return pack?.ui?.[key]||UI_TR[key]||fallback||key;
+}
+function localizedCard(card){
+  if(!card)return card;
+  const pack=activeLanguagePack();
+  if(!pack)return card;
+  const tr=(pack.cards||[]).find(x=>x.id===card.id);
+  return tr?{...card,...tr,id:card.id,ageGroup:card.ageGroup,emoji:tr.emoji||card.emoji}:card;
+}
+function buildLanguageTemplate(){
+  return {
+    schema:"parently-language-pack",
+    version:1,
+    meta:{code:"tr",name:"Türkçe",flag:"🇹🇷",source:"tr"},
+    instructions:{
+      code:"meta.code alanını hedef dil koduna değiştirin. Örn: nl, en, de.",
+      name:"meta.name alanına hedef dil adını yazın.",
+      flag:"meta.flag alanına bayrak emojisi yazabilirsiniz.",
+      warning:"id ve ageGroup alanlarını değiştirmeyin; metin alanlarını çevirin."
+    },
+    ui:{...UI_TR},
+    cards:state.cards.map(c=>({
+      id:c.id,ageGroup:c.ageGroup,category:c.category,emoji:c.emoji,question:c.question,followUp:c.followUp,
+      parentGuide:c.parentGuide,positiveReinforcement:c.positiveReinforcement,connectionPhrase:c.connectionPhrase
+    }))
+  };
+}
+function languageMenu(){
+  const langs=availableLanguages();
+  openModal('<h2>🌐 Dil seç</h2><p class="muted">Bu cihazda kullanılacak dili seçin.</p><div class="language-picker">'+langs.map(m=>'<button class="language-choice '+(activeLanguage===m.code?"active":"")+'" data-lang="'+esc(m.code)+'"><span>'+languageFlag(m.code,m)+'</span><div><b>'+esc(m.name||m.code)+'</b><small>'+esc(String(m.code).toUpperCase())+'</small></div></button>').join("")+'</div>');
+  $("[data-lang]").forEach(b=>b.onclick=()=>{activeLanguage=b.dataset.lang;localStorage.setItem("parently_language",activeLanguage);closeModal();render();toast("Dil değiştirildi")});
+}
+function exportLanguageJson(){
+  downloadAdmin("parently-language-tr.json",JSON.stringify(buildLanguageTemplate(),null,2),"application/json");
+}
+function previewLanguageJson(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const pack=JSON.parse(r.result);
+      if(pack.schema!=="parently-language-pack"||!pack.meta?.code||!pack.meta?.name||!Array.isArray(pack.cards))throw new Error();
+      if(String(pack.meta.code).toLowerCase()==="tr")throw new Error("base");
+      const matched=pack.cards.filter(x=>x.id&&state.cards.some(c=>c.id===x.id)).length;
+      const box=$("#languagePreview");if(!box)return;
+      box.classList.remove("hidden");box._pack=pack;
+      box.innerHTML='<div class="upload-preview-head"><div><b>'+languageFlag(pack.meta.code,pack.meta)+' '+esc(pack.meta.name)+'</b><small>'+matched+' / '+state.cards.length+' kart eşleşti</small></div><span class="file-type">'+esc(String(pack.meta.code).toUpperCase())+'</span></div><div class="upload-actions"><button type="button" id="cancelLanguageImport" class="secondary">İptal</button><button type="button" id="confirmLanguageImport" class="primary">Dil paketini yükle</button></div>';
+    }catch(e){toast(e.message==="base"?"Hedef dil kodu Türkçe olamaz":"Geçersiz dil JSON dosyası")}
+  };
+  r.readAsText(file);
+}
+async function commitLanguagePack(pack){
+  const code=String(pack.meta.code).toLowerCase().trim();
+  pack.meta.code=code;pack.meta.flag=languageFlag(code,pack.meta);
+  state.languagePacks[code]=pack;
+  try{await save();activeLanguage=code;localStorage.setItem("parently_language",code);adminView();updateHeader();toast(pack.meta.name+" dili yüklendi")}catch{toast("Dil paketi kaydedilemedi")}
+}
+
 function updateHeader(){
   const c=activeChild(), mm=moodMeta(c.id);
   $("#profileBtn").textContent=c?.avatar||"?";
