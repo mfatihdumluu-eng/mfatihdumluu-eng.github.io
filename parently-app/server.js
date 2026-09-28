@@ -106,16 +106,89 @@ async function saveState(code,state){
   return state;
 }
 
-app.get("/api/health",(req,res)=>res.json({ok:true,db:!!pool,time:new Date().toISOString()}));
+const familyLocks=new Map();
+function withFamilyLock(code,fn){
+  const key=(code||"AILE2026").toUpperCase();
+  const prev=familyLocks.get(key)||Promise.resolve();
+  const next=prev.catch(()=>{}).then(fn);
+  familyLocks.set(key,next.finally(()=>{if(familyLocks.get(key)===next)familyLocks.delete(key)}));
+  return next;
+}
+function mergeById(current=[],incoming=[]){
+  const map=new Map();
+  for(const item of current||[]) if(item?.id) map.set(item.id,item);
+  for(const item of incoming||[]) if(item?.id) map.set(item.id,{...(map.get(item.id)||{}),...item});
+  return [...map.values()];
+}
+function mergeMoods(current=[],incoming=[]){
+  const keys=new Set((incoming||[]).map(m=>m.profileId+"|"+m.date));
+  const keep=(current||[]).filter(m=>!keys.has(m.profileId+"|"+m.date));
+  return mergeById(keep,incoming);
+}
+function mergeState(current,incoming){
+  const merged={...current,...incoming};
+  for(const key of ["profiles","cards","tasks","rituals","calendar","messages","specialSessions","completedCards","supportTickets"]){
+    if(incoming[key]) merged[key]=mergeById(current[key],incoming[key]);
+  }
+  if(incoming.moods) merged.moods=mergeMoods(current.moods,incoming.moods);
+  if(incoming.cardNotes) merged.cardNotes={...(current.cardNotes||{}),...incoming.cardNotes};
+  if(incoming.points) merged.points={...(current.points||{}),...incoming.points};
+  delete merged.mode;
+  delete merged.activeProfileId;
+  merged._rev=(Number(current?._rev)||0)+1;
+  merged.updatedAt=new Date().toISOString();
+  return merged;
+}
+
+const streamClients=new Map();
+function broadcast(code,event="state"){
+  const key=(code||"AILE2026").toUpperCase();
+  const set=streamClients.get(key);
+  if(!set)return;
+  const payload="event: "+event+"\ndata: "+JSON.stringify({code:key,at:new Date().toISOString()})+"\n\n";
+  for(const res of [...set]){try{res.write(payload)}catch{set.delete(res)}}
+}
+setInterval(()=>{
+  for(const set of streamClients.values()) for(const res of [...set]){try{res.write(": ping\n\n")}catch{set.delete(res)}}
+},25000).unref();
+
+app.get("/api/health",(req,res)=>res.json({ok:true,db:!!pool,time:new Date().toISOString(),realtime:true}));
 app.get("/api/state/:code",async(req,res)=>{try{res.json(await loadState(req.params.code));}catch(e){console.error(e);res.status(500).json({error:"state_load_failed"});}});
-app.put("/api/state/:code",async(req,res)=>{try{res.json(await saveState(req.params.code,req.body));}catch(e){console.error(e);res.status(500).json({error:"state_save_failed"});}});
+app.get("/api/events/:code",(req,res)=>{
+  const key=(req.params.code||"AILE2026").toUpperCase();
+  res.setHeader("Content-Type","text/event-stream");
+  res.setHeader("Cache-Control","no-cache, no-transform");
+  res.setHeader("Connection","keep-alive");
+  res.flushHeaders?.();
+  const set=streamClients.get(key)||new Set();set.add(res);streamClients.set(key,set);
+  res.write("event: ready\ndata: "+JSON.stringify({code:key})+"\n\n");
+  req.on("close",()=>{set.delete(res);if(!set.size)streamClients.delete(key)});
+});
+app.put("/api/state/:code",async(req,res)=>{
+  try{
+    const saved=await withFamilyLock(req.params.code,async()=>{
+      const current=await loadState(req.params.code);
+      const merged=mergeState(current,req.body||{});
+      return saveState(req.params.code,merged);
+    });
+    broadcast(req.params.code);
+    res.json(saved);
+  }catch(e){console.error(e);res.status(500).json({error:"state_save_failed"});}
+});
 app.post("/api/message/:code",async(req,res)=>{
   try{
-    const state=await loadState(req.params.code);
-    const msg={id:crypto.randomUUID(),senderId:req.body.senderId,text:String(req.body.text||"").trim().slice(0,1000),at:new Date().toISOString()};
-    if(!msg.text)return res.status(400).json({error:"empty"});
-    state.messages=state.messages||[]; state.messages.push(msg); await saveState(req.params.code,state); res.json(msg);
-  }catch(e){console.error(e);res.status(500).json({error:"message_failed"});}
+    const msg=await withFamilyLock(req.params.code,async()=>{
+      const state=await loadState(req.params.code);
+      const m={id:crypto.randomUUID(),senderId:req.body.senderId,text:String(req.body.text||"").trim().slice(0,1000),at:new Date().toISOString()};
+      if(!m.text)throw Object.assign(new Error("empty"),{status:400});
+      state.messages=mergeById(state.messages,[m]);
+      state._rev=(Number(state._rev)||0)+1;state.updatedAt=new Date().toISOString();
+      await saveState(req.params.code,state);
+      return m;
+    });
+    broadcast(req.params.code,"message");
+    res.json(msg);
+  }catch(e){console.error(e);res.status(e.status||500).json({error:e.status===400?"empty":"message_failed"});}
 });
 app.use((req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
 app.listen(PORT,()=>console.log("Parently running on",PORT));
