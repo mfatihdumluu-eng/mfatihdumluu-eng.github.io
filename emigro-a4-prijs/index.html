@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Emigro A4 Prijs</title>
 <meta name="theme-color" content="#111111"/>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <style>
 :root{--bg:#f2f3f5;--card:#fff;--border:#e3e5e8;--text:#171717;--muted:#777}
 *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Montserrat,Arial,sans-serif}
@@ -22,7 +23,12 @@ textarea{resize:vertical} input:focus,textarea:focus,select:focus{border-color:#
 .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.btn{border:0;border-radius:10px;padding:11px;font-weight:900;background:#111;color:#fff}.btn.alt{background:#f0f1f2;color:#111}.btn.danger{background:#fff;border:1px solid #ddd;color:#444}
 .status{margin-top:10px;background:#f4f5f6;border-radius:10px;padding:10px;font-size:12px}
 .optionalBlock{display:none}.optionalBlock.open{display:block}
-.toggleSecond{margin-top:11px;width:100%;border:1px dashed #aaa;background:#fff;border-radius:10px;padding:10px;font-weight:900}
+.toggleSecond,.toggleOptions{margin-top:11px;width:100%;border:1px dashed #aaa;background:#fff;border-radius:10px;padding:10px;font-weight:900}
+.assistant{margin:10px 0 14px;border:2px solid #111;border-radius:14px;padding:11px 12px;background:#fafafa}
+.assistantTitle{font-size:11px;font-weight:900;letter-spacing:.08em}.assistantText{font-size:13px;font-weight:800;margin-top:5px;line-height:1.35}
+.optionsBlock{display:none}.optionsBlock.open{display:block}
+.qrCard{text-align:center}.qrBox{display:flex;justify-content:center;margin:10px 0}.qrBox img{width:190px;height:190px;max-width:100%;border:1px solid #ddd;border-radius:12px;padding:8px;background:#fff}
+.barcodeWrap{display:none;margin:5mm auto 0;text-align:center}.barcodeWrap svg{max-width:100%;height:auto}
 .previewHead{display:flex;justify-content:space-between;align-items:end;gap:12px;border-bottom:1px solid #eee;padding-bottom:12px;margin-bottom:14px}
 .sheetWrap{overflow:auto}.sheet{width:210mm;min-height:297mm;margin:auto;background:#fff;padding:16mm 15mm;box-shadow:0 8px 28px rgba(0,0,0,.10);overflow:hidden;border:1px solid #eee}
 .logo{text-align:center;margin-bottom:9mm}.logo img{max-height:28mm;max-width:120mm;object-fit:contain}
@@ -51,11 +57,16 @@ textarea{resize:vertical} input:focus,textarea:focus,select:focus{border-color:#
 <main class="layout">
 <section class="panel form">
   <div class="eyebrow">ETIKET OLUŞTURUCU</div><div class="title">Ürün Bilgileri</div><div class="sub">Sadece gerekli alanları doldur. Fiyatlar otomatik hesaplanır.</div>
+  <div class="assistant"><div class="assistantTitle">EMIGRO ASSISTENT</div><div class="assistantText" id="assistantText">Önce ürün adını yaz.</div></div>
   <div class="queue" id="queueBox"><b>Nieuwe printopdracht</b><div id="queueName" style="font-size:12px;margin:5px 0 8px"></div><button class="btn" id="loadQueue">Yükle ve yazdır</button></div>
   <label>Productnaam</label><textarea id="name" rows="2" placeholder="Productnaam"></textarea>
-  <label>Korte omschrijving</label><textarea id="desc" rows="2" placeholder="Korte omschrijving"></textarea>
   <div class="row2"><div><label>Hoeveelheid / eenheid</label><input id="unit" placeholder="1 stuk / 6 stuks / 1 kg"></div><div><label>BTW</label><select id="vat"><option value="9">9%</option><option value="21">21%</option></select></div></div>
-  <div class="row2"><div><label>Actielabel</label><select id="action"><option value="">Geen actie</option><option>OP=OP</option><option>ALLEEN DIT WEEKEND</option><option>AANBIEDING</option><option>NIEUW</option><option>1+1 GRATIS</option><option>LAATSTE STUKS</option></select></div><div><label>Statiegeld</label><select id="deposit"><option value="">Geen</option><option>STATIEGELD</option><option>EX. STATIEGELD</option></select></div></div>
+  <button class="toggleOptions" id="toggleOptions">+ Ek seçenekler</button>
+  <div class="optionsBlock" id="optionsBlock">
+    <label>Korte omschrijving <span class="hint">(optioneel)</span></label><textarea id="desc" rows="2" placeholder="Korte omschrijving"></textarea>
+    <div class="row2"><div><label>Actielabel</label><select id="action"><option value="">Geen actie</option><option>OP=OP</option><option>ALLEEN DIT WEEKEND</option><option>AANBIEDING</option><option>NIEUW</option><option>1+1 GRATIS</option><option>LAATSTE STUKS</option></select></div><div><label>Statiegeld</label><select id="deposit"><option value="">Geen</option><option>STATIEGELD</option><option>EX. STATIEGELD</option></select></div></div>
+    <label>Barcode <span class="hint">(optioneel)</span></label><input id="barcode" inputmode="numeric" placeholder="Bijv. 8712345678901">
+  </div>
   <div class="group"><div class="groupTitle">Prijs 1</div><div class="hint">EXCL. veya INCL. fiyatlardan birini yazman yeterli.</div><div class="row2"><div><label>Prijs excl. BTW</label><input id="ex1" inputmode="decimal" placeholder="0,00"></div><div><label>INCL. BTW</label><input id="inc1" inputmode="decimal" placeholder="0,00"></div></div></div>
   <button class="toggleSecond" id="toggleSecond">+ Tweede prijs toevoegen</button>
   <div class="optionalBlock" id="secondBlock"><div class="group"><div class="groupTitle">Prijs 2</div><div class="hint">İkinci fiyat da aynı şekilde otomatik hesaplanır.</div><div class="row2"><div><label>Tweede prijs excl. BTW</label><input id="ex2" inputmode="decimal" placeholder="0,00"></div><div><label>Tweede prijs INCL. BTW</label><input id="inc2" inputmode="decimal" placeholder="0,00"></div></div></div><button class="btn danger" id="removeSecond" style="width:100%;margin-top:7px">Tweede prijs verwijderen</button></div>
@@ -73,11 +84,13 @@ textarea{resize:vertical} input:focus,textarea:focus,select:focus{border-color:#
       <div class="desc" id="pDesc">Korte productomschrijving</div>
       <div id="prices"></div>
       <div class="deposit" id="depositTag" style="display:none"></div>
+      <div class="barcodeWrap" id="barcodeWrap"><svg id="barcodeSvg"></svg></div>
     </div>
   </div></div>
 </section>
 
 <aside class="side">
+  <div class="panel qrCard"><div class="title" style="font-size:17px;text-align:left">Telefonla bağlan</div><div class="sub" style="text-align:left">Telefonda açmak için QR kodu okut.</div><div class="qrBox"><img id="qrImg" alt="Emigro QR"></div><div class="sub" id="qrUrl" style="word-break:break-all"></div></div>
   <div class="panel"><div class="title" style="font-size:17px">Son Kayıtlar</div><div class="sub">Eski ürünü açmak için dokun.</div><input id="search" placeholder="Arşivde ara..."><div class="archiveList" id="archiveList"></div></div>
   <div class="panel"><div class="title" style="font-size:17px">Yeni sistem</div><div class="sub">Bu sürüm GitHub Pages üzerinde çalışır. Floot'tan bağımsızdır; aynı Supabase arşivini kullanır.</div></div>
 </aside>
@@ -88,7 +101,7 @@ textarea{resize:vertical} input:focus,textarea:focus,select:focus{border-color:#
 <script>
 const DATA="https://hroarfuwpfsqilsijwpp.supabase.co/functions/v1/emigro-a4-data";
 const SETTINGS="https://hroarfuwpfsqilsijwpp.supabase.co/functions/v1/emigro-a4-settings";
-let product={name:"",description:"",unit:"",vat:9,ex:0,ex2:0,action:"",statiegeld:""};
+let product={name:"",description:"",unit:"",vat:9,ex:0,ex2:0,action:"",statiegeld:"",barcode:""};
 let settings={}; let last1="ex",last2="ex",job=null; let secondOpen=false;
 const $=id=>document.getElementById(id);
 const money=v=>"€ "+Number(v||0).toFixed(2).replace(".",",");
@@ -102,10 +115,21 @@ function priceCard(ex,inc,dual=false){
   return '<div class="priceStage"><div class="unitTab">'+escapeHtml(u)+'</div><div class="pricebox"><div class="priceHeader">EXCL. BTW</div><div class="priceMain">'+money(ex)+'</div></div><div class="inclCapsule"><span class="inclLabel">incl. BTW</span><span class="inclPrice">'+money(inc)+'</span></div></div>';
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function updateAssistant(){
+  let t="Hazır. Kaydedebilir veya yazdırabilirsin.";
+  if(!$("name").value.trim()) t="1/4 · Önce ürün adını yaz.";
+  else if(!$("unit").value.trim()) t="2/4 · Miktarı yaz: örn. 1 stuk, 6 stuks veya 1 kg.";
+  else if(!num($("ex1").value)&&!num($("inc1").value)) t="3/4 · EXCL. veya INCL. fiyatlardan birini yaz.";
+  else t="4/4 · Etiket hazır. İstersen ek seçenekleri kullan, sonra Kaydet veya Yazdır.";
+  $("assistantText").textContent=t;
+}
 function render(){
-  product.name=$("name").value; product.description=$("desc").value; product.unit=$("unit").value; product.vat=Number($("vat").value); product.action=$("action").value; product.statiegeld=$("deposit").value;
+  product.name=$("name").value; product.description=$("desc").value; product.unit=$("unit").value; product.vat=Number($("vat").value); product.action=$("action").value; product.statiegeld=$("deposit").value; product.barcode=$("barcode").value.trim();
   $("promo").style.display=product.action?"inline-block":"none"; $("promo").textContent=product.action;
   $("depositTag").style.display=product.statiegeld?"inline-block":"none"; $("depositTag").textContent=product.statiegeld;
+  $("barcodeWrap").style.display=product.barcode?"block":"none";
+  if(product.barcode&&window.JsBarcode){try{JsBarcode("#barcodeSvg",product.barcode,{format:"CODE128",displayValue:true,fontSize:16,height:55,margin:0})}catch(e){$("barcodeWrap").style.display="none"}}
+  updateAssistant();
   $("pName").innerHTML=escapeHtml(product.name||"VOORBEELD\nPRODUCT").replace(/\n/g,"<br>");
   $("pDesc").innerHTML=escapeHtml(product.description||"Korte productomschrijving").replace(/\n/g,"<br>");
   const inc1=product.ex*(1+product.vat/100), inc2=product.ex2*(1+product.vat/100);
@@ -133,8 +157,8 @@ function syncSecond(source){
 }
 function recalcVat(){if(last1==="ex")syncFirst("ex");else syncFirst("inc");if(secondOpen){if(last2==="ex")syncSecond("ex");else syncSecond("inc")}}
 function setSecond(open){secondOpen=open;$("secondBlock").classList.toggle("open",open);$("toggleSecond").style.display=open?"none":"block";if(!open){product.ex2=0;$("ex2").value="";$("inc2").value="";render()}}
-function loadProduct(p){product={...product,...p};product.action=actionFrom(p);product.statiegeld=statieFrom(p);$("name").value=product.name||"";$("desc").value=product.description||"";$("unit").value=product.unit||"";$("vat").value=String(product.vat||9);$("action").value=product.action||"";$("deposit").value=product.statiegeld||"";$("ex1").value=product.ex?String(product.ex).replace(".",","):"";$("inc1").value=product.ex?(product.ex*(1+product.vat/100)).toFixed(2).replace(".",","):"";$("ex2").value=product.ex2?String(product.ex2).replace(".",","):"";$("inc2").value=product.ex2?(product.ex2*(1+product.vat/100)).toFixed(2).replace(".",","):"";setSecond(!!product.ex2);render()}
-function reset(){product={name:"",description:"",unit:"",vat:9,ex:0,ex2:0,action:"",statiegeld:""};["name","desc","unit","ex1","inc1","ex2","inc2"].forEach(id=>$(id).value="");$("vat").value="9";$("action").value="";$("deposit").value="";setSecond(false);render()}
+function loadProduct(p){product={...product,...p};product.action=actionFrom(p);product.statiegeld=statieFrom(p);$("name").value=product.name||"";$("desc").value=product.description||"";$("unit").value=product.unit||"";$("vat").value=String(product.vat||9);$("action").value=product.action||"";$("deposit").value=product.statiegeld||"";$("barcode").value=product.barcode||"";$("ex1").value=product.ex?String(product.ex).replace(".",","):"";$("inc1").value=product.ex?(product.ex*(1+product.vat/100)).toFixed(2).replace(".",","):"";$("ex2").value=product.ex2?String(product.ex2).replace(".",","):"";$("inc2").value=product.ex2?(product.ex2*(1+product.vat/100)).toFixed(2).replace(".",","):"";setSecond(!!product.ex2);render()}
+function reset(){product={name:"",description:"",unit:"",vat:9,ex:0,ex2:0,action:"",statiegeld:"",barcode:""};["name","desc","unit","ex1","inc1","ex2","inc2","barcode"].forEach(id=>$(id).value="");$("vat").value="9";$("action").value="";$("deposit").value="";setSecond(false);render()}
 async function post(body){const r=await fetch(DATA,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json();if(!r.ok||j.error)throw new Error(j.error||"Fout");return j}
 async function save(){try{render();if(!product.name.trim())throw new Error("Productnaam ontbreekt");const j=await post({action:"save_product",item:product});product.id=j.item.id;showStatus("Ürün merkezi arşive kaydedildi.");loadArchive()}catch(e){showStatus(e.message)}}
 async function sendPrint(){try{render();if(!product.name.trim())throw new Error("Productnaam ontbreekt");const s=await post({action:"save_product",item:product});product.id=s.item.id;await post({action:"send_print",station:"EMIGRO",item:product});showStatus("Baskı kuyruğuna gönderildi.");loadArchive()}catch(e){showStatus(e.message)}}
@@ -143,7 +167,9 @@ async function pollPrint(){if(window.innerWidth<801)return;try{const r=await fet
 async function loadQueued(){if(!job)return;loadProduct({...job.data,id:job.data?.id});await post({action:"mark_printed",id:job.id});job=null;$("queueBox").classList.remove("show");setTimeout(()=>window.print(),250)}
 async function loadSettings(){try{const r=await fetch(SETTINGS,{cache:"no-store"});settings=await r.json();$("nameSize").value=settings.name_size_pt||60;$("descSize").value=settings.desc_size_pt||20;$("unitSize").value=settings.unit_size_pt||34;$("exSize").value=settings.ex_size_pt||82;$("incSize").value=settings.inc_size_pt||40;render()}catch{}}
 async function saveSettings(){try{const next={...settings,name_size_pt:Number($("nameSize").value),desc_size_pt:Number($("descSize").value),unit_size_pt:Number($("unitSize").value),ex_size_pt:Number($("exSize").value),inc_size_pt:Number($("incSize").value)};const r=await fetch(SETTINGS,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:$("adminPass").value,settings:next})});const j=await r.json();if(!r.ok||j.error)throw new Error("Şifre veya kayıt hatası.");settings=j;$("modal").classList.remove("open");showStatus("Ayarlar kaydedildi.");render()}catch(e){showStatus(e.message)}}
-["name","desc","unit","action","deposit"].forEach(id=>$(id).addEventListener("input",render));$("vat").addEventListener("change",recalcVat);$("ex1").addEventListener("input",()=>syncFirst("ex"));$("inc1").addEventListener("input",()=>syncFirst("inc"));$("ex2").addEventListener("input",()=>syncSecond("ex"));$("inc2").addEventListener("input",()=>syncSecond("inc"));$("toggleSecond").onclick=()=>setSecond(true);$("removeSecond").onclick=()=>setSecond(false);$("saveBtn").onclick=save;$("sendBtn").onclick=sendPrint;$("newBtn").onclick=reset;$("archiveBtn").onclick=()=>$("search").scrollIntoView({behavior:"smooth"});$("search").addEventListener("input",loadArchive);$("loadQueue").onclick=loadQueued;$("settingsBtn").onclick=()=>$("modal").classList.add("open");$("closeModal").onclick=()=>$("modal").classList.remove("open");$("saveSettings").onclick=saveSettings;
+["name","desc","unit","action","deposit","barcode"].forEach(id=>$(id).addEventListener("input",render));$("vat").addEventListener("change",recalcVat);$("ex1").addEventListener("input",()=>syncFirst("ex"));$("inc1").addEventListener("input",()=>syncFirst("inc"));$("ex2").addEventListener("input",()=>syncSecond("ex"));$("inc2").addEventListener("input",()=>syncSecond("inc"));$("toggleOptions").onclick=()=>{const open=$("optionsBlock").classList.toggle("open");$("toggleOptions").textContent=open?"− Ek seçenekleri kapat":"+ Ek seçenekler"};
+$("toggleSecond").onclick=()=>setSecond(true);$("removeSecond").onclick=()=>setSecond(false);$("saveBtn").onclick=save;$("sendBtn").onclick=sendPrint;$("newBtn").onclick=reset;$("archiveBtn").onclick=()=>$("search").scrollIntoView({behavior:"smooth"});$("search").addEventListener("input",loadArchive);$("loadQueue").onclick=loadQueued;$("settingsBtn").onclick=()=>$("modal").classList.add("open");$("closeModal").onclick=()=>$("modal").classList.remove("open");$("saveSettings").onclick=saveSettings;
+const liveUrl=location.origin+location.pathname;$("qrImg").src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data="+encodeURIComponent(liveUrl);$("qrUrl").textContent=liveUrl;
 loadSettings();loadArchive();pollPrint();setInterval(pollPrint,6000);render();
 </script>
 </body></html>
