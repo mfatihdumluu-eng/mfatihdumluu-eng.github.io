@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 10000;
 const DATA_FILE = path.join(__dirname, "data.json");
 const pool = process.env.DATABASE_URL ? new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }) : null;
 
-app.use(express.json({limit:"2mb"}));
+app.use(express.json({limit:"18mb"}));
 app.use(express.static(path.join(__dirname, "public"),{
   etag:false,
   lastModified:false,
@@ -89,6 +89,46 @@ function writeLocal(data){ fs.writeFileSync(DATA_FILE,JSON.stringify(data,null,2
 async function initDb(){
   if(!pool) return;
   await pool.query(`CREATE TABLE IF NOT EXISTS parently_state (family_code text primary key, data jsonb not null, updated_at timestamptz default now())`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS parently_site_settings (key text primary key, data jsonb not null, updated_at timestamptz default now())`);
+}
+const SITE_FILE=path.join(__dirname,"site-config.json");
+function defaultHomeConfig(){
+  return {slides:[
+    {id:"slide-1",badge:"♡ Daha güçlü aile bağları için",title:"Ailenizle daha fazla anlamlı zaman, daha",highlight:"güçlü yarınlar.",description:"Parently, ailelerin birlikte kaliteli zaman geçirmesini, duygularını paylaşmasını ve daha güçlü bağlar kurmasını destekleyen modern bir aile uygulamasıdır.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Tanıtımı Keşfet",secondaryUrl:"/uygulama.html",image:""},
+    {id:"slide-2",badge:"💬 Her gün yeni bir konuşma",title:"Doğru sorularla çocuğunuzun dünyasına",highlight:"daha yakından bakın.",description:"Yaşa uygun kartlar ve takip soruları, aile içinde doğal ve anlamlı sohbetler başlatmanıza yardımcı olur.",primaryLabel:"Kartları Keşfet",primaryUrl:"/panel.html",secondaryLabel:"Nasıl Çalışır?",secondaryUrl:"/uygulama.html",image:""},
+    {id:"slide-3",badge:"🌿 Küçük rutinler, güçlü bağlar",title:"Duygular, rutinler ve aile zamanı",highlight:"tek yerde.",description:"Duygu takibi, aile ajandası ve günlük küçük görevlerle birlikte geçirilen zamanı daha görünür hale getirin.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Özellikleri Gör",secondaryUrl:"/uygulama.html",image:""}
+  ]};
+}
+async function loadHomeConfig(){
+  if(pool){
+    await initDb();
+    const r=await pool.query("SELECT data FROM parently_site_settings WHERE key=$1",["home"]);
+    if(r.rows[0]) return r.rows[0].data;
+    const data=defaultHomeConfig();
+    await pool.query("INSERT INTO parently_site_settings(key,data) VALUES($1,$2) ON CONFLICT(key) DO NOTHING",["home",data]);
+    return data;
+  }
+  try{return JSON.parse(fs.readFileSync(SITE_FILE,"utf8"));}catch{return defaultHomeConfig();}
+}
+async function saveHomeConfig(data){
+  const clean={slides:(data?.slides||[]).slice(0,3).map((s,i)=>({
+    id:"slide-"+(i+1),
+    badge:String(s.badge||"").slice(0,120),
+    title:String(s.title||"").slice(0,220),
+    highlight:String(s.highlight||"").slice(0,120),
+    description:String(s.description||"").slice(0,600),
+    primaryLabel:String(s.primaryLabel||"").slice(0,60),
+    primaryUrl:String(s.primaryUrl||"/panel.html").slice(0,300),
+    secondaryLabel:String(s.secondaryLabel||"").slice(0,60),
+    secondaryUrl:String(s.secondaryUrl||"/uygulama.html").slice(0,300),
+    image:String(s.image||"").slice(0,8_000_000)
+  }))};
+  while(clean.slides.length<3)clean.slides.push(defaultHomeConfig().slides[clean.slides.length]);
+  if(pool){
+    await initDb();
+    await pool.query("INSERT INTO parently_site_settings(key,data,updated_at) VALUES($1,$2,now()) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=now()",["home",clean]);
+  }else fs.writeFileSync(SITE_FILE,JSON.stringify(clean,null,2));
+  return clean;
 }
 async function loadState(code){
   const key=(code||"AILE2026").toUpperCase().replace(/[^A-Z0-9_-]/g,"").slice(0,30)||"AILE2026";
@@ -163,6 +203,16 @@ setInterval(()=>{
 },25000).unref();
 
 app.get("/api/health",(req,res)=>res.json({ok:true,db:!!pool,time:new Date().toISOString(),realtime:true}));
+app.get("/api/site/home",async(req,res)=>{try{res.json(await loadHomeConfig());}catch(e){console.error(e);res.status(500).json({error:"site_home_load_failed"});}});
+app.put("/api/site/home",async(req,res)=>{
+  try{
+    const familyCode=String(req.body?.familyCode||"").toUpperCase();
+    const pin=String(req.body?.pin||"");
+    const family=await loadState(familyCode);
+    if(!family||String(family.pin||"")!==pin)return res.status(403).json({error:"admin_auth_failed"});
+    res.json(await saveHomeConfig(req.body?.config||{}));
+  }catch(e){console.error(e);res.status(500).json({error:"site_home_save_failed"});}
+});
 app.get("/api/state/:code",async(req,res)=>{try{res.json(await loadState(req.params.code));}catch(e){console.error(e);res.status(500).json({error:"state_load_failed"});}});
 app.get("/api/events/:code",(req,res)=>{
   const key=(req.params.code||"AILE2026").toUpperCase();
