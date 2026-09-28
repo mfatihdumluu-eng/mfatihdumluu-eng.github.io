@@ -1,5 +1,37 @@
-const slides=[
-{eyebrow:"Daha güçlü aile bağı",title:"Her gün küçük bir adım, <span>daha güçlü bir bağ.</span>",text:"Parently; ebeveyn ve çocukların duygular, günlük görevler ve kaliteli zaman üzerinden birbirine yaklaşmasını kolaylaştırır."},
-{eyebrow:"Yaşa uygun içerikler",title:"Konuşmayı başlatan <span>doğru sorular.</span>",text:"2–16 yaş aralığına göre düzenlenen kartlarla çocuğunuzun dünyasını daha kolay keşfedin."},
-{eyebrow:"Tek yerde aile düzeni",title:"Kartlar, ajanda ve ilerleme <span>bir arada.</span>",text:"Aile içi rutinleri, görevleri, duygu takibini ve özel anları sade bir panelden yönetin."}
-];let i=0;const q=s=>document.querySelector(s);function show(n){i=n;const s=slides[i];q("#heroEyebrow").textContent=s.eyebrow;q("#heroTitle").innerHTML=s.title;q("#heroText").textContent=s.text;document.querySelectorAll(".dot").forEach((d,x)=>d.classList.toggle("active",x===i))}document.querySelectorAll(".dot").forEach((d,x)=>d.onclick=()=>show(x));setInterval(()=>show((i+1)%slides.length),6000);const m=q("#menuBtn"),nav=q("#navLinks");if(m)m.onclick=()=>{nav.style.display=nav.style.display==="flex"?"none":"flex";nav.style.position="absolute";nav.style.top="70px";nav.style.left="12px";nav.style.right="12px";nav.style.padding="18px";nav.style.background="#fff";nav.style.borderRadius="18px";nav.style.flexDirection="column";nav.style.boxShadow="0 18px 45px rgba(0,0,0,.12)"};
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+const fallbackSlides=[
+{badge:"♡ Daha güçlü aile bağları için",title:"Ailenizle daha fazla anlamlı zaman, daha",highlight:"güçlü yarınlar.",description:"Parently, ailelerin birlikte kaliteli zaman geçirmesini, duygularını paylaşmasını ve daha güçlü bağlar kurmasını destekleyen modern bir aile uygulamasıdır.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Tanıtımı Keşfet",secondaryUrl:"/uygulama.html",image:""},
+{badge:"💬 Her gün yeni bir konuşma",title:"Doğru sorularla çocuğunuzun dünyasına",highlight:"daha yakından bakın.",description:"Yaşa uygun kartlar ve takip soruları, aile içinde doğal ve anlamlı sohbetler başlatmanıza yardımcı olur.",primaryLabel:"Kartları Keşfet",primaryUrl:"/panel.html",secondaryLabel:"Nasıl Çalışır?",secondaryUrl:"/uygulama.html",image:""},
+{badge:"🌿 Küçük rutinler, güçlü bağlar",title:"Duygular, rutinler ve aile zamanı",highlight:"tek yerde.",description:"Duygu takibi, aile ajandası ve günlük küçük görevlerle birlikte geçirilen zamanı daha görünür hale getirin.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Özellikleri Gör",secondaryUrl:"/uygulama.html",image:""}
+];
+let slides=fallbackSlides,index=0,timer=null;
+function showSlide(n){
+  index=(n+slides.length)%slides.length;
+  const s=slides[index]||fallbackSlides[index];
+  if(q("#heroBadge"))q("#heroBadge").textContent=s.badge||"";
+  if(q("#heroTitle"))q("#heroTitle").textContent=s.title||"";
+  if(q("#heroHighlight"))q("#heroHighlight").textContent=s.highlight||"";
+  if(q("#heroDescription"))q("#heroDescription").textContent=s.description||"";
+  const p=q("#heroPrimary");if(p){p.href=s.primaryUrl||"/panel.html";p.innerHTML=(s.primaryLabel||"Uygulamaya Gir")+' <span>→</span>'}
+  const sec=q("#heroSecondary");if(sec){sec.href=s.secondaryUrl||"/uygulama.html";sec.textContent="▶ "+(s.secondaryLabel||"Tanıtımı Keşfet")}
+  const img=q("#heroSlideImage"),show=q("#heroShowcase");
+  if(img&&show){
+    if(s.image){img.src=s.image;img.alt=s.highlight||s.title||"Parently";show.classList.add("has-slide-image")}
+    else{img.removeAttribute("src");img.alt="";show.classList.remove("has-slide-image")}
+  }
+  qa("#heroDots button").forEach((d,i)=>d.classList.toggle("active",i===index));
+}
+function restart(){clearInterval(timer);timer=setInterval(()=>showSlide(index+1),6500)}
+async function loadSlides(){
+  try{
+    const r=await fetch("/api/site/home",{cache:"no-store"});
+    if(r.ok){const data=await r.json();if(Array.isArray(data.slides)&&data.slides.length)slides=data.slides.slice(0,3)}
+  }catch{}
+  showSlide(0);restart();
+}
+q("#heroPrev")?.addEventListener("click",()=>{showSlide(index-1);restart()});
+q("#heroNext")?.addEventListener("click",()=>{showSlide(index+1);restart()});
+qa("#heroDots button").forEach((d,i)=>d.addEventListener("click",()=>{showSlide(i);restart()}));
+const m=q("#menuBtn"),nav=q("#navLinks");
+if(m&&nav)m.onclick=()=>{const open=nav.classList.toggle("mobile-open");m.textContent=open?"×":"☰"};
+loadSlides();
