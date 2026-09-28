@@ -1,6 +1,9 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const view=$("#view"), modal=$("#modal"), modalBody=$("#modalBody");
-let state=null, route="home", familyCode=localStorage.getItem("parently_family")||"AILE2026";\nlet deviceMode=localStorage.getItem("parently_mode")||"parent";\nlet deviceProfileId=localStorage.getItem("parently_profile")||"";\nlet syncSource=null, saveInFlight=false, lastSyncAt=0;
+let state=null, route="home", familyCode=localStorage.getItem("parently_family")||"AILE2026";
+let deviceMode=localStorage.getItem("parently_mode")||"parent";
+let deviceProfileId=localStorage.getItem("parently_profile")||"";
+let syncSource=null, saveInFlight=false, lastSyncAt=0;
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 const today=()=>new Date().toISOString().slice(0,10);
