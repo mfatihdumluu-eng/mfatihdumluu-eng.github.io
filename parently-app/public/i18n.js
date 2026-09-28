@@ -21,7 +21,15 @@ const UI={
 "GÜNLÜK BAĞ":"GÜNLÜK BAĞ","Bugünün 3 dakikası":"Bugünün 3 dakikası","Kartı aç":"Kartı aç","BUGÜN":"BUGÜN","Görev ve rutin akışı":"Görev ve rutin akışı","Tüm ajanda":"Tüm ajanda",
 "DUYGU":"DUYGU","Bugün nasıl gidiyor?":"Bugün nasıl gidiyor?"
 };
-const FLAGS={tr:"🇹🇷",nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",es:"🇪🇸",it:"🇮🇹",pt:"🇵🇹",pl:"🇵🇱",ar:"🇸🇦","ar-ma":"🇲🇦",darija:"🇲🇦"};
+const FLAGS={tr:"🇹🇷",nl:"🇳🇱",pl:"🇵🇱",so:"🇸🇴","ar-ma":"🇲🇦","ar-sy":"🇸🇾",darija:"🇲🇦"};
+const PRESETS=[
+  {code:"tr",name:"Türkçe",flag:"🇹🇷",direction:"ltr"},
+  {code:"nl",name:"Nederlands",flag:"🇳🇱",direction:"ltr"},
+  {code:"ar-MA",name:"الدارجة المغربية",label:"Fas / Darija",flag:"🇲🇦",direction:"rtl"},
+  {code:"ar-SY",name:"العربية السورية",label:"Suriye Arapçası",flag:"🇸🇾",direction:"rtl"},
+  {code:"so",name:"Soomaali",flag:"🇸🇴",direction:"ltr"},
+  {code:"pl",name:"Polski",flag:"🇵🇱",direction:"ltr"}
+];
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const flag=(c,m={})=>m.flag||FLAGS[String(c||"").toLowerCase()]||"🌐";
 const direction=(c,m={})=>m.direction||(/^ar(?:-|$)/i.test(String(c||""))||String(c||"").toLowerCase()==="darija"?"rtl":"ltr");
@@ -29,7 +37,13 @@ async function api(url,opt={}){const r=await fetch(url,{headers:{"Content-Type":
 const code=()=>localStorage.getItem(KEY)||"tr";
 const packs=()=>state?.languagePacks||{};
 function pack(){const c=code();if(c.toLowerCase()==="tr")return null;return packs()[c]||Object.values(packs()).find(p=>String(p?.meta?.code||"").toLowerCase()===c.toLowerCase())||null}
-function metas(){return [{code:"tr",name:"Türkçe",flag:"🇹🇷",direction:"ltr"},...Object.values(packs()).map(p=>p?.meta).filter(Boolean).filter(m=>String(m.code).toLowerCase()!=="tr")]}
+function metas(){
+  const loaded=Object.values(packs()).map(p=>p?.meta).filter(Boolean);
+  return PRESETS.map(p=>{
+    const hit=loaded.find(m=>String(m.code).toLowerCase()===String(p.code).toLowerCase());
+    return hit?{...p,...hit,loaded:true}:{...p,loaded:p.code==="tr"};
+  });
+}
 function template(meta={code:"tr",name:"Türkçe",flag:"🇹🇷",direction:"ltr"}){return {schema:"parently-language-pack",version:1,meta:{source:"tr",...meta},instructions:{a:"id ve ageGroup alanlarını değiştirmeyin.",b:"ui değerlerini ve cards içindeki metin alanlarını çevirin.",c:"Darija/Arapça için direction rtl kalmalıdır."},ui:{...UI},cards:(state?.cards||[]).map(c=>({id:c.id,ageGroup:c.ageGroup,category:c.category,emoji:c.emoji,question:c.question,followUp:c.followUp,parentGuide:c.parentGuide,positiveReinforcement:c.positiveReinforcement,connectionPhrase:c.connectionPhrase}))}}
 function download(name,obj){const b=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href)}
 function setDir(p){const m=p?.meta||{code:"tr",direction:"ltr"},d=direction(m.code,m);document.documentElement.lang=m.code||"tr";document.documentElement.dir=d;document.body.classList.toggle("rtl-mode",d==="rtl")}
@@ -37,8 +51,30 @@ function translateNodes(root,map){if(!root||!map)return;const w=document.createT
 function translateCards(p){if(!p?.cards)return;const by=new Map(p.cards.map(c=>[c.id,c]));$$("[data-open-card]").forEach(el=>{const c=by.get(el.dataset.openCard);if(!c)return;const box=el.closest(".card-tile")||el,b=box.querySelector(".badge"),h=box.querySelector("h3");if(b&&c.category)b.textContent=c.category;if(h&&c.question)h.textContent=c.question});if(currentCardId&&!$("#modal")?.classList.contains("hidden")){const c=by.get(currentCardId),body=$("#modalBody");if(c&&body){const b=body.querySelector(".badge"),h=body.querySelector("h2"),ps=[...body.querySelectorAll("p")],tab=body.querySelector("#tabText");if(b&&c.category)b.textContent=c.category;if(h&&c.question)h.textContent=(c.emoji||"💬")+" "+c.question;if(ps[0]&&c.followUp)ps[0].innerHTML="<b>"+esc(p.ui?.["Takip sorusu:"]||"Takip sorusu:")+"</b> "+esc(c.followUp);if(tab&&c.parentGuide)tab.textContent=c.parentGuide}}}
 function apply(){if(busy)return;busy=true;try{const p=pack();setDir(p);if(p){translateNodes($("#app"),p.ui||{});translateNodes($("#modal"),p.ui||{});translateCards(p)}}finally{busy=false}}
 function ensureButton(){let b=$("#languageBtn");if(!b){b=document.createElement("button");b.id="languageBtn";b.className="language-btn";const a=$(".header-actions");if(a)a.insertBefore(b,$("#demoBtn")||a.firstChild)}if(!b)return;const c=code(),m=metas().find(x=>String(x.code).toLowerCase()===c.toLowerCase())||metas()[0];const label=flag(m.code,m)+" "+String(m.code).toUpperCase();if(b.textContent!==label)b.textContent=label;b.onclick=openMenu}
-function openMenu(){const m=$("#modal"),body=$("#modalBody");if(!m||!body)return;body.innerHTML='<h2>🌐 Dil seç</h2><p class="muted">Bu cihazda kullanılacak dili seçin.</p><div class="language-picker">'+metas().map(x=>'<button class="language-choice '+(String(code()).toLowerCase()===String(x.code).toLowerCase()?"active":"")+'" data-i18n-lang="'+esc(x.code)+'"><span>'+flag(x.code,x)+'</span><div><b>'+esc(x.name||x.code)+'</b><small>'+esc(String(x.code).toUpperCase())+'</small></div></button>').join("")+'</div>';m.classList.remove("hidden")}
-function injectAdmin(){const v=$("#view");if(!state||!v||!v.textContent.includes("YÖNETİM PANELİ")||$(".language-admin-section"))return;const s=document.createElement("section");s.className="card admin-panel section language-admin-section";s.innerHTML='<div class="admin-panel-head"><div><span class="eyebrow">DİLLER & ÇEVİRİ</span><h2>Dil paketleri</h2></div><div class="admin-head-actions"><button id="exportLangBase" class="secondary">🇹🇷 Türkçe JSON indir</button><button id="exportDarija" class="secondary">🇲🇦 Darija JSON indir</button><label class="language-upload-btn">Çeviri JSON yükle<input id="languageJsonIn" type="file" accept=".json,application/json" hidden></label></div></div><p class="muted">JSON dosyasını indir, metinleri çevir ve geri yükle. Dil kodu, bayrak ve RTL/LTR yönü dosyadan algılanır.</p><div class="language-list">'+metas().map(x=>'<button class="language-pill" data-i18n-lang="'+esc(x.code)+'"><span>'+flag(x.code,x)+'</span><b>'+esc(x.name||x.code)+'</b><small>'+esc(String(x.code).toUpperCase())+'</small></button>').join("")+'</div><div id="languageImportStatus"></div>';const member=[...v.querySelectorAll("section")].find(x=>x.textContent.includes("ÜYELİKLER"));if(member)member.before(s);else v.appendChild(s);$("#exportLangBase").onclick=()=>download("parently-language-tr.json",template());$("#exportDarija").onclick=()=>download("parently-language-ar-MA-darija.json",template({code:"ar-MA",name:"الدارجة المغربية",flag:"🇲🇦",direction:"rtl"}));$("#languageJsonIn").onchange=e=>preview(e.target.files?.[0])}
+function openMenu(){
+  const m=$("#modal"),body=$("#modalBody");if(!m||!body)return;
+  body.innerHTML='<h2>🌐 Dil seç</h2><p class="muted">Yüklü olan diller aktif kullanılabilir. Diğerleri için Yönetim bölümünden JSON şablonunu indirip çevirerek yükleyin.</p><div class="language-picker">'+metas().map(x=>'<button class="language-choice '+(String(code()).toLowerCase()===String(x.code).toLowerCase()?"active":"")+' '+(!x.loaded?"disabled":"")+'" '+(x.loaded?'data-i18n-lang="'+esc(x.code)+'"':'disabled')+'><span>'+flag(x.code,x)+'</span><div><b>'+esc(x.label||x.name||x.code)+'</b><small>'+esc(String(x.code).toUpperCase())+(x.loaded?' · Hazır':' · JSON bekliyor')+'</small></div></button>').join("")+'</div>';
+  m.classList.remove("hidden");
+}
+function injectAdmin(){
+  const v=$("#view");if(!state||!v||!v.textContent.includes("YÖNETİM PANELİ")||$(".language-admin-section"))return;
+  const list=metas();
+  const section=document.createElement("section");section.className="card admin-panel section language-admin-section";
+  section.innerHTML=
+    '<div class="admin-panel-head"><div><span class="eyebrow">DİLLER & ÇEVİRİ</span><h2>Dil paketleri</h2></div><label class="language-upload-btn">Çeviri JSON yükle<input id="languageJsonIn" type="file" accept=".json,application/json" hidden></label></div>'+
+    '<p class="muted">Bir dilin JSON şablonunu indirin, yalnızca metinleri çevirin ve geri yükleyin. Kart ID ve yaş gruplarını değiştirmeyin.</p>'+
+    '<div class="language-template-grid">'+list.map(x=>'<div class="language-template-card '+(x.loaded?"loaded":"")+'"><div class="language-template-head"><span>'+flag(x.code,x)+'</span><div><b>'+esc(x.label||x.name||x.code)+'</b><small>'+esc(String(x.code).toUpperCase())+' · '+(x.loaded?"Hazır":"JSON bekliyor")+'</small></div></div><button class="secondary" data-download-lang="'+esc(x.code)+'">'+(x.code==="tr"?"Temel JSON indir":"JSON şablonu indir")+'</button></div>').join("")+'</div>'+
+    '<div id="languageImportStatus"></div>';
+  const memberships=[...v.querySelectorAll("section")].find(x=>x.textContent.includes("ÜYELİKLER"));
+  if(memberships)memberships.before(section);else v.appendChild(section);
+  $("#languageJsonIn").onchange=e=>preview(e.target.files?.[0]);
+  $$("[data-download-lang]").forEach(b=>b.onclick=()=>{
+    const p=PRESETS.find(x=>String(x.code).toLowerCase()===String(b.dataset.downloadLang).toLowerCase());
+    if(!p)return;
+    const fn="parently-language-"+String(p.code).replace(/[^a-z0-9-]/gi,"-")+".json";
+    download(fn,template(p));
+  });
+}
 function preview(file){if(!file)return;const r=new FileReader();r.onload=()=>{try{const p=JSON.parse(r.result);if(p.schema!=="parently-language-pack"||!p.meta?.code||!p.meta?.name||!Array.isArray(p.cards))throw new Error();if(String(p.meta.code).toLowerCase()==="tr")throw new Error("tr");const n=p.cards.filter(x=>state.cards.some(c=>c.id===x.id)).length,s=$("#languageImportStatus");s._pack=p;s.innerHTML='<div class="upload-preview"><div class="upload-preview-head"><div><b>'+flag(p.meta.code,p.meta)+' '+esc(p.meta.name)+'</b><small>'+n+' / '+state.cards.length+' kart eşleşti · '+direction(p.meta.code,p.meta).toUpperCase()+'</small></div><span class="file-type">'+esc(String(p.meta.code).toUpperCase())+'</span></div><div class="upload-actions"><button id="cancelLangImport" class="secondary">İptal</button><button id="confirmLangImport" class="primary">Dil paketini yükle</button></div></div>'}catch(e){alert(e.message==="tr"?"Türkçe temel paket yüklenmez. Hedef dil kodunu değiştirin.":"Geçersiz Parently dil JSON dosyası.")}};r.readAsText(file)}
 async function savePack(p){let c=String(p.meta.code).trim();p.meta.code=/^ar-ma$/i.test(c)?"ar-MA":c;p.meta.flag=flag(p.meta.code,p.meta);p.meta.direction=direction(p.meta.code,p.meta);state.languagePacks||={};state.languagePacks[p.meta.code]=p;const payload=JSON.parse(JSON.stringify(state));delete payload.mode;delete payload.activeProfileId;await api("/api/state/"+encodeURIComponent(FAMILY()),{method:"PUT",body:JSON.stringify(payload)});localStorage.setItem(KEY,p.meta.code);location.reload()}
 document.addEventListener("click",e=>{const c=e.target.closest("[data-open-card]");if(c)currentCardId=c.dataset.openCard;const l=e.target.closest("[data-i18n-lang]");if(l){localStorage.setItem(KEY,l.dataset.i18nLang);location.reload();return}if(e.target.closest("#cancelLangImport")){const s=$("#languageImportStatus");if(s)s.innerHTML="";return}if(e.target.closest("#confirmLangImport")){const s=$("#languageImportStatus");if(s?._pack)savePack(s._pack).catch(()=>alert("Dil paketi kaydedilemedi."));return}});
