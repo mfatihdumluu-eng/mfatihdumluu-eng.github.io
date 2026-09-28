@@ -518,6 +518,50 @@ function settingsModal(){
  $("#saveSettings").onclick=()=>{state.pin=$("#newPin").value||"2026";state.quietHours={enabled:$("#qh").checked,start:$("#qs").value,end:$("#qe").value};markDirty();closeModal();toast("Ayarlar kaydedildi")};$("#importFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);defaults();markDirty();closeModal();render();toast("Yedek yüklendi")}catch{toast("Geçersiz dosya")}};r.readAsText(f)}
 }
 
+let homeSlidesCache=null;
+async function loadHomeSlidesAdmin(){
+  const host=$("#homeSliderAdmin"); if(!host)return;
+  host.innerHTML='<div class="muted">Slider ayarları yükleniyor...</div>';
+  try{
+    homeSlidesCache=await api("/api/site/home");
+    renderHomeSlidesAdmin();
+  }catch(e){host.innerHTML='<div class="upload-danger">Slider ayarları yüklenemedi.</div>'}
+}
+function renderHomeSlidesAdmin(){
+  const host=$("#homeSliderAdmin"); if(!host||!homeSlidesCache)return;
+  const slides=(homeSlidesCache.slides||[]).slice(0,3);
+  host.innerHTML='<div class="home-slider-admin-grid">'+slides.map((s,i)=>'
+    <article class="home-slide-editor" data-slide-editor="'+i+'">
+      <div class="home-slide-editor-head"><div><span class="slide-index">SLIDE '+(i+1)+'</span><h3>'+esc(s.highlight||s.title||("Slide "+(i+1)))+'</h3></div><div class="slide-image-preview '+(s.image?"has-image":"")+'" style="'+(s.image?"background-image:url("+JSON.stringify(s.image).slice(1,-1)+")":"")+'">'+(s.image?"":"Görsel yok")+'</div></div>
+      <label>Üst etiket<input class="input" data-slide-field="badge" value="'+esc(s.badge||"")+'"></label>
+      <label>Ana başlık<input class="input" data-slide-field="title" value="'+esc(s.title||"")+'"></label>
+      <label>Vurgulu başlık<input class="input" data-slide-field="highlight" value="'+esc(s.highlight||"")+'"></label>
+      <label>Açıklama<textarea class="input slide-textarea" data-slide-field="description">'+esc(s.description||"")+'</textarea></label>
+      <div class="slide-two-col"><label>1. Buton<input class="input" data-slide-field="primaryLabel" value="'+esc(s.primaryLabel||"")+'"></label><label>1. Link<input class="input" data-slide-field="primaryUrl" value="'+esc(s.primaryUrl||"")+'"></label></div>
+      <div class="slide-two-col"><label>2. Buton<input class="input" data-slide-field="secondaryLabel" value="'+esc(s.secondaryLabel||"")+'"></label><label>2. Link<input class="input" data-slide-field="secondaryUrl" value="'+esc(s.secondaryUrl||"")+'"></label></div>
+      <div class="slide-upload-row"><label class="upload-button">Resim seç<input type="file" data-slide-file="'+i+'" accept="image/jpeg,image/png,image/webp" hidden></label><button class="secondary" data-slide-remove="'+i+'" type="button">Resmi kaldır</button></div>
+    </article>').join("")+'</div><div class="home-slider-save"><button id="saveHomeSlides" class="primary" type="button">3 slideı kaydet ve ana sayfada yayınla</button><small>Görseller PostgreSQL’de saklanır; deploy sonrası silinmez. Önerilen: WebP/JPG, yatay, mümkünse 2 MB altı.</small></div>';
+  $("[data-slide-editor]").forEach(card=>{
+    const i=Number(card.dataset.slideEditor);
+    $("[data-slide-field]",card).forEach(el=>el.oninput=()=>{homeSlidesCache.slides[i][el.dataset.slideField]=el.value});
+  });
+  $("[data-slide-file]").forEach(inp=>inp.onchange=()=>{
+    const i=Number(inp.dataset.slideFile),file=inp.files?.[0]; if(!file)return;
+    if(file.size>5*1024*1024){toast("Resim 5 MB'dan küçük olmalı");inp.value="";return}
+    const r=new FileReader();
+    r.onload=()=>{homeSlidesCache.slides[i].image=String(r.result||"");renderHomeSlidesAdmin();toast("Görsel hazır. Kaydetmeyi unutmayın.")};
+    r.readAsDataURL(file);
+  });
+  $("[data-slide-remove]").forEach(btn=>btn.onclick=()=>{homeSlidesCache.slides[Number(btn.dataset.slideRemove)].image="";renderHomeSlidesAdmin()});
+  $("#saveHomeSlides").onclick=async()=>{
+    try{
+      $("#saveHomeSlides").disabled=true;$("#saveHomeSlides").textContent="Kaydediliyor...";
+      homeSlidesCache=await api("/api/site/home",{method:"PUT",body:JSON.stringify({familyCode,pin:String(state.pin||""),config:homeSlidesCache})});
+      renderHomeSlidesAdmin();toast("Ana sayfa sliderı yayınlandı");
+    }catch(e){toast("Slider kaydedilemedi")} 
+  };
+}
+
 function adminView(){
   if(state.mode!=="parent"){route="home";render();return}
   const groups=state.adminConfig.ageGroups,plans=state.adminConfig.plans;
@@ -534,9 +578,11 @@ function adminView(){
       '<label class="admin-upload"><div><b>CSV kart dosyası</b><small>Yaş grubu, kategori, soru ve rehber alanlarını toplu yükleyin.</small></div><span class="upload-button">CSV Dosyası Seç</span><input id="adminCsvIn" type="file" accept=".csv,text/csv" hidden></label><div id="csvPreview" class="upload-preview hidden"></div>'+
       '<label class="admin-upload"><div><b>JSON veri dosyası</b><small>Aile, profil, kart, görev, mesaj ve ayar verilerini içe aktarın.</small></div><span class="upload-button">JSON Dosyası Seç</span><input id="adminJsonIn" type="file" accept=".json,application/json" hidden></label><div id="jsonPreview" class="upload-preview hidden"></div></section>'+
     '</div>'+
+    '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">ANA SAYFA</span><h2>3'lü hero slider</h2><p class="muted">Ana sayfadaki üç büyük slaytın metinlerini ve görsellerini buradan yönetin.</p></div></div><div id="homeSliderAdmin"></div></section>'+
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">YAŞ GRUPLARI</span><h2>İçerik grupları</h2></div></div><div class="age-toggle-list">'+Object.entries(groups).map(([g,c])=>'<label class="age-toggle-row"><div><b>'+esc(c.label)+'</b><small>'+g+' içerikleri</small></div><input type="checkbox" data-age-toggle="'+g+'" '+(c.enabled?"checked":"")+'></label>').join("")+'</div></section>'+
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">ÜYELİKLER</span><h2>Paket ve erişim matrisi</h2></div><select id="adminPlanSelect" class="membership-select">'+Object.entries(plans).map(([id,p])=>'<option value="'+id+'" '+(state.membership.plan===id?"selected":"")+'>'+esc(p.name)+'</option>').join("")+'</select></div><div class="plans-grid">'+Object.entries(plans).map(([id,p])=>'<div class="plan-admin-card '+(state.membership.plan===id?"current":"")+'"><h3>'+esc(p.name)+'</h3><div class="plan-limits"><span><b>'+p.maxParents+'</b> ebeveyn</span><span><b>'+p.maxChildren+'</b> çocuk</span><span><b>'+(p.ai?"✓":"—")+'</b> AI</span></div><p class="muted">Yaş grubu erişimi</p><div class="plan-age-access">'+Object.keys(groups).map(g=>'<label><input type="checkbox" data-plan="'+id+'" data-plan-age="'+g+'" '+(p.ageGroups.includes(g)?"checked":"")+'>'+esc(groups[g].label)+'</label>').join("")+'</div></div>').join("")+'</div></section>';
 
+  loadHomeSlidesAdmin();
   $("#adminJsonOut").onclick=()=>downloadAdmin("parently-full-export.json",JSON.stringify(state,null,2),"application/json");
   $("#adminCsvOut").onclick=()=>exportCardsCsv();
   $("#adminPlanSelect").onchange=e=>{state.membership.plan=e.target.value;markDirty();adminView()};
