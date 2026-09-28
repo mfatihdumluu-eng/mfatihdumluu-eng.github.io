@@ -29,6 +29,102 @@ async function load(){try{state=await api("/api/state/"+encodeURIComponent(famil
 async function save(){state=await api("/api/state/"+encodeURIComponent(familyCode),{method:"PUT",body:JSON.stringify(state)});return state}
 function markDirty(){save().catch(()=>toast("Kaydetme başarısız"))}
 
+const DEMO_CODE="DEMO2026";
+function isDemo(){return familyCode===DEMO_CODE}
+function dateOffset(days){const d=new Date();d.setDate(d.getDate()+days);return d.toISOString().slice(0,10)}
+function buildDemoState(base){
+  const demo=JSON.parse(JSON.stringify(base));
+  demo.familyCode=DEMO_CODE;
+  demo.familyName="Parently Demo Ailesi";
+  demo.mode="parent";
+  demo.pin="2026";
+  demo.profiles=[
+    {id:"p1",name:"Kimya",role:"parent",avatar:"K",color:"#21B889"},
+    {id:"p2",name:"Fatih",role:"parent",avatar:"F",color:"#FF6255"},
+    {id:"c1",name:"Çınar",role:"child",age:9,ageGroup:"6-9",avatar:"Ç",color:"#FFD75A",interests:"oyun, spor, çizim"}
+  ];
+  demo.activeProfileId="c1";
+  demo.points={p1:0,p2:0,c1:47};
+  demo.rewards=[
+    {id:"rw1",title:"Akşam oyununu seçme",cost:20,emoji:"🎲"},
+    {id:"rw2",title:"Birlikte film seçme",cost:35,emoji:"🎬"},
+    {id:"rw3",title:"Hafta sonu özel etkinlik",cost:60,emoji:"🌟"}
+  ];
+  const moods=[["😊","İyi",2],["😌","Sakin",2],["😐","Normal",3],["😢","Üzgün",4],["😊","İyi",3],["😡","Kızgın",4],["😌","Sakin",2],["😊","İyi",2],["😨","Kaygılı",4],["😐","Normal",3],["😊","İyi",3],["😌","Sakin",2]];
+  demo.moods=Array.from({length:30},(_,i)=>{
+    const m=moods[i%moods.length];
+    return {id:"dm"+i,profileId:"c1",date:dateOffset(-29+i),mood:m[0],label:m[1],intensity:m[2],note:i%5===0?"Okul ve arkadaşlarla ilgili kısa demo notu.":""}
+  });
+  demo.tasks=[
+    {id:"dt1",title:"10 dakika özel zaman",description:"Çocuğun seçtiği etkinliği birlikte yap.",assigneeId:"c1",due:dateOffset(0),status:"pending",requiresApproval:false,type:"ritual"},
+    {id:"dt2",title:"Kitap çantasını hazırla",description:"Yarın için çantanı kontrol et.",assigneeId:"c1",due:dateOffset(0),status:"submitted",requiresApproval:true,type:"task"},
+    {id:"dt3",title:"Odayı 5 dakika toparla",description:"Sadece masanı ve yerdekileri toparla.",assigneeId:"c1",due:dateOffset(0),status:"done",requiresApproval:false,type:"task"},
+    {id:"dt4",title:"Bir aile üyesine güzel bir şey söyle",description:"Günlük bağ görevi.",assigneeId:"c1",due:dateOffset(1),status:"pending",requiresApproval:false,type:"ritual"},
+    {id:"dt5",title:"Spor çantasını hazırla",description:"Spor kıyafeti ve su şişesi.",assigneeId:"c1",due:dateOffset(2),status:"pending",requiresApproval:true,type:"task"}
+  ];
+  demo.rituals=[
+    {id:"dr1",title:"Yatmadan önce 3 soru",days:["Pzt","Çar","Cum"],doneDates:[dateOffset(-2),dateOffset(0)]},
+    {id:"dr2",title:"Günün güzel anı",days:["Her gün"],doneDates:[dateOffset(-3),dateOffset(-2),dateOffset(-1),dateOffset(0)]},
+    {id:"dr3",title:"Haftalık aile oyunu",days:["Pazar"],doneDates:[]}
+  ];
+  demo.calendar=[
+    {id:"de1",title:"Aile oyun zamanı",date:dateOffset(0),time:"19:00",type:"özel zaman"},
+    {id:"de2",title:"Yüzme dersi",date:dateOffset(2),time:"16:15",type:"aktivite"},
+    {id:"de3",title:"Aile yürüyüşü",date:dateOffset(4),time:"11:00",type:"aile"},
+    {id:"de4",title:"Okul görüşmesi",date:dateOffset(7),time:"15:00",type:"okul"}
+  ];
+  const now=Date.now();
+  demo.messages=[
+    {id:"dmsg1",senderId:"p1",text:"Bugün okuldan sonra nasıl hissediyorsun?",at:new Date(now-1000*60*90).toISOString()},
+    {id:"dmsg2",senderId:"c1",text:"İyiyim 😊 Biraz yoruldum.",at:new Date(now-1000*60*82).toISOString()},
+    {id:"dmsg3",senderId:"p2",text:"Akşam aile oyunu için ben hazırım 🎲",at:new Date(now-1000*60*55).toISOString()},
+    {id:"dmsg4",senderId:"c1",text:"Ben oyunu seçebilir miyim?",at:new Date(now-1000*60*50).toISOString()},
+    {id:"dmsg5",senderId:"p1",text:"Tabii, bu akşam seçim senin 💚",at:new Date(now-1000*60*45).toISOString()}
+  ];
+  const ids=(demo.cards||[]).filter(c=>c.ageGroup==="6-9").map(c=>c.id);
+  demo.completedCards=[];
+  for(let i=0;i<18;i++){if(ids.length)demo.completedCards.push({id:"dcc"+i,cardId:ids[i%ids.length],profileId:"c1",date:dateOffset(-(i%14))})}
+  demo.favorites=ids.slice(0,3);
+  demo.cardNotes={};
+  if(ids[0])demo.cardNotes[ids[0]]="İsteklerini daha açık söylemeye başladı; özellikle okul sonrası konuşmalarda.";
+  if(ids[1])demo.cardNotes[ids[1]]="Kurallar konuşulurken önce fikrini sormak işe yarıyor.";
+  demo.specialSessions=[
+    {id:"ds1",profileId:"c1",date:new Date(now-1000*60*60*24*2).toISOString(),duration:600,note:"Birlikte lego yaptık."},
+    {id:"ds2",profileId:"c1",date:new Date(now-1000*60*60*24*5).toISOString(),duration:720,note:"Kısa yürüyüş ve sohbet."},
+    {id:"ds3",profileId:"c1",date:new Date(now-1000*60*60*24*8).toISOString(),duration:540,note:"Masa oyunu oynadık."}
+  ];
+  demo.quietHours={enabled:true,start:"20:30",end:"07:00"};
+  demo.settings={language:"tr",notifications:true,highContrast:false};
+  return demo;
+}
+async function activateDemo(reset=false){
+  try{
+    if(!isDemo())localStorage.setItem("parently_before_demo",familyCode);
+    familyCode=DEMO_CODE;
+    localStorage.setItem("parently_family",familyCode);
+    let demo=await api("/api/state/"+DEMO_CODE);
+    if(reset||!demo.demoSeedVersion){
+      demo=buildDemoState(demo);
+      demo.demoSeedVersion=2;
+      state=demo;
+      await save();
+    }else{state=demo;defaults()}
+    route="home";render();toast("Demo modu aktif");
+  }catch(e){toast("Demo başlatılamadı")}
+}
+async function exitDemo(){
+  familyCode=localStorage.getItem("parently_before_demo")||"AILE2026";
+  localStorage.setItem("parently_family",familyCode);
+  state=await api("/api/state/"+encodeURIComponent(familyCode));
+  defaults();route="home";render();toast("Demo modundan çıkıldı");
+}
+function demoMenu(){
+  if(!isDemo())return activateDemo(false);
+  openModal('<h2>Demo modu</h2><p class="muted">Demo verileri gerçek aile kayıtlarından ayrıdır. Aynı DEMO2026 alanını iki cihazda açarak mesajları ve değişiklikleri birlikte test edebilirsiniz.</p><div class="list"><button id="resetDemo" class="primary full">Demo verilerini sıfırla</button><button id="exitDemo" class="secondary full">Demodan çık</button></div>');
+  $("#resetDemo").onclick=async()=>{closeModal();await activateDemo(true)};
+  $("#exitDemo").onclick=async()=>{closeModal();await exitDemo()};
+}
+
 function setRoute(r){route=r;$$(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.route===r));render();window.scrollTo({top:0,behavior:"smooth"})}
 $$(".nav-btn").forEach(b=>b.onclick=()=>setRoute(b.dataset.route));
 
@@ -42,6 +138,7 @@ function updateHeader(){
   $("#profileBtn").textContent=c?.avatar||"?";
   $("#profileBtn").style.boxShadow="0 0 0 4px "+mm.color+"88";
   $("#modeBtn").textContent=state.mode==="child"?"🧒 Çocuk Modu":"👨‍👩‍👧 Ebeveyn";
+  const db=$("#demoBtn");if(db){db.textContent=isDemo()?"● Demo aktif":"▶ Demo";db.classList.toggle("active",isDemo());db.onclick=demoMenu;}
   $("#modeBtn").onclick=toggleMode;$("#profileBtn").onclick=profilePicker;
 }
 function toggleMode(){
