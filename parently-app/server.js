@@ -13,7 +13,17 @@ const DATA_FILE = path.join(__dirname, "data.json");
 const pool = process.env.DATABASE_URL ? new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }) : null;
 
 app.use(express.json({limit:"2mb"}));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "public"),{
+  etag:false,
+  lastModified:false,
+  setHeaders(res,filePath){
+    if(filePath.endsWith(".js")||filePath.endsWith(".css")||filePath.endsWith(".html")){
+      res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma","no-cache");
+      res.setHeader("Expires","0");
+    }
+  }
+}));
 
 const initialCards = [
   ["2-5","Duygularımı Tanıyorum","😊","Bugün yüzün hangi duyguyu gösteriyor?","Sence bu duygu bedeninin neresinde hissediliyor?","Çocuğun seçimini düzeltmeden merakla dinleyin.","Duygusunu fark etmesini övün: “Bunu fark etmen çok güzel.”","Duygularını bana her zaman anlatabilirsin."],
