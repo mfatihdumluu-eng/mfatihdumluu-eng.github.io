@@ -528,7 +528,7 @@ function adminView(){
     '<div class="admin-kpis"><div><span>Toplam kart</span><b>'+state.cards.length+'</b></div><div><span>Aktif yaş grubu</span><b>'+Object.values(groups).filter(x=>x.enabled).length+'</b></div><div><span>Ebeveyn</span><b>'+state.profiles.filter(p=>p.role==="parent").length+'</b></div><div><span>Çocuk</span><b>'+state.profiles.filter(p=>p.role==="child").length+'</b></div><div><span>Paket</span><b class="plan-word">'+esc(plan.name)+'</b></div></div>'+
     '<div class="admin-grid">'+
       '<section class="card admin-panel"><div class="admin-panel-head"><div><span class="eyebrow">İÇERİK</span><h2>Yaş grubuna göre kartlar</h2></div><button id="adminNewCard" class="primary">+ Kart ekle</button></div><div class="age-admin-grid">'+counts.map(x=>'<button class="age-admin-card" data-admin-age="'+x.g+'"><span>'+esc(groups[x.g].label)+'</span><b>'+x.n+' kart</b></button>').join("")+'</div></section>'+
-      '<section class="card admin-panel"><span class="eyebrow">VERİ AKTARIMI</span><h2>CSV / JSON</h2><p class="muted">Kartları topluca CSV ile, tüm aile verisini JSON ile taşıyın.</p><label class="admin-upload"><b>Kart CSV yükle</b><input id="adminCsvIn" type="file" accept=".csv,text/csv"></label><label class="admin-upload"><b>Tüm veri JSON yükle</b><input id="adminJsonIn" type="file" accept=".json,application/json"></label></section>'+
+      '<section class="card admin-panel"><span class="eyebrow">VERİ AKTARIMI</span><h2>CSV / JSON yükle</h2><p class="muted">Dosyayı seçin, içeriği önizleyin ve onayladıktan sonra sisteme aktarın.</p><label class="admin-upload"><div><b>CSV kart dosyası</b><small>Yaş grubu, kategori, soru ve rehber alanlarını toplu yükleyin.</small></div><span class="upload-button">CSV Dosyası Seç</span><input id="adminCsvIn" type="file" accept=".csv,text/csv" hidden></label><div id="csvPreview" class="upload-preview hidden"></div><label class="admin-upload"><div><b>JSON veri dosyası</b><small>Aile, profil, kart, görev, mesaj ve ayar verilerini içe aktarın.</small></div><span class="upload-button">JSON Dosyası Seç</span><input id="adminJsonIn" type="file" accept=".json,application/json" hidden></label><div id="jsonPreview" class="upload-preview hidden"></div></section>'+
     '</div>'+
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">YAŞ GRUPLARI</span><h2>İçerik grupları</h2></div></div><div class="age-toggle-list">'+Object.entries(groups).map(([g,c])=>'<label class="age-toggle-row"><div><b>'+esc(c.label)+'</b><small>'+g+' içerikleri</small></div><input type="checkbox" data-age-toggle="'+g+'" '+(c.enabled?"checked":"")+'></label>').join("")+'</div></section>'+
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">ÜYELİKLER</span><h2>Paket ve erişim matrisi</h2></div><select id="adminPlanSelect" class="membership-select">'+Object.entries(plans).map(([id,p])=>'<option value="'+id+'" '+(state.membership.plan===id?"selected":"")+'>'+esc(p.name)+'</option>').join("")+'</select></div><div class="plans-grid">'+Object.entries(plans).map(([id,p])=>'<div class="plan-admin-card '+(state.membership.plan===id?"current":"")+'"><h3>'+esc(p.name)+'</h3><div class="plan-limits"><span><b>'+p.maxParents+'</b> ebeveyn</span><span><b>'+p.maxChildren+'</b> çocuk</span><span><b>'+(p.ai?"✓":"—")+'</b> AI</span></div><p class="muted">Yaş grubu erişimi</p><div class="plan-age-access">'+Object.keys(groups).map(g=>'<label><input type="checkbox" data-plan="'+id+'" data-plan-age="'+g+'" '+(p.ageGroups.includes(g)?"checked":"")+'>'+esc(groups[g].label)+'</label>').join("")+'</div></div>').join("")+'</div></section>';
@@ -540,8 +540,8 @@ function adminView(){
   $("[data-plan-age]").forEach(el=>el.onchange=()=>{const p=state.adminConfig.plans[el.dataset.plan],g=el.dataset.planAge;p.ageGroups=el.checked?[...new Set(p.ageGroups.concat(g))]:p.ageGroups.filter(x=>x!==g);markDirty()});
   $("[data-admin-age]").forEach(el=>el.onclick=()=>{ageFilter=el.dataset.adminAge;cardFilter="Tümü";setRoute("cards")});
   $("#adminNewCard").onclick=adminNewCard;
-  $("#adminCsvIn").onchange=e=>importCardsCsv(e.target.files[0]);
-  $("#adminJsonIn").onchange=e=>importAdminJson(e.target.files[0]);
+  $("#adminCsvIn").onchange=e=>previewCardsCsv(e.target.files[0]);
+  $("#adminJsonIn").onchange=e=>previewAdminJson(e.target.files[0]);
 }
 function downloadAdmin(name,text,type){
   const blob=new Blob([text],{type:type}),a=document.createElement("a");
@@ -562,15 +562,62 @@ function parseAdminCsvLine(line){
   for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(quoted&&line[i+1]==='"'){cur+='"';i++}else quoted=!quoted}else if(ch===","&&!quoted){out.push(cur);cur=""}else cur+=ch}
   out.push(cur);return out;
 }
-function importCardsCsv(file){
-  if(!file)return;const r=new FileReader();
-  r.onload=()=>{try{const lines=String(r.result).split(/\r?\n/).filter(Boolean),head=parseAdminCsvLine(lines.shift());let n=0;for(const line of lines){const vals=parseAdminCsvLine(line),o={};head.forEach((h,i)=>o[h.trim()]=vals[i]??"");if(!o.ageGroup||!o.question)continue;state.cards.push({id:"card-"+Date.now()+"-"+n,ageGroup:o.ageGroup,category:o.category||"İçe Aktarılan",emoji:o.emoji||"💬",question:o.question,followUp:o.followUp||"",parentGuide:o.parentGuide||"",positiveReinforcement:o.positiveReinforcement||"",connectionPhrase:o.connectionPhrase||"",difficulty:Number(o.difficulty)||1,tags:[]});n++}markDirty();adminView();toast(n+" kart aktarıldı")}catch{toast("CSV okunamadı")}};
+function previewCardsCsv(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const lines=String(r.result).split(/\r?\n/).filter(Boolean);
+      if(lines.length<2)throw new Error();
+      const head=parseAdminCsvLine(lines[0]).map(x=>x.trim());
+      const required=["ageGroup","question"];
+      if(!required.every(k=>head.includes(k)))throw new Error("missing_columns");
+      const rows=lines.slice(1).map(line=>{const vals=parseAdminCsvLine(line),o={};head.forEach((h,i)=>o[h]=vals[i]??"");return o}).filter(o=>o.ageGroup&&o.question);
+      const box=$("#csvPreview");box.classList.remove("hidden");
+      box.innerHTML='<div class="upload-preview-head"><div><b>'+esc(file.name)+'</b><small>'+rows.length+' geçerli kart bulundu</small></div><span class="file-type">CSV</span></div><div class="preview-table">'+rows.slice(0,5).map(o=>'<div><span>'+esc(o.ageGroup)+'</span><b>'+esc(o.category||"Kategori yok")+'</b><small>'+esc(o.question)+'</small></div>').join("")+'</div><div class="upload-actions"><button id="cancelCsvImport" class="secondary">İptal</button><button id="confirmCsvImport" class="primary">'+rows.length+' kartı aktar</button></div>';
+      $("#cancelCsvImport").onclick=()=>{box.classList.add("hidden");$("#adminCsvIn").value=""};
+      $("#confirmCsvImport").onclick=()=>commitCardsCsv(rows);
+    }catch(e){toast(e.message==="missing_columns"?"CSV kolonları uygun değil":"CSV okunamadı")}
+  };
   r.readAsText(file);
 }
-function importAdminJson(file){
-  if(!file)return;const r=new FileReader();
-  r.onload=()=>{try{const incoming=JSON.parse(r.result);if(!incoming.profiles||!incoming.cards)throw new Error();state=incoming;defaults();applyDeviceUi();markDirty();adminView();toast("JSON aktarıldı")}catch{toast("Geçersiz JSON")}};
+function commitCardsCsv(rows){
+  let n=0;
+  for(const o of rows){
+    state.cards.push({id:"card-"+Date.now()+"-"+n,ageGroup:o.ageGroup,category:o.category||"İçe Aktarılan",emoji:o.emoji||"💬",question:o.question,followUp:o.followUp||"",parentGuide:o.parentGuide||"",positiveReinforcement:o.positiveReinforcement||"",connectionPhrase:o.connectionPhrase||"",difficulty:Number(o.difficulty)||1,tags:[]});
+    n++;
+  }
+  markDirty();adminView();toast(n+" kart aktarıldı");
+}
+function previewAdminJson(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const incoming=JSON.parse(r.result);
+      if(!incoming.profiles||!incoming.cards)throw new Error();
+      const box=$("#jsonPreview");box.classList.remove("hidden");
+      const summary=[
+        ["Profil",(incoming.profiles||[]).length],
+        ["Kart",(incoming.cards||[]).length],
+        ["Görev",(incoming.tasks||[]).length],
+        ["Mesaj",(incoming.messages||[]).length],
+        ["Takvim",(incoming.calendar||[]).length]
+      ];
+      box.innerHTML='<div class="upload-preview-head"><div><b>'+esc(file.name)+'</b><small>'+esc(incoming.familyName||"Parently veri dosyası")+'</small></div><span class="file-type">JSON</span></div><div class="json-summary">'+summary.map(x=>'<div><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join("")+'</div><div class="upload-danger">Bu işlem mevcut aile verisini içe aktarılan JSON ile değiştirebilir. Önce JSON yedek indirmeniz önerilir.</div><div class="upload-actions"><button id="cancelJsonImport" class="secondary">İptal</button><button id="confirmJsonImport" class="primary">JSON verisini aktar</button></div>';
+      $("#cancelJsonImport").onclick=()=>{box.classList.add("hidden");$("#adminJsonIn").value=""};
+      $("#confirmJsonImport").onclick=()=>commitAdminJson(incoming);
+    }catch{toast("Geçersiz Parently JSON dosyası")}
+  };
   r.readAsText(file);
+}
+function commitAdminJson(incoming){
+  state=incoming;
+  defaults();
+  applyDeviceUi();
+  markDirty();
+  adminView();
+  toast("JSON verisi aktarıldı");
 }
 
 load();
