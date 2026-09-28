@@ -4,7 +4,6 @@ let state=null, route="home", familyCode=localStorage.getItem("parently_family")
 let deviceMode=localStorage.getItem("parently_mode")||"parent";
 let deviceProfileId=localStorage.getItem("parently_profile")||"";
 let syncSource=null, saveInFlight=false, lastSyncAt=0;
-let activeLanguage=localStorage.getItem("parently_language")||"tr";
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 const today=()=>new Date().toISOString().slice(0,10);
@@ -27,7 +26,6 @@ function defaults(){
   state.quietHours ||= {enabled:false,start:"20:30",end:"07:00"};
   state.encouragements ||= [];
   state.settings ||= {language:"tr",notifications:true,highContrast:false};
-  state.languagePacks ||= {};
   state.membership ||= {plan:"premium",status:"active",startedAt:today(),renewalAt:""};
   state.adminConfig ||= {ageGroups:{"2-5":{enabled:true,label:"2–5 yaş"},"6-9":{enabled:true,label:"6–9 yaş"},"10-13":{enabled:true,label:"10–13 yaş"},"14-16":{enabled:true,label:"14–16 yaş"}},plans:{trial:{name:"Trial",maxParents:1,maxChildren:1,ageGroups:["2-5","6-9","10-13","14-16"],ai:false},standard:{name:"Standard",maxParents:1,maxChildren:1,ageGroups:["2-5","6-9","10-13","14-16"],ai:false},premium:{name:"Premium",maxParents:2,maxChildren:4,ageGroups:["2-5","6-9","10-13","14-16"],ai:true}}};
   state.profiles.forEach(p=>{state.points[p.id] ??= 0});
@@ -188,130 +186,20 @@ function demoMenu(){
   $("#exitDemo").onclick=async()=>{closeModal();await exitDemo()};
 }
 
-function setRoute(r){route=r;$(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.route===r));render();window.scrollTo({top:0,behavior:"smooth"})}
-$(".nav-btn").forEach(b=>b.onclick=()=>setRoute(b.dataset.route));
+function setRoute(r){route=r;$$(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.route===r));render();window.scrollTo({top:0,behavior:"smooth"})}
+$$(".nav-btn").forEach(b=>b.onclick=()=>setRoute(b.dataset.route));
 
 function moodMeta(pid){
   const m=[...state.moods].filter(x=>x.profileId===pid).sort((a,b)=>b.date.localeCompare(a.date))[0];
   const color={"😊":"#43c58a","😌":"#73c9d7","😐":"#b8aee0","😢":"#6f8edb","😡":"#ef6b72","😨":"#f0a95a"}[m?.mood]||"#cfc6e8";
   return {m,color};
 }
-
-const UI_TR={
-  navHome:"Ana Sayfa",navCards:"Kartlar",navAgenda:"Ajanda",navMessages:"Mesajlar",navReports:"Raporlar",navAdmin:"Yönetim",
-  parentMode:"Ebeveyn",childMode:"Çocuk Modu",cardsTitle:"Kart Kütüphanesi",favorites:"Favoriler",all:"Tümü",
-  followUp:"Takip sorusu",guide:"Rehber",reinforcement:"Pekiştirme",ritual:"Ritüel",save:"Kaydet",
-  completed:"Tamamlandı",addFavorite:"Favoriye ekle",inFavorites:"Favoride",childDone:"Bunu konuştuk",difficulty:"Zorluk"
-};
-function languageFlag(code,meta={}){
-  if(meta.flag)return meta.flag;
-  return ({tr:"🇹🇷",nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",ar:"🇸🇦","ar-ma":"🇲🇦",darija:"🇲🇦",es:"🇪🇸",it:"🇮🇹",pt:"🇵🇹",pl:"🇵🇱"}[String(code||"").toLowerCase()]||"🌐");
-}
-function baseLanguageMeta(){return {code:"tr",name:"Türkçe",flag:"🇹🇷",source:"tr"}}
-function languageDirection(code,meta={}){
-  return meta.direction||(/^ar(?:-|$)/i.test(String(code||""))||String(code||"").toLowerCase()==="darija"?"rtl":"ltr");
-}
-function applyLanguageDirection(){
-  const meta=availableLanguages().find(x=>String(x.code).toLowerCase()===String(activeLanguage).toLowerCase())||baseLanguageMeta();
-  const dir=languageDirection(activeLanguage,meta);
-  document.documentElement.lang=activeLanguage;
-  document.documentElement.dir=dir;
-  document.body.classList.toggle("rtl-mode",dir==="rtl");
-}
-function buildTargetLanguageTemplate(code,name,flag,direction="ltr"){
-  const pack=buildLanguageTemplate();
-  pack.meta={code,name,flag,source:"tr",direction};
-  pack.instructions.code="Bu dosyada meta.code alanını değiştirmeyin.";
-  pack.instructions.name="Dil adı hazırdır; yalnızca çeviri metinlerini düzenleyin.";
-  pack.instructions.warning="id ve ageGroup alanlarını değiştirmeyin. ui ve kart metinlerini çevirin.";
-  return pack;
-}
-function exportDarijaJson(){
-  const pack=buildTargetLanguageTemplate("ar-MA","الدارجة المغربية","🇲🇦","rtl");
-  downloadAdmin("parently-language-ar-MA-darija.json",JSON.stringify(pack,null,2),"application/json");
-}
-
-function availableLanguages(){
-  return [baseLanguageMeta(),...Object.values(state.languagePacks||{}).map(p=>p.meta).filter(Boolean).filter(m=>m.code!=="tr")];
-}
-function activeLanguagePack(){
-  if(String(activeLanguage).toLowerCase()==="tr")return null;
-  const packs=state.languagePacks||{};
-  return packs[activeLanguage]||Object.values(packs).find(p=>String(p?.meta?.code||"").toLowerCase()===String(activeLanguage).toLowerCase())||null;
-}
-function t(key,fallback){
-  const pack=activeLanguagePack();
-  return pack?.ui?.[key]||UI_TR[key]||fallback||key;
-}
-function localizedCard(card){
-  if(!card)return card;
-  const pack=activeLanguagePack();
-  if(!pack)return card;
-  const tr=(pack.cards||[]).find(x=>x.id===card.id);
-  return tr?{...card,...tr,id:card.id,ageGroup:card.ageGroup,emoji:tr.emoji||card.emoji}:card;
-}
-function buildLanguageTemplate(){
-  return {
-    schema:"parently-language-pack",
-    version:1,
-    meta:{code:"tr",name:"Türkçe",flag:"🇹🇷",source:"tr"},
-    instructions:{
-      code:"meta.code alanını hedef dil koduna değiştirin. Örn: nl, en, de.",
-      name:"meta.name alanına hedef dil adını yazın.",
-      flag:"meta.flag alanına bayrak emojisi yazabilirsiniz.",
-      warning:"id ve ageGroup alanlarını değiştirmeyin; metin alanlarını çevirin."
-    },
-    ui:{...UI_TR},
-    cards:state.cards.map(c=>({
-      id:c.id,ageGroup:c.ageGroup,category:c.category,emoji:c.emoji,question:c.question,followUp:c.followUp,
-      parentGuide:c.parentGuide,positiveReinforcement:c.positiveReinforcement,connectionPhrase:c.connectionPhrase
-    }))
-  };
-}
-function languageMenu(){
-  const langs=availableLanguages();
-  openModal('<h2>🌐 Dil seç</h2><p class="muted">Bu cihazda kullanılacak dili seçin.</p><div class="language-picker">'+langs.map(m=>'<button class="language-choice '+(activeLanguage===m.code?"active":"")+'" data-lang="'+esc(m.code)+'"><span>'+languageFlag(m.code,m)+'</span><div><b>'+esc(m.name||m.code)+'</b><small>'+esc(String(m.code).toUpperCase())+'</small></div></button>').join("")+'</div>');
-  $$("[data-lang]").forEach(b=>b.onclick=()=>{activeLanguage=b.dataset.lang;localStorage.setItem("parently_language",activeLanguage);applyLanguageDirection();closeModal();render();toast("Dil değiştirildi")});
-}
-function exportLanguageJson(){
-  downloadAdmin("parently-language-tr.json",JSON.stringify(buildLanguageTemplate(),null,2),"application/json");
-}
-function previewLanguageJson(file){
-  if(!file)return;
-  const r=new FileReader();
-  r.onload=()=>{
-    try{
-      const pack=JSON.parse(r.result);
-      if(pack.schema!=="parently-language-pack"||!pack.meta?.code||!pack.meta?.name||!Array.isArray(pack.cards))throw new Error();
-      if(String(pack.meta.code).toLowerCase()==="tr")throw new Error("base");
-      const matched=pack.cards.filter(x=>x.id&&state.cards.some(c=>c.id===x.id)).length;
-      const box=$("#languagePreview");if(!box)return;
-      box.classList.remove("hidden");box._pack=pack;
-      box.innerHTML='<div class="upload-preview-head"><div><b>'+languageFlag(pack.meta.code,pack.meta)+' '+esc(pack.meta.name)+'</b><small>'+matched+' / '+state.cards.length+' kart eşleşti · '+(languageDirection(pack.meta.code,pack.meta)==="rtl"?"RTL":"LTR")+'</small></div><span class="file-type">'+esc(String(pack.meta.code).toUpperCase())+'</span></div><div class="upload-actions"><button type="button" id="cancelLanguageImport" class="secondary">İptal</button><button type="button" id="confirmLanguageImport" class="primary">Dil paketini yükle</button></div>';
-    }catch(e){toast(e.message==="base"?"Hedef dil kodu Türkçe olamaz":"Geçersiz dil JSON dosyası")}
-  };
-  r.readAsText(file);
-}
-async function commitLanguagePack(pack){
-  const originalCode=String(pack.meta.code).trim();
-  const code=originalCode.toLowerCase();
-  pack.meta.code=originalCode==="ar-MA"||code==="ar-ma"?"ar-MA":code;
-  pack.meta.flag=languageFlag(pack.meta.code,pack.meta);
-  pack.meta.direction=languageDirection(pack.meta.code,pack.meta);
-  state.languagePacks[pack.meta.code]=pack;
-  try{await save();activeLanguage=pack.meta.code;localStorage.setItem("parently_language",activeLanguage);applyLanguageDirection();adminView();updateHeader();toast(pack.meta.name+" dili yüklendi")}catch{toast("Dil paketi kaydedilemedi")}
-}
-
 function updateHeader(){
-  applyLanguageDirection();
   const c=activeChild(), mm=moodMeta(c.id);
   $("#profileBtn").textContent=c?.avatar||"?";
   $("#profileBtn").style.boxShadow="0 0 0 4px "+mm.color+"88";
   $("#modeBtn").textContent=state.mode==="child"?"🧒 Çocuk Modu":"👨‍👩‍👧 Ebeveyn";
   const db=$("#demoBtn");if(db){db.textContent=isDemo()?"● Demo aktif":"▶ Demo";db.classList.toggle("active",isDemo());db.onclick=demoMenu;}
-  const lb=$("#languageBtn");if(lb){const lm=availableLanguages().find(x=>x.code===activeLanguage)||baseLanguageMeta();lb.textContent=languageFlag(lm.code,lm)+" "+String(lm.code).toUpperCase();lb.onclick=languageMenu;}
-  const navKeys={home:"navHome",cards:"navCards",agenda:"navAgenda",chat:"navMessages",reports:"navReports",admin:"navAdmin"};
-  $$(".nav-btn").forEach(b=>{const key=navKeys[b.dataset.route];if(key)b.textContent=t(key,b.textContent)});
   $("#modeBtn").onclick=toggleMode;$("#profileBtn").onclick=profilePicker;
 }
 async function toggleMode(){
@@ -358,8 +246,7 @@ function familyStrip(){
 }
 function homeView(){
  const c=activeChild(), completed=state.completedCards.filter(x=>x.profileId===c.id).length;
- const dailyBase=state.cards.find(k=>k.ageGroup===c.ageGroup&&!state.completedCards.some(x=>x.cardId===k.id&&x.date===today()))||state.cards.find(k=>k.ageGroup===c.ageGroup);
- const dailyCard=localizedCard(dailyBase);
+ const dailyCard=state.cards.find(k=>k.ageGroup===c.ageGroup&&!state.completedCards.some(x=>x.cardId===k.id&&x.date===today()))||state.cards.find(k=>k.ageGroup===c.ageGroup);
  const moodToday=state.moods.find(m=>m.profileId===c.id&&m.date===today());
  const points=state.points[c.id]||0;
  const pending=state.tasks.filter(t=>t.assigneeId===c.id&&t.status!=="done").length;
@@ -489,15 +376,14 @@ function bindCommon(){
 let cardFilter="Tümü", ageFilter="";
 function cardsView(){
  const c=activeChild();if(!ageFilter)ageFilter=c.ageGroup;
- const localized=state.cards.map(localizedCard);
- const cats=[t("all","Tümü"),...new Set(localized.map(c=>c.category))], visible=localized.filter(k=>(ageFilter==="Tümü"||k.ageGroup===ageFilter)&&(cardFilter==="Tümü"||k.category===cardFilter));
+ const cats=["Tümü",...new Set(state.cards.map(c=>c.category))], visible=state.cards.filter(k=>(ageFilter==="Tümü"||k.ageGroup===ageFilter)&&(cardFilter==="Tümü"||k.category===cardFilter));
  view.innerHTML='<div class="section-head"><div><h2>Kart Kütüphanesi</h2><span class="muted">Soru · Rehber · Pekiştirme · Ritüel</span></div><button class="small-btn" id="favOnly">⭐ Favoriler</button></div><div class="filters">'+["Tümü","2-5","6-9","10-13","14-16"].map(a=>'<button class="filter '+(ageFilter===a?"active":"")+'" data-age="'+a+'">'+a+'</button>').join("")+'</div><div class="filters">'+cats.map(a=>'<button class="filter '+(cardFilter===a?"active":"")+'" data-cat="'+esc(a)+'">'+esc(a)+'</button>').join("")+'</div><div class="grid">'+visible.map(cardTile).join("")+'</div>';
  $$("[data-age]").forEach(b=>b.onclick=()=>{ageFilter=b.dataset.age;render()});$$("[data-cat]").forEach(b=>b.onclick=()=>{cardFilter=b.dataset.cat;render()});$$("[data-open-card]").forEach(b=>b.onclick=()=>openCard(b.dataset.openCard));
  $("#favOnly").onclick=()=>{view.querySelector(".grid").innerHTML=state.cards.filter(k=>state.favorites.includes(k.id)).map(cardTile).join("")||'<div class="empty">Henüz favori yok.</div>';$$("[data-open-card]").forEach(b=>b.onclick=()=>openCard(b.dataset.openCard))}
 }
 function cardTile(k){return '<div class="card card-tile clickable" data-open-card="'+k.id+'"><div><div class="row space"><span class="emoji">'+k.emoji+'</span><span>'+(state.favorites.includes(k.id)?"⭐":"")+'</span></div><span class="badge">'+esc(k.category)+'</span><h3>'+esc(k.question)+'</h3></div><span class="muted">'+k.ageGroup+' · Zorluk '+k.difficulty+'/3</span></div>'}
 function openCard(id){
- const base=state.cards.find(x=>x.id===id);if(!base)return;const k=localizedCard(base);
+ const k=state.cards.find(x=>x.id===id);if(!k)return;
  if(state.mode==="child"){openModal('<div class="emoji">'+k.emoji+'</div><h2>'+esc(k.question)+'</h2><p>'+esc(k.followUp)+'</p><button id="childDone" class="primary full">Bunu konuştuk ✓</button>');$("#childDone").onclick=()=>{completeCard(id);closeModal()};return}
  const note=state.cardNotes[id]||"";
  openModal('<div class="row space"><div><span class="badge">'+esc(k.category)+'</span><h2 style="margin:8px 0">'+k.emoji+' '+esc(k.question)+'</h2></div><button id="favBtn" class="small-btn">'+(state.favorites.includes(id)?"⭐ Favoride":"☆ Favoriye ekle")+'</button></div><p><b>Takip sorusu:</b> '+esc(k.followUp)+'</p><div class="tabs"><button class="active" data-tab="guide">Rehber</button><button data-tab="reinforce">Pekiştirme</button><button data-tab="ritual">Ritüel</button></div><div id="tabText" class="item">'+esc(k.parentGuide)+'</div><label class="muted block">Özel ebeveyn notu</label><textarea id="cardNote" rows="3" placeholder="Sadece ebeveynler görür...">'+esc(note)+'</textarea><div class="row wrap topgap"><button id="saveCard" class="primary">Kaydet</button><button id="doneCard" class="secondary">✓ Tamamlandı</button></div>');
@@ -649,14 +535,9 @@ function adminView(){
       '<label class="admin-upload"><div><b>JSON veri dosyası</b><small>Aile, profil, kart, görev, mesaj ve ayar verilerini içe aktarın.</small></div><span class="upload-button">JSON Dosyası Seç</span><input id="adminJsonIn" type="file" accept=".json,application/json" hidden></label><div id="jsonPreview" class="upload-preview hidden"></div></section>'+
     '</div>'+
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">YAŞ GRUPLARI</span><h2>İçerik grupları</h2></div></div><div class="age-toggle-list">'+Object.entries(groups).map(([g,c])=>'<label class="age-toggle-row"><div><b>'+esc(c.label)+'</b><small>'+g+' içerikleri</small></div><input type="checkbox" data-age-toggle="'+g+'" '+(c.enabled?"checked":"")+'></label>').join("")+'</div></section>'+
-    '<section class="card admin-panel section language-admin-section"><div class="admin-panel-head"><div><span class="eyebrow">DİLLER & ÇEVİRİ</span><h2>Dil paketleri</h2></div><div class="admin-head-actions"><button id="exportLanguageJson" class="secondary">🇹🇷 Türkçe JSON indir</button><button id="exportDarijaJson" class="secondary">🇲🇦 Darija JSON indir</button><label class="language-upload-btn">Çeviri JSON yükle<input id="languageJsonIn" type="file" accept=".json,application/json" hidden></label></div></div><p class="muted">Türkçe temel dosyayı indir, metinleri çevir, meta.code / meta.name / meta.flag alanlarını hedef dile göre değiştir ve geri yükle. Sistem dili otomatik algılar.</p><div class="language-list">'+availableLanguages().map(m=>'<button class="language-pill '+(activeLanguage===m.code?"active":"")+'" data-lang-admin="'+esc(m.code)+'"><span>'+languageFlag(m.code,m)+'</span><b>'+esc(m.name||m.code)+'</b><small>'+esc(String(m.code).toUpperCase())+'</small></button>').join("")+'</div><div id="languagePreview" class="upload-preview hidden"></div></section>'+
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">ÜYELİKLER</span><h2>Paket ve erişim matrisi</h2></div><select id="adminPlanSelect" class="membership-select">'+Object.entries(plans).map(([id,p])=>'<option value="'+id+'" '+(state.membership.plan===id?"selected":"")+'>'+esc(p.name)+'</option>').join("")+'</select></div><div class="plans-grid">'+Object.entries(plans).map(([id,p])=>'<div class="plan-admin-card '+(state.membership.plan===id?"current":"")+'"><h3>'+esc(p.name)+'</h3><div class="plan-limits"><span><b>'+p.maxParents+'</b> ebeveyn</span><span><b>'+p.maxChildren+'</b> çocuk</span><span><b>'+(p.ai?"✓":"—")+'</b> AI</span></div><p class="muted">Yaş grubu erişimi</p><div class="plan-age-access">'+Object.keys(groups).map(g=>'<label><input type="checkbox" data-plan="'+id+'" data-plan-age="'+g+'" '+(p.ageGroups.includes(g)?"checked":"")+'>'+esc(groups[g].label)+'</label>').join("")+'</div></div>').join("")+'</div></section>';
 
   $("#adminJsonOut").onclick=()=>downloadAdmin("parently-full-export.json",JSON.stringify(state,null,2),"application/json");
-  $("#exportLanguageJson").onclick=exportLanguageJson;
-  $("#exportDarijaJson").onclick=exportDarijaJson;
-  $("#languageJsonIn").onchange=e=>previewLanguageJson(e.target.files[0]);
-  $("[data-lang-admin]").forEach(b=>b.onclick=()=>{activeLanguage=b.dataset.langAdmin;localStorage.setItem("parently_language",activeLanguage);adminView();updateHeader()});
   $("#adminCsvOut").onclick=()=>exportCardsCsv();
   $("#adminPlanSelect").onchange=e=>{state.membership.plan=e.target.value;markDirty();adminView()};
   $$("[data-age-toggle]").forEach(el=>el.onchange=()=>{state.adminConfig.ageGroups[el.dataset.ageToggle].enabled=el.checked;markDirty()});
@@ -793,15 +674,6 @@ document.addEventListener("click",async e=>{
       tags:[]
     });
     try{await save();closeModal();adminView();toast("Kart kaydedildi")}catch{toast("Kart kaydedilemedi")}
-    return;
-  }
-  if(e.target.closest("#cancelLanguageImport")){
-    const box=$("#languagePreview");if(box)box.classList.add("hidden");
-    const inp=$("#languageJsonIn");if(inp)inp.value="";
-    return;
-  }
-  if(e.target.closest("#confirmLanguageImport")){
-    const box=$("#languagePreview");if(box?._pack)await commitLanguagePack(box._pack);
     return;
   }
   if(e.target.closest("#cancelCsvImport")){
