@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="theme-color" content="#4B1AC1"/>
 <title>Parently</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,27 +12,47 @@
 </head>
 <body>
 <div id="toast"></div>
-<div id="app">
-  <header class="topbar">
-    <div>
-      <div class="brand">Parently</div>
-      <div class="tagline">Günde 3 dakika bağlantı</div>
+<div class="web-shell" id="app">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">P</div>
+      <div><div class="brand">Parently</div><div class="tagline">Aile bağını güçlendir</div></div>
     </div>
-    <div class="header-actions">
-      <button id="modeBtn" class="pill">👨‍👩‍👧 Ebeveyn</button>
-      <button id="profileBtn" class="avatar-btn">Ç</button>
+
+    <nav class="side-nav">
+      <button data-route="home" class="nav-btn active"><span class="nav-icon">⌂</span><span>Ana Sayfa</span></button>
+      <button data-route="cards" class="nav-btn"><span class="nav-icon">◇</span><span>Kartlar</span></button>
+      <button data-route="agenda" class="nav-btn"><span class="nav-icon">□</span><span>Ajanda & Görevler</span></button>
+      <button data-route="chat" class="nav-btn"><span class="nav-icon">◌</span><span>Mesajlar</span></button>
+      <button data-route="reports" class="nav-btn"><span class="nav-icon">▥</span><span>Raporlar</span></button>
+    </nav>
+
+    <div class="sidebar-card">
+      <div class="sidebar-card-icon">💜</div>
+      <b>Günde 3 dakika</b>
+      <p>Küçük anlar, güçlü bağlar.</p>
     </div>
-  </header>
 
-  <main id="view"></main>
+    <div class="sidebar-foot">
+      <span class="status-dot"></span>
+      <span>Aile alanı aktif</span>
+    </div>
+  </aside>
 
-  <nav class="bottom-nav">
-    <button data-route="home" class="nav-btn active">🏠<span>Ana Sayfa</span></button>
-    <button data-route="cards" class="nav-btn">🃏<span>Kartlar</span></button>
-    <button data-route="agenda" class="nav-btn">📅<span>Ajanda</span></button>
-    <button data-route="chat" class="nav-btn">💬<span>Mesajlar</span></button>
-    <button data-route="reports" class="nav-btn">📊<span>Raporlar</span></button>
-  </nav>
+  <div class="workspace">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="desktop-title">Aile Paneli</div>
+        <div class="desktop-subtitle">Bugünü birlikte planla, bağı görünür kıl.</div>
+      </div>
+      <div class="header-actions">
+        <button class="top-action" data-route="chat">Mesajlar</button>
+        <button id="modeBtn" class="pill">👨‍👩‍👧 Ebeveyn</button>
+        <button id="profileBtn" class="avatar-btn">Ç</button>
+      </div>
+    </header>
+    <main id="view"></main>
+  </div>
 </div>
 
 <div id="modal" class="modal hidden"><div class="modal-card"><button id="modalClose" class="modal-close">×</button><div id="modalBody"></div></div></div>
