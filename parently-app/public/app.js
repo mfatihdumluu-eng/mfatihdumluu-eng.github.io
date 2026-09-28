@@ -1,6 +1,6 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const view=$("#view"), modal=$("#modal"), modalBody=$("#modalBody");
-let state=null, route="home", familyCode=localStorage.getItem("parently_family")||"AILE2026";
+let state=null, route="home", familyCode=localStorage.getItem("parently_family")||"AILE2026";\nlet deviceMode=localStorage.getItem("parently_mode")||"parent";\nlet deviceProfileId=localStorage.getItem("parently_profile")||"";\nlet syncSource=null, saveInFlight=false, lastSyncAt=0;
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 const today=()=>new Date().toISOString().slice(0,10);
@@ -25,9 +25,65 @@ function defaults(){
   state.settings ||= {language:"tr",notifications:true,highContrast:false};
   state.profiles.forEach(p=>{state.points[p.id] ??= 0});
 }
-async function load(){try{state=await api("/api/state/"+encodeURIComponent(familyCode));defaults();await save();render();pollMessages()}catch(e){view.innerHTML='<div class="card">Bağlantı kurulamadı. Sayfayı yenileyin.</div>'}}
-async function save(){state=await api("/api/state/"+encodeURIComponent(familyCode),{method:"PUT",body:JSON.stringify(state)});return state}
-function markDirty(){save().catch(()=>toast("Kaydetme başarısız"))}
+function applyDeviceUi(){
+  if(!state)return;
+  const validProfile=state.profiles?.some(p=>p.id===deviceProfileId);
+  state.mode=deviceMode;
+  if(validProfile)state.activeProfileId=deviceProfileId;
+  else{
+    const preferred=deviceMode==="child"?state.profiles?.find(p=>p.role==="child"):state.profiles?.find(p=>p.role==="parent");
+    if(preferred){deviceProfileId=preferred.id;state.activeProfileId=preferred.id;localStorage.setItem("parently_profile",deviceProfileId)}
+  }
+}
+function persistDeviceUi(){
+  deviceMode=state.mode||"parent";
+  deviceProfileId=state.activeProfileId||"";
+  localStorage.setItem("parently_mode",deviceMode);
+  localStorage.setItem("parently_profile",deviceProfileId);
+}
+function setSyncStatus(kind,label){
+  const el=$("#syncStatus");if(!el)return;
+  el.className="sync-status "+kind;
+  const txt=el.querySelector("span");if(txt)txt.textContent=label;
+}
+function startRealtimeSync(){
+  if(syncSource){syncSource.close();syncSource=null}
+  try{
+    setSyncStatus("connecting","Bağlanıyor");
+    syncSource=new EventSource("/api/events/"+encodeURIComponent(familyCode));
+    syncSource.addEventListener("ready",()=>{setSyncStatus("online","Canlı");lastSyncAt=Date.now()});
+    const refresh=async()=>{
+      if(saveInFlight||!modal.classList.contains("hidden"))return;
+      try{
+        const fresh=await api("/api/state/"+encodeURIComponent(familyCode));
+        state=fresh;defaults();applyDeviceUi();lastSyncAt=Date.now();setSyncStatus("online","Canlı");render();
+      }catch{setSyncStatus("offline","Bağlantı yok")}
+    };
+    syncSource.addEventListener("state",refresh);
+    syncSource.addEventListener("message",refresh);
+    syncSource.onerror=()=>setSyncStatus("offline","Yeniden bağlanıyor");
+  }catch{setSyncStatus("offline","Bağlantı yok")}
+}
+async function load(){
+  try{
+    setSyncStatus("connecting","Bağlanıyor");
+    state=await api("/api/state/"+encodeURIComponent(familyCode));
+    defaults();applyDeviceUi();render();startRealtimeSync();pollMessages();
+  }catch(e){
+    setSyncStatus("offline","Bağlantı yok");
+    view.innerHTML='<div class="card">Bağlantı kurulamadı. Sayfayı yenileyin.</div>';
+  }
+}
+async function save(){
+  saveInFlight=true;setSyncStatus("syncing","Kaydediliyor");
+  try{
+    const payload=JSON.parse(JSON.stringify(state));
+    delete payload.mode;delete payload.activeProfileId;
+    const fresh=await api("/api/state/"+encodeURIComponent(familyCode),{method:"PUT",body:JSON.stringify(payload)});
+    state=fresh;defaults();applyDeviceUi();lastSyncAt=Date.now();setSyncStatus("online","Canlı");return state;
+  }finally{saveInFlight=false}
+}
+function markDirty(){save().catch(()=>{setSyncStatus("offline","Kaydetme hatası");toast("Kaydetme başarısız")})}
 
 const DEMO_CODE="DEMO2026";
 function isDemo(){return familyCode===DEMO_CODE}
@@ -109,14 +165,14 @@ async function activateDemo(reset=false){
       state=demo;
       await save();
     }else{state=demo;defaults()}
-    route="home";render();toast("Demo modu aktif");
+    deviceMode="parent";deviceProfileId=state.profiles.find(p=>p.role==="parent")?.id||state.activeProfileId;applyDeviceUi();persistDeviceUi();route="home";render();startRealtimeSync();toast("Demo modu aktif");
   }catch(e){toast("Demo başlatılamadı")}
 }
 async function exitDemo(){
   familyCode=localStorage.getItem("parently_before_demo")||"AILE2026";
   localStorage.setItem("parently_family",familyCode);
   state=await api("/api/state/"+encodeURIComponent(familyCode));
-  defaults();route="home";render();toast("Demo modundan çıkıldı");
+  defaults();applyDeviceUi();route="home";render();startRealtimeSync();toast("Demo modundan çıkıldı");
 }
 function demoMenu(){
   if(!isDemo())return activateDemo(false);
@@ -145,7 +201,7 @@ async function toggleMode(){
   if(state.mode==="parent"){
     state.mode="child";
     state.activeProfileId=activeChild()?.id||state.activeProfileId;
-    try{await save()}catch{}
+    persistDeviceUi();
     toast("Çocuk modu açıldı");
     render();
     return;
@@ -159,19 +215,11 @@ async function toggleMode(){
     const parent=state.profiles.find(p=>p.role==="parent");
     state.mode="parent";
     if(parent)state.activeProfileId=parent.id;
-    $("#pinBtn").disabled=true;
-    $("#pinBtn").textContent="Geçiliyor…";
-    try{
-      await save();
-      closeModal();
-      route="home";
-      render();
-      toast("Ebeveyn modu açıldı");
-    }catch(e){
-      $("#pinBtn").disabled=false;
-      $("#pinBtn").textContent="Ebeveyne geç";
-      $("#pinError").textContent="Geçiş kaydedilemedi. Tekrar deneyin.";
-    }
+    persistDeviceUi();
+    closeModal();
+    route="home";
+    render();
+    toast("Ebeveyn modu açıldı");
   };
   $("#pinBtn").onclick=submit;
   $("#pin").onkeydown=e=>{if(e.key==="Enter")submit()};
@@ -179,7 +227,7 @@ async function toggleMode(){
 }
 function profilePicker(){
   openModal('<h2>Kim kullanıyor?</h2><p class="muted">Ortak cihazlarda herkes kendi profilini seçebilir.</p><div class="profile-picker">'+state.profiles.map(p=>{const mm=moodMeta(p.id);return '<button class="pick-profile" data-p="'+p.id+'"><span class="halo" style="--halo:'+mm.color+'"><span style="background:'+p.color+'">'+esc(p.avatar)+'</span></span><b>'+esc(p.name)+'</b><small>'+(p.role==="child"?(p.age+" yaş"):"Ebeveyn")+'</small></button>'}).join("")+'</div>');
-  $$("[data-p]").forEach(b=>b.onclick=()=>{state.activeProfileId=b.dataset.p;markDirty();closeModal();render()})
+  $("[data-p]").forEach(b=>b.onclick=()=>{state.activeProfileId=b.dataset.p;persistDeviceUi();closeModal();render()})
 }
 function render(){
   if(!state)return;defaults();updateHeader();
@@ -388,7 +436,7 @@ function chatView(){
  $("#msg").onkeydown=e=>{if(e.key==="Enter")$("#send").click()};
  $("#familyCodeBtn").onclick=changeFamilyCode;
  const changeSender=$("#changeSender");
- if(changeSender)changeSender.onclick=()=>{openModal('<h2>Mesajı kim gönderiyor?</h2><p class="muted">Ebeveyn profilini seçin.</p><div class="profile-picker">'+state.profiles.filter(p=>p.role==="parent").map(p=>'<button class="pick-profile" data-sender="'+p.id+'"><span class="profile-dot" style="background:'+p.color+'">'+esc(p.avatar)+'</span><b>'+esc(p.name)+'</b></button>').join("")+'</div>');$("[data-sender]").forEach(b=>b.onclick=()=>{state.activeProfileId=b.dataset.sender;markDirty();closeModal();chatView()})};
+ if(changeSender)changeSender.onclick=()=>{openModal('<h2>Mesajı kim gönderiyor?</h2><p class="muted">Ebeveyn profilini seçin.</p><div class="profile-picker">'+state.profiles.filter(p=>p.role==="parent").map(p=>'<button class="pick-profile" data-sender="'+p.id+'"><span class="profile-dot" style="background:'+p.color+'">'+esc(p.avatar)+'</span><b>'+esc(p.name)+'</b></button>').join("")+'</div>');$("[data-sender]").forEach(b=>b.onclick=()=>{state.activeProfileId=b.dataset.sender;persistDeviceUi();closeModal();chatView()})};
 }
 async function refreshMessages(){try{const fresh=await api("/api/state/"+encodeURIComponent(familyCode));state.messages=fresh.messages||[];if(route==="chat")chatView()}catch{}}
 function pollMessages(){setInterval(()=>{if(route==="chat")refreshMessages()},3500)}
