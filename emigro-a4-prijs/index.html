@@ -89,7 +89,7 @@ textarea{resize:vertical} input:focus,textarea:focus,select:focus{border-color:#
 </aside>
 </main>
 
-<div class="modal" id="modal"><div class="modalBox"><div class="title">Ayarlar</div><div class="sub">A4 kartının genel oranlarını buradan değiştir.</div><label>Wachtwoord</label><input id="adminPass" type="password">
+<div class="modal" id="modal"><div class="modalBox"><div class="title">Ayarlar</div><div class="sub">A4 kartının genel oranlarını buradan değiştir.</div>
 <div class="row2"><div><label>Logo genişliği (mm)</label><input id="logoWidth" type="number"></div><div><label>Ürün adı (pt)</label><input id="nameSize" type="number"></div></div>
 <div class="row2"><div><label>Açıklama (pt)</label><input id="descSize" type="number"></div><div><label>Miktar / eenheid (pt)</label><input id="unitSize" type="number"></div></div>
 <div class="row2"><div><label>EXCL. fiyat (pt)</label><input id="exSize" type="number"></div><div><label>INCL. fiyat (pt)</label><input id="incSize" type="number"></div></div>
@@ -101,7 +101,7 @@ textarea{resize:vertical} input:focus,textarea:focus,select:focus{border-color:#
 const DATA="https://hroarfuwpfsqilsijwpp.supabase.co/functions/v1/emigro-a4-data";
 const SETTINGS="https://hroarfuwpfsqilsijwpp.supabase.co/functions/v1/emigro-a4-settings";
 let product={name:"",description:"",unit:"",vat:9,ex:0,ex2:0,action:"",statiegeld:"",barcode:""};
-let settings={}; let last1="ex",last2="ex",job=null; let secondOpen=false; let deviceName=localStorage.getItem("emigro-device-name")||"";
+let settings={}; let last1="ex",last2="ex",job=null; let secondOpen=false; let deviceName=localStorage.getItem("emigro-device-name")||""; let settingsPassword="";
 const $=id=>document.getElementById(id);
 const money=v=>"€ "+Number(v||0).toFixed(2).replace(".",",");
 const num=s=>Number(String(s||"").replace(",", "."))||0;
@@ -162,8 +162,20 @@ let qTimer;async function loadArchive(){clearTimeout(qTimer);qTimer=setTimeout(a
 async function pollPrint(){if(window.innerWidth<801)return;try{const r=await fetch(DATA+"?action=poll_print&station=EMIGRO",{cache:"no-store"});const j=await r.json();job=j.job||null;$("queueBox").classList.toggle("show",!!job);$("queueName").textContent=job?.data?.name||""}catch{}}
 async function loadQueued(){if(!job)return;loadProduct({...job.data,id:job.data?.id});await post({action:"mark_printed",id:job.id});job=null;$("queueBox").classList.remove("show");setTimeout(()=>window.print(),250)}
 async function loadSettings(){try{const r=await fetch(SETTINGS,{cache:"no-store"});settings=await r.json();$("logoWidth").value=settings.logo_width_mm||120;$("nameSize").value=settings.name_size_pt||60;$("descSize").value=settings.desc_size_pt||20;$("unitSize").value=settings.unit_size_pt||34;$("exSize").value=settings.ex_size_pt||82;$("incSize").value=settings.inc_size_pt||40;$("cardWidth").value=settings.card_min_width_mm||166;$("cardPad").value=settings.card_horizontal_padding_mm||5;render()}catch{}}
-async function saveSettings(){try{const next={...settings,logo_width_mm:Number($("logoWidth").value),name_size_pt:Number($("nameSize").value),desc_size_pt:Number($("descSize").value),unit_size_pt:Number($("unitSize").value),ex_size_pt:Number($("exSize").value),inc_size_pt:Number($("incSize").value),card_min_width_mm:Number($("cardWidth").value),card_horizontal_padding_mm:Number($("cardPad").value)};const r=await fetch(SETTINGS,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:$("adminPass").value,settings:next})});const j=await r.json();if(!r.ok||j.error)throw new Error("Şifre veya kayıt hatası.");settings=j;$("modal").classList.remove("open");showStatus("Ayarlar kaydedildi.");render()}catch(e){showStatus(e.message)}}
-["name","desc","unit","action","deposit","barcode"].forEach(id=>$(id).addEventListener("input",render));$("vat").addEventListener("change",recalcVat);$("ex1").addEventListener("input",()=>syncFirst("ex"));$("inc1").addEventListener("input",()=>syncFirst("inc"));$("ex2").addEventListener("input",()=>syncSecond("ex"));$("inc2").addEventListener("input",()=>syncSecond("inc"));$("toggleSecond").onclick=()=>setSecond(true);$("removeSecond").onclick=()=>setSecond(false);$("saveBtn").onclick=save;$("sendBtn").onclick=sendPrint;$("newBtn").onclick=reset;$("archiveBtn").onclick=()=>$("search").scrollIntoView({behavior:"smooth"});$("search").addEventListener("input",loadArchive);$("loadQueue").onclick=loadQueued;$("settingsBtn").onclick=()=>$("modal").classList.add("open");$("closeModal").onclick=()=>$("modal").classList.remove("open");$("saveSettings").onclick=saveSettings;
+async function saveSettings(){try{const next={...settings,logo_width_mm:Number($("logoWidth").value),name_size_pt:Number($("nameSize").value),desc_size_pt:Number($("descSize").value),unit_size_pt:Number($("unitSize").value),ex_size_pt:Number($("exSize").value),inc_size_pt:Number($("incSize").value),card_min_width_mm:Number($("cardWidth").value),card_horizontal_padding_mm:Number($("cardPad").value)};const r=await fetch(SETTINGS,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:settingsPassword,settings:next})});const j=await r.json();if(!r.ok||j.error)throw new Error("Şifre veya kayıt hatası.");settings=j;$("modal").classList.remove("open");showStatus("Ayarlar kaydedildi.");render()}catch(e){showStatus(e.message)}}
+["name","desc","unit","action","deposit","barcode"].forEach(id=>$(id).addEventListener("input",render));$("vat").addEventListener("change",recalcVat);$("ex1").addEventListener("input",()=>syncFirst("ex"));$("inc1").addEventListener("input",()=>syncFirst("inc"));$("ex2").addEventListener("input",()=>syncSecond("ex"));$("inc2").addEventListener("input",()=>syncSecond("inc"));$("toggleSecond").onclick=()=>setSecond(true);$("removeSecond").onclick=()=>setSecond(false);$("saveBtn").onclick=save;$("sendBtn").onclick=sendPrint;$("newBtn").onclick=reset;$("archiveBtn").onclick=()=>$("search").scrollIntoView({behavior:"smooth"});$("search").addEventListener("input",loadArchive);$("loadQueue").onclick=loadQueued;$("settingsBtn").onclick=async()=>{
+  const password=prompt("Ayarlar şifresi:");
+  if(password===null)return;
+  try{
+    const r=await fetch(SETTINGS,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password,action:"check"})});
+    const j=await r.json();
+    if(!r.ok||!j.ok)throw new Error("Şifre yanlış.");
+    settingsPassword=password;
+    $("modal").classList.add("open");
+  }catch(e){
+    alert("Şifre yanlış.");
+  }
+};$("closeModal").onclick=()=>$("modal").classList.remove("open");$("saveSettings").onclick=saveSettings;
 const liveUrl=location.origin+location.pathname;
 const qrSrc="https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data="+encodeURIComponent(liveUrl);
 $("qrImg").src=qrSrc;$("qrUrl").textContent=liveUrl;
