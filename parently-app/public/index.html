@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#4B1AC1"/>
+<title>Parently</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css"/>
+</head>
+<body>
+<div id="toast"></div>
+<div id="app">
+  <header class="topbar">
+    <div>
+      <div class="brand">Parently</div>
+      <div class="tagline">Günde 3 dakika bağlantı</div>
+    </div>
+    <div class="header-actions">
+      <button id="modeBtn" class="pill">👨‍👩‍👧 Ebeveyn</button>
+      <button id="profileBtn" class="avatar-btn">Ç</button>
+    </div>
+  </header>
+
+  <main id="view"></main>
+
+  <nav class="bottom-nav">
+    <button data-route="home" class="nav-btn active">🏠<span>Ana Sayfa</span></button>
+    <button data-route="cards" class="nav-btn">🃏<span>Kartlar</span></button>
+    <button data-route="agenda" class="nav-btn">📅<span>Ajanda</span></button>
+    <button data-route="chat" class="nav-btn">💬<span>Mesajlar</span></button>
+    <button data-route="reports" class="nav-btn">📊<span>Raporlar</span></button>
+  </nav>
+</div>
+
+<div id="modal" class="modal hidden"><div class="modal-card"><button id="modalClose" class="modal-close">×</button><div id="modalBody"></div></div></div>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
