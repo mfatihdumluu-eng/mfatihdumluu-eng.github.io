@@ -529,7 +529,7 @@ function adminView(){
     '<div class="admin-kpis"><div><span>Toplam kart</span><b>'+state.cards.length+'</b></div><div><span>Aktif yaş grubu</span><b>'+Object.values(groups).filter(x=>x.enabled).length+'</b></div><div><span>Ebeveyn</span><b>'+state.profiles.filter(p=>p.role==="parent").length+'</b></div><div><span>Çocuk</span><b>'+state.profiles.filter(p=>p.role==="child").length+'</b></div><div><span>Paket</span><b class="plan-word">'+esc(plan.name)+'</b></div></div>'+
     '<div class="admin-grid">'+
       '<section class="card admin-panel"><div class="admin-panel-head"><div><span class="eyebrow">İÇERİK</span><h2>Yaş grubuna göre kartlar</h2></div><button id="adminNewCard" class="primary" type="button">+ Kart ekle</button></div><div class="age-admin-grid">'+counts.map(x=>'<button class="age-admin-card" data-admin-age="'+x.g+'"><span>'+esc(groups[x.g].label)+'</span><b>'+x.n+' kart</b></button>').join("")+'</div></section>'+
-      '<section class="card admin-panel"><span class="eyebrow">VERİ AKTARIMI</span><h2>CSV / JSON yükle</h2><p class="muted">Dosyayı seçin, satır sayısını kontrol edin ve onayladıktan sonra aktarın.</p>'+
+      '<section class="card admin-panel"><span class="eyebrow">VERİ AKTARIMI</span><h2>CSV / JSON yükle</h2><p class="muted">Dosyayı seçin, satır sayısını kontrol edin ve onayladıktan sonra aktarın.</p>'+(isDemo()?'<div class="upload-danger"><b>⚠ Demo modu aktif</b><br>Buraya yüklenen kartlar yalnızca DEMO2026 alanına gider. Gerçek kartlar için önce Demo modundan çıkın.</div>':'<div class="last-import"><b>✓ Gerçek aile alanı</b><small>'+esc(familyCode)+' · Yüklenen kartlar kalıcı DB kaydına gider.</small></div>')+
       (last?'<div class="last-import"><b>Son CSV: '+last.count+' kart yüklendi</b><small>'+esc(last.fileName||"")+'</small></div>':'')+
       '<label class="admin-upload"><div><b>CSV kart dosyası</b><small>Yaş grubu, kategori, soru ve rehber alanlarını toplu yükleyin.</small></div><span class="upload-button">CSV Dosyası Seç</span><input id="adminCsvIn" type="file" accept=".csv,text/csv" hidden></label><div id="csvPreview" class="upload-preview hidden"></div>'+
       '<label class="admin-upload"><div><b>JSON veri dosyası</b><small>Aile, profil, kart, görev, mesaj ve ayar verilerini içe aktarın.</small></div><span class="upload-button">JSON Dosyası Seç</span><input id="adminJsonIn" type="file" accept=".json,application/json" hidden></label><div id="jsonPreview" class="upload-preview hidden"></div></section>'+
@@ -595,6 +595,10 @@ function normalizeCsvHeader(h){
 }
 function previewCardsCsv(file){
   if(!file)return;
+  if(isDemo()){
+    $("#adminCsvIn").value="";
+    return toast("Demo modunda CSV yüklenmez. Önce Demo modundan çıkın.");
+  }
   const r=new FileReader();
   r.onload=()=>{
     try{
