@@ -73,7 +73,7 @@ function homeView(){
  const pending=state.tasks.filter(t=>t.assigneeId===c.id&&t.status!=="done").length;
  const approvals=state.tasks.filter(t=>t.assigneeId===c.id&&t.status==="submitted");
  const upcoming=[...state.calendar].filter(e=>e.date>=today()).sort((x,y)=>(x.date+(x.time||"")).localeCompare(y.date+(y.time||""))).slice(0,4);
- const lastMood=[...state.moods].filter(m=>m.profileId===c.id).sort((x,y)=>btoa(y.date).localeCompare(btoa(x.date)))[0];
+ const lastMood=[...state.moods].filter(m=>m.profileId===c.id).sort((x,y)=>y.date.localeCompare(x.date))[0];
  view.innerHTML=`
  <section class="parent-overview-head">
    <div><span class="eyebrow">EBEVEYN PANELİ</span><h1>${esc(c.name)} için bugünün görünümü</h1><p>Bağ kurma, duygu, rutin ve aile planlarını tek ekranda takip edin.</p></div>
@@ -230,7 +230,7 @@ let timerInterval=null;
 function specialTime(){let seconds=600;openModal('<h2>⏱️ 10 Dakika Özel Zaman</h2><div class="special-reminders"><span>👂 Çocuğun liderliğini takip et</span><span>🧩 Düzeltmeyi azalt</span><span>✨ Olumluyu fark et</span></div><div id="timer" class="timer">10:00</div><textarea id="sessionNote" rows="3" placeholder="Bu seanstan kısa bir not..."></textarea><div class="row wrap"><button id="startTimer" class="primary">Başlat</button><button id="finishTimer" class="secondary">Bitir & Kaydet</button></div>');$("#startTimer").onclick=()=>{clearInterval(timerInterval);timerInterval=setInterval(()=>{seconds--;$("#timer").textContent=String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");if(seconds<=0){clearInterval(timerInterval);toast("10 dakika tamamlandı 💜")}},1000)};$("#finishTimer").onclick=()=>{clearInterval(timerInterval);state.specialSessions.push({id:"s"+Date.now(),profileId:activeChild().id,date:new Date().toISOString(),duration:600-seconds,note:$("#sessionNote").value});state.points[activeChild().id]=(state.points[activeChild().id]||0)+5;markDirty();closeModal();toast("Özel zaman kaydedildi +5 puan")}}
 
 function chatView(){
- const me=state.mode==="child"?activeChild():state.profiles.find(p=>p.role==="parent")||profile(state.activeProfileId);
+ const me=state.mode==="child"?activeChild():(profile(state.activeProfileId)?.role==="parent"?profile(state.activeProfileId):state.profiles.find(p=>p.role==="parent")||profile(state.activeProfileId));
  const messages=state.messages||[], quiet=state.quietHours.enabled;
  const members=state.profiles.map(p=>'<div class="chat-member"><span style="background:'+p.color+'">'+esc(p.avatar)+'</span><div><b>'+esc(p.name)+'</b><small>'+(p.role==="child"?"Çocuk":"Ebeveyn")+'</small></div></div>').join("");
  const recentCount=messages.filter(m=>Date.now()-new Date(m.at).getTime()<86400000).length;
@@ -252,7 +252,7 @@ function chatView(){
        return '<div class="group-message '+(m.senderId===me.id?"me":"")+'"><span class="group-avatar" style="background:'+(p?.color||"#21B889")+'">'+esc(p?.avatar||"?")+'</span><div class="group-bubble"><div class="group-name">'+esc(p?.name||"Aile")+'</div><div>'+esc(m.text)+'</div><div class="meta">'+new Date(m.at).toLocaleString("tr-TR")+'</div></div></div>'
      }).join("")}</div>
      <div class="chat-compose">
-       <div class="compose-who">Gönderen: <b>${esc(me.name)}</b></div>
+       <div class="compose-who">Gönderen: <b>${esc(me.name)}</b>${state.mode==="parent"?'<button id="changeSender" class="sender-change">Değiştir</button>':""}</div>
        <div class="chat-send"><input id="msg" class="input" placeholder="Ailene bir mesaj yaz..."><button id="send" class="primary">Herkese gönder</button></div>
      </div>
    </section>
@@ -261,15 +261,18 @@ function chatView(){
  $("#send").onclick=async()=>{const text=$("#msg").value.trim();if(!text)return;await api("/api/message/"+encodeURIComponent(familyCode),{method:"POST",body:JSON.stringify({senderId:me.id,text})});$("#msg").value="";await refreshMessages()};
  $("#msg").onkeydown=e=>{if(e.key==="Enter")$("#send").click()};
  $("#familyCodeBtn").onclick=changeFamilyCode;
+ const changeSender=$("#changeSender");
+ if(changeSender)changeSender.onclick=()=>{openModal('<h2>Mesajı kim gönderiyor?</h2><p class="muted">Ebeveyn profilini seçin.</p><div class="profile-picker">'+state.profiles.filter(p=>p.role==="parent").map(p=>'<button class="pick-profile" data-sender="'+p.id+'"><span class="profile-dot" style="background:'+p.color+'">'+esc(p.avatar)+'</span><b>'+esc(p.name)+'</b></button>').join("")+'</div>');$("[data-sender]").forEach(b=>b.onclick=()=>{state.activeProfileId=b.dataset.sender;markDirty();closeModal();chatView()})};
 }
 async function refreshMessages(){try{const fresh=await api("/api/state/"+encodeURIComponent(familyCode));state.messages=fresh.messages||[];if(route==="chat")chatView()}catch{}}
 function pollMessages(){setInterval(()=>{if(route==="chat")refreshMessages()},3500)}
 function changeFamilyCode(){openModal('<h2>Aile kodu</h2><p class="muted">Başka cihazda aynı kodu yazarak aynı aile alanına bağlanabilirsiniz.</p><input id="fc" class="input" value="'+esc(familyCode)+'"><button id="fcSave" class="primary full">Bağlan</button>');$("#fcSave").onclick=()=>{const v=$("#fc").value.toUpperCase().replace(/[^A-Z0-9_-]/g,"").slice(0,30);if(!v)return;familyCode=v;localStorage.setItem("parently_family",v);closeModal();load();toast("Aile alanı değiştirildi")}}
 
+let reportDays=7;
 function reportsView(){
  const c=activeChild();
  const allMoods=state.moods.filter(x=>x.profileId===c.id);
- const last7Dates=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d.toISOString().slice(0,10)});
+ const last7Dates=Array.from({length:reportDays},(_,i)=>{const d=new Date();d.setDate(d.getDate()-((reportDays-1)-i));return d.toISOString().slice(0,10)});
  const weekMoods=allMoods.filter(m=>last7Dates.includes(m.date));
  const weekCards=state.completedCards.filter(x=>x.profileId===c.id&&last7Dates.includes(x.date));
  const childTasks=state.tasks.filter(x=>x.assigneeId===c.id);
@@ -285,13 +288,13 @@ function reportsView(){
  const noteCount=Object.values(state.cardNotes||{}).filter(Boolean).length;
  const sessionMinutes=Math.round(sessions.reduce((a,x)=>a+(x.duration||0),0)/60);
  view.innerHTML=`
- <div class="report-header">
+ <div class="report-period-tabs"><button data-period="7" class="${reportDays===7?"active":""}">7 gün</button><button data-period="30" class="${reportDays===30?"active":""}">30 gün</button><button data-period="90" class="${reportDays===90?"active":""}">90 gün</button></div><div class="report-header">
    <div><span class="eyebrow">EBEVEYN RAPORU</span><h1>${esc(c.name)} için gelişim ve bağ özeti</h1><p>Bu ekran tanı koymaz; aile içindeki duygu, rutin ve bağ kurma alışkanlıklarını görünür kılar.</p></div>
    <div class="report-actions"><button id="exportBtn" class="small-btn">Veriyi dışa aktar</button><button id="printBtn" class="primary">PDF / Yazdır</button></div>
  </div>
 
  <div class="report-kpis">
-   <div class="report-kpi"><span>Duygu check-in</span><b>${weekMoods.length}</b><small>son 7 gün</small></div>
+   <div class="report-kpi"><span>Duygu check-in</span><b>${weekMoods.length}</b><small>seçili dönem</small></div>
    <div class="report-kpi"><span>Bağ kartı</span><b>${weekCards.length}</b><small>tamamlanan</small></div>
    <div class="report-kpi"><span>Görev tamamlama</span><b>%${completionRate}</b><small>${doneTasks}/${childTasks.length} görev</small></div>
    <div class="report-kpi"><span>Özel zaman</span><b>${sessionMinutes}</b><small>dakika</small></div>
@@ -300,7 +303,7 @@ function reportsView(){
 
  <div class="report-grid two">
    <section class="card report-panel">
-     <div class="report-panel-head"><div><span class="eyebrow">DUYGU</span><h3>7 günlük duygu görünümü</h3></div><span class="report-pill">Ort. şiddet: ${avgIntensity}/5</span></div>
+     <div class="report-panel-head"><div><span class="eyebrow">DUYGU</span><h3>Duygu görünümü</h3></div><span class="report-pill">Ort. şiddet: ${avgIntensity}/5</span></div>
      <div class="week-moods">${last7MoodCells(c.id)}</div>
      <div class="report-mini-grid"><div><span>En sık duygu</span><b>${topMood}</b></div><div><span>Kayıt sayısı</span><b>${weekMoods.length}</b></div></div>
    </section>
@@ -327,9 +330,9 @@ function reportsView(){
    <div class="report-panel-head"><div><span class="eyebrow">NOTLAR</span><h3>Ebeveyn gözlem notları</h3></div><button id="settingsBtn" class="secondary">Profil & Ayarlar</button></div>
    <div class="notes-report">${Object.entries(state.cardNotes||{}).filter(x=>x[1]).map(([id,n])=>'<div class="note-row"><b>'+esc(state.cards.find(ca=>ca.id===id)?.category||"Kart")+'</b><p>'+esc(n)+'</p></div>').join("")||'<div class="empty">Henüz ebeveyn notu yok.</div>'}</div>
  </section>`;
- $("#printBtn").onclick=()=>window.print();$("#exportBtn").onclick=exportJson;$("#settingsBtn").onclick=settingsModal;
+ $("#printBtn").onclick=()=>window.print();$("#exportBtn").onclick=exportJson;$("#settingsBtn").onclick=settingsModal;$("[data-period]").forEach(b=>b.onclick=()=>{reportDays=+b.dataset.period;reportsView()});
 }
-function last7MoodCells(pid){return Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const ds=d.toISOString().slice(0,10),m=state.moods.find(x=>x.profileId===pid&&x.date===ds);return '<div class="mood-day"><small>'+d.toLocaleDateString("tr-TR",{weekday:"short"})+'</small><b>'+(m?.mood||"·")+'</b><span>'+(m?.intensity?m.intensity+"/5":"")+'</span></div>'}).join("")}
+function last7MoodCells(pid){const n=Math.min(reportDays,14);return Array.from({length:n},(_,i)=>{const d=new Date();d.setDate(d.getDate()-((n-1)-i));const ds=d.toISOString().slice(0,10),m=state.moods.find(x=>x.profileId===pid&&x.date===ds);return '<div class="mood-day"><small>'+d.toLocaleDateString("tr-TR",{weekday:"short"})+'</small><b>'+(m?.mood||"·")+'</b><span>'+(m?.intensity?m.intensity+"/5":"")+'</span></div>'}).join("")}
 function exportJson(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="parently-"+familyCode+".json";a.click();URL.revokeObjectURL(a.href)}
 function settingsModal(){
  openModal('<h2>Profil & Ayarlar</h2><p class="muted">Aile: '+esc(state.familyName)+' · Kod: '+esc(familyCode)+'</p><div class="list">'+state.profiles.map(p=>'<div class="item profile-card"><span class="profile-dot" style="background:'+p.color+'33;color:'+p.color+'">'+esc(p.avatar)+'</span><div><b>'+esc(p.name)+'</b><div class="muted">'+esc(p.role)+(p.age?" · "+p.age+" yaş":"")+'</div></div></div>').join("")+'</div><label class="muted block">Ebeveyn PIN</label><input id="newPin" class="input" value="'+esc(state.pin)+'"><div class="item settings-row"><div><b>🌙 Sessiz saatler</b><div class="muted">Aile mesaj bildirimlerini sakin tut</div></div><input id="qh" type="checkbox" '+(state.quietHours.enabled?"checked":"")+'></div><div class="form-grid"><input id="qs" class="input" type="time" value="'+state.quietHours.start+'"><input id="qe" class="input" type="time" value="'+state.quietHours.end+'"></div><label class="muted block">JSON içe aktar</label><input id="importFile" type="file" accept="application/json" class="input"><button id="saveSettings" class="primary full">Ayarları kaydet</button>');
