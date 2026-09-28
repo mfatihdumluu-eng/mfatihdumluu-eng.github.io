@@ -239,3 +239,9 @@ button{cursor:pointer}
   .parent-kpis,.parent-side-column{grid-template-columns:1fr}.parent-daily-card{grid-template-columns:1fr}.parent-daily-actions{justify-content:flex-start}
   .parent-dashboard-grid{gap:18px}
 }
+
+.demo-btn{border:1px solid var(--green);background:#fff;color:var(--green-dark);border-radius:6px;padding:10px 14px;font-size:12px;font-weight:800;transition:.16s}
+.demo-btn:hover{background:var(--green-soft)}
+.demo-btn.active{background:#171717;color:#fff;border-color:#171717;box-shadow:0 0 0 3px #21B88922}
+body:has(.demo-btn.active) #view:before{content:"DEMO ALANI · DEMO2026";display:block;background:#171717;color:#fff;padding:7px 12px;font-size:10px;font-weight:800;letter-spacing:1px;margin-bottom:14px}
+@media(max-width:760px){.demo-btn{padding:9px 10px}.header-actions{gap:6px}}
