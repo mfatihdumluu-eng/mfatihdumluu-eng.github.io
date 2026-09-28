@@ -285,3 +285,14 @@ html[dir="rtl"] body{direction:rtl;text-align:right}html[dir="rtl"] .topbar-inne
 html[dir="rtl"] .brand-copy,html[dir="rtl"] .card,html[dir="rtl"] .admin-panel,html[dir="rtl"] .parent-side-card,html[dir="rtl"] .child-section,html[dir="rtl"] .modal-card{text-align:right}
 html[dir="rtl"] input,html[dir="rtl"] textarea,html[dir="rtl"] select{text-align:right;direction:rtl}
 @media(max-width:760px){.language-btn{padding:8px}.language-picker{grid-template-columns:1fr}.language-admin-section .admin-panel-head{align-items:flex-start;flex-direction:column}.language-admin-section .admin-head-actions{width:100%;flex-wrap:wrap}}
+
+.language-template-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.language-template-card{border:1px solid var(--line);background:#fff;padding:12px;display:grid;gap:10px}
+.language-template-card.loaded{border-color:var(--green);background:var(--green-soft)}
+.language-template-head{display:flex;align-items:center;gap:9px}
+.language-template-head>span{font-size:25px}
+.language-template-head b,.language-template-head small{display:block}
+.language-template-head b{font-size:12px}.language-template-head small{font-size:9px;color:var(--muted);margin-top:2px}
+.language-choice.disabled{opacity:.55;cursor:not-allowed;background:#fafafa}
+@media(max-width:900px){.language-template-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.language-template-grid{grid-template-columns:1fr}}
