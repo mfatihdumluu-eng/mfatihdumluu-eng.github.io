@@ -123,7 +123,7 @@ function childHome(){
      <div class="child-reward-card"><span class="eyebrow">ÖDÜL HEDEFİM</span><strong>🎁</strong><b>${nextReward?esc(nextReward.title):"Yeni bir ödül seç"}</b><small>${nextReward?nextReward.cost+" puan":points+" puan"}</small></div>
    </section>
  </section>`;
- bindCommon();$("[data-mood-open]").forEach(b=>b.onclick=()=>moodPickerModal());$("[data-calm]").forEach(b=>b.onclick=calmCorner);
+ bindCommon();$("[data-mood-open]").forEach(b=>b.onclick=()=>moodPickerModal());$("[data-calm]").forEach(b=>b.onclick=calmCorner);const rewardCard=$(".child-reward-card");if(rewardCard)rewardCard.onclick=rewardsModal;
 }
 function weeklyInsight(c){
  const recent=state.moods.filter(m=>m.profileId===c.id).slice(-7);
