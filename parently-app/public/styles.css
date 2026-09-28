@@ -286,3 +286,31 @@ body:has(.demo-btn.active) #view:before{content:"DEMO ALANI · DEMO2026";display
 .language-pill.active{border-color:var(--green);background:var(--green-soft)}
 .language-upload-btn{display:inline-flex;align-items:center;background:var(--green);color:#fff;padding:10px 13px;font-size:11px;font-weight:800;cursor:pointer}
 @media(max-width:760px){.language-btn{padding:8px}.language-picker{grid-template-columns:1fr}.language-admin-section .admin-panel-head{align-items:flex-start;flex-direction:column}.language-admin-section .admin-head-actions{width:100%;flex-wrap:wrap}}
+
+html[dir="rtl"] body{direction:rtl;text-align:right}
+html[dir="rtl"] .topbar-inner,
+html[dir="rtl"] .header-actions,
+html[dir="rtl"] .main-nav,
+html[dir="rtl"] .row,
+html[dir="rtl"] .section-head,
+html[dir="rtl"] .admin-panel-head,
+html[dir="rtl"] .admin-head,
+html[dir="rtl"] .upload-preview-head,
+html[dir="rtl"] .modal-actions{direction:rtl}
+html[dir="rtl"] .brand-copy,
+html[dir="rtl"] .card,
+html[dir="rtl"] .admin-panel,
+html[dir="rtl"] .parent-side-card,
+html[dir="rtl"] .child-section,
+html[dir="rtl"] .modal-card{text-align:right}
+html[dir="rtl"] input,
+html[dir="rtl"] textarea,
+html[dir="rtl"] select{text-align:right;direction:rtl}
+html[dir="rtl"] .timeline-item,
+html[dir="rtl"] .kid-task,
+html[dir="rtl"] .language-choice,
+html[dir="rtl"] .age-toggle-row{direction:rtl}
+html[dir="rtl"] .parent-dashboard-grid,
+html[dir="rtl"] .admin-grid{direction:rtl}
+html[dir="rtl"] .language-picker,
+html[dir="rtl"] .language-list{direction:rtl}
