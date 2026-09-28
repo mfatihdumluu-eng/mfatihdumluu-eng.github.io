@@ -57,6 +57,8 @@ function profilePicker(){
 }
 function render(){
   if(!state)return;defaults();updateHeader();
+  document.body.classList.toggle("child-mode",state.mode==="child");
+  document.body.classList.toggle("parent-mode",state.mode!=="child");
   if(state.mode==="child"&&route==="reports")route="home";
   (state.mode==="child"&&route==="home"?childHome:{home:homeView,cards:cardsView,agenda:agendaView,chat:chatView,reports:reportsView}[route]||homeView)()
 }
@@ -83,13 +85,45 @@ function homeView(){
  $("#rewardBtn").onclick=rewardsModal;$("#calmBtn").onclick=calmCorner;
 }
 function childHome(){
- const c=activeChild(), points=state.points[c.id]||0, tasks=state.tasks.filter(t=>t.assigneeId===c.id&&t.status!=="done"&&t.due<=today());
+ const c=activeChild(), points=state.points[c.id]||0;
+ const tasks=state.tasks.filter(t=>t.assigneeId===c.id&&t.status!=="done"&&t.due<=today());
  const moodToday=state.moods.find(m=>m.profileId===c.id&&m.date===today());
- view.innerHTML=`<section class="kid-hero"><div class="kid-avatar halo" style="--halo:${moodMeta(c.id).color}"><span style="background:${c.color}">${esc(c.avatar)}</span></div><div><span class="eyebrow">MERHABA</span><h1>${esc(c.name)} 👋</h1><p>Bugün kendi küçük planını tamamla.</p></div><div class="kid-points">⭐ ${points}</div></section>
- <section class="section"><div class="kid-actions"><button data-mood-open>😊<b>Nasılım?</b></button><button data-go="cards">🃏<b>Kart seç</b></button><button data-go="chat">💬<b>Mesaj</b></button><button data-calm>🌿<b>Sakinleş</b></button></div></section>
- <section class="section"><div class="section-head"><h2>Bugünkü görevlerim</h2><span class="badge">${tasks.length} görev</span></div><div class="kid-task-list">${tasks.map(t=>'<button class="kid-task" data-task="'+t.id+'"><span>'+(t.type==="ritual"?"💜":"✅")+'</span><div><b>'+esc(t.title)+'</b><small>'+esc(t.description||"")+'</small></div><i>›</i></button>').join("")||'<div class="empty big">🎉 Bugünkü görevlerin tamam!</div>'}</div></section>
- <section class="section"><div class="card"><div class="row space"><div><span class="eyebrow">BUGÜNKÜ DUYGU</span><h3>${moodToday?moodToday.mood+" "+moodToday.label:"Henüz seçmedin"}</h3></div><button class="small-btn" data-mood-open>Değiştir</button></div></div></section>`;
- bindCommon();$$("[data-mood-open]").forEach(b=>b.onclick=()=>moodPickerModal());$$("[data-calm]").forEach(b=>b.onclick=calmCorner);
+ const doneToday=state.tasks.filter(t=>t.assigneeId===c.id&&t.status==="done"&&t.due===today()).length;
+ const nextReward=[...state.rewards].sort((a,b)=>a.cost-b.cost).find(r=>r.cost>points);
+ view.innerHTML=`
+ <section class="child-world">
+   <div class="child-sky">
+     <div class="child-greeting">
+       <span class="kid-avatar halo" style="--halo:${moodMeta(c.id).color}"><span style="background:${c.color}">${esc(c.avatar)}</span></span>
+       <div><span class="eyebrow">BUGÜN SENİN GÜNÜN</span><h1>Merhaba ${esc(c.name)}! 👋</h1><p>Küçük görevlerini tamamla, puanlarını topla ve ailene bir mesaj bırak.</p></div>
+     </div>
+     <div class="child-score-card"><span>⭐</span><b>${points}</b><small>puanım</small></div>
+   </div>
+
+   <div class="child-progress-wrap">
+     <div class="child-progress-copy"><b>Bugünkü ilerlemem</b><span>${doneToday} görev tamamlandı</span></div>
+     <div class="child-progress"><i style="width:${Math.min(100,doneToday*35)}%"></i></div>
+     <small>${nextReward?"Sonraki ödüle "+Math.max(0,nextReward.cost-points)+" puan kaldı":"Harika gidiyorsun!"}</small>
+   </div>
+
+   <div class="kid-actions">
+     <button data-mood-open class="kid-action mint">😊<b>Nasılım?</b><small>Duygumu seç</small></button>
+     <button data-go="cards" class="kid-action peach">🃏<b>Kart seç</b><small>Birlikte konuşalım</small></button>
+     <button data-go="chat" class="kid-action yellow">💬<b>Aileme yaz</b><small>Herkese mesaj gönder</small></button>
+     <button data-calm class="kid-action blue">🌿<b>Sakinleş</b><small>Kısa mola</small></button>
+   </div>
+
+   <section class="section child-section">
+     <div class="section-head"><div><span class="eyebrow">GÖREVLERİM</span><h2>Bugün ne yapacağım?</h2></div><span class="badge">${tasks.length} kaldı</span></div>
+     <div class="kid-task-list">${tasks.map(t=>'<button class="kid-task" data-task="'+t.id+'"><span class="kid-task-icon">'+(t.type==="ritual"?"💜":"✅")+'</span><div><b>'+esc(t.title)+'</b><small>'+esc(t.description||"")+'</small></div><i>›</i></button>').join("")||'<div class="empty child-empty">🎉 Bugünkü görevlerin tamam!<br><small>Şimdi kendin için güzel bir şey yapabilirsin.</small></div>'}</div>
+   </section>
+
+   <section class="section child-bottom-grid">
+     <div class="child-mood-card"><span class="eyebrow">BUGÜNKÜ DUYGUM</span><strong>${moodToday?moodToday.mood:"🙂"}</strong><b>${moodToday?esc(moodToday.label):"Henüz seçmedim"}</b><button class="small-btn" data-mood-open>Değiştir</button></div>
+     <div class="child-reward-card"><span class="eyebrow">ÖDÜL HEDEFİM</span><strong>🎁</strong><b>${nextReward?esc(nextReward.title):"Yeni bir ödül seç"}</b><small>${nextReward?nextReward.cost+" puan":points+" puan"}</small></div>
+   </section>
+ </section>`;
+ bindCommon();$("[data-mood-open]").forEach(b=>b.onclick=()=>moodPickerModal());$("[data-calm]").forEach(b=>b.onclick=calmCorner);
 }
 function weeklyInsight(c){
  const recent=state.moods.filter(m=>m.profileId===c.id).slice(-7);
@@ -164,18 +198,103 @@ let timerInterval=null;
 function specialTime(){let seconds=600;openModal('<h2>⏱️ 10 Dakika Özel Zaman</h2><div class="special-reminders"><span>👂 Çocuğun liderliğini takip et</span><span>🧩 Düzeltmeyi azalt</span><span>✨ Olumluyu fark et</span></div><div id="timer" class="timer">10:00</div><textarea id="sessionNote" rows="3" placeholder="Bu seanstan kısa bir not..."></textarea><div class="row wrap"><button id="startTimer" class="primary">Başlat</button><button id="finishTimer" class="secondary">Bitir & Kaydet</button></div>');$("#startTimer").onclick=()=>{clearInterval(timerInterval);timerInterval=setInterval(()=>{seconds--;$("#timer").textContent=String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0");if(seconds<=0){clearInterval(timerInterval);toast("10 dakika tamamlandı 💜")}},1000)};$("#finishTimer").onclick=()=>{clearInterval(timerInterval);state.specialSessions.push({id:"s"+Date.now(),profileId:activeChild().id,date:new Date().toISOString(),duration:600-seconds,note:$("#sessionNote").value});state.points[activeChild().id]=(state.points[activeChild().id]||0)+5;markDirty();closeModal();toast("Özel zaman kaydedildi +5 puan")}}
 
 function chatView(){
- const me=state.mode==="child"?activeChild():state.profiles.find(p=>p.role==="parent")||profile(state.activeProfileId), messages=state.messages||[], quiet=state.quietHours.enabled;
- view.innerHTML='<div class="section-head"><div><h2>Aile Mesajları</h2><span class="muted">Sadece aile alanı · Kod: '+esc(familyCode)+'</span></div><button class="small-btn" id="familyCodeBtn">Aile kodu</button></div>'+(quiet?'<div class="quiet-banner">🌙 Sessiz saatler '+state.quietHours.start+'–'+state.quietHours.end+' · Bildirimleri sakin tut</div>':'')+'<div id="chatBox" class="chat-box">'+messages.map(m=>'<div class="bubble '+(m.senderId===me.id?"me":"")+'" style="--person:'+((profile(m.senderId)?.color)||"#6A3EEA")+'"><b>'+esc(profile(m.senderId)?.name||"Aile")+'</b><div>'+esc(m.text)+'</div><div class="meta">'+new Date(m.at).toLocaleString("tr-TR")+'</div></div>').join("")+'</div><div class="chat-send"><input id="msg" class="input" placeholder="Mesaj yaz..."><button id="send" class="primary">Gönder</button></div>';
- const box=$("#chatBox");box.scrollTop=box.scrollHeight;$("#send").onclick=async()=>{const text=$("#msg").value.trim();if(!text)return;await api("/api/message/"+encodeURIComponent(familyCode),{method:"POST",body:JSON.stringify({senderId:me.id,text})});$("#msg").value="";await refreshMessages()};$("#msg").onkeydown=e=>{if(e.key==="Enter")$("#send").click()};$("#familyCodeBtn").onclick=changeFamilyCode;
+ const me=state.mode==="child"?activeChild():state.profiles.find(p=>p.role==="parent")||profile(state.activeProfileId);
+ const messages=state.messages||[], quiet=state.quietHours.enabled;
+ const members=state.profiles.map(p=>'<div class="chat-member"><span style="background:'+p.color+'">'+esc(p.avatar)+'</span><div><b>'+esc(p.name)+'</b><small>'+(p.role==="child"?"Çocuk":"Ebeveyn")+'</small></div></div>').join("");
+ const recentCount=messages.filter(m=>Date.now()-new Date(m.at).getTime()<86400000).length;
+ view.innerHTML=`
+ <div class="family-chat-layout">
+   <aside class="family-chat-sidebar">
+     <div class="family-chat-title"><span class="eyebrow">AİLE GRUBU</span><h2>${esc(state.familyName||"Bizim Aile")}</h2><p>Evdeki herkes aynı sohbet alanında.</p></div>
+     <div class="family-code-box"><span>Aile kodu</span><b>${esc(familyCode)}</b><button id="familyCodeBtn">Değiştir</button></div>
+     <div class="chat-member-list"><h3>Aile üyeleri</h3>${members}</div>
+     <div class="chat-summary"><b>${recentCount}</b><span>son 24 saatte mesaj</span></div>
+   </aside>
+   <section class="family-chat-main">
+     <div class="family-chat-head">
+       <div><span class="eyebrow">TOPLU SOHBET</span><h2>Ailece mesajlaşma</h2><p class="muted">Mesajı gönderdiğinde tüm aile üyeleri aynı akışta görür.</p></div>
+       ${quiet?'<span class="quiet-chip">🌙 '+state.quietHours.start+'–'+state.quietHours.end+'</span>':''}
+     </div>
+     <div id="chatBox" class="chat-box family-group-chat">${messages.map(m=>{
+       const p=profile(m.senderId);
+       return '<div class="group-message '+(m.senderId===me.id?"me":"")+'"><span class="group-avatar" style="background:'+(p?.color||"#21B889")+'">'+esc(p?.avatar||"?")+'</span><div class="group-bubble"><div class="group-name">'+esc(p?.name||"Aile")+'</div><div>'+esc(m.text)+'</div><div class="meta">'+new Date(m.at).toLocaleString("tr-TR")+'</div></div></div>'
+     }).join("")}</div>
+     <div class="chat-compose">
+       <div class="compose-who">Gönderen: <b>${esc(me.name)}</b></div>
+       <div class="chat-send"><input id="msg" class="input" placeholder="Ailene bir mesaj yaz..."><button id="send" class="primary">Herkese gönder</button></div>
+     </div>
+   </section>
+ </div>`;
+ const box=$("#chatBox");box.scrollTop=box.scrollHeight;
+ $("#send").onclick=async()=>{const text=$("#msg").value.trim();if(!text)return;await api("/api/message/"+encodeURIComponent(familyCode),{method:"POST",body:JSON.stringify({senderId:me.id,text})});$("#msg").value="";await refreshMessages()};
+ $("#msg").onkeydown=e=>{if(e.key==="Enter")$("#send").click()};
+ $("#familyCodeBtn").onclick=changeFamilyCode;
 }
 async function refreshMessages(){try{const fresh=await api("/api/state/"+encodeURIComponent(familyCode));state.messages=fresh.messages||[];if(route==="chat")chatView()}catch{}}
 function pollMessages(){setInterval(()=>{if(route==="chat")refreshMessages()},3500)}
 function changeFamilyCode(){openModal('<h2>Aile kodu</h2><p class="muted">Başka cihazda aynı kodu yazarak aynı aile alanına bağlanabilirsiniz.</p><input id="fc" class="input" value="'+esc(familyCode)+'"><button id="fcSave" class="primary full">Bağlan</button>');$("#fcSave").onclick=()=>{const v=$("#fc").value.toUpperCase().replace(/[^A-Z0-9_-]/g,"").slice(0,30);if(!v)return;familyCode=v;localStorage.setItem("parently_family",v);closeModal();load();toast("Aile alanı değiştirildi")}}
 
 function reportsView(){
- const c=activeChild(), cc=state.completedCards.filter(x=>x.profileId===c.id), moods=state.moods.filter(x=>x.profileId===c.id), sessions=state.specialSessions.filter(x=>x.profileId===c.id), doneTasks=state.tasks.filter(x=>x.assigneeId===c.id&&x.status==="done").length, points=state.points[c.id]||0;
- const moodCounts={};moods.forEach(m=>moodCounts[m.mood]=(moodCounts[m.mood]||0)+1);const categories={};cc.forEach(x=>{const k=state.cards.find(c=>c.id===x.cardId);if(k)categories[k.category]=(categories[k.category]||0)+1});
- view.innerHTML='<div class="section-head"><div><h2>'+esc(c.name)+' · Haftalık Özet</h2><span class="muted">Destekleyici aile içi gözlem · tanı veya klinik skor değildir</span></div><button class="small-btn" id="exportBtn">Dışa aktar</button></div><div class="stat-grid"><div class="stat"><b>'+cc.length+'</b><span>Bağ kartı</span></div><div class="stat"><b>'+doneTasks+'</b><span>Görev</span></div><div class="stat"><b>'+points+'</b><span>Puan</span></div></div><section class="section"><div class="card"><h3>7 günlük duygu görünümü</h3><div class="week-moods">'+last7MoodCells(c.id)+'</div></div></section><section class="section"><div class="card"><h3>Bu hafta dikkat çeken</h3><p>'+esc(weeklyInsight(c))+'</p></div></section><section class="section"><div class="card"><h3>En çok konuşulan temalar</h3>'+Object.entries(categories).sort((a,b)=>b[1]-a[1]).map(([k,n])=>'<div class="row space metric"><span>'+esc(k)+'</span><b>'+n+'</b></div>').join("")||'<p class="muted">Kart tamamlandıkça burada görünecek.</p>'+'</div></section><section class="section"><div class="card"><h3>Ebeveyn notları</h3>'+Object.entries(state.cardNotes).filter(x=>x[1]).map(([id,n])=>'<p><b>'+esc(state.cards.find(c=>c.id===id)?.category||"Kart")+':</b> '+esc(n)+'</p>').join("")||'<p class="muted">Henüz not yok.</p>'+'</div></section><section class="section row wrap"><button id="printBtn" class="primary">Yazdır / PDF</button><button id="settingsBtn" class="secondary">Profil & Ayarlar</button></section>';
+ const c=activeChild();
+ const allMoods=state.moods.filter(x=>x.profileId===c.id);
+ const last7Dates=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d.toISOString().slice(0,10)});
+ const weekMoods=allMoods.filter(m=>last7Dates.includes(m.date));
+ const weekCards=state.completedCards.filter(x=>x.profileId===c.id&&last7Dates.includes(x.date));
+ const childTasks=state.tasks.filter(x=>x.assigneeId===c.id);
+ const doneTasks=childTasks.filter(x=>x.status==="done").length;
+ const completionRate=childTasks.length?Math.round(doneTasks/childTasks.length*100):0;
+ const sessions=state.specialSessions.filter(x=>x.profileId===c.id);
+ const points=state.points[c.id]||0;
+ const avgIntensity=weekMoods.length?(weekMoods.reduce((a,m)=>a+(m.intensity||3),0)/weekMoods.length).toFixed(1):"—";
+ const moodCounts={};weekMoods.forEach(m=>moodCounts[m.mood]=(moodCounts[m.mood]||0)+1);
+ const topMood=Object.entries(moodCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||"—";
+ const categories={};weekCards.forEach(x=>{const k=state.cards.find(ca=>ca.id===x.cardId);if(k)categories[k.category]=(categories[k.category]||0)+1});
+ const topCategory=Object.entries(categories).sort((a,b)=>b[1]-a[1])[0]?.[0]||"Henüz yok";
+ const noteCount=Object.values(state.cardNotes||{}).filter(Boolean).length;
+ const sessionMinutes=Math.round(sessions.reduce((a,x)=>a+(x.duration||0),0)/60);
+ view.innerHTML=`
+ <div class="report-header">
+   <div><span class="eyebrow">EBEVEYN RAPORU</span><h1>${esc(c.name)} için gelişim ve bağ özeti</h1><p>Bu ekran tanı koymaz; aile içindeki duygu, rutin ve bağ kurma alışkanlıklarını görünür kılar.</p></div>
+   <div class="report-actions"><button id="exportBtn" class="small-btn">Veriyi dışa aktar</button><button id="printBtn" class="primary">PDF / Yazdır</button></div>
+ </div>
+
+ <div class="report-kpis">
+   <div class="report-kpi"><span>Duygu check-in</span><b>${weekMoods.length}</b><small>son 7 gün</small></div>
+   <div class="report-kpi"><span>Bağ kartı</span><b>${weekCards.length}</b><small>tamamlanan</small></div>
+   <div class="report-kpi"><span>Görev tamamlama</span><b>%${completionRate}</b><small>${doneTasks}/${childTasks.length} görev</small></div>
+   <div class="report-kpi"><span>Özel zaman</span><b>${sessionMinutes}</b><small>dakika</small></div>
+   <div class="report-kpi"><span>Puan</span><b>${points}</b><small>toplam</small></div>
+ </div>
+
+ <div class="report-grid two">
+   <section class="card report-panel">
+     <div class="report-panel-head"><div><span class="eyebrow">DUYGU</span><h3>7 günlük duygu görünümü</h3></div><span class="report-pill">Ort. şiddet: ${avgIntensity}/5</span></div>
+     <div class="week-moods">${last7MoodCells(c.id)}</div>
+     <div class="report-mini-grid"><div><span>En sık duygu</span><b>${topMood}</b></div><div><span>Kayıt sayısı</span><b>${weekMoods.length}</b></div></div>
+   </section>
+
+   <section class="card report-panel">
+     <div class="report-panel-head"><div><span class="eyebrow">BAĞLANTI</span><h3>Bu hafta öne çıkan tema</h3></div></div>
+     <div class="big-highlight">${esc(topCategory)}</div>
+     <p class="muted">Tamamlanan konuşma kartlarına göre hesaplanır.</p>
+     <div class="theme-list">${Object.entries(categories).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,n])=>'<div><span>'+esc(k)+'</span><b>'+n+'</b></div>').join("")||'<div class="empty">Henüz yeterli kart verisi yok.</div>'}</div>
+   </section>
+ </div>
+
+ <div class="report-grid three">
+   <section class="card report-panel"><span class="eyebrow">RUTİN</span><h3>Görev ve sorumluluklar</h3><div class="donut-wrap"><div class="donut" style="--pct:${completionRate}"><b>%${completionRate}</b></div><div><p><b>${doneTasks}</b> tamamlandı</p><p><b>${childTasks.filter(t=>t.status==="submitted").length}</b> onay bekliyor</p><p><b>${childTasks.filter(t=>t.status==="pending").length}</b> bekliyor</p></div></div></section>
+   <section class="card report-panel"><span class="eyebrow">ÖZEL ZAMAN</span><h3>Birlikte geçirilen süre</h3><div class="report-number">${sessionMinutes}<small> dakika</small></div><p class="muted">${sessions.length} kayıtlı özel zaman oturumu</p></section>
+   <section class="card report-panel"><span class="eyebrow">EBEVEYN NOTLARI</span><h3>Takip edilen gözlemler</h3><div class="report-number">${noteCount}<small> not</small></div><p class="muted">Kartlar üzerinden kaydettiğiniz özel ebeveyn notları.</p></section>
+ </div>
+
+ <section class="card report-panel insight-panel">
+   <div><span class="eyebrow">BU HAFTA DİKKAT ÇEKEN</span><h3>${esc(weeklyInsight(c))}</h3><p class="muted">Bu yorum yalnızca Parently içindeki aile kayıtlarının basit özetidir; klinik değerlendirme değildir.</p></div>
+ </section>
+
+ <section class="card report-panel">
+   <div class="report-panel-head"><div><span class="eyebrow">NOTLAR</span><h3>Ebeveyn gözlem notları</h3></div><button id="settingsBtn" class="secondary">Profil & Ayarlar</button></div>
+   <div class="notes-report">${Object.entries(state.cardNotes||{}).filter(x=>x[1]).map(([id,n])=>'<div class="note-row"><b>'+esc(state.cards.find(ca=>ca.id===id)?.category||"Kart")+'</b><p>'+esc(n)+'</p></div>').join("")||'<div class="empty">Henüz ebeveyn notu yok.</div>'}</div>
+ </section>`;
  $("#printBtn").onclick=()=>window.print();$("#exportBtn").onclick=exportJson;$("#settingsBtn").onclick=settingsModal;
 }
 function last7MoodCells(pid){return Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));const ds=d.toISOString().slice(0,10),m=state.moods.find(x=>x.profileId===pid&&x.date===ds);return '<div class="mood-day"><small>'+d.toLocaleDateString("tr-TR",{weekday:"short"})+'</small><b>'+(m?.mood||"·")+'</b><span>'+(m?.intensity?m.intensity+"/5":"")+'</span></div>'}).join("")}
