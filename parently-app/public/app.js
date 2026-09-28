@@ -26,6 +26,8 @@ function defaults(){
   state.quietHours ||= {enabled:false,start:"20:30",end:"07:00"};
   state.encouragements ||= [];
   state.settings ||= {language:"tr",notifications:true,highContrast:false};
+  state.membership ||= {plan:"premium",status:"active",startedAt:today(),renewalAt:""};
+  state.adminConfig ||= {ageGroups:{"2-5":{enabled:true,label:"2–5 yaş"},"6-9":{enabled:true,label:"6–9 yaş"},"10-13":{enabled:true,label:"10–13 yaş"},"14-16":{enabled:true,label:"14–16 yaş"}},plans:{trial:{name:"Trial",maxParents:1,maxChildren:1,ageGroups:["2-5","6-9","10-13","14-16"],ai:false},standard:{name:"Standard",maxParents:1,maxChildren:1,ageGroups:["2-5","6-9","10-13","14-16"],ai:false},premium:{name:"Premium",maxParents:2,maxChildren:4,ageGroups:["2-5","6-9","10-13","14-16"],ai:true}}};
   state.profiles.forEach(p=>{state.points[p.id] ??= 0});
 }
 function applyDeviceUi(){
@@ -236,8 +238,8 @@ function render(){
   if(!state)return;defaults();updateHeader();
   document.body.classList.toggle("child-mode",state.mode==="child");
   document.body.classList.toggle("parent-mode",state.mode!=="child");
-  if(state.mode==="child"&&route==="reports")route="home";
-  (state.mode==="child"&&route==="home"?childHome:{home:homeView,cards:cardsView,agenda:agendaView,chat:chatView,reports:reportsView}[route]||homeView)()
+  if(state.mode==="child"&&["reports","admin"].includes(route))route="home";
+  (state.mode==="child"&&route==="home"?childHome:{home:homeView,cards:cardsView,agenda:agendaView,chat:chatView,reports:reportsView,admin:adminView}[route]||homeView)()
 }
 function familyStrip(){
   return '<div class="family-strip">'+state.profiles.map(p=>{const mm=moodMeta(p.id);return '<div class="mini-person"><span class="halo small" style="--halo:'+mm.color+'"><span style="background:'+p.color+'">'+esc(p.avatar)+'</span></span><small>'+esc(p.name)+'</small></div>'}).join("")+'</div>';
@@ -515,4 +517,60 @@ function settingsModal(){
  openModal('<h2>Profil & Ayarlar</h2><p class="muted">Aile: '+esc(state.familyName)+' · Kod: '+esc(familyCode)+'</p><div class="list">'+state.profiles.map(p=>'<div class="item profile-card"><span class="profile-dot" style="background:'+p.color+'33;color:'+p.color+'">'+esc(p.avatar)+'</span><div><b>'+esc(p.name)+'</b><div class="muted">'+esc(p.role)+(p.age?" · "+p.age+" yaş":"")+'</div></div></div>').join("")+'</div><label class="muted block">Ebeveyn PIN</label><input id="newPin" class="input" value="'+esc(state.pin)+'"><div class="item settings-row"><div><b>🌙 Sessiz saatler</b><div class="muted">Aile mesaj bildirimlerini sakin tut</div></div><input id="qh" type="checkbox" '+(state.quietHours.enabled?"checked":"")+'></div><div class="form-grid"><input id="qs" class="input" type="time" value="'+state.quietHours.start+'"><input id="qe" class="input" type="time" value="'+state.quietHours.end+'"></div><label class="muted block">JSON içe aktar</label><input id="importFile" type="file" accept="application/json" class="input"><button id="saveSettings" class="primary full">Ayarları kaydet</button>');
  $("#saveSettings").onclick=()=>{state.pin=$("#newPin").value||"2026";state.quietHours={enabled:$("#qh").checked,start:$("#qs").value,end:$("#qe").value};markDirty();closeModal();toast("Ayarlar kaydedildi")};$("#importFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{state=JSON.parse(r.result);defaults();markDirty();closeModal();render();toast("Yedek yüklendi")}catch{toast("Geçersiz dosya")}};r.readAsText(f)}
 }
+
+function adminView(){
+  if(state.mode!=="parent"){route="home";render();return}
+  const groups=state.adminConfig.ageGroups,plans=state.adminConfig.plans;
+  const counts=Object.keys(groups).map(g=>({g:g,n:state.cards.filter(c=>c.ageGroup===g).length}));
+  const plan=plans[state.membership.plan]||plans.premium;
+  view.innerHTML=
+    '<section class="admin-head"><div><span class="eyebrow">YÖNETİM PANELİ</span><h1>Parently içerik ve üyelik yönetimi</h1><p>Yaş gruplarını, kartları, veri aktarımını ve paket erişimlerini buradan yönetin.</p></div><div class="admin-head-actions"><button id="adminCsvOut" class="secondary">Kart CSV</button><button id="adminJsonOut" class="primary">JSON yedek</button></div></section>'+
+    '<div class="admin-kpis"><div><span>Toplam kart</span><b>'+state.cards.length+'</b></div><div><span>Aktif yaş grubu</span><b>'+Object.values(groups).filter(x=>x.enabled).length+'</b></div><div><span>Ebeveyn</span><b>'+state.profiles.filter(p=>p.role==="parent").length+'</b></div><div><span>Çocuk</span><b>'+state.profiles.filter(p=>p.role==="child").length+'</b></div><div><span>Paket</span><b class="plan-word">'+esc(plan.name)+'</b></div></div>'+
+    '<div class="admin-grid">'+
+      '<section class="card admin-panel"><div class="admin-panel-head"><div><span class="eyebrow">İÇERİK</span><h2>Yaş grubuna göre kartlar</h2></div><button id="adminNewCard" class="primary">+ Kart ekle</button></div><div class="age-admin-grid">'+counts.map(x=>'<button class="age-admin-card" data-admin-age="'+x.g+'"><span>'+esc(groups[x.g].label)+'</span><b>'+x.n+' kart</b></button>').join("")+'</div></section>'+
+      '<section class="card admin-panel"><span class="eyebrow">VERİ AKTARIMI</span><h2>CSV / JSON</h2><p class="muted">Kartları topluca CSV ile, tüm aile verisini JSON ile taşıyın.</p><label class="admin-upload"><b>Kart CSV yükle</b><input id="adminCsvIn" type="file" accept=".csv,text/csv"></label><label class="admin-upload"><b>Tüm veri JSON yükle</b><input id="adminJsonIn" type="file" accept=".json,application/json"></label></section>'+
+    '</div>'+
+    '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">YAŞ GRUPLARI</span><h2>İçerik grupları</h2></div></div><div class="age-toggle-list">'+Object.entries(groups).map(([g,c])=>'<label class="age-toggle-row"><div><b>'+esc(c.label)+'</b><small>'+g+' içerikleri</small></div><input type="checkbox" data-age-toggle="'+g+'" '+(c.enabled?"checked":"")+'></label>').join("")+'</div></section>'+
+    '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">ÜYELİKLER</span><h2>Paket ve erişim matrisi</h2></div><select id="adminPlanSelect" class="membership-select">'+Object.entries(plans).map(([id,p])=>'<option value="'+id+'" '+(state.membership.plan===id?"selected":"")+'>'+esc(p.name)+'</option>').join("")+'</select></div><div class="plans-grid">'+Object.entries(plans).map(([id,p])=>'<div class="plan-admin-card '+(state.membership.plan===id?"current":"")+'"><h3>'+esc(p.name)+'</h3><div class="plan-limits"><span><b>'+p.maxParents+'</b> ebeveyn</span><span><b>'+p.maxChildren+'</b> çocuk</span><span><b>'+(p.ai?"✓":"—")+'</b> AI</span></div><p class="muted">Yaş grubu erişimi</p><div class="plan-age-access">'+Object.keys(groups).map(g=>'<label><input type="checkbox" data-plan="'+id+'" data-plan-age="'+g+'" '+(p.ageGroups.includes(g)?"checked":"")+'>'+esc(groups[g].label)+'</label>').join("")+'</div></div>').join("")+'</div></section>';
+
+  $("#adminJsonOut").onclick=()=>downloadAdmin("parently-full-export.json",JSON.stringify(state,null,2),"application/json");
+  $("#adminCsvOut").onclick=()=>exportCardsCsv();
+  $("#adminPlanSelect").onchange=e=>{state.membership.plan=e.target.value;markDirty();adminView()};
+  $("[data-age-toggle]").forEach(el=>el.onchange=()=>{state.adminConfig.ageGroups[el.dataset.ageToggle].enabled=el.checked;markDirty()});
+  $("[data-plan-age]").forEach(el=>el.onchange=()=>{const p=state.adminConfig.plans[el.dataset.plan],g=el.dataset.planAge;p.ageGroups=el.checked?[...new Set(p.ageGroups.concat(g))]:p.ageGroups.filter(x=>x!==g);markDirty()});
+  $("[data-admin-age]").forEach(el=>el.onclick=()=>{ageFilter=el.dataset.adminAge;cardFilter="Tümü";setRoute("cards")});
+  $("#adminNewCard").onclick=adminNewCard;
+  $("#adminCsvIn").onchange=e=>importCardsCsv(e.target.files[0]);
+  $("#adminJsonIn").onchange=e=>importAdminJson(e.target.files[0]);
+}
+function downloadAdmin(name,text,type){
+  const blob=new Blob([text],{type:type}),a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href);
+}
+function exportCardsCsv(){
+  const cols=["ageGroup","category","emoji","question","followUp","parentGuide","positiveReinforcement","connectionPhrase","difficulty"];
+  const q=v=>{const x=String(v??"");return /[",\n]/.test(x)?'"'+x.replaceAll('"','""')+'"':x};
+  const rows=[cols.join(",")].concat(state.cards.map(c=>cols.map(k=>q(c[k])).join(",")));
+  downloadAdmin("parently-cards.csv",rows.join("\n"),"text/csv");
+}
+function adminNewCard(){
+  openModal('<h2>Yeni kart</h2><div class="form-grid"><select id="adminAge"><option>2-5</option><option>6-9</option><option>10-13</option><option>14-16</option></select><input id="adminCat" class="input" placeholder="Kategori"></div><input id="adminEmoji" class="input" value="💬" placeholder="Emoji"><textarea id="adminQuestion" rows="3" placeholder="Çocuğa soru"></textarea><textarea id="adminGuide" rows="3" placeholder="Ebeveyn rehberi"></textarea><button id="adminCardSave" class="primary full">Kaydet</button>');
+  $("#adminCardSave").onclick=()=>{if(!$("#adminQuestion").value.trim())return toast("Soru gerekli");state.cards.push({id:"card-"+Date.now(),ageGroup:$("#adminAge").value,category:$("#adminCat").value.trim()||"Yeni Kategori",emoji:$("#adminEmoji").value||"💬",question:$("#adminQuestion").value.trim(),followUp:"",parentGuide:$("#adminGuide").value.trim(),positiveReinforcement:"",connectionPhrase:"",difficulty:1,tags:[]});markDirty();closeModal();adminView();toast("Kart eklendi")};
+}
+function parseAdminCsvLine(line){
+  const out=[];let cur="",quoted=false;
+  for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(quoted&&line[i+1]==='"'){cur+='"';i++}else quoted=!quoted}else if(ch===","&&!quoted){out.push(cur);cur=""}else cur+=ch}
+  out.push(cur);return out;
+}
+function importCardsCsv(file){
+  if(!file)return;const r=new FileReader();
+  r.onload=()=>{try{const lines=String(r.result).split(/\r?\n/).filter(Boolean),head=parseAdminCsvLine(lines.shift());let n=0;for(const line of lines){const vals=parseAdminCsvLine(line),o={};head.forEach((h,i)=>o[h.trim()]=vals[i]??"");if(!o.ageGroup||!o.question)continue;state.cards.push({id:"card-"+Date.now()+"-"+n,ageGroup:o.ageGroup,category:o.category||"İçe Aktarılan",emoji:o.emoji||"💬",question:o.question,followUp:o.followUp||"",parentGuide:o.parentGuide||"",positiveReinforcement:o.positiveReinforcement||"",connectionPhrase:o.connectionPhrase||"",difficulty:Number(o.difficulty)||1,tags:[]});n++}markDirty();adminView();toast(n+" kart aktarıldı")}catch{toast("CSV okunamadı")}};
+  r.readAsText(file);
+}
+function importAdminJson(file){
+  if(!file)return;const r=new FileReader();
+  r.onload=()=>{try{const incoming=JSON.parse(r.result);if(!incoming.profiles||!incoming.cards)throw new Error();state=incoming;defaults();applyDeviceUi();markDirty();adminView();toast("JSON aktarıldı")}catch{toast("Geçersiz JSON")}};
+  r.readAsText(file);
+}
+
 load();
