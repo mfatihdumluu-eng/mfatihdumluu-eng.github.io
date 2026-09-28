@@ -8,22 +8,22 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/landing.css?v=20260929-final-home">
+<link rel="stylesheet" href="/landing.css?v=20260929-onepage">
 </head>
 <body>
 <header class="site-header">
   <div class="wrap header-inner">
-    <a class="brand" href="/">
+    <a class="brand" href="#home">
       <span class="brand-mark"><i></i><i></i><i></i></span>
       <span><b>Parently</b><small>Aile bağını güçlendir</small></span>
     </a>
 
     <nav class="nav-links" id="navLinks">
-      <a class="active" href="/">Ana Sayfa</a>
-      <a href="/hakkimizda.html">Hakkımızda</a>
-      <a href="/uygulama.html">Uygulama Hakkında</a>
-      <a href="/fiyatlandirma.html">Fiyatlandırma</a>
-      <a href="/iletisim.html">İletişim</a>
+      <a class="active" href="#home">Ana Sayfa</a>
+      <a href="#about">Hakkımızda</a>
+      <a href="#features">Uygulama Hakkında</a>
+      <a href="#pricing">Fiyatlandırma</a>
+      <a href="#contact">İletişim</a>
     </nav>
 
     <div class="header-actions">
@@ -35,7 +35,7 @@
 </header>
 
 <main>
-<section class="hero">
+<section class="hero" id="home">
   <div class="decor decor-coral"></div>
   <div class="decor decor-mint"></div>
   <div class="wrap hero-grid">
@@ -131,7 +131,27 @@
   </div>
 </section>
 
-<section class="feature-strip">
+<section class="section about-section" id="about">
+  <div class="wrap about-grid">
+    <div class="about-copy">
+      <span class="kicker">HAKKIMIZDA</span>
+      <h2>Teknolojiyi aileyi ekranda tutmak için değil, gerçek hayatta birbirine yaklaştırmak için kullanıyoruz.</h2>
+      <p>Parently; ebeveyn ve çocukların günlük hayat içinde daha kolay konuşmasını, duyguları fark etmesini ve birlikte geçirilen zamanı küçük ama sürdürülebilir adımlarla güçlendirmeyi amaçlar.</p>
+      <div class="about-points">
+        <div><b>01</b><span><strong>Bağ odaklı</strong><small>Kontrol etmekten çok konuşmayı ve anlamayı destekler.</small></span></div>
+        <div><b>02</b><span><strong>Yaşa uygun</strong><small>İçerikler çocukların gelişim dönemlerine göre ayrılır.</small></span></div>
+        <div><b>03</b><span><strong>Çok dilli</strong><small>Farklı dillerde aynı sade aile deneyimini sunar.</small></span></div>
+      </div>
+    </div>
+    <div class="about-visual">
+      <div class="about-card large"><span class="feature-icon mint-bg">♡</span><h3>Her gün küçük bir bağ anı</h3><p>Bir soru, bir duygu check-in'i veya on dakikalık özel zaman.</p></div>
+      <div class="about-card small top"><b>6</b><small>dil desteği</small></div>
+      <div class="about-card small bottom"><b>4</b><small>yaş grubu</small></div>
+    </div>
+  </div>
+</section>
+
+<section class="feature-strip" id="features">
   <div class="wrap feature-grid">
     <article><span class="feature-icon coral-bg">♡</span><div><b>Daha Güçlü Aile İletişimi</b><small>Anlamlı sohbetlerle birbirinizi daha iyi tanıyın.</small></div></article>
     <article><span class="feature-icon mint-bg">♧</span><div><b>Eğlenceli Kartlar ve Sorular</b><small>Her yaşa uygun özenle hazırlanmış içerikler.</small></div></article>
@@ -171,7 +191,7 @@
   </div>
 </section>
 
-<section class="section pricing">
+<section class="section pricing" id="pricing">
   <div class="wrap">
     <span class="kicker">FİYATLANDIRMA</span>
     <div class="pricing-title">
@@ -192,7 +212,7 @@
         <span class="price-icon coral-bg">♛</span>
         <h3>Premium</h3><strong>Yakında</strong><small>Tam aile deneyimi için planlanan paket.</small>
         <ul><li>Tüm kartlar ve aktiviteler</li><li>Aile ajandası ve rutinler</li><li>Çoklu dil desteği</li></ul>
-        <a class="btn btn-coral" href="/iletisim.html">Erken Erişim</a>
+        <a class="btn btn-coral" href="#contact">Erken Erişim</a>
       </article>
 
       <article class="price-card">
@@ -216,6 +236,24 @@
   </div>
 </section>
 
+<section class="section contact-section" id="contact">
+  <div class="wrap contact-shell">
+    <div class="contact-copy">
+      <span class="kicker">İLETİŞİM</span>
+      <h2>Parently hakkında konuşalım.</h2>
+      <p>Erken erişim, profesyonel kullanım veya iş birliği için bize mesaj bırakabilirsiniz.</p>
+      <div class="contact-meta"><span>💬 Ürün ve erken erişim</span><span>🌍 Rotterdam · Nederland</span><span>🔒 Mesajınız yalnızca iletişim amacıyla kullanılır</span></div>
+    </div>
+    <form class="contact-form" id="contactForm">
+      <div class="contact-row"><input required name="name" placeholder="Adınız"><input required type="email" name="email" placeholder="E-posta"></div>
+      <input name="subject" placeholder="Konu">
+      <textarea required name="message" placeholder="Mesajınız"></textarea>
+      <button class="btn btn-coral btn-lg" type="submit">Mesaj Gönder →</button>
+      <small id="contactNote">Form arayüzü hazır. E-posta gönderim bağlantısı sonraki aşamada eklenebilir.</small>
+    </form>
+  </div>
+</section>
+
 <section class="bottom-cta">
   <div class="wrap cta-box">
     <div><span class="kicker light">PARently İLE BAŞLAYIN</span><h2>Ailenizle bugün bir konuşma başlatın.</h2><p>Demo panelini açın, kartları ve aile araçlarını canlı görün.</p></div>
@@ -226,13 +264,13 @@
 
 <footer class="footer">
   <div class="wrap footer-grid">
-    <div><a class="brand footer-brand" href="/"><span class="brand-mark"><i></i><i></i><i></i></span><span><b>Parently</b><small>Aile bağını güçlendir</small></span></a><p>Aile içi iletişim, rutinler ve bağ kurma anları için modern aile platformu.</p></div>
-    <div><h4>Parently</h4><a href="/hakkimizda.html">Hakkımızda</a><a href="/uygulama.html">Uygulama Hakkında</a><a href="/fiyatlandirma.html">Fiyatlandırma</a></div>
-    <div><h4>Destek</h4><a href="/iletisim.html">İletişim</a><a href="/panel.html">Uygulamaya Gir</a></div>
+    <div><a class="brand footer-brand" href="#home"><span class="brand-mark"><i></i><i></i><i></i></span><span><b>Parently</b><small>Aile bağını güçlendir</small></span></a><p>Aile içi iletişim, rutinler ve bağ kurma anları için modern aile platformu.</p></div>
+    <div><h4>Parently</h4><a href="#about">Hakkımızda</a><a href="#features">Uygulama Hakkında</a><a href="#pricing">Fiyatlandırma</a></div>
+    <div><h4>Destek</h4><a href="#contact">İletişim</a><a href="/panel.html">Uygulamaya Gir</a></div>
     <div><h4>Diller</h4><span>Türkçe · Nederlands · Darija</span><span>العربية · Soomaali · Polski</span></div>
   </div>
   <div class="wrap footer-bottom">© 2026 Parently. Tüm hakları saklıdır.</div>
 </footer>
-<script src="/landing.js?v=20260929-final-home"></script>
+<script src="/landing.js?v=20260929-onepage"></script>
 </body>
 </html>
