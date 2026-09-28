@@ -71,18 +71,50 @@ function homeView(){
  const moodToday=state.moods.find(m=>m.profileId===c.id&&m.date===today());
  const points=state.points[c.id]||0;
  const pending=state.tasks.filter(t=>t.assigneeId===c.id&&t.status!=="done").length;
+ const approvals=state.tasks.filter(t=>t.assigneeId===c.id&&t.status==="submitted");
+ const upcoming=[...state.calendar].filter(e=>e.date>=today()).sort((x,y)=>(x.date+(x.time||"")).localeCompare(y.date+(y.time||""))).slice(0,4);
+ const lastMood=[...state.moods].filter(m=>m.profileId===c.id).sort((x,y)=>btoa(y.date).localeCompare(btoa(x.date)))[0];
  view.innerHTML=`
- <section class="hero polished"><div><span class="eyebrow">BUGÜN</span><h1>${esc(c.name)} ile bağlantı zamanı</h1><p>Bir soru, küçük bir an, gerçek bir bağ.</p></div><div class="hero-score"><b>${points}</b><span>puan</span></div></section>
- ${familyStrip()}
- <section class="section"><div class="dashboard-row"><button class="dash-card" data-go="agenda"><span>✅</span><b>${pending}</b><small>bekleyen görev</small></button><button class="dash-card" id="rewardBtn"><span>🎁</span><b>${points}</b><small>ödül puanı</small></button><button class="dash-card" id="calmBtn"><span>🌿</span><b>3</b><small>sakinleşme aracı</small></button></div></section>
- <section class="section"><div class="section-head"><h2>Bugün nasıl gidiyor?</h2><span class="muted">${moodToday?"Kaydedildi":"30 saniyelik check-in"}</span></div>
- <div class="moods">${[["😊","İyi"],["😌","Sakin"],["😐","Normal"],["😢","Üzgün"],["😡","Kızgın"],["😨","Kaygılı"]].map(m=>'<button class="mood '+(moodToday?.mood===m[0]?"selected":"")+'" data-mood="'+m[0]+'" data-label="'+m[1]+'">'+m[0]+'<span>'+m[1]+'</span></button>').join("")}</div></section>
- <section class="section"><div class="section-head"><h2>Bugünün 3 dakikası</h2><span class="badge">${esc(c.ageGroup)}</span></div>
- <div class="today-card premium"><div class="emoji">${dailyCard?.emoji||"💜"}</div><div class="question">${esc(dailyCard?.question||"Bugün birbirinize güzel bir şey söyleyin.")}</div><p class="muted">${esc(dailyCard?.connectionPhrase||"Yanındayım.")}</p><div class="row wrap"><button class="primary" data-open-card="${dailyCard?.id||""}">Kartı aç</button><button class="secondary" data-done-card="${dailyCard?.id||""}">✓ Tamamla</button><button class="soft" data-special>⏱️ Özel zaman</button></div></div></section>
- <section class="section"><div class="section-head"><h2>Bugünün akışı</h2><button class="small-btn" data-go="agenda">Ajandaya git</button></div><div class="timeline">${state.tasks.filter(t=>t.due===today()).slice(0,4).map(taskTimeline).join("")||'<div class="empty">Bugün için görev yok.</div>'}</div></section>
- <section class="section"><div class="card insight"><div><span class="eyebrow">HAFTALIK İPUCU</span><h3>${weeklyInsight(c)}</h3></div><button class="small-btn" data-go="reports">Detay</button></div></section>`;
- bindCommon();$$("#view [data-mood]").forEach(b=>b.onclick=()=>moodCheckin(b.dataset.mood,b.dataset.label));
- $("#rewardBtn").onclick=rewardsModal;$("#calmBtn").onclick=calmCorner;
+ <section class="parent-overview-head">
+   <div><span class="eyebrow">EBEVEYN PANELİ</span><h1>${esc(c.name)} için bugünün görünümü</h1><p>Bağ kurma, duygu, rutin ve aile planlarını tek ekranda takip edin.</p></div>
+   <div class="parent-child-switch"><span style="background:${c.color}">${esc(c.avatar)}</span><div><b>${esc(c.name)}</b><small>${c.age} yaş · ${c.ageGroup}</small></div><button id="switchChild">Değiştir</button></div>
+ </section>
+ <div class="parent-dashboard-grid">
+   <section class="parent-main-column">
+     <div class="parent-kpis">
+       <button class="parent-kpi" data-go="agenda"><span>Bekleyen görev</span><b>${pending}</b><small>${approvals.length} onay bekliyor</small></button>
+       <button class="parent-kpi" data-go="reports"><span>Son duygu</span><b>${lastMood?.mood||"—"}</b><small>${lastMood?.label||"Kayıt yok"}</small></button>
+       <button class="parent-kpi" id="rewardBtn"><span>Toplam puan</span><b>${points}</b><small>Ödül sistemi</small></button>
+       <button class="parent-kpi" data-go="cards"><span>Bağ kartları</span><b>${completed}</b><small>tamamlanan</small></button>
+     </div>
+     ${approvals.length?'<section class="parent-alert"><div><span class="eyebrow">ONAY BEKLİYOR</span><h3>'+approvals.length+' görev sizin onayınızı bekliyor</h3></div><button class="primary" data-go="agenda">Görevleri incele</button></section>':''}
+     <section class="section">
+       <div class="section-head"><div><span class="eyebrow">GÜNLÜK BAĞ</span><h2>Bugünün 3 dakikası</h2></div><span class="badge">${esc(c.ageGroup)}</span></div>
+       <div class="today-card premium parent-daily-card"><div class="emoji">${dailyCard?.emoji||"💜"}</div><div><div class="question">${esc(dailyCard?.question||"Bugün birbirinize güzel bir şey söyleyin.")}</div><p class="muted">${esc(dailyCard?.connectionPhrase||"Yanındayım.")}</p></div><div class="parent-daily-actions"><button class="primary" data-open-card="${dailyCard?.id||""}">Kartı aç</button><button class="secondary" data-done-card="${dailyCard?.id||""}">Tamamlandı</button></div></div>
+     </section>
+     <section class="section">
+       <div class="section-head"><div><span class="eyebrow">BUGÜN</span><h2>Görev ve rutin akışı</h2></div><button class="small-btn" data-go="agenda">Tüm ajanda</button></div>
+       <div class="timeline">${state.tasks.filter(t=>t.due===today()).slice(0,6).map(taskTimeline).join("")||'<div class="empty">Bugün için görev yok.</div>'}</div>
+     </section>
+   </section>
+   <aside class="parent-side-column">
+     <section class="parent-side-card mood-summary-card">
+       <div class="section-head"><div><span class="eyebrow">DUYGU</span><h2>Bugün nasıl gidiyor?</h2></div></div>
+       <div class="parent-current-mood"><strong>${moodToday?.mood||"🙂"}</strong><div><b>${moodToday?.label||"Henüz kayıt yok"}</b><small>${moodToday?.intensity?moodToday.intensity+"/5 şiddet":"Çocuk check-in yaptığında görünür"}</small></div></div>
+       <div class="moods compact">${[["😊","İyi"],["😌","Sakin"],["😐","Normal"],["😢","Üzgün"],["😡","Kızgın"],["😨","Kaygılı"]].map(m=>'<button class="mood '+(moodToday?.mood===m[0]?"selected":"")+'" data-mood="'+m[0]+'" data-label="'+m[1]+'">'+m[0]+'</button>').join("")}</div>
+     </section>
+     <section class="parent-side-card">
+       <div class="section-head"><div><span class="eyebrow">YAKLAŞAN</span><h2>Aile takvimi</h2></div></div>
+       <div class="upcoming-list">${upcoming.map(e=>'<div class="upcoming-row"><div class="upcoming-date"><b>'+new Date(e.date+"T12:00:00").getDate()+'</b><span>'+new Date(e.date+"T12:00:00").toLocaleDateString("tr-TR",{month:"short"})+'</span></div><div><b>'+esc(e.title)+'</b><small>'+esc(e.time||"Tüm gün")+'</small></div></div>').join("")||'<div class="empty">Yaklaşan plan yok.</div>'}</div>
+       <button class="small-btn full" data-go="agenda">Takvimi aç</button>
+     </section>
+     <section class="parent-side-card insight-card">
+       <span class="eyebrow">HAFTALIK İÇGÖRÜ</span><h3>${esc(weeklyInsight(c))}</h3><button class="small-btn" data-go="reports">Detaylı rapor</button>
+     </section>
+   </aside>
+ </div>`;
+ bindCommon();$$("[data-mood]").forEach(b=>b.onclick=()=>moodCheckin(b.dataset.mood,b.dataset.label));
+ $("#rewardBtn").onclick=rewardsModal;$("#switchChild").onclick=profilePicker;
 }
 function childHome(){
  const c=activeChild(), points=state.points[c.id]||0;
