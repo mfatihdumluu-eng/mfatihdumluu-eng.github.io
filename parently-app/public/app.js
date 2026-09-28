@@ -188,8 +188,8 @@ function demoMenu(){
   $("#exitDemo").onclick=async()=>{closeModal();await exitDemo()};
 }
 
-function setRoute(r){route=r;$$(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.route===r));render();window.scrollTo({top:0,behavior:"smooth"})}
-$$(".nav-btn").forEach(b=>b.onclick=()=>setRoute(b.dataset.route));
+function setRoute(r){route=r;$$$(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.route===r));render();window.scrollTo({top:0,behavior:"smooth"})}
+$$$(".nav-btn").forEach(b=>b.onclick=()=>setRoute(b.dataset.route));
 
 function moodMeta(pid){
   const m=[...state.moods].filter(x=>x.profileId===pid).sort((a,b)=>b.date.localeCompare(a.date))[0];
@@ -205,13 +205,40 @@ const UI_TR={
 };
 function languageFlag(code,meta={}){
   if(meta.flag)return meta.flag;
-  return ({tr:"🇹🇷",nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",ar:"🇸🇦",es:"🇪🇸",it:"🇮🇹",pt:"🇵🇹",pl:"🇵🇱"}[String(code||"").toLowerCase()]||"🌐");
+  return ({tr:"🇹🇷",nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",ar:"🇸🇦","ar-ma":"🇲🇦",darija:"🇲🇦",es:"🇪🇸",it:"🇮🇹",pt:"🇵🇹",pl:"🇵🇱"}[String(code||"").toLowerCase()]||"🌐");
 }
 function baseLanguageMeta(){return {code:"tr",name:"Türkçe",flag:"🇹🇷",source:"tr"}}
+function languageDirection(code,meta={}){
+  return meta.direction||(/^ar(?:-|$)/i.test(String(code||""))||String(code||"").toLowerCase()==="darija"?"rtl":"ltr");
+}
+function applyLanguageDirection(){
+  const meta=availableLanguages().find(x=>String(x.code).toLowerCase()===String(activeLanguage).toLowerCase())||baseLanguageMeta();
+  const dir=languageDirection(activeLanguage,meta);
+  document.documentElement.lang=activeLanguage;
+  document.documentElement.dir=dir;
+  document.body.classList.toggle("rtl-mode",dir==="rtl");
+}
+function buildTargetLanguageTemplate(code,name,flag,direction="ltr"){
+  const pack=buildLanguageTemplate();
+  pack.meta={code,name,flag,source:"tr",direction};
+  pack.instructions.code="Bu dosyada meta.code alanını değiştirmeyin.";
+  pack.instructions.name="Dil adı hazırdır; yalnızca çeviri metinlerini düzenleyin.";
+  pack.instructions.warning="id ve ageGroup alanlarını değiştirmeyin. ui ve kart metinlerini çevirin.";
+  return pack;
+}
+function exportDarijaJson(){
+  const pack=buildTargetLanguageTemplate("ar-MA","الدارجة المغربية","🇲🇦","rtl");
+  downloadAdmin("parently-language-ar-MA-darija.json",JSON.stringify(pack,null,2),"application/json");
+}
+
 function availableLanguages(){
   return [baseLanguageMeta(),...Object.values(state.languagePacks||{}).map(p=>p.meta).filter(Boolean).filter(m=>m.code!=="tr")];
 }
-function activeLanguagePack(){return activeLanguage==="tr"?null:(state.languagePacks||{})[activeLanguage]||null}
+function activeLanguagePack(){
+  if(String(activeLanguage).toLowerCase()==="tr")return null;
+  const packs=state.languagePacks||{};
+  return packs[activeLanguage]||Object.values(packs).find(p=>String(p?.meta?.code||"").toLowerCase()===String(activeLanguage).toLowerCase())||null;
+}
 function t(key,fallback){
   const pack=activeLanguagePack();
   return pack?.ui?.[key]||UI_TR[key]||fallback||key;
@@ -244,7 +271,7 @@ function buildLanguageTemplate(){
 function languageMenu(){
   const langs=availableLanguages();
   openModal('<h2>🌐 Dil seç</h2><p class="muted">Bu cihazda kullanılacak dili seçin.</p><div class="language-picker">'+langs.map(m=>'<button class="language-choice '+(activeLanguage===m.code?"active":"")+'" data-lang="'+esc(m.code)+'"><span>'+languageFlag(m.code,m)+'</span><div><b>'+esc(m.name||m.code)+'</b><small>'+esc(String(m.code).toUpperCase())+'</small></div></button>').join("")+'</div>');
-  $("[data-lang]").forEach(b=>b.onclick=()=>{activeLanguage=b.dataset.lang;localStorage.setItem("parently_language",activeLanguage);closeModal();render();toast("Dil değiştirildi")});
+  $$("[data-lang]").forEach(b=>b.onclick=()=>{activeLanguage=b.dataset.lang;localStorage.setItem("parently_language",activeLanguage);applyLanguageDirection();closeModal();render();toast("Dil değiştirildi")});
 }
 function exportLanguageJson(){
   downloadAdmin("parently-language-tr.json",JSON.stringify(buildLanguageTemplate(),null,2),"application/json");
@@ -260,19 +287,23 @@ function previewLanguageJson(file){
       const matched=pack.cards.filter(x=>x.id&&state.cards.some(c=>c.id===x.id)).length;
       const box=$("#languagePreview");if(!box)return;
       box.classList.remove("hidden");box._pack=pack;
-      box.innerHTML='<div class="upload-preview-head"><div><b>'+languageFlag(pack.meta.code,pack.meta)+' '+esc(pack.meta.name)+'</b><small>'+matched+' / '+state.cards.length+' kart eşleşti</small></div><span class="file-type">'+esc(String(pack.meta.code).toUpperCase())+'</span></div><div class="upload-actions"><button type="button" id="cancelLanguageImport" class="secondary">İptal</button><button type="button" id="confirmLanguageImport" class="primary">Dil paketini yükle</button></div>';
+      box.innerHTML='<div class="upload-preview-head"><div><b>'+languageFlag(pack.meta.code,pack.meta)+' '+esc(pack.meta.name)+'</b><small>'+matched+' / '+state.cards.length+' kart eşleşti · '+(languageDirection(pack.meta.code,pack.meta)==="rtl"?"RTL":"LTR")+'</small></div><span class="file-type">'+esc(String(pack.meta.code).toUpperCase())+'</span></div><div class="upload-actions"><button type="button" id="cancelLanguageImport" class="secondary">İptal</button><button type="button" id="confirmLanguageImport" class="primary">Dil paketini yükle</button></div>';
     }catch(e){toast(e.message==="base"?"Hedef dil kodu Türkçe olamaz":"Geçersiz dil JSON dosyası")}
   };
   r.readAsText(file);
 }
 async function commitLanguagePack(pack){
-  const code=String(pack.meta.code).toLowerCase().trim();
-  pack.meta.code=code;pack.meta.flag=languageFlag(code,pack.meta);
-  state.languagePacks[code]=pack;
-  try{await save();activeLanguage=code;localStorage.setItem("parently_language",code);adminView();updateHeader();toast(pack.meta.name+" dili yüklendi")}catch{toast("Dil paketi kaydedilemedi")}
+  const originalCode=String(pack.meta.code).trim();
+  const code=originalCode.toLowerCase();
+  pack.meta.code=originalCode==="ar-MA"||code==="ar-ma"?"ar-MA":code;
+  pack.meta.flag=languageFlag(pack.meta.code,pack.meta);
+  pack.meta.direction=languageDirection(pack.meta.code,pack.meta);
+  state.languagePacks[pack.meta.code]=pack;
+  try{await save();activeLanguage=pack.meta.code;localStorage.setItem("parently_language",activeLanguage);applyLanguageDirection();adminView();updateHeader();toast(pack.meta.name+" dili yüklendi")}catch{toast("Dil paketi kaydedilemedi")}
 }
 
 function updateHeader(){
+  applyLanguageDirection();
   const c=activeChild(), mm=moodMeta(c.id);
   $("#profileBtn").textContent=c?.avatar||"?";
   $("#profileBtn").style.boxShadow="0 0 0 4px "+mm.color+"88";
@@ -280,7 +311,7 @@ function updateHeader(){
   const db=$("#demoBtn");if(db){db.textContent=isDemo()?"● Demo aktif":"▶ Demo";db.classList.toggle("active",isDemo());db.onclick=demoMenu;}
   const lb=$("#languageBtn");if(lb){const lm=availableLanguages().find(x=>x.code===activeLanguage)||baseLanguageMeta();lb.textContent=languageFlag(lm.code,lm)+" "+String(lm.code).toUpperCase();lb.onclick=languageMenu;}
   const navKeys={home:"navHome",cards:"navCards",agenda:"navAgenda",chat:"navMessages",reports:"navReports",admin:"navAdmin"};
-  $(".nav-btn").forEach(b=>{const key=navKeys[b.dataset.route];if(key)b.textContent=t(key,b.textContent)});
+  $$(".nav-btn").forEach(b=>{const key=navKeys[b.dataset.route];if(key)b.textContent=t(key,b.textContent)});
   $("#modeBtn").onclick=toggleMode;$("#profileBtn").onclick=profilePicker;
 }
 async function toggleMode(){
@@ -313,7 +344,7 @@ async function toggleMode(){
 }
 function profilePicker(){
   openModal('<h2>Kim kullanıyor?</h2><p class="muted">Ortak cihazlarda herkes kendi profilini seçebilir.</p><div class="profile-picker">'+state.profiles.map(p=>{const mm=moodMeta(p.id);return '<button class="pick-profile" data-p="'+p.id+'"><span class="halo" style="--halo:'+mm.color+'"><span style="background:'+p.color+'">'+esc(p.avatar)+'</span></span><b>'+esc(p.name)+'</b><small>'+(p.role==="child"?(p.age+" yaş"):"Ebeveyn")+'</small></button>'}).join("")+'</div>');
-  $$("[data-p]").forEach(b=>b.onclick=()=>{state.activeProfileId=b.dataset.p;persistDeviceUi();closeModal();render()})
+  $$$("[data-p]").forEach(b=>b.onclick=()=>{state.activeProfileId=b.dataset.p;persistDeviceUi();closeModal();render()})
 }
 function render(){
   if(!state)return;defaults();updateHeader();
@@ -618,11 +649,12 @@ function adminView(){
       '<label class="admin-upload"><div><b>JSON veri dosyası</b><small>Aile, profil, kart, görev, mesaj ve ayar verilerini içe aktarın.</small></div><span class="upload-button">JSON Dosyası Seç</span><input id="adminJsonIn" type="file" accept=".json,application/json" hidden></label><div id="jsonPreview" class="upload-preview hidden"></div></section>'+
     '</div>'+
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">YAŞ GRUPLARI</span><h2>İçerik grupları</h2></div></div><div class="age-toggle-list">'+Object.entries(groups).map(([g,c])=>'<label class="age-toggle-row"><div><b>'+esc(c.label)+'</b><small>'+g+' içerikleri</small></div><input type="checkbox" data-age-toggle="'+g+'" '+(c.enabled?"checked":"")+'></label>').join("")+'</div></section>'+
-    '<section class="card admin-panel section language-admin-section"><div class="admin-panel-head"><div><span class="eyebrow">DİLLER & ÇEVİRİ</span><h2>Dil paketleri</h2></div><div class="admin-head-actions"><button id="exportLanguageJson" class="secondary">🇹🇷 Türkçe JSON indir</button><label class="language-upload-btn">Çeviri JSON yükle<input id="languageJsonIn" type="file" accept=".json,application/json" hidden></label></div></div><p class="muted">Türkçe temel dosyayı indir, metinleri çevir, meta.code / meta.name / meta.flag alanlarını hedef dile göre değiştir ve geri yükle. Sistem dili otomatik algılar.</p><div class="language-list">'+availableLanguages().map(m=>'<button class="language-pill '+(activeLanguage===m.code?"active":"")+'" data-lang-admin="'+esc(m.code)+'"><span>'+languageFlag(m.code,m)+'</span><b>'+esc(m.name||m.code)+'</b><small>'+esc(String(m.code).toUpperCase())+'</small></button>').join("")+'</div><div id="languagePreview" class="upload-preview hidden"></div></section>'+
+    '<section class="card admin-panel section language-admin-section"><div class="admin-panel-head"><div><span class="eyebrow">DİLLER & ÇEVİRİ</span><h2>Dil paketleri</h2></div><div class="admin-head-actions"><button id="exportLanguageJson" class="secondary">🇹🇷 Türkçe JSON indir</button><button id="exportDarijaJson" class="secondary">🇲🇦 Darija JSON indir</button><label class="language-upload-btn">Çeviri JSON yükle<input id="languageJsonIn" type="file" accept=".json,application/json" hidden></label></div></div><p class="muted">Türkçe temel dosyayı indir, metinleri çevir, meta.code / meta.name / meta.flag alanlarını hedef dile göre değiştir ve geri yükle. Sistem dili otomatik algılar.</p><div class="language-list">'+availableLanguages().map(m=>'<button class="language-pill '+(activeLanguage===m.code?"active":"")+'" data-lang-admin="'+esc(m.code)+'"><span>'+languageFlag(m.code,m)+'</span><b>'+esc(m.name||m.code)+'</b><small>'+esc(String(m.code).toUpperCase())+'</small></button>').join("")+'</div><div id="languagePreview" class="upload-preview hidden"></div></section>'+
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">ÜYELİKLER</span><h2>Paket ve erişim matrisi</h2></div><select id="adminPlanSelect" class="membership-select">'+Object.entries(plans).map(([id,p])=>'<option value="'+id+'" '+(state.membership.plan===id?"selected":"")+'>'+esc(p.name)+'</option>').join("")+'</select></div><div class="plans-grid">'+Object.entries(plans).map(([id,p])=>'<div class="plan-admin-card '+(state.membership.plan===id?"current":"")+'"><h3>'+esc(p.name)+'</h3><div class="plan-limits"><span><b>'+p.maxParents+'</b> ebeveyn</span><span><b>'+p.maxChildren+'</b> çocuk</span><span><b>'+(p.ai?"✓":"—")+'</b> AI</span></div><p class="muted">Yaş grubu erişimi</p><div class="plan-age-access">'+Object.keys(groups).map(g=>'<label><input type="checkbox" data-plan="'+id+'" data-plan-age="'+g+'" '+(p.ageGroups.includes(g)?"checked":"")+'>'+esc(groups[g].label)+'</label>').join("")+'</div></div>').join("")+'</div></section>';
 
   $("#adminJsonOut").onclick=()=>downloadAdmin("parently-full-export.json",JSON.stringify(state,null,2),"application/json");
   $("#exportLanguageJson").onclick=exportLanguageJson;
+  $("#exportDarijaJson").onclick=exportDarijaJson;
   $("#languageJsonIn").onchange=e=>previewLanguageJson(e.target.files[0]);
   $("[data-lang-admin]").forEach(b=>b.onclick=()=>{activeLanguage=b.dataset.langAdmin;localStorage.setItem("parently_language",activeLanguage);adminView();updateHeader()});
   $("#adminCsvOut").onclick=()=>exportCardsCsv();
