@@ -680,29 +680,15 @@ function renderHomeSlidesAdmin(){
     });
   });
 
-  $$("[data-slide-file]").forEach(inp=>inp.onchange=()=>{
-    const i=Number(inp.dataset.slideFile),file=inp.files?.[0];
-    if(!file)return;
-    if(!/^image\/(png|jpeg|webp)$/i.test(file.type||"")){toast("PNG, JPG veya WebP seçin");inp.value="";return}
-    if(file.size>5*1024*1024){toast("Slide görseli 5 MB'dan küçük olmalı");inp.value="";return}
-    const reader=new FileReader();
-    reader.onload=async()=>{
-      try{
-        const raw=String(reader.result||"");
-        await saveSingleSlideImage(i,raw);
-        homeSlidesCache.slides[i].image=raw;
-        renderIndexGeneralAdmin();renderHomeSlidesAdmin();
-        toast("Slide "+(i+1)+" görseli kaydedildi");
-      }catch(err){console.error(err);toast("Slide görseli kaydedilemedi")}
-    };
-    reader.readAsDataURL(file);
+  $("[data-slide-file]").forEach(inp=>inp.onchange=()=>{
+    const i=Number(inp.dataset.slideFile);
+    readImage(inp,"slides."+i+".image","Slide "+(i+1)+" görseli");
   });
 
-  $$("[data-slide-image-remove]").forEach(btn=>btn.onclick=async()=>{
+  $("[data-slide-image-remove]").forEach(btn=>btn.onclick=async()=>{
     const i=Number(btn.dataset.slideImageRemove);
     try{
-      await saveSingleSlideImage(i,"");
-      homeSlidesCache.slides[i].image="";
+      await saveIndexMedia("slides."+i+".image","");
       renderIndexGeneralAdmin();renderHomeSlidesAdmin();
       toast("Slide "+(i+1)+" görseli kaldırıldı");
     }catch(err){console.error(err);toast("Slide görseli kaldırılamadı")}
@@ -780,14 +766,17 @@ function indexField(path,label,type="input"){
   const v=esc(sitePathGet(homeSlidesCache,path)||"");
   return '<label class="index-field"><span>'+esc(label)+'</span>'+(type==="textarea"?'<textarea class="input" data-site-path="'+path+'">'+v+'</textarea>':'<input class="input" data-site-path="'+path+'" value="'+v+'">')+'</label>';
 }
-async function saveSingleSlideImage(index,image){
-  const result=await api("/api/site/home/slide-image",{
+async function saveIndexMedia(path,image){
+  const result=await api("/api/site/home/media",{
     method:"PUT",
-    body:JSON.stringify({familyCode,pin:String(state?.pin||""),index,image:String(image||"")})
+    body:JSON.stringify({familyCode,pin:String(state?.pin||""),path,image:String(image||"")})
   });
-  if(!result?.ok)throw new Error("slide_image_save_failed");
-  if(homeSlidesCache?.slides?.[index])homeSlidesCache.slides[index].image=image;
+  if(!result?.ok)throw new Error("site_media_save_failed");
+  sitePathSet(homeSlidesCache,path,String(image||""));
   return result;
+}
+async function saveSingleSlideImage(index,image){
+  return saveIndexMedia("slides."+index+".image",image);
 }
 async function saveIndexConfigNow(message="Index kaydedildi"){
   if(!homeSlidesCache)return false;
@@ -865,74 +854,63 @@ function renderIndexGeneralAdmin(){
   $$("[data-site-path]").forEach(el=>el.oninput=()=>sitePathSet(homeSlidesCache,el.dataset.sitePath,el.value));
   $$("[data-plan-features]").forEach(el=>el.oninput=()=>{const i=Number(el.dataset.planFeatures);sitePathSet(homeSlidesCache,"sections.pricing.plans."+i+".features",el.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))});
 
-  const readImage=async(input,assign,label,requirePng=false)=>{
+  const readImage=async(input,path,label,requirePng=false)=>{
     const file=input?.files?.[0];if(!file)return;
     if(requirePng&&file.type!=="image/png"){toast("Bu alan için PNG seçin");input.value="";return}
-    if(file.size>12*1024*1024){toast("Görsel 12 MB'dan küçük olmalı");input.value="";return}
+    if(!/^image\/(png|jpeg|webp)$/i.test(file.type||"")){toast("PNG, JPG veya WebP seçin");input.value="";return}
+    if(file.size>5*1024*1024){toast("Görsel 5 MB'dan küçük olmalı");input.value="";return}
     try{
-      toast(label+" hazırlanıyor...");
-      const opts=label==="Logo"?{maxW:700,maxH:300,quality:.86}:{maxW:1600,maxH:1600,quality:.84};
-      const optimized=await optimizeImageFile(file,opts);
-      assign(optimized);
-      renderIndexGeneralAdmin();renderHomeSlidesAdmin();
-      toast(label+" hazır. Kaydetmeyi unutmayın.");
+      toast(label+" yükleniyor...");
+      const raw=await new Promise((resolve,reject)=>{
+        const r=new FileReader();r.onload=()=>resolve(String(r.result||""));r.onerror=reject;r.readAsDataURL(file);
+      });
+      await saveIndexMedia(path,raw);
+      renderIndexGeneralAdmin();
+      renderHomeSlidesAdmin();
+      toast(label+" kaydedildi");
     }catch(e){
-      console.error(e);toast("Görsel hazırlanamadı");
+      console.error("media upload failed",path,e);
+      toast(label+" kaydedilemedi");
     }
   };
 
-  $("#indexLogoFile")&&( $("#indexLogoFile").onchange=()=>readImage($("#indexLogoFile"),v=>homeSlidesCache.branding.logoImage=v,"Logo") );
-  $("#demoPngFile")&&( $("#demoPngFile").onchange=()=>readImage($("#demoPngFile"),v=>homeSlidesCache.demoPng=v,"PNG",true) );
-  $("#storyImageFile")&&( $("#storyImageFile").onchange=()=>readImage($("#storyImageFile"),v=>homeSlidesCache.storyImage=v,"Bölüm görseli") );
+  $("#indexLogoFile")&&( $("#indexLogoFile").onchange=()=>readImage($("#indexLogoFile"),"branding.logoImage","Logo") );
+  $("#demoPngFile")&&( $("#demoPngFile").onchange=()=>readImage($("#demoPngFile"),"demoPng","PNG",true) );
+  $("#storyImageFile")&&( $("#storyImageFile").onchange=()=>readImage($("#storyImageFile"),"storyImage","Bölüm görseli") );
   (s.features?.items||[]).forEach((_,i)=>{
     const input=$("#featureImageFile"+i);
-    if(input)input.onchange=()=>readImage(input,v=>homeSlidesCache.sections.features.items[i].image=v,"Özellik "+(i+1)+" resmi");
+    if(input)input.onchange=()=>readImage(input,"sections.features.items."+i+".image","Özellik "+(i+1)+" resmi");
   });
 
   $$("[data-hero-image-file]").forEach(inp=>inp.onchange=()=>{
-    const i=Number(inp.dataset.heroImageFile),file=inp.files?.[0];
-    if(!file)return;
-    if(!/^image\/(png|jpeg|webp)$/i.test(file.type||"")){toast("PNG, JPG veya WebP seçin");inp.value="";return}
-    if(file.size>5*1024*1024){toast("Slide görseli 5 MB'dan küçük olmalı");inp.value="";return}
-    toast("Slide "+(i+1)+" görseli yükleniyor...");
-    const reader=new FileReader();
-    reader.onload=async()=>{
-      try{
-        const raw=String(reader.result||"");
-        await saveSingleSlideImage(i,raw);
-        homeSlidesCache.slides[i].image=raw;
-        renderIndexGeneralAdmin();
-        renderHomeSlidesAdmin();
-        toast("Slide "+(i+1)+" görseli kaydedildi");
-      }catch(err){
-        console.error("slide image upload failed",err);
-        toast("Slide görseli kaydedilemedi");
-      }
-    };
-    reader.onerror=()=>toast("Görsel okunamadı");
-    reader.readAsDataURL(file);
+    const i=Number(inp.dataset.heroImageFile);
+    readImage(inp,"slides."+i+".image","Slide "+(i+1)+" görseli");
   });
 
   $$("[data-hero-image-remove]").forEach(btn=>btn.onclick=async()=>{
     const i=Number(btn.dataset.heroImageRemove);
     try{
-      await saveSingleSlideImage(i,"");
-      if(homeSlidesCache.slides?.[i])homeSlidesCache.slides[i].image="";
-      renderIndexGeneralAdmin();
-      renderHomeSlidesAdmin();
+      await saveIndexMedia("slides."+i+".image","");
+      renderIndexGeneralAdmin();renderHomeSlidesAdmin();
       toast("Slide "+(i+1)+" görseli kaldırıldı");
     }catch(err){console.error(err);toast("Slide görseli kaldırılamadı")}
   });
 
-  $$("[data-remove-media]").forEach(btn=>btn.onclick=()=>{
-    if(btn.dataset.removeMedia==="indexLogoFile")homeSlidesCache.branding.logoImage="";
-    if(btn.dataset.removeMedia==="demoPngFile")homeSlidesCache.demoPng="";
-    if(btn.dataset.removeMedia==="storyImageFile")homeSlidesCache.storyImage="";
+  $$("[data-remove-media]").forEach(btn=>btn.onclick=async()=>{
+    let path="";
+    if(btn.dataset.removeMedia==="indexLogoFile")path="branding.logoImage";
+    if(btn.dataset.removeMedia==="demoPngFile")path="demoPng";
+    if(btn.dataset.removeMedia==="storyImageFile")path="storyImage";
     if(/^featureImageFile\d+$/.test(btn.dataset.removeMedia)){
       const i=Number(btn.dataset.removeMedia.replace("featureImageFile",""));
-      if(homeSlidesCache.sections?.features?.items?.[i])homeSlidesCache.sections.features.items[i].image="";
+      path="sections.features.items."+i+".image";
     }
-    renderIndexGeneralAdmin();renderHomeSlidesAdmin();
+    if(!path)return;
+    try{
+      await saveIndexMedia(path,"");
+      renderIndexGeneralAdmin();renderHomeSlidesAdmin();
+      toast("Görsel kaldırıldı");
+    }catch(err){console.error(err);toast("Görsel kaldırılamadı")}
   });
 }
 function indexAdminView(){
