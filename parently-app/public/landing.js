@@ -38,6 +38,11 @@ function preloadImage(src){
   preload.set(src,p);return p;
 }
 function setText(sel,value){const el=q(sel);if(el&&value!==undefined&&value!==null)el.textContent=value}
+function safeIcon(value,fallback){
+  const v=String(value??"").trim();
+  if(!v||v.length>4||/[A-Za-zÀ-žĞğİıŞşÇçÖöÜü]{2,}/.test(v))return fallback;
+  return v;
+}
 function setNavigation(config){
   const n=config.navigation||{};
   setText("#navHow",n.how);setText("#navCards",n.cards);setText("#navFeatures",n.features);setText("#navPricing",n.pricing);setText("#navContact",n.contact);setText("#navAppButton",n.app);
@@ -57,19 +62,19 @@ function applySections(config){
 
   setText("#howEyebrow",s.how?.eyebrow);setText("#howTitle",s.how?.title);setText("#howDescription",s.how?.description);
   setText("#howNoteLabel",s.how?.noteLabel);setText("#howNoteText",s.how?.noteText);
-  qa(".how-form").forEach((el,i)=>{const d=s.how?.steps?.[i];if(!d)return;const icon=el.querySelector(".form-icon"),meta=el.querySelector(".form-meta small"),h=el.querySelector("h3"),p=el.querySelector("p");if(icon)icon.textContent=String(d.icon||["✦","◌","◷"][i]||"").slice(0,4);if(meta)meta.textContent=d.label||"";if(h)h.textContent=d.title||"";if(p)p.textContent=d.description||""});
+  qa(".how-form").forEach((el,i)=>{const d=s.how?.steps?.[i];if(!d)return;const icon=el.querySelector(".form-icon"),meta=el.querySelector(".form-meta small"),h=el.querySelector("h3"),p=el.querySelector("p");if(icon)icon.textContent=safeIcon(d.icon,["✦","◌","◷"][i]||"✦");if(meta)meta.textContent=d.label||"";if(h)h.textContent=d.title||"";if(p)p.textContent=d.description||""});
 
   setText("#cardsEyebrow",s.cards?.eyebrow);setText("#cardsTitle",s.cards?.title);setText("#cardsDescription",s.cards?.description);
   setText("#pngEmptyTitle",s.cards?.emptyTitle);setText("#pngEmptyDescription",s.cards?.emptyDescription);
 
   setText("#featuresEyebrow",s.features?.eyebrow);setText("#featuresTitle",s.features?.title);setText("#featureIntro",s.features?.description);
   const items=s.features?.items||[];
-  qa("#featureList li").forEach((el,i)=>{const d=items[i];if(!d)return;const sym=el.querySelector(".symbol"),b=el.querySelector("b"),sp=el.querySelector("div span");if(sym)sym.textContent=String(d.symbol||["✳","◷","▤"][i]||"").slice(0,4);if(b)b.textContent=d.title||"";if(sp)sp.textContent=d.description||"";el.dataset.label=d.label||"";el.dataset.copy=d.copy||"";el.dataset.image=d.image||""});
+  qa("#featureList li").forEach((el,i)=>{const d=items[i];if(!d)return;const sym=el.querySelector(".symbol"),b=el.querySelector("b"),sp=el.querySelector("div span");if(sym)sym.textContent=safeIcon(d.symbol,["✳","◷","▤"][i]||"✳");if(b)b.textContent=d.title||"";if(sp)sp.textContent=d.description||"";el.dataset.label=d.label||"";el.dataset.copy=d.copy||"";el.dataset.image=d.image||""});
   if(items[0]){setText("#featureLabel",items[0].label);setText("#featureIntro",items[0].copy||s.features?.description)}
 
   setText("#pricingEyebrow",s.pricing?.eyebrow);setText("#pricingTitle",s.pricing?.title);setText("#pricingDescription",s.pricing?.description);
   setText("#pricingNoteLabel",s.pricing?.noteLabel);setText("#pricingNoteText",s.pricing?.noteText);
-  qa("#pricing .plan-organic").forEach((el,i)=>{const d=s.pricing?.plans?.[i];if(!d)return;const icon=el.querySelector(".plan-card-icon"),tag=el.querySelector(".plan-tag"),h=el.querySelector("h3"),price=el.querySelector(".price"),p=el.querySelector("p"),ul=el.querySelector("ul"),a=el.querySelector(".plan-action");if(icon)icon.textContent=String(d.icon||["✦","♡","◎"][i]||"").slice(0,4);if(tag)tag.textContent=d.tag||"";if(h)h.textContent=d.name||"";if(price)price.textContent=d.price||"";if(p)p.textContent=d.description||"";if(ul)ul.innerHTML=(d.features||[]).map(x=>"<li>"+String(x).replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]))+"</li>").join("");if(a){a.firstChild.textContent=(d.button||"")+" ";a.href=d.url||"#contact"}});
+  qa("#pricing .plan-organic").forEach((el,i)=>{const d=s.pricing?.plans?.[i];if(!d)return;const icon=el.querySelector(".plan-card-icon"),tag=el.querySelector(".plan-tag"),h=el.querySelector("h3"),price=el.querySelector(".price"),p=el.querySelector("p"),ul=el.querySelector("ul"),a=el.querySelector(".plan-action");if(icon)icon.textContent=safeIcon(d.icon,["✦","♡","◎"][i]||"✦");if(tag)tag.textContent=d.tag||"";if(h)h.textContent=d.name||"";if(price)price.textContent=d.price||"";if(p)p.textContent=d.description||"";if(ul)ul.innerHTML=(d.features||[]).map(x=>"<li>"+String(x).replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]))+"</li>").join("");if(a){a.firstChild.textContent=(d.button||"")+" ";a.href=d.url||"#contact"}});
 
   setText("#closingEyebrow",s.closing?.eyebrow);setText("#closingTitle",s.closing?.title);setText("#closingDescription",s.closing?.description);
   const cb=q("#closingButton");if(cb){cb.textContent=s.closing?.button||"Uygulamaya Gir";cb.href=s.closing?.url||"/panel.html"}
@@ -115,7 +120,14 @@ async function showSlide(n,instant=false){
   const p=q("#heroPrimary");if(p){p.textContent=s.primaryLabel||"";p.href=s.primaryUrl||"/panel.html"}
   const sec=q("#heroSecondary");if(sec){sec.textContent=s.secondaryLabel||"";sec.href=s.secondaryUrl||"#how"}
   const img=q("#heroSlideImage");
-  if(s.image){img.src=s.image;img.alt=s.highlight||s.title||"Parently";art.classList.add("has-image");art.classList.remove("theme-conversation","theme-cards","theme-agenda")}
+  if(s.image){
+    const nextSrc=String(s.image);
+    if(img.getAttribute("src")!==nextSrc)img.setAttribute("src",nextSrc);
+    img.alt=s.highlight||s.title||"Parently";
+    img.dataset.slideId=s.id||String(index);
+    art.classList.add("has-image");
+    art.classList.remove("theme-conversation","theme-cards","theme-agenda");
+  }
   else{
     img.removeAttribute("src");img.alt="";art.classList.remove("has-image");
     const fv=fallbackVisuals[index%fallbackVisuals.length];
