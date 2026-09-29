@@ -238,8 +238,8 @@ function render(){
   if(!state)return;defaults();updateHeader();
   document.body.classList.toggle("child-mode",state.mode==="child");
   document.body.classList.toggle("parent-mode",state.mode!=="child");
-  if(state.mode==="child"&&["reports","admin"].includes(route))route="home";
-  (state.mode==="child"&&route==="home"?childHome:{home:homeView,cards:cardsView,agenda:agendaView,chat:chatView,reports:reportsView,admin:adminView}[route]||homeView)()
+  if(state.mode==="child"&&["reports","admin","indexadmin"].includes(route))route="home";
+  (state.mode==="child"&&route==="home"?childHome:{home:homeView,cards:cardsView,agenda:agendaView,chat:chatView,reports:reportsView,admin:adminView,indexadmin:indexAdminView}[route]||homeView)()
 }
 function familyStrip(){
   return '<div class="family-strip">'+state.profiles.map(p=>{const mm=moodMeta(p.id);return '<div class="mini-person"><span class="halo small" style="--halo:'+mm.color+'"><span style="background:'+p.color+'">'+esc(p.avatar)+'</span></span><small>'+esc(p.name)+'</small></div>'}).join("")+'</div>';
