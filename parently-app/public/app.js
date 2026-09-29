@@ -558,7 +558,7 @@ async function optimizeIndexMedia(config){
   add(()=>config.branding?.logoImage,v=>config.branding.logoImage=v,{maxW:700,maxH:300,quality:.86});
   add(()=>config.demoPng,v=>config.demoPng=v,{maxW:1400,maxH:1400,quality:.86});
   add(()=>config.storyImage,v=>config.storyImage=v,{maxW:1600,maxH:1200,quality:.82});
-  (config.slides||[]).forEach((s)=>add(()=>s.image,v=>s.image=v,{maxW:1200,maxH:1800,quality:.82}));
+  (config.slides||[]).forEach((s)=>add(()=>s.image,v=>s.image=v,{maxW:1600,maxH:1600,quality:.84}));
   (config.sections?.features?.items||[]).forEach((x)=>add(()=>x.image,v=>x.image=v,{maxW:1400,maxH:1200,quality:.82}));
   if(jobs.length)await Promise.all(jobs);
   return config;
@@ -684,16 +684,19 @@ function renderHomeSlidesAdmin(){
     const i=Number(inp.dataset.slideFile),file=inp.files?.[0];
     if(!file)return;
     if(file.size>5*1024*1024){toast("Resim 5 MB'dan küçük olmalı");inp.value="";return}
-    optimizeImageFile(file,{maxW:1200,maxH:1800,quality:.82}).then(data=>{
+    optimizeImageFile(file,{maxW:1600,maxH:1600,quality:.84}).then(async data=>{
       homeSlidesCache.slides[i].image=data;
+      await saveIndexConfigNow("Slide "+(i+1)+" görseli kaydedildi");
+      renderIndexGeneralAdmin();
       renderHomeSlidesAdmin();
-      toast("Slide "+(i+1)+" görseli optimize edildi. Kaydetmeyi unutmayın.");
     }).catch(()=>toast("Slide görseli hazırlanamadı"));
   });
 
-  $$("[data-slide-image-remove]").forEach(btn=>btn.onclick=()=>{
+  $("[data-slide-image-remove]").forEach(btn=>btn.onclick=async()=>{
     const i=Number(btn.dataset.slideImageRemove);
     homeSlidesCache.slides[i].image="";
+    await saveIndexConfigNow("Slide "+(i+1)+" görseli kaldırıldı");
+    renderIndexGeneralAdmin();
     renderHomeSlidesAdmin();
   });
 
@@ -769,6 +772,22 @@ function indexField(path,label,type="input"){
   const v=esc(sitePathGet(homeSlidesCache,path)||"");
   return '<label class="index-field"><span>'+esc(label)+'</span>'+(type==="textarea"?'<textarea class="input" data-site-path="'+path+'">'+v+'</textarea>':'<input class="input" data-site-path="'+path+'" value="'+v+'">')+'</label>';
 }
+async function saveIndexConfigNow(message="Index kaydedildi"){
+  if(!homeSlidesCache)return false;
+  try{
+    await optimizeIndexMedia(homeSlidesCache);
+    homeSlidesCache=await api("/api/site/home",{
+      method:"PUT",
+      body:JSON.stringify({familyCode,pin:String(state.pin||""),config:homeSlidesCache})
+    });
+    toast(message);
+    return true;
+  }catch(e){
+    console.error("index autosave failed",e);
+    toast("Görsel sunucuya kaydedilemedi");
+    return false;
+  }
+}
 function renderIndexGeneralAdmin(){
   const host=$("#indexGeneralAdmin");
   if(!host||!homeSlidesCache)return;
@@ -796,7 +815,7 @@ function renderIndexGeneralAdmin(){
     '</section>'+
 
     '<section class="index-order-card card admin-panel"><div class="index-order-badge">02</div><div class="admin-panel-head"><div><span class="eyebrow">HERO</span><h2>Slider</h2><p class="muted">3 slide için 3 ayrı görsel yükleyin. Slide değişince Index’te sağdaki görsel de değişir.</p></div></div>'+
-      '<div class="hero-image-upload-grid">'+homeSlidesCache.slides.slice(0,3).map((sl,i)=>{const bg=sl.image?'background-image:url('+JSON.stringify(sl.image)+')':'';return '<div class="hero-image-upload-card"><div class="hero-image-upload-preview '+(sl.image?'has-image':'')+'" style="'+bg+'">'+(sl.image?'':'SLIDE '+(i+1)+' GÖRSELİ YOK')+'</div><b>Slide '+(i+1)+' görseli</b><small>Bu resim yalnızca Slide '+(i+1)+' aktifken görünür.</small><div class="media-spec"><b>Önerilen:</b> 1080 × 1920 px · <b>Oran:</b> 9:16 · <b>Format:</b> PNG / WebP / JPG · <b>Şeffaf PNG:</b> desteklenir</div><label class="upload-button hero-image-upload-button">Görsel seç<input type="file" data-hero-image-file="'+i+'" accept="image/jpeg,image/png,image/webp" hidden></label><button class="secondary" type="button" data-hero-image-remove="'+i+'">Görseli kaldır</button></div>';}).join("")+'</div>'+
+      '<div class="hero-image-upload-grid">'+homeSlidesCache.slides.slice(0,3).map((sl,i)=>{const bg=sl.image?'background-image:url('+JSON.stringify(sl.image)+')':'';return '<div class="hero-image-upload-card"><div class="hero-image-upload-preview '+(sl.image?'has-image':'')+'" style="'+bg+'">'+(sl.image?'':'SLIDE '+(i+1)+' GÖRSELİ YOK')+'</div><b>Slide '+(i+1)+' görseli</b><small>Bu resim yalnızca Slide '+(i+1)+' aktifken görünür.</small><div class="media-spec"><b>Önerilen:</b> 1600 × 1600 px · <b>Oran:</b> 1:1 · <b>Format:</b> PNG / WebP / JPG · <b>Şeffaf PNG:</b> desteklenir</div><label class="upload-button hero-image-upload-button">Görsel seç<input type="file" data-hero-image-file="'+i+'" accept="image/jpeg,image/png,image/webp" hidden></label><button class="secondary" type="button" data-hero-image-remove="'+i+'">Görseli kaldır</button></div>';}).join("")+'</div>'+
       '<div class="index-editor-block"><h3>Slide metinleri ve butonları</h3><div id="homeSliderAdmin"></div></div></section>'+
 
     '<section class="index-order-card card admin-panel"><div class="index-order-badge">03</div><div class="admin-panel-head"><div><span class="eyebrow">BİLGİ ŞERİDİ</span><h2>Koyu şerit</h2></div></div><div class="index-field-grid">'+indexField("sections.strip.title","Ana metin")+indexField("sections.strip.meta","Yan metin")+'</div></section>'+
@@ -808,13 +827,13 @@ function renderIndexGeneralAdmin(){
 
     '<section class="index-order-card card admin-panel"><div class="index-order-badge">05</div><div class="admin-panel-head"><div><span class="eyebrow">KARTLARI KEŞFET</span><h2>Metinler ve PNG</h2><p class="muted">Şeffaf PNG görseli burada yönetilir; arka zemin görünür kalır.</p></div></div>'+
       '<div class="index-field-grid">'+indexField("sections.cards.eyebrow","Etiket")+indexField("sections.cards.title","Başlık")+indexField("sections.cards.description","Açıklama","textarea")+indexField("sections.cards.emptyTitle","Boş alan başlığı")+indexField("sections.cards.emptyDescription","Boş alan açıklaması")+'</div>'+
-      mediaControl("demoPngFile","Şeffaf PNG","Kartları keşfet bölümündeki sağ görsel alanı.",""+(homeSlidesCache.demoPng||""),"image/png",true,'<b>Önerilen:</b> 1080 × 1920 px · <b>Oran:</b> 9:16 · <b>Format:</b> PNG · <b>Zemin:</b> transparan kalır')+
+      mediaControl("demoPngFile","Şeffaf PNG","Kartları keşfet bölümündeki sağ görsel alanı.",""+(homeSlidesCache.demoPng||""),"image/png",true,'<b>Önerilen:</b> 1600 × 1600 px · <b>Oran:</b> 1:1 · <b>Format:</b> PNG · <b>Zemin:</b> transparan kalır')+
     '</section>'+
 
     '<section class="index-order-card card admin-panel"><div class="index-order-badge">06</div><div class="admin-panel-head"><div><span class="eyebrow">ÖZELLİKLER</span><h2>Parently ile</h2><p class="muted">Büyük görsel ve üç özellik satırı burada birlikte yönetilir.</p></div></div>'+
       '<div class="index-field-grid">'+indexField("sections.features.eyebrow","Etiket")+indexField("sections.features.title","Başlık")+indexField("sections.features.description","Başlangıç açıklaması","textarea")+'</div>'+
-      mediaControl("storyImageFile","Büyük bölüm görseli","Aile veya uygulama görselinizi yükleyin.",homeSlidesCache.storyImage||"","image/png,image/jpeg,image/webp",true,'<b>Önerilen:</b> 1080 × 1920 px · <b>Oran:</b> 9:16 · <b>Format:</b> PNG / WebP · <b>Şeffaf PNG:</b> zemin görünür')+
-      '<div class="index-repeat-grid feature-admin-grid">'+(s.features?.items||[]).map((item,i)=>'<div class="index-repeat-card"><b>Özellik '+(i+1)+'</b>'+mediaControl("featureImageFile"+i,"Hover resmi","Mouse bu özelliğin üzerine gelince soldaki büyük alanda bu resim gösterilir.",item.image||"","image/png,image/jpeg,image/webp",true,'<b>Önerilen:</b> 1080 × 1920 px · <b>Oran:</b> 9:16 · <b>Format:</b> PNG / WebP · <b>Şeffaf:</b> zemin görünür')+indexField("sections.features.items."+i+".symbol","İkon")+indexField("sections.features.items."+i+".title","Başlık")+indexField("sections.features.items."+i+".description","Kısa açıklama")+indexField("sections.features.items."+i+".label","Görsel etiketi")+indexField("sections.features.items."+i+".copy","Hover açıklaması","textarea")+'</div>').join("")+'</div>'+
+      mediaControl("storyImageFile","Büyük bölüm görseli","Aile veya uygulama görselinizi yükleyin.",homeSlidesCache.storyImage||"","image/png,image/jpeg,image/webp",true,'<b>Önerilen:</b> 1600 × 1600 px · <b>Oran:</b> 1:1 · <b>Format:</b> PNG / WebP · <b>Şeffaf PNG:</b> zemin görünür')+
+      '<div class="index-repeat-grid feature-admin-grid">'+(s.features?.items||[]).map((item,i)=>'<div class="index-repeat-card"><b>Özellik '+(i+1)+'</b>'+mediaControl("featureImageFile"+i,"Hover resmi","Mouse bu özelliğin üzerine gelince soldaki büyük alanda bu resim gösterilir.",item.image||"","image/png,image/jpeg,image/webp",true,'<b>Önerilen:</b> 1600 × 1600 px · <b>Oran:</b> 1:1 · <b>Format:</b> PNG / WebP · <b>Şeffaf:</b> zemin görünür')+indexField("sections.features.items."+i+".symbol","İkon")+indexField("sections.features.items."+i+".title","Başlık")+indexField("sections.features.items."+i+".description","Kısa açıklama")+indexField("sections.features.items."+i+".label","Görsel etiketi")+indexField("sections.features.items."+i+".copy","Hover açıklaması","textarea")+'</div>').join("")+'</div>'+
     '</section>'+
 
     '<section class="index-order-card card admin-panel"><div class="index-order-badge">07</div><div class="admin-panel-head"><div><span class="eyebrow">FİYATLANDIRMA</span><h2>Planlar</h2><p class="muted">Her planın ikonu, metinleri ve butonu kendi kartında.</p></div></div>'+
@@ -835,7 +854,7 @@ function renderIndexGeneralAdmin(){
     if(file.size>12*1024*1024){toast("Görsel 12 MB'dan küçük olmalı");input.value="";return}
     try{
       toast(label+" hazırlanıyor...");
-      const opts=label==="Logo"?{maxW:700,maxH:300,quality:.86}:{maxW:1400,maxH:1400,quality:.84};
+      const opts=label==="Logo"?{maxW:700,maxH:300,quality:.86}:{maxW:1600,maxH:1600,quality:.84};
       const optimized=await optimizeImageFile(file,opts);
       assign(optimized);
       renderIndexGeneralAdmin();renderHomeSlidesAdmin();
@@ -859,16 +878,19 @@ function renderIndexGeneralAdmin(){
     if(file.size>12*1024*1024){toast("Görsel 12 MB'dan küçük olmalı");inp.value="";return}
     try{
       toast("Slide "+(i+1)+" görseli hazırlanıyor...");
-      homeSlidesCache.slides[i].image=await optimizeImageFile(file,{maxW:1200,maxH:1800,quality:.84});
+      homeSlidesCache.slides[i].image=await optimizeImageFile(file,{maxW:1600,maxH:1600,quality:.84});
+      toast("Slide "+(i+1)+" görseli kaydediliyor...");
+      const ok=await saveIndexConfigNow("Slide "+(i+1)+" görseli kaydedildi");
       renderIndexGeneralAdmin();
       renderHomeSlidesAdmin();
-      toast("Slide "+(i+1)+" görseli hazır. Tüm Index’i kaydedin.");
+      if(!ok)toast("Slide görselini tekrar deneyin");
     }catch(e){console.error(e);toast("Slide görseli hazırlanamadı")}
   });
 
-  $("[data-hero-image-remove]").forEach(btn=>btn.onclick=()=>{
+  $("[data-hero-image-remove]").forEach(btn=>btn.onclick=async()=>{
     const i=Number(btn.dataset.heroImageRemove);
     if(homeSlidesCache.slides?.[i])homeSlidesCache.slides[i].image="";
+    await saveIndexConfigNow("Slide "+(i+1)+" görseli kaldırıldı");
     renderIndexGeneralAdmin();
     renderHomeSlidesAdmin();
   });
