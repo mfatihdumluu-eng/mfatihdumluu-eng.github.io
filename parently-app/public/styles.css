@@ -430,3 +430,10 @@ html[dir="rtl"] input,html[dir="rtl"] textarea,html[dir="rtl"] select{text-align
 .media-status{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap}
 .media-status.ok{background:#daf3e7;color:#087e61}.media-status.empty{background:#f0f1ef;color:#7c8781}
 .index-media-control .secondary:disabled,.hero-image-upload-card .secondary:disabled{opacity:.4;cursor:not-allowed}
+
+/* EXPERT SUPPORT */
+.expert-nav{text-decoration:none!important}
+.child-mode .expert-nav{display:none!important}
+.expert-member{border-color:#cfe4da!important;background:#f5fbf8!important}
+.expert-message .group-bubble{border:1px solid #cfe4da;background:#f3faf6}
+.expert-badge{display:inline-flex;padding:2px 6px;border-radius:999px;background:#dcefe6;color:#17664f;font-size:10px;font-weight:800;margin-left:6px}
