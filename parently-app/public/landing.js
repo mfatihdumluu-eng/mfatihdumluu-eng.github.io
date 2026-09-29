@@ -38,6 +38,10 @@ function preloadImage(src){
   preload.set(src,p);return p;
 }
 function setText(sel,value){const el=q(sel);if(el&&value!==undefined&&value!==null)el.textContent=value}
+function setNavigation(config){
+  const n=config.navigation||{};
+  setText("#navHow",n.how);setText("#navCards",n.cards);setText("#navFeatures",n.features);setText("#navPricing",n.pricing);setText("#navContact",n.contact);setText("#navAppButton",n.app);
+}
 function setBrand(config){
   const b=config.branding||{};
   setText("#brandName",b.name||"Parently");setText("#brandTagline",b.tagline||"");
@@ -111,7 +115,7 @@ async function loadSite(){
     const r=await fetch("/api/site/home?lang="+encodeURIComponent(siteLang),{cache:"no-store"});
     if(r.ok){siteConfig=await r.json();if(Array.isArray(siteConfig.slides)&&siteConfig.slides.length)slides=siteConfig.slides}
   }catch{}
-  setBrand(siteConfig);applySections(siteConfig);applyMedia(siteConfig);renderDots();
+  setBrand(siteConfig);setNavigation(siteConfig);applySections(siteConfig);applyMedia(siteConfig);renderDots();
   await Promise.all([...(slides||[]).map(s=>preloadImage(s.image)),preloadImage(siteConfig.demoPng),preloadImage(siteConfig.storyImage),preloadImage(siteConfig.branding?.logoImage)]);
   showSlide(0,true);restart();
 }
