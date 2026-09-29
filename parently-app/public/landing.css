@@ -634,3 +634,31 @@ html[dir="rtl"] .hero-lead,html[dir="rtl"] .story-copy,html[dir="rtl"] .demo-int
 .hero-art.has-image{
   background:linear-gradient(145deg,#e8f4eb,#f7ead7)!important;
 }
+
+/* FEATURE ICON/TEXT ISOLATION */
+.feature-list li{display:flex!important;align-items:flex-start!important;gap:18px!important}
+.feature-list .symbol{
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 64px!important;
+  width:64px!important;
+  height:64px!important;
+  max-width:64px!important;
+  min-width:64px!important;
+  min-height:64px!important;
+  margin:0!important;
+  padding:0!important;
+  border-radius:18px!important;
+  background:#d8efe4!important;
+  color:#118a68!important;
+  font-style:normal!important;
+  font-size:1.65rem!important;
+  font-weight:800!important;
+  line-height:1!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  text-align:center!important;
+}
+.feature-list .feature-text{flex:1!important;min-width:0!important}
+.feature-list .feature-text>b{display:block!important;margin:1px 0 6px!important;line-height:1.2!important}
+.feature-list .feature-text>span{display:block!important;background:transparent!important;width:auto!important;height:auto!important;padding:0!important;margin:0!important;border-radius:0!important;color:var(--muted)!important;line-height:1.45!important}
