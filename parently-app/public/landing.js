@@ -37,11 +37,17 @@ async function showSlide(n,instant=false){
   requestAnimationFrame(()=>requestAnimationFrame(()=>{copy?.classList.remove("is-changing");art?.classList.remove("is-changing");changing=false}));
 }
 function restart(){clearInterval(timer);timer=setInterval(()=>showSlide(index+1),7000)}
+function renderDots(){
+  const host=q("#heroDots");
+  if(!host)return;
+  host.innerHTML=slides.map((_,i)=>`<button type="button" aria-label="Slide ${i+1}" class="${i===index?"active":""}"></button>`).join("");
+  }
 async function loadSite(){
   try{
     const r=await fetch("/api/site/home",{cache:"no-store"});
-    if(r.ok){siteConfig=await r.json();if(Array.isArray(siteConfig.slides)&&siteConfig.slides.length)slides=siteConfig.slides.slice(0,3)}
+    if(r.ok){siteConfig=await r.json();if(Array.isArray(siteConfig.slides)&&siteConfig.slides.length)slides=siteConfig.slides}
   }catch{}
+  renderDots();
   await Promise.all(slides.map(s=>preloadImage(s.image)));
   const demo=q("#demoPng"),empty=q("#pngEmpty"),stage=q(".demo-png-stage");
   if(siteConfig.demoPng){
