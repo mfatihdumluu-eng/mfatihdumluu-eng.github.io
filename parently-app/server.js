@@ -106,9 +106,9 @@ function defaultHomeConfig(){
     sections:{
       strip:{title:"Birlikte geçirilen zaman, küçük anlarda büyür.",meta:"Kartlar · Rutinler · Aile ajandası"},
       how:{eyebrow:"Nasıl çalışır?",title:"Başlamak için uzun bir plan yapmanız gerekmiyor.",description:"Bir kart seçin, birbirinizi dinleyin ve iyi gelen anları tekrar edin.",noteLabel:"3 adım",noteText:"Küçük ritüeller, güçlü bağlar.",steps:[
-        {label:"SOHBET",title:"Yaşa uygun bir kart seçin",description:"Çocuğunuzun dünyasına yakın bir soruyla sohbeti açın."},
-        {label:"DİNLEME",title:"Herkese söz verin",description:"Doğru cevap aramadan, merakla ve sırayla dinleyin."},
-        {label:"RUTİN",title:"Küçük bir alışkanlık oluşturun",description:"Günün size uygun bir anını aile zamanı olarak ayırın."}
+        {icon:"✦",label:"SOHBET",title:"Yaşa uygun bir kart seçin",description:"Çocuğunuzun dünyasına yakın bir soruyla sohbeti açın."},
+        {icon:"◌",label:"DİNLEME",title:"Herkese söz verin",description:"Doğru cevap aramadan, merakla ve sırayla dinleyin."},
+        {icon:"◷",label:"RUTİN",title:"Küçük bir alışkanlık oluşturun",description:"Günün size uygun bir anını aile zamanı olarak ayırın."}
       ]},
       cards:{eyebrow:"Kartları keşfet",title:"İlk soruyu şimdi deneyin.",description:"Yaş grubunu seçip yeni bir soru açın. Bu örnekler, Parently kartlarının sohbeti nasıl başlattığını göstermek için burada.",emptyTitle:"PNG alanı",emptyDescription:"Yönetim panelinden şeffaf PNG yükleyin."},
       features:{eyebrow:"Parently ile",title:"Günlük hayatın içinde birbirinize yaklaşın.",description:"Bir uygulama, ailenizin yerini tutmaz. Sohbet için doğru anı bulmanıza ve birlikte kurduğunuz alışkanlıkları hatırlamanıza yardım eder.",items:[
@@ -117,9 +117,9 @@ function defaultHomeConfig(){
         {symbol:"▤",title:"Ortak ajanda",description:"Aile planlarını tek yerde görün.",label:"Aile planları tek yerde ▤",copy:"Okul, aktivite ve özel aile zamanlarını tek bir ortak ajandada görün; herkes ne olacağını bilsin."}
       ]},
       pricing:{eyebrow:"Planlar",title:"Ailenize uygun başlangıcı seçin.",description:"Planlar lansman öncesi taslak olarak gösterilmektedir.",noteLabel:"Esnek başlangıç",noteText:"İhtiyacınıza göre büyütün.",plans:[
-        {tag:"Başlangıç",name:"Demo",price:"Ücretsiz",description:"Parently deneyimini tanımak için.",features:["Temel kartlar","Demo aile profili","Ajanda ön izlemesi"],button:"Demoyu aç",url:"/panel.html"},
-        {tag:"Önerilen",name:"Aile",price:"Yakında",description:"Tam aile deneyimi için planlanan paket.",features:["Tüm kartlar ve aktiviteler","Aile rutinleri ve ajanda","Çoklu dil desteği"],button:"Erken erişim",url:"#contact"},
-        {tag:"Uzmanlar",name:"Profesyonel",price:"Yakında",description:"Uzmanlar ve kurumlar için genişletilmiş yapı.",features:["Birden fazla aile alanı","Gelişmiş raporlama","İçerik yönetimi"],button:"Bilgi al",url:"#contact"}
+        {icon:"✦",tag:"Başlangıç",name:"Demo",price:"Ücretsiz",description:"Parently deneyimini tanımak için.",features:["Temel kartlar","Demo aile profili","Ajanda ön izlemesi"],button:"Demoyu aç",url:"/panel.html"},
+        {icon:"♡",tag:"Önerilen",name:"Aile",price:"Yakında",description:"Tam aile deneyimi için planlanan paket.",features:["Tüm kartlar ve aktiviteler","Aile rutinleri ve ajanda","Çoklu dil desteği"],button:"Erken erişim",url:"#contact"},
+        {icon:"◎",tag:"Uzmanlar",name:"Profesyonel",price:"Yakında",description:"Uzmanlar ve kurumlar için genişletilmiş yapı.",features:["Birden fazla aile alanı","Gelişmiş raporlama","İçerik yönetimi"],button:"Bilgi al",url:"#contact"}
       ]},
       closing:{eyebrow:"Bir soru yeter",title:"Bu akşam nasıl bir sohbet başlatacaksınız?",description:"Parently’yi deneyin veya erken erişim hakkında bilgi alın.",button:"Uygulamaya Gir",url:"/panel.html"},
       footer:{description:"Birlikte konuşmaya küçük bir başlangıç."}
