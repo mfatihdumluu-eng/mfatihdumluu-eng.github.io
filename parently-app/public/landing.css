@@ -595,3 +595,17 @@ html[dir="rtl"] .hero-lead,html[dir="rtl"] .story-copy,html[dir="rtl"] .demo-int
 
 .story-photo{background-size:cover;background-position:center;background-repeat:no-repeat}
 .story-photo.has-hover-image .story-placeholder{display:none!important}
+
+/* ICON BOXES: ICONS ONLY */
+.feature-list .symbol{
+  font-family:"Outfit",system-ui,sans-serif!important;
+  font-size:1.35rem!important;
+  font-weight:800!important;
+  letter-spacing:0!important;
+  line-height:1!important;
+  text-indent:0!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  text-overflow:clip!important;
+}
+.feature-list .symbol::before,.feature-list .symbol::after{content:none!important}
