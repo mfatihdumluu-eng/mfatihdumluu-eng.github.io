@@ -30,6 +30,7 @@ const PRESETS=[
   {code:"so",name:"Soomaali",flag:"🇸🇴",direction:"ltr"},
   {code:"pl",name:"Polski",flag:"🇵🇱",direction:"ltr"}
 ];
+const GLOBAL_LANGUAGE_FAMILY="AILE2026";
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const flag=(c,m={})=>m.flag||FLAGS[String(c||"").toLowerCase()]||"🌐";
 const direction=(c,m={})=>m.direction||(/^ar(?:-|$)/i.test(String(c||""))||String(c||"").toLowerCase()==="darija"?"rtl":"ltr");
@@ -99,12 +100,12 @@ function openMenu(){
 }
 function injectAdmin(){
   const v=$("#view");if(!state||!v||!v.textContent.includes("YÖNETİM PANELİ")||$(".language-admin-section"))return;
-  const list=metas(),demo=FAMILY()==="DEMO2026";
+  const list=metas();
   const section=document.createElement("section");section.className="card admin-panel section language-admin-section";
   section.innerHTML=
     '<div class="admin-panel-head"><div><span class="eyebrow">DİLLER & ÇEVİRİ</span><h2>Dil JSON paketleri</h2></div></div>'+
     '<p class="muted">Her dil için kendi JSON şablonunu indirin, metinleri çevirin ve aynı dil kartındaki <b>JSON yükle</b> alanından geri yükleyin. Kart ID ve yaş gruplarını değiştirmeyin. Index metinleri de aynı dil paketinin <b>site</b> alanındadır.</p>'+
-    (demo?'<div class="upload-danger"><b>⚠ Demo modu aktif</b><br>Dil JSON paketleri Demo alanına kaydedilmez. Gerçek alana dönüp yükleyin.</div>':'<div class="last-import"><b>✓ Kalıcı veritabanı alanı</b><small>'+esc(FAMILY())+' · Yüklenen dil paketleri DB’de saklanır.</small></div>')+
+    '<div class="last-import"><b>✓ Global dil deposu</b><small>Yüklenen dil paketleri tüm site ve demo için kalıcı olarak saklanır.</small></div>'+
     '<div class="language-template-grid">'+list.map(x=>{
       const tr=String(x.code).toLowerCase()==="tr";
       return '<div class="language-template-card '+(x.loaded?"loaded":"")+'">'+
@@ -112,7 +113,7 @@ function injectAdmin(){
         '<div class="language-card-actions">'+
           '<button class="secondary" data-download-lang="'+esc(x.code)+'">'+(tr?'Temel JSON indir':'JSON şablonu indir')+'</button>'+
           (tr?'<span class="language-base-note">Temel dil</span>':
-            '<label class="language-upload-btn '+(demo?'disabled':'')+'">JSON yükle<input class="language-json-input" data-upload-lang="'+esc(x.code)+'" type="file" accept=".json,application/json" '+(demo?'disabled':'')+' hidden></label>')+
+            '<label class="language-upload-btn">JSON yükle<input class="language-json-input" data-upload-lang="'+esc(x.code)+'" type="file" accept=".json,application/json" hidden></label>')+
         '</div></div>';
     }).join("")+'</div>'+
     '<div id="languageImportStatus"></div>';
@@ -133,7 +134,6 @@ function injectAdmin(){
 }
 function preview(file,expectedCode){
   if(!file)return;
-  if(FAMILY()==="DEMO2026"){alert("Demo modunda dil JSON yüklenmez. Önce gerçek alana dönün.");return}
   const r=new FileReader();
   r.onload=()=>{
     try{
@@ -152,11 +152,31 @@ function preview(file,expectedCode){
   };
   r.readAsText(file);
 }
-async function savePack(p){let c=String(p.meta.code).trim();p.meta.code=/^ar-ma$/i.test(c)?"ar-MA":c;p.meta.flag=flag(p.meta.code,p.meta);p.meta.direction=direction(p.meta.code,p.meta);state.languagePacks||={};state.languagePacks[p.meta.code]=p;const payload=JSON.parse(JSON.stringify(state));delete payload.mode;delete payload.activeProfileId;await api("/api/state/"+encodeURIComponent(FAMILY()),{method:"PUT",body:JSON.stringify(payload)});localStorage.setItem(KEY,p.meta.code);location.reload()}
+async function savePack(p){
+  let c=String(p.meta.code).trim();
+  p.meta.code=/^ar-ma$/i.test(c)?"ar-MA":(/^ar-sy$/i.test(c)?"ar-SY":c);
+  p.meta.flag=flag(p.meta.code,p.meta);
+  p.meta.direction=direction(p.meta.code,p.meta);
+  const globalState=await api("/api/state/"+encodeURIComponent(GLOBAL_LANGUAGE_FAMILY));
+  globalState.languagePacks||={};
+  globalState.languagePacks[p.meta.code]=p;
+  const payload=JSON.parse(JSON.stringify(globalState));
+  delete payload.mode;delete payload.activeProfileId;
+  await api("/api/state/"+encodeURIComponent(GLOBAL_LANGUAGE_FAMILY),{method:"PUT",body:JSON.stringify(payload)});
+  state.languagePacks={...(state.languagePacks||{}),[p.meta.code]:p};
+  localStorage.setItem(KEY,p.meta.code);
+  location.reload();
+}
 document.addEventListener("click",e=>{const c=e.target.closest("[data-open-card]");if(c)currentCardId=c.dataset.openCard;const l=e.target.closest("[data-i18n-lang]");if(l){localStorage.setItem(KEY,l.dataset.i18nLang);location.reload();return}if(e.target.closest("#cancelLangImport")){const s=$("#languageImportStatus");if(s)s.innerHTML="";return}if(e.target.closest("#confirmLangImport")){const s=$("#languageImportStatus");if(s?._pack)savePack(s._pack).catch(()=>alert("Dil paketi kaydedilemedi."));return}});
 async function boot(){try{
-  const results=await Promise.all([api("/api/state/"+encodeURIComponent(FAMILY())),api("/api/site/home")]);
-  state=results[0];siteBase=results[1];state.languagePacks||={};
+  const results=await Promise.all([
+    api("/api/state/"+encodeURIComponent(FAMILY())),
+    api("/api/site/home"),
+    api("/api/state/"+encodeURIComponent(GLOBAL_LANGUAGE_FAMILY))
+  ]);
+  state=results[0];siteBase=results[1];
+  const globalLangs=results[2]?.languagePacks||{};
+  state.languagePacks={...(state.languagePacks||{}),...globalLangs};
   ensureButton();apply();injectAdmin();
   setInterval(()=>{try{ensureButton();injectAdmin();apply()}catch(e){console.warn("i18n tick skipped",e)}},500)
 }catch(e){console.warn("Parently i18n disabled",e)}}
