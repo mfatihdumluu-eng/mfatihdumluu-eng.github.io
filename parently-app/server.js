@@ -151,6 +151,12 @@ function translateSiteConfig(base,siteTranslation){
   if(!siteTranslation||typeof siteTranslation!=="object")return base;
   return deepMerge(base,siteTranslation);
 }
+let homeConfigWriteQueue=Promise.resolve();
+function withHomeConfigLock(fn){
+  const run=homeConfigWriteQueue.catch(()=>{}).then(fn);
+  homeConfigWriteQueue=run.catch(()=>{});
+  return run;
+}
 async function loadHomeConfig(){
   if(pool){
     await initDb();
@@ -277,19 +283,32 @@ app.put("/api/site/home",async(req,res)=>{
     const pin=String(req.body?.pin||"");
     const family=await loadState(familyCode);
     if(!family||String(family.pin||"")!==pin)return res.status(403).json({error:"admin_auth_failed"});
-    const current=deepMerge(defaultHomeConfig(),await loadHomeConfig());
-    const next=deepMerge(defaultHomeConfig(),req.body?.config||{});
-    next.branding=next.branding||{};
-    next.branding.logoImage=current.branding?.logoImage||"";
-    next.demoPng=current.demoPng||"";
-    next.storyImage=current.storyImage||"";
-    next.slides=Array.isArray(next.slides)?next.slides:[];
-    for(let i=0;i<next.slides.length;i++)next.slides[i].image=current.slides?.[i]?.image||"";
-    next.sections=next.sections||{};
-    next.sections.features=next.sections.features||{};
-    next.sections.features.items=Array.isArray(next.sections.features.items)?next.sections.features.items:[];
-    for(let i=0;i<next.sections.features.items.length;i++)next.sections.features.items[i].image=current.sections?.features?.items?.[i]?.image||"";
-    res.json(await saveHomeConfig(next));
+    const saved=await withHomeConfigLock(async()=>{
+      const current=deepMerge(defaultHomeConfig(),await loadHomeConfig());
+      const next=deepMerge(defaultHomeConfig(),req.body?.config||{});
+
+      next.branding=next.branding||{};
+      next.branding.logoImage=current.branding?.logoImage||"";
+      next.demoPng=current.demoPng||"";
+      next.storyImage=current.storyImage||"";
+
+      next.slides=Array.isArray(next.slides)?next.slides:[];
+      for(let i=0;i<next.slides.length;i++){
+        next.slides[i]=next.slides[i]||{};
+        next.slides[i].image=current.slides?.[i]?.image||"";
+      }
+
+      next.sections=next.sections||{};
+      next.sections.features=next.sections.features||{};
+      next.sections.features.items=Array.isArray(next.sections.features.items)?next.sections.features.items:[];
+      for(let i=0;i<next.sections.features.items.length;i++){
+        next.sections.features.items[i]=next.sections.features.items[i]||{};
+        next.sections.features.items[i].image=current.sections?.features?.items?.[i]?.image||"";
+      }
+
+      return saveHomeConfig(next);
+    });
+    res.json(saved);
   }catch(e){console.error(e);res.status(500).json({error:"site_home_save_failed"});}
 });
 app.put("/api/site/home/slide-image",async(req,res)=>{
@@ -321,28 +340,36 @@ app.put("/api/site/home/media",async(req,res)=>{
     const family=await loadState(familyCode);
     if(!family||String(family.pin||"")!==pin)return res.status(403).json({error:"admin_auth_failed"});
     if(image&&(!image.startsWith("data:image/")||image.length>8_000_000))return res.status(400).json({error:"invalid_image"});
+
     const allowed=[
       "branding.logoImage","demoPng","storyImage",
       ...Array.from({length:12},(_,i)=>"slides."+i+".image"),
       ...Array.from({length:3},(_,i)=>"sections.features.items."+i+".image")
     ];
     if(!allowed.includes(pathKey))return res.status(400).json({error:"invalid_media_path"});
-    const config=deepMerge(defaultHomeConfig(),await loadHomeConfig());
-    const parts=pathKey.split(".");
-    let cur=config;
-    for(let i=0;i<parts.length-1;i++){
-      const k=/^\d+$/.test(parts[i])?Number(parts[i]):parts[i];
-      const next=parts[i+1];
-      if(cur[k]==null)cur[k]=/^\d+$/.test(next)?[]:{};
-      cur=cur[k];
-    }
-    const last=/^\d+$/.test(parts.at(-1))?Number(parts.at(-1)):parts.at(-1);
-    cur[last]=image;
-    const saved=await saveHomeConfig(config);
-    let check=saved;
-    for(const p of parts){check=check?.[/^\d+$/.test(p)?Number(p):p]}
-    res.json({ok:true,path:pathKey,imageLen:String(check||"").length});
-  }catch(e){console.error("site media save failed",e);res.status(500).json({error:"site_media_save_failed"});}
+
+    const result=await withHomeConfigLock(async()=>{
+      const config=deepMerge(defaultHomeConfig(),await loadHomeConfig());
+      const parts=pathKey.split(".");
+      let cur=config;
+      for(let i=0;i<parts.length-1;i++){
+        const k=/^\d+$/.test(parts[i])?Number(parts[i]):parts[i];
+        const next=parts[i+1];
+        if(cur[k]==null)cur[k]=/^\d+$/.test(next)?[]:{};
+        cur=cur[k];
+      }
+      const last=/^\d+$/.test(parts.at(-1))?Number(parts.at(-1)):parts.at(-1);
+      cur[last]=image;
+      const saved=await saveHomeConfig(config);
+      let check=saved;
+      for(const p of parts)check=check?.[/^\d+$/.test(p)?Number(p):p];
+      return {ok:true,path:pathKey,imageLen:String(check||"").length};
+    });
+    res.json(result);
+  }catch(e){
+    console.error("site media save failed",e);
+    res.status(500).json({error:"site_media_save_failed"});
+  }
 });
 app.get("/api/state/:code",async(req,res)=>{try{res.json(await loadState(req.params.code));}catch(e){console.error(e);res.status(500).json({error:"state_load_failed"});}});
 app.get("/api/events/:code",(req,res)=>{
