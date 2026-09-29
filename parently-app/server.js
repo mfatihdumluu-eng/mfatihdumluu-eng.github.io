@@ -126,10 +126,22 @@ function defaultHomeConfig(){
   };
 }
 function deepMerge(base,extra){
-  if(Array.isArray(base))return Array.isArray(extra)?extra:base;
+  if(Array.isArray(base)){
+    if(!Array.isArray(extra))return base;
+    const mergeObjects=base.every(x=>x&&typeof x==="object"&&!Array.isArray(x))&&extra.every(x=>x&&typeof x==="object"&&!Array.isArray(x));
+    if(mergeObjects){
+      const out=base.map((x,i)=>extra[i]===undefined?x:deepMerge(x,extra[i]));
+      return out.concat(extra.slice(base.length));
+    }
+    return extra;
+  }
   if(base&&typeof base==="object"){
     const out={...base};
-    if(extra&&typeof extra==="object")for(const [k,v] of Object.entries(extra))out[k]=k in base?deepMerge(base[k],v):v;
+    if(extra&&typeof extra==="object"){
+      for(const [k,v] of Object.entries(extra)){
+        out[k]=Object.prototype.hasOwnProperty.call(base,k)?deepMerge(base[k],v):v;
+      }
+    }
     return out;
   }
   return extra===undefined?base:extra;
