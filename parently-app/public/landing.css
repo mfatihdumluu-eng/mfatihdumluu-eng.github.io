@@ -115,3 +115,154 @@ section.section{padding:112px 0}.section-head{max-width:720px;margin-bottom:46px
     font-size:clamp(2.8rem,12.8vw,3.7rem);
   }
 }
+
+/* ABSOLUTE SLIDE GEOMETRY LOCK — every slide uses identical rows */
+.hero{padding:64px 0 92px}
+.hero-grid{align-items:center;min-height:650px}
+.hero-lead{
+  display:grid!important;
+  grid-template-rows:
+    34px   /* eyebrow */
+    300px  /* title */
+    112px  /* description */
+    58px   /* buttons */
+    40px;  /* slider controls */
+  row-gap:16px;
+  align-content:start;
+  min-height:608px!important;
+  height:608px!important;
+  max-height:608px!important;
+  overflow:hidden;
+}
+.hero-lead .eyebrow{
+  margin:0!important;
+  height:34px;
+  line-height:34px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.hero-lead h1,
+.hero-lead.title-long h1,
+.hero-lead.title-xlong h1{
+  height:300px!important;
+  min-height:300px!important;
+  max-height:300px!important;
+  margin:0!important;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  overflow:hidden!important;
+  font-size:clamp(4.05rem,5.55vw,5.95rem);
+  line-height:.95;
+}
+.hero-lead.title-long h1{font-size:clamp(3.7rem,5.05vw,5.25rem)}
+.hero-lead.title-xlong h1{font-size:clamp(3.3rem,4.55vw,4.75rem)}
+.hero-lead h1 #heroTitle{
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:3!important;
+  overflow:hidden!important;
+}
+.hero-lead h1 #heroHighlight{
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:1!important;
+  overflow:hidden!important;
+}
+.hero-lead #heroDescription{
+  height:112px!important;
+  min-height:112px!important;
+  max-height:112px!important;
+  margin:0!important;
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:4!important;
+  overflow:hidden!important;
+  align-self:start;
+}
+.hero-cta{
+  height:58px!important;
+  min-height:58px!important;
+  margin:0!important;
+  align-items:center;
+  overflow:hidden;
+}
+.hero-cta .button{
+  height:52px;
+  min-height:52px;
+}
+.hero-navline{
+  height:40px!important;
+  min-height:40px!important;
+  margin:0!important;
+  align-items:center;
+}
+.hero-art{
+  height:590px!important;
+  min-height:590px!important;
+  max-height:590px!important;
+}
+@media(max-width:1100px){
+  .hero-grid{min-height:0}
+  .hero-lead{
+    height:570px!important;
+    min-height:570px!important;
+    max-height:570px!important;
+    grid-template-rows:34px 260px 105px 58px 40px;
+    row-gap:14px;
+  }
+  .hero-lead h1,
+  .hero-lead.title-long h1,
+  .hero-lead.title-xlong h1{
+    height:260px!important;
+    min-height:260px!important;
+    max-height:260px!important;
+  }
+  .hero-lead #heroDescription{
+    height:105px!important;
+    min-height:105px!important;
+    max-height:105px!important;
+  }
+  .hero-art{
+    height:560px!important;
+    min-height:560px!important;
+    max-height:560px!important;
+  }
+}
+@media(max-width:760px){
+  .hero-lead{
+    height:522px!important;
+    min-height:522px!important;
+    max-height:522px!important;
+    grid-template-rows:32px 220px 100px 116px 34px;
+    row-gap:10px;
+  }
+  .hero-lead h1,
+  .hero-lead.title-long h1,
+  .hero-lead.title-xlong h1{
+    height:220px!important;
+    min-height:220px!important;
+    max-height:220px!important;
+    justify-content:center;
+  }
+  .hero-lead #heroDescription{
+    height:100px!important;
+    min-height:100px!important;
+    max-height:100px!important;
+  }
+  .hero-cta{
+    height:116px!important;
+    min-height:116px!important;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+  .hero-cta .button{width:100%;height:53px}
+  .hero-navline{height:34px!important;min-height:34px!important}
+  .hero-art{
+    height:520px!important;
+    min-height:520px!important;
+    max-height:520px!important;
+  }
+}
