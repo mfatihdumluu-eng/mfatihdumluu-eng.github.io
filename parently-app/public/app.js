@@ -763,7 +763,14 @@ function adminView(){
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">YAŞ GRUPLARI</span><h2>İçerik grupları</h2></div></div><div class="age-toggle-list">'+Object.entries(groups).map(([g,c])=>'<label class="age-toggle-row"><div><b>'+esc(c.label)+'</b><small>'+g+' içerikleri</small></div><input type="checkbox" data-age-toggle="'+g+'" '+(c.enabled?"checked":"")+'></label>').join("")+'</div></section>'+
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">ÜYELİKLER</span><h2>Paket ve erişim matrisi</h2></div><select id="adminPlanSelect" class="membership-select">'+Object.entries(plans).map(([id,p])=>'<option value="'+id+'" '+(state.membership.plan===id?"selected":"")+'>'+esc(p.name)+'</option>').join("")+'</select></div><div class="plans-grid">'+Object.entries(plans).map(([id,p])=>'<div class="plan-admin-card '+(state.membership.plan===id?"current":"")+'"><h3>'+esc(p.name)+'</h3><div class="plan-limits"><span><b>'+p.maxParents+'</b> ebeveyn</span><span><b>'+p.maxChildren+'</b> çocuk</span><span><b>'+(p.ai?"✓":"—")+'</b> AI</span></div><p class="muted">Yaş grubu erişimi</p><div class="plan-age-access">'+Object.keys(groups).map(g=>'<label><input type="checkbox" data-plan="'+id+'" data-plan-age="'+g+'" '+(p.ageGroups.includes(g)?"checked":"")+'>'+esc(groups[g].label)+'</label>').join("")+'</div></div>').join("")+'</div></section>';
 
-  $("#adminJsonOut").onclick=()=>downloadAdmin("parently-full-export.json",JSON.stringify(state,null,2),"application/json");
+  $("#adminJsonOut").onclick=async()=>{
+    try{
+      const site=await api("/api/site/home");
+      const bundle={schema:"parently-full-backup",version:2,exportedAt:new Date().toISOString(),state:JSON.parse(JSON.stringify(state)),site};
+      downloadAdmin("parently-full-export.json",JSON.stringify(bundle,null,2),"application/json");
+      toast("Panel + Index + dil paketleri birlikte indirildi");
+    }catch{toast("Tam JSON yedeği hazırlanamadı")}
+  };
   $("#adminCsvOut").onclick=()=>exportCardsCsv();
   $("#adminPlanSelect").onchange=e=>{state.membership.plan=e.target.value;markDirty();adminView()};
   $$("[data-age-toggle]").forEach(el=>el.onchange=()=>{state.adminConfig.ageGroups[el.dataset.ageToggle].enabled=el.checked;markDirty()});
@@ -857,30 +864,40 @@ function previewAdminJson(file){
   const r=new FileReader();
   r.onload=()=>{
     try{
-      const incoming=JSON.parse(r.result);
-      if(!incoming.profiles||!incoming.cards)throw new Error();
+      const raw=JSON.parse(r.result);
+      const incoming=raw?.schema==="parently-full-backup"?raw.state:raw;
+      const site=raw?.schema==="parently-full-backup"?raw.site:null;
+      if(!incoming?.profiles||!incoming?.cards)throw new Error();
       const box=$("#jsonPreview");box.classList.remove("hidden");
       const summary=[
         ["Profil",(incoming.profiles||[]).length],
         ["Kart",(incoming.cards||[]).length],
         ["Görev",(incoming.tasks||[]).length],
         ["Mesaj",(incoming.messages||[]).length],
-        ["Takvim",(incoming.calendar||[]).length]
+        ["Dil paketi",Object.keys(incoming.languagePacks||{}).length],
+        ["Index",site?"✓":"Eski yedek"]
       ];
-      box.innerHTML='<div class="upload-preview-head"><div><b>'+esc(file.name)+'</b><small>'+esc(incoming.familyName||"Parently veri dosyası")+'</small></div><span class="file-type">JSON</span></div><div class="json-summary">'+summary.map(x=>'<div><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join("")+'</div><div class="upload-danger">Bu işlem mevcut aile verisini içe aktarılan JSON ile değiştirebilir. Önce JSON yedek indirmeniz önerilir.</div><div class="upload-actions"><button id="cancelJsonImport" class="secondary">İptal</button><button id="confirmJsonImport" class="primary">JSON verisini aktar</button></div>';
+      box._bundle={state:incoming,site};
+      box.innerHTML='<div class="upload-preview-head"><div><b>'+esc(file.name)+'</b><small>'+esc(incoming.familyName||"Parently tam veri dosyası")+'</small></div><span class="file-type">JSON</span></div><div class="json-summary">'+summary.map(x=>'<div><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join("")+'</div><div class="upload-danger">Yeni yedek formatında panel, dil paketleri ve Index ayarları birlikte aktarılır. Eski JSON dosyaları da desteklenir.</div><div class="upload-actions"><button id="cancelJsonImport" class="secondary">İptal</button><button id="confirmJsonImport" class="primary">JSON verisini aktar</button></div>';
       $("#cancelJsonImport").onclick=()=>{box.classList.add("hidden");$("#adminJsonIn").value=""};
-      $("#confirmJsonImport").onclick=()=>commitAdminJson(incoming);
+      $("#confirmJsonImport").onclick=()=>commitAdminJson(box._bundle);
     }catch{toast("Geçersiz Parently JSON dosyası")}
   };
   r.readAsText(file);
 }
-function commitAdminJson(incoming){
-  state=incoming;
-  defaults();
-  applyDeviceUi();
-  markDirty();
-  adminView();
-  toast("JSON verisi aktarıldı");
+async function commitAdminJson(bundle){
+  try{
+    const incoming=bundle?.state||bundle;
+    state=incoming;
+    defaults();
+    applyDeviceUi();
+    await save();
+    if(bundle?.site){
+      await api("/api/site/home",{method:"PUT",body:JSON.stringify({familyCode,pin:String(state.pin||""),config:bundle.site})});
+    }
+    adminView();
+    toast(bundle?.site?"Panel + Index + diller birlikte aktarıldı":"Eski JSON panel verisi aktarıldı");
+  }catch{toast("JSON verisi kaydedilemedi")}
 }
 
 document.addEventListener("click",async e=>{
