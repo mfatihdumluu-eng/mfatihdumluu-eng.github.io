@@ -25,6 +25,9 @@ async function showSlide(n,instant=false){
   q("#heroTitle").textContent=s.title||"";
   q("#heroHighlight").textContent=s.highlight||"";
   q("#heroDescription").textContent=s.description||"";
+  const totalTitle=((s.title||"")+" "+(s.highlight||"")).trim().length;
+  copy?.classList.toggle("title-long",totalTitle>48&&totalTitle<=72);
+  copy?.classList.toggle("title-xlong",totalTitle>72);
   const p=q("#heroPrimary");p.textContent=s.primaryLabel||"Uygulamaya Gir";p.href=s.primaryUrl||"/panel.html";
   const sec=q("#heroSecondary");sec.textContent=s.secondaryLabel||"Nasıl çalışır?";sec.href=s.secondaryUrl||"#how";
   const img=q("#heroSlideImage");
