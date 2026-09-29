@@ -3,7 +3,7 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const FAMILY=()=>localStorage.getItem("parently_family")||"AILE2026";
 const KEY="parently_language";
-let state=null,currentCardId=null,busy=false;
+let state=null,currentCardId=null,busy=false,siteBase=null;
 const UI={
 "Aile bağını güçlendir":"Aile bağını güçlendir","Ana Sayfa":"Ana Sayfa","Kartlar":"Kartlar","Ajanda":"Ajanda","Mesajlar":"Mesajlar","Raporlar":"Raporlar","Yönetim":"Yönetim",
 "Ebeveyn":"Ebeveyn","Çocuk Modu":"Çocuk Modu","Kart Kütüphanesi":"Kart Kütüphanesi","Favoriler":"Favoriler","Tümü":"Tümü","Takip sorusu:":"Takip sorusu:",
@@ -34,7 +34,26 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&
 const flag=(c,m={})=>m.flag||FLAGS[String(c||"").toLowerCase()]||"🌐";
 const direction=(c,m={})=>m.direction||(/^ar(?:-|$)/i.test(String(c||""))||String(c||"").toLowerCase()==="darija"?"rtl":"ltr");
 async function api(url,opt={}){const r=await fetch(url,{headers:{"Content-Type":"application/json",...(opt.headers||{})},...opt});if(!r.ok)throw new Error(await r.text());return r.json()}
-const code=()=>localStorage.getItem(KEY)||"tr";
+function detectDeviceLanguage(){
+  const langs=[...(navigator.languages||[]),navigator.language||""].filter(Boolean);
+  for(const raw of langs){
+    const l=String(raw).toLowerCase();
+    if(l.startsWith("tr"))return"tr";
+    if(l.startsWith("nl"))return"nl";
+    if(l.startsWith("pl"))return"pl";
+    if(l.startsWith("so"))return"so";
+    if(l==="ary"||l.startsWith("ar-ma"))return"ar-MA";
+    if(l.startsWith("ar-sy")||l.startsWith("ar"))return"ar-SY";
+  }
+  return"tr";
+}
+const code=()=>{
+  const saved=localStorage.getItem(KEY);
+  if(saved)return saved;
+  const d=detectDeviceLanguage();
+  localStorage.setItem(KEY,d);
+  return d;
+};
 const packs=()=>state?.languagePacks||{};
 function pack(){const c=code();if(c.toLowerCase()==="tr")return null;return packs()[c]||Object.values(packs()).find(p=>String(p?.meta?.code||"").toLowerCase()===c.toLowerCase())||null}
 function metas(){
@@ -44,7 +63,29 @@ function metas(){
     return hit?{...p,...hit,loaded:true}:{...p,loaded:p.code==="tr"};
   });
 }
-function template(meta={code:"tr",name:"Türkçe",flag:"🇹🇷",direction:"ltr"}){return {schema:"parently-language-pack",version:1,meta:{source:"tr",...meta},instructions:{a:"id ve ageGroup alanlarını değiştirmeyin.",b:"ui değerlerini ve cards içindeki metin alanlarını çevirin.",c:"Darija/Arapça için direction rtl kalmalıdır."},ui:{...UI},cards:(state?.cards||[]).map(c=>({id:c.id,ageGroup:c.ageGroup,category:c.category,emoji:c.emoji,question:c.question,followUp:c.followUp,parentGuide:c.parentGuide,positiveReinforcement:c.positiveReinforcement,connectionPhrase:c.connectionPhrase}))}}
+function languageSiteTemplate(site){
+  if(!site)return{};
+  const clone=JSON.parse(JSON.stringify(site));
+  if(clone.branding)delete clone.branding.logoImage;
+  delete clone.demoPng;delete clone.storyImage;
+  (clone.slides||[]).forEach(s=>delete s.image);
+  return clone;
+}
+function template(meta={code:"tr",name:"Türkçe",flag:"🇹🇷",direction:"ltr"}){
+  return {
+    schema:"parently-language-pack",version:2,
+    meta:{source:"tr",...meta},
+    instructions:{
+      a:"id ve ageGroup alanlarını değiştirmeyin.",
+      b:"ui, cards ve site içindeki metin alanlarını çevirin.",
+      c:"site içindeki görsel alanları dil paketine dahil edilmez; ana Index görselleri korunur.",
+      d:"Darija/Arapça için direction rtl kalmalıdır."
+    },
+    ui:{...UI},
+    cards:(state?.cards||[]).map(c=>({id:c.id,ageGroup:c.ageGroup,category:c.category,emoji:c.emoji,question:c.question,followUp:c.followUp,parentGuide:c.parentGuide,positiveReinforcement:c.positiveReinforcement,connectionPhrase:c.connectionPhrase})),
+    site:languageSiteTemplate(siteBase)
+  };
+}
 function download(name,obj){const b=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href)}
 function setDir(p){const m=p?.meta||{code:"tr",direction:"ltr"},d=direction(m.code,m);document.documentElement.lang=m.code||"tr";document.documentElement.dir=d;document.body.classList.toggle("rtl-mode",d==="rtl")}
 function translateNodes(root,map){if(!root||!map)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),arr=[];while(w.nextNode())arr.push(w.currentNode);for(const n of arr){const raw=n.nodeValue,t=raw.trim();if(!t||!Object.prototype.hasOwnProperty.call(map,t)||map[t]===t)continue;n.nodeValue=(raw.match(/^\s*/)?.[0]||"")+map[t]+(raw.match(/\s*$/)?.[0]||"")}$$("input[placeholder],textarea[placeholder]").forEach(el=>{const p=el.getAttribute("placeholder");if(map[p])el.setAttribute("placeholder",map[p])})}
@@ -62,7 +103,7 @@ function injectAdmin(){
   const section=document.createElement("section");section.className="card admin-panel section language-admin-section";
   section.innerHTML=
     '<div class="admin-panel-head"><div><span class="eyebrow">DİLLER & ÇEVİRİ</span><h2>Dil JSON paketleri</h2></div></div>'+
-    '<p class="muted">Her dil için kendi JSON şablonunu indirin, metinleri çevirin ve aynı dil kartındaki <b>JSON yükle</b> alanından geri yükleyin. Kart ID ve yaş gruplarını değiştirmeyin.</p>'+
+    '<p class="muted">Her dil için kendi JSON şablonunu indirin, metinleri çevirin ve aynı dil kartındaki <b>JSON yükle</b> alanından geri yükleyin. Kart ID ve yaş gruplarını değiştirmeyin. Index metinleri de aynı dil paketinin <b>site</b> alanındadır.</p>'+
     (demo?'<div class="upload-danger"><b>⚠ Demo modu aktif</b><br>Dil JSON paketleri Demo alanına kaydedilmez. Gerçek alana dönüp yükleyin.</div>':'<div class="last-import"><b>✓ Kalıcı veritabanı alanı</b><small>'+esc(FAMILY())+' · Yüklenen dil paketleri DB’de saklanır.</small></div>')+
     '<div class="language-template-grid">'+list.map(x=>{
       const tr=String(x.code).toLowerCase()==="tr";
@@ -113,6 +154,11 @@ function preview(file,expectedCode){
 }
 async function savePack(p){let c=String(p.meta.code).trim();p.meta.code=/^ar-ma$/i.test(c)?"ar-MA":c;p.meta.flag=flag(p.meta.code,p.meta);p.meta.direction=direction(p.meta.code,p.meta);state.languagePacks||={};state.languagePacks[p.meta.code]=p;const payload=JSON.parse(JSON.stringify(state));delete payload.mode;delete payload.activeProfileId;await api("/api/state/"+encodeURIComponent(FAMILY()),{method:"PUT",body:JSON.stringify(payload)});localStorage.setItem(KEY,p.meta.code);location.reload()}
 document.addEventListener("click",e=>{const c=e.target.closest("[data-open-card]");if(c)currentCardId=c.dataset.openCard;const l=e.target.closest("[data-i18n-lang]");if(l){localStorage.setItem(KEY,l.dataset.i18nLang);location.reload();return}if(e.target.closest("#cancelLangImport")){const s=$("#languageImportStatus");if(s)s.innerHTML="";return}if(e.target.closest("#confirmLangImport")){const s=$("#languageImportStatus");if(s?._pack)savePack(s._pack).catch(()=>alert("Dil paketi kaydedilemedi."));return}});
-async function boot(){try{state=await api("/api/state/"+encodeURIComponent(FAMILY()));state.languagePacks||={};ensureButton();apply();injectAdmin();setInterval(()=>{try{ensureButton();injectAdmin();apply()}catch(e){console.warn("i18n tick skipped",e)}},500)}catch(e){console.warn("Parently i18n disabled",e)}}
+async function boot(){try{
+  const results=await Promise.all([api("/api/state/"+encodeURIComponent(FAMILY())),api("/api/site/home")]);
+  state=results[0];siteBase=results[1];state.languagePacks||={};
+  ensureButton();apply();injectAdmin();
+  setInterval(()=>{try{ensureButton();injectAdmin();apply()}catch(e){console.warn("i18n tick skipped",e)}},500)
+}catch(e){console.warn("Parently i18n disabled",e)}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(boot,300));else setTimeout(boot,300);
 })();
