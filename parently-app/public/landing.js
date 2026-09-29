@@ -69,7 +69,7 @@ function applySections(config){
 
   setText("#featuresEyebrow",s.features?.eyebrow);setText("#featuresTitle",s.features?.title);setText("#featureIntro",s.features?.description);
   const items=s.features?.items||[];
-  qa("#featureList li").forEach((el,i)=>{const d=items[i];if(!d)return;const sym=el.querySelector(".symbol"),b=el.querySelector("b"),sp=el.querySelector("div span");if(sym)sym.textContent=safeIcon(d.symbol,["✳","◷","▤"][i]||"✳");if(b)b.textContent=d.title||"";if(sp)sp.textContent=d.description||"";el.dataset.label=d.label||"";el.dataset.copy=d.copy||"";el.dataset.image=d.image||""});
+  qa("#featureList li").forEach((el,i)=>{const d=items[i];if(!d)return;const sym=el.querySelector(".symbol"),b=el.querySelector(".feature-text b"),sp=el.querySelector(".feature-text span");if(sym)sym.textContent=safeIcon(d.symbol,["✳","◷","▤"][i]||"✳");if(b)b.textContent=d.title||"";if(sp)sp.textContent=d.description||"";el.dataset.label=d.label||"";el.dataset.copy=d.copy||"";el.dataset.image=d.image||""});
   if(items[0]){setText("#featureLabel",items[0].label);setText("#featureIntro",items[0].copy||s.features?.description)}
 
   setText("#pricingEyebrow",s.pricing?.eyebrow);setText("#pricingTitle",s.pricing?.title);setText("#pricingDescription",s.pricing?.description);
