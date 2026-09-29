@@ -881,27 +881,39 @@ function renderIndexGeneralAdmin(){
     if(input)input.onchange=()=>readImage(input,v=>homeSlidesCache.sections.features.items[i].image=v,"Özellik "+(i+1)+" resmi");
   });
 
-  $$("[data-hero-image-file]").forEach(inp=>inp.onchange=async()=>{
+  $$("[data-hero-image-file]").forEach(inp=>inp.onchange=()=>{
     const i=Number(inp.dataset.heroImageFile),file=inp.files?.[0];
     if(!file)return;
-    if(file.size>12*1024*1024){toast("Görsel 12 MB'dan küçük olmalı");inp.value="";return}
-    try{
-      toast("Slide "+(i+1)+" görseli hazırlanıyor...");
-      homeSlidesCache.slides[i].image=await optimizeImageFile(file,{maxW:1600,maxH:1600,quality:.84});
-      toast("Slide "+(i+1)+" görseli kaydediliyor...");
-      const ok=await saveIndexConfigNow("Slide "+(i+1)+" görseli kaydedildi");
-      renderIndexGeneralAdmin();
-      renderHomeSlidesAdmin();
-      if(!ok)toast("Slide görselini tekrar deneyin");
-    }catch(e){console.error(e);toast("Slide görseli hazırlanamadı")}
+    if(!/^image\/(png|jpeg|webp)$/i.test(file.type||"")){toast("PNG, JPG veya WebP seçin");inp.value="";return}
+    if(file.size>5*1024*1024){toast("Slide görseli 5 MB'dan küçük olmalı");inp.value="";return}
+    toast("Slide "+(i+1)+" görseli yükleniyor...");
+    const reader=new FileReader();
+    reader.onload=async()=>{
+      try{
+        const raw=String(reader.result||"");
+        await saveSingleSlideImage(i,raw);
+        homeSlidesCache.slides[i].image=raw;
+        renderIndexGeneralAdmin();
+        renderHomeSlidesAdmin();
+        toast("Slide "+(i+1)+" görseli kaydedildi");
+      }catch(err){
+        console.error("slide image upload failed",err);
+        toast("Slide görseli kaydedilemedi");
+      }
+    };
+    reader.onerror=()=>toast("Görsel okunamadı");
+    reader.readAsDataURL(file);
   });
 
   $$("[data-hero-image-remove]").forEach(btn=>btn.onclick=async()=>{
     const i=Number(btn.dataset.heroImageRemove);
-    if(homeSlidesCache.slides?.[i])homeSlidesCache.slides[i].image="";
-    await saveIndexConfigNow("Slide "+(i+1)+" görseli kaldırıldı");
-    renderIndexGeneralAdmin();
-    renderHomeSlidesAdmin();
+    try{
+      await saveSingleSlideImage(i,"");
+      if(homeSlidesCache.slides?.[i])homeSlidesCache.slides[i].image="";
+      renderIndexGeneralAdmin();
+      renderHomeSlidesAdmin();
+      toast("Slide "+(i+1)+" görseli kaldırıldı");
+    }catch(err){console.error(err);toast("Slide görseli kaldırılamadı")}
   });
 
   $$("[data-remove-media]").forEach(btn=>btn.onclick=()=>{
