@@ -638,16 +638,9 @@ function renderHomeSlidesAdmin(){
     '<div class="home-slider-toolbar"><div><span class="eyebrow">SLIDER YÖNETİMİ</span><h3>'+slides.length+' slide</h3><p class="muted">Her slide için farklı görsel, başlık, açıklama ve buton ayarlayın.</p></div><button id="addHomeSlide" class="primary" type="button">+ Slide ekle</button></div>'+
     '<div class="home-slider-admin-grid">'+slides.map((s,i)=>{
       return `<article class="home-slide-editor" data-slide-editor="${i}">
-        <div class="slide-image-manager slide-image-manager-prominent">
-          <div class="slide-image-preview slide-image-preview-large ${s.image?"has-image":""}">${s.image?'<img src="'+esc(s.image)+'" alt="Slide '+(i+1)+' önizleme">':'<div class="media-empty-preview"><span>＋</span><b>SLIDE '+(i+1)+' GÖRSELİ YOK</b></div>'}</div>
-          <div class="slide-image-copy">
-            <span class="slide-index">SLIDE ${i+1}</span>
-            <h3>${esc(s.highlight||s.title||("Slide "+(i+1)))}</h3>
-            <b>Bu slide’ın görseli</b>
-            <small>Slide değiştiğinde ana sayfadaki sağ görsel de bu resimle değişir.</small>
-          </div>
-          <label class="upload-button slide-upload-main">SLIDE GÖRSELİ SEÇ<input type="file" data-slide-file="${i}" accept="image/jpeg,image/png,image/webp" hidden></label>
-          <button class="secondary" data-slide-image-remove="${i}" type="button">Görseli kaldır</button>
+        <div class="slide-text-editor-head">
+          <div><span class="slide-index">SLIDE ${i+1}</span><h3>${esc(s.highlight||s.title||("Slide "+(i+1)))}</h3></div>
+          <span class="media-status ${s.image?"ok":"empty"}">${s.image?"Görsel üstte yüklendi":"Üstte görsel seçin"}</span>
         </div>
 
         <label>Üst etiket<input class="input" data-slide-field="badge" value="${esc(s.badge||"")}"></label>
