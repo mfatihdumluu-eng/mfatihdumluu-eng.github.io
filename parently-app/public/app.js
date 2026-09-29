@@ -678,46 +678,73 @@ function renderIndexGeneralAdmin(){
   if(!host||!homeSlidesCache)return;
   const b=homeSlidesCache.branding||{};
   const s=homeSlidesCache.sections||{};
+
+  const mediaControl=(id,title,help,value,accept="image/png,image/jpeg,image/webp",story=false)=>
+    '<div class="index-media-control"><div class="index-media-preview '+(story?"story ":"")+(value?"has-image":"")+'" style="'+(value?'background-image:url('+JSON.stringify(value)+')':'')+'">'+(value?"":"Görsel yok")+'</div><div><b>'+esc(title)+'</b><small>'+esc(help)+'</small></div><label class="upload-button">Görsel seç<input id="'+id+'" type="file" accept="'+accept+'" hidden></label><button class="secondary" data-remove-media="'+id+'" type="button">Görseli kaldır</button></div>';
+
   host.innerHTML=
-    '<section class="card admin-panel index-brand-card"><div class="admin-panel-head"><div><span class="eyebrow">MARKA</span><h2>Logo ve marka bilgileri</h2><p class="muted">Buradaki logo ve metinler index sayfasında kullanılır.</p></div></div>'+
+    '<section class="index-order-card card admin-panel"><div class="index-order-badge">01</div><div class="admin-panel-head"><div><span class="eyebrow">ÜST ALAN</span><h2>Logo, marka ve menü</h2><p class="muted">Index sayfasında en üstte görünen alan.</p></div></div>'+
       '<div class="index-brand-grid"><div>'+indexField("branding.name","Marka adı")+indexField("branding.tagline","Alt slogan")+'</div>'+
-      '<div class="index-media-control"><div class="index-media-preview '+(b.logoImage?"has-image":"")+'" style="'+(b.logoImage?'background-image:url('+JSON.stringify(b.logoImage)+')':'')+'">'+(b.logoImage?"":"Logo yok")+'</div><div><b>Logo görseli</b><small>PNG / WebP önerilir. Yüklenmezse mevcut Parently işareti kullanılır.</small></div><label class="upload-button">Logo seç<input id="indexLogoFile" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><button id="removeIndexLogo" class="secondary" type="button">Logoyu kaldır</button></div></div>'+
+      mediaControl("indexLogoFile","Logo","PNG / WebP önerilir. Boş bırakırsanız mevcut Parently işareti kullanılır.",b.logoImage)+'</div>'+
+      '<div class="index-editor-block"><h3>Menü metinleri</h3><div class="index-field-grid">'+indexField("navigation.how","Nasıl çalışır")+indexField("navigation.cards","Kartları keşfet")+indexField("navigation.features","Özellikler")+indexField("navigation.pricing","Planlar")+indexField("navigation.contact","İletişim")+indexField("navigation.app","Uygulama butonu")+'</div></div>'+
     '</section>'+
-    '<section class="card admin-panel"><div class="admin-panel-head"><div><span class="eyebrow">BÖLÜM GÖRSELİ</span><h2>Parently ile görseli</h2><p class="muted">Özellikler bölümündeki büyük görsel alanı.</p></div></div>'+
-      '<div class="index-media-control"><div class="index-media-preview story '+(homeSlidesCache.storyImage?"has-image":"")+'" style="'+(homeSlidesCache.storyImage?'background-image:url('+JSON.stringify(homeSlidesCache.storyImage)+')':'')+'">'+(homeSlidesCache.storyImage?"":"Görsel yok")+'</div><div><b>Aile / uygulama görseli</b><small>JPG, PNG veya WebP yükleyebilirsiniz.</small></div><label class="upload-button">Görsel seç<input id="storyImageFile" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><button id="removeStoryImage" class="secondary" type="button">Görseli kaldır</button></div>'+
+
+    '<section class="index-order-card card admin-panel"><div class="index-order-badge">02</div><div class="admin-panel-head"><div><span class="eyebrow">HERO</span><h2>Slider</h2><p class="muted">Index’in en üst büyük alanı. Her slide kendi metnini ve görselini kullanır.</p></div></div><div id="homeSliderAdmin"></div></section>'+
+
+    '<section class="index-order-card card admin-panel"><div class="index-order-badge">03</div><div class="admin-panel-head"><div><span class="eyebrow">BİLGİ ŞERİDİ</span><h2>Koyu şerit</h2></div></div><div class="index-field-grid">'+indexField("sections.strip.title","Ana metin")+indexField("sections.strip.meta","Yan metin")+'</div></section>'+
+
+    '<section class="index-order-card card admin-panel"><div class="index-order-badge">04</div><div class="admin-panel-head"><div><span class="eyebrow">NASIL ÇALIŞIR?</span><h2>3 adım bölümü</h2><p class="muted">İkonlar da kendi adımlarının içinde düzenlenir.</p></div></div>'+
+      '<div class="index-field-grid">'+indexField("sections.how.eyebrow","Etiket")+indexField("sections.how.title","Başlık")+indexField("sections.how.description","Açıklama","textarea")+indexField("sections.how.noteLabel","Kısa etiket")+indexField("sections.how.noteText","Kısa mesaj")+'</div>'+
+      '<div class="index-repeat-grid">'+(s.how?.steps||[]).map((_,i)=>'<div class="index-repeat-card"><b>Adım '+(i+1)+'</b>'+indexField("sections.how.steps."+i+".icon","İkon")+indexField("sections.how.steps."+i+".label","Etiket")+indexField("sections.how.steps."+i+".title","Başlık")+indexField("sections.how.steps."+i+".description","Açıklama","textarea")+'</div>').join("")+'</div>'+
     '</section>'+
-    '<section class="card admin-panel"><div class="admin-panel-head"><div><span class="eyebrow">MENÜ</span><h2>Index menüsü</h2><p class="muted">Bu metinler de dil JSON paketlerine dahil edilir.</p></div></div><div class="index-field-grid">'+indexField("navigation.how","Nasıl çalışır")+indexField("navigation.cards","Kartları keşfet")+indexField("navigation.features","Özellikler")+indexField("navigation.pricing","Planlar")+indexField("navigation.contact","İletişim")+indexField("navigation.app","Uygulama butonu")+'</div></section>'+ 
-    '<section class="card admin-panel"><div class="admin-panel-head"><div><span class="eyebrow">INDEX METİNLERİ</span><h2>Sayfa içerikleri</h2><p class="muted">Bu alanlar dil JSON paketlerine de dahil edilir.</p></div></div>'+
-      '<div class="index-editor-block"><h3>Bilgi şeridi</h3><div class="index-field-grid">'+indexField("sections.strip.title","Ana metin")+indexField("sections.strip.meta","Yan metin")+'</div></div>'+
-      '<div class="index-editor-block"><h3>Nasıl çalışır?</h3><div class="index-field-grid">'+indexField("sections.how.eyebrow","Etiket")+indexField("sections.how.title","Başlık")+indexField("sections.how.description","Açıklama","textarea")+indexField("sections.how.noteLabel","Kısa etiket")+indexField("sections.how.noteText","Kısa mesaj")+'</div>'+
-        '<div class="index-repeat-grid">'+(s.how?.steps||[]).map((_,i)=>'<div class="index-repeat-card"><b>Adım '+(i+1)+'</b>'+indexField("sections.how.steps."+i+".label","Etiket")+indexField("sections.how.steps."+i+".title","Başlık")+indexField("sections.how.steps."+i+".description","Açıklama","textarea")+'</div>').join("")+'</div></div>'+
-      '<div class="index-editor-block"><h3>Kartları keşfet</h3><div class="index-field-grid">'+indexField("sections.cards.eyebrow","Etiket")+indexField("sections.cards.title","Başlık")+indexField("sections.cards.description","Açıklama","textarea")+indexField("sections.cards.emptyTitle","PNG boş alan başlığı")+indexField("sections.cards.emptyDescription","PNG boş alan açıklaması")+'</div></div>'+
-      '<div class="index-editor-block"><h3>Özellikler</h3><div class="index-field-grid">'+indexField("sections.features.eyebrow","Etiket")+indexField("sections.features.title","Başlık")+indexField("sections.features.description","Başlangıç açıklaması","textarea")+'</div>'+
-        '<div class="index-repeat-grid">'+(s.features?.items||[]).map((_,i)=>'<div class="index-repeat-card"><b>Özellik '+(i+1)+'</b>'+indexField("sections.features.items."+i+".symbol","Simge")+indexField("sections.features.items."+i+".title","Başlık")+indexField("sections.features.items."+i+".description","Kısa açıklama")+indexField("sections.features.items."+i+".label","Görsel etiketi")+indexField("sections.features.items."+i+".copy","Hover açıklaması","textarea")+'</div>').join("")+'</div></div>'+
-      '<div class="index-editor-block"><h3>Fiyatlandırma</h3><div class="index-field-grid">'+indexField("sections.pricing.eyebrow","Etiket")+indexField("sections.pricing.title","Başlık")+indexField("sections.pricing.description","Açıklama")+indexField("sections.pricing.noteLabel","Yan etiket")+indexField("sections.pricing.noteText","Yan mesaj")+'</div>'+
-        '<div class="index-repeat-grid">'+(s.pricing?.plans||[]).map((p,i)=>'<div class="index-repeat-card"><b>Plan '+(i+1)+'</b>'+indexField("sections.pricing.plans."+i+".tag","Etiket")+indexField("sections.pricing.plans."+i+".name","Ad")+indexField("sections.pricing.plans."+i+".price","Fiyat")+indexField("sections.pricing.plans."+i+".description","Açıklama","textarea")+indexField("sections.pricing.plans."+i+".button","Buton")+indexField("sections.pricing.plans."+i+".url","Buton linki")+'<label class="index-field"><span>Özellikler (satır satır)</span><textarea class="input" data-plan-features="'+i+'">'+esc((p.features||[]).join("\n"))+'</textarea></label></div>').join("")+'</div></div>'+
-      '<div class="index-editor-block"><h3>Kapanış ve footer</h3><div class="index-field-grid">'+indexField("sections.closing.eyebrow","Kapanış etiketi")+indexField("sections.closing.title","Kapanış başlığı")+indexField("sections.closing.description","Kapanış açıklaması","textarea")+indexField("sections.closing.button","Kapanış butonu")+indexField("sections.closing.url","Kapanış linki")+indexField("sections.footer.description","Footer açıklaması")+'</div></div>'+
-    '</section>';
+
+    '<section class="index-order-card card admin-panel"><div class="index-order-badge">05</div><div class="admin-panel-head"><div><span class="eyebrow">KARTLARI KEŞFET</span><h2>Metinler ve PNG</h2><p class="muted">Şeffaf PNG görseli burada yönetilir; arka zemin görünür kalır.</p></div></div>'+
+      '<div class="index-field-grid">'+indexField("sections.cards.eyebrow","Etiket")+indexField("sections.cards.title","Başlık")+indexField("sections.cards.description","Açıklama","textarea")+indexField("sections.cards.emptyTitle","Boş alan başlığı")+indexField("sections.cards.emptyDescription","Boş alan açıklaması")+'</div>'+
+      mediaControl("demoPngFile","Şeffaf PNG","Kartları keşfet bölümündeki sağ görsel alanı.",""+(homeSlidesCache.demoPng||""),"image/png",true)+
+    '</section>'+
+
+    '<section class="index-order-card card admin-panel"><div class="index-order-badge">06</div><div class="admin-panel-head"><div><span class="eyebrow">ÖZELLİKLER</span><h2>Parently ile</h2><p class="muted">Büyük görsel ve üç özellik satırı burada birlikte yönetilir.</p></div></div>'+
+      '<div class="index-field-grid">'+indexField("sections.features.eyebrow","Etiket")+indexField("sections.features.title","Başlık")+indexField("sections.features.description","Başlangıç açıklaması","textarea")+'</div>'+
+      mediaControl("storyImageFile","Büyük bölüm görseli","Aile veya uygulama görselinizi yükleyin.",homeSlidesCache.storyImage||"","image/png,image/jpeg,image/webp",true)+
+      '<div class="index-repeat-grid">'+(s.features?.items||[]).map((_,i)=>'<div class="index-repeat-card"><b>Özellik '+(i+1)+'</b>'+indexField("sections.features.items."+i+".symbol","İkon")+indexField("sections.features.items."+i+".title","Başlık")+indexField("sections.features.items."+i+".description","Kısa açıklama")+indexField("sections.features.items."+i+".label","Görsel etiketi")+indexField("sections.features.items."+i+".copy","Hover açıklaması","textarea")+'</div>').join("")+'</div>'+
+    '</section>'+
+
+    '<section class="index-order-card card admin-panel"><div class="index-order-badge">07</div><div class="admin-panel-head"><div><span class="eyebrow">FİYATLANDIRMA</span><h2>Planlar</h2><p class="muted">Her planın ikonu, metinleri ve butonu kendi kartında.</p></div></div>'+
+      '<div class="index-field-grid">'+indexField("sections.pricing.eyebrow","Etiket")+indexField("sections.pricing.title","Başlık")+indexField("sections.pricing.description","Açıklama")+indexField("sections.pricing.noteLabel","Yan etiket")+indexField("sections.pricing.noteText","Yan mesaj")+'</div>'+
+      '<div class="index-repeat-grid">'+(s.pricing?.plans||[]).map((p,i)=>'<div class="index-repeat-card"><b>Plan '+(i+1)+'</b>'+indexField("sections.pricing.plans."+i+".icon","İkon")+indexField("sections.pricing.plans."+i+".tag","Etiket")+indexField("sections.pricing.plans."+i+".name","Ad")+indexField("sections.pricing.plans."+i+".price","Fiyat")+indexField("sections.pricing.plans."+i+".description","Açıklama","textarea")+indexField("sections.pricing.plans."+i+".button","Buton")+indexField("sections.pricing.plans."+i+".url","Buton linki")+'<label class="index-field"><span>Özellikler (satır satır)</span><textarea class="input" data-plan-features="'+i+'">'+esc((p.features||[]).join("\n"))+'</textarea></label></div>').join("")+'</div>'+
+    '</section>'+
+
+    '<section class="index-order-card card admin-panel"><div class="index-order-badge">08</div><div class="admin-panel-head"><div><span class="eyebrow">KAPANIŞ</span><h2>Son çağrı alanı</h2></div></div><div class="index-field-grid">'+indexField("sections.closing.eyebrow","Etiket")+indexField("sections.closing.title","Başlık")+indexField("sections.closing.description","Açıklama","textarea")+indexField("sections.closing.button","Buton")+indexField("sections.closing.url","Buton linki")+'</div></section>'+
+
+    '<section class="index-order-card card admin-panel"><div class="index-order-badge">09</div><div class="admin-panel-head"><div><span class="eyebrow">FOOTER</span><h2>Alt alan</h2></div></div><div class="index-field-grid">'+indexField("sections.footer.description","Footer açıklaması")+'</div></section>';
 
   $$("[data-site-path]").forEach(el=>el.oninput=()=>sitePathSet(homeSlidesCache,el.dataset.sitePath,el.value));
   $$("[data-plan-features]").forEach(el=>el.oninput=()=>{const i=Number(el.dataset.planFeatures);sitePathSet(homeSlidesCache,"sections.pricing.plans."+i+".features",el.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))});
 
-  const readImage=(input,assign,label)=>{
+  const readImage=(input,assign,label,requirePng=false)=>{
     const file=input?.files?.[0];if(!file)return;
+    if(requirePng&&file.type!=="image/png"){toast("Bu alan için PNG seçin");input.value="";return}
     if(file.size>5*1024*1024){toast("Görsel 5 MB'dan küçük olmalı");input.value="";return}
-    const r=new FileReader();r.onload=()=>{assign(String(r.result||""));renderIndexGeneralAdmin();toast(label+" hazır. Kaydetmeyi unutmayın.")};r.readAsDataURL(file);
+    const r=new FileReader();r.onload=()=>{assign(String(r.result||""));renderIndexGeneralAdmin();renderHomeSlidesAdmin();toast(label+" hazır. Kaydetmeyi unutmayın.")};r.readAsDataURL(file);
   };
+
   $("#indexLogoFile")&&( $("#indexLogoFile").onchange=()=>readImage($("#indexLogoFile"),v=>homeSlidesCache.branding.logoImage=v,"Logo") );
-  $("#storyImageFile")&&( $("#storyImageFile").onchange=()=>readImage($("#storyImageFile"),v=>homeSlidesCache.storyImage=v,"Görsel") );
-  $("#removeIndexLogo")&&( $("#removeIndexLogo").onclick=()=>{homeSlidesCache.branding.logoImage="";renderIndexGeneralAdmin()} );
-  $("#removeStoryImage")&&( $("#removeStoryImage").onclick=()=>{homeSlidesCache.storyImage="";renderIndexGeneralAdmin()} );
+  $("#demoPngFile")&&( $("#demoPngFile").onchange=()=>readImage($("#demoPngFile"),v=>homeSlidesCache.demoPng=v,"PNG",true) );
+  $("#storyImageFile")&&( $("#storyImageFile").onchange=()=>readImage($("#storyImageFile"),v=>homeSlidesCache.storyImage=v,"Bölüm görseli") );
+
+  $$("[data-remove-media]").forEach(btn=>btn.onclick=()=>{
+    if(btn.dataset.removeMedia==="indexLogoFile")homeSlidesCache.branding.logoImage="";
+    if(btn.dataset.removeMedia==="demoPngFile")homeSlidesCache.demoPng="";
+    if(btn.dataset.removeMedia==="storyImageFile")homeSlidesCache.storyImage="";
+    renderIndexGeneralAdmin();renderHomeSlidesAdmin();
+  });
 }
 function indexAdminView(){
   if(state.mode!=="parent"){route="home";render();return}
   view.innerHTML=
-    '<section class="admin-head"><div><span class="eyebrow">INDEX</span><h1>Ön site yönetimi</h1><p>Logo, görseller, sliderlar ve index metinlerini tek yerden yönetin. Kaydedilen her şey tam JSON yedeğine dahil edilir.</p></div><div class="admin-head-actions"><a class="secondary" href="/" target="_blank">Index’i aç ↗</a><button id="indexSaveAll" class="primary">Index’i kaydet</button></div></section>'+
-    '<div id="indexGeneralAdmin"></div>'+
-    '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">SLIDER</span><h2>Hero slider</h2><p class="muted">İstediğiniz kadar slide ekleyin; her slide kendi görselini ve metinlerini kullanır.</p></div></div><div id="homeSliderAdmin"></div></section>';
+    '<section class="admin-head"><div><span class="eyebrow">INDEX</span><h1>Ön site yönetimi</h1><p>Alanlar index sayfasındaki sırayla dizildi. Logo, ikon, metin ve görselleri hangi bölümde görünüyorsa aynı bölümden düzenleyin.</p></div><div class="admin-head-actions"><a class="secondary" href="/" target="_blank">Index’i aç ↗</a><button id="indexSaveAll" class="primary">Tüm Index’i kaydet</button></div></section>'+
+    '<div class="index-admin-order-note"><b>Index sırası:</b> Üst alan → Slider → Bilgi şeridi → Nasıl çalışır → Kartları keşfet → Özellikler → Fiyatlandırma → Kapanış → Footer</div>'+
+    '<div id="indexGeneralAdmin"></div>';
   loadHomeSlidesAdmin().then(()=>{
     const saveBtn=$("#indexSaveAll");
     if(saveBtn)saveBtn.onclick=async()=>{
