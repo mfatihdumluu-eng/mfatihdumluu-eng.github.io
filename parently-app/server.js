@@ -52,9 +52,33 @@ const initialCards = [
 
 function defaultExperts(){
   return [
-    {id:"exp1",name:"Dr. Elif Kaya",role:"expert",title:"Aile ve Çocuk Uzmanı",avatar:"EK",color:"#2f7d68",languages:["tr","nl"],status:"online",bio:"Ebeveynlik, aile içi iletişim ve çocuk gelişimi alanında destek."},
-    {id:"exp2",name:"Meryem El Amrani",role:"expert",title:"Gezinscoach",avatar:"ME",color:"#8c6a9e",languages:["nl","ar-MA","tr"],status:"online",bio:"Çok dilli aileler, göç deneyimi ve günlük aile rutinleri üzerine destek."},
-    {id:"exp3",name:"Omar Haddad",role:"expert",title:"Psychosociaal begeleider",avatar:"OH",color:"#b06b4f",languages:["nl","ar-SY"],status:"away",bio:"Aile iletişimi, ergenlik ve sosyal-duygusal destek."}
+    {
+      id:"exp1",name:"Dr. Elif Kaya",role:"expert",title:"Aile ve Çocuk Uzmanı",avatar:"EK",color:"#2f7d68",
+      languages:["tr","nl"],status:"online",experienceYears:12,
+      education:["Psikoloji Lisans","Gelişim Psikolojisi Yüksek Lisans","Aile Danışmanlığı Eğitimi"],
+      specialties:["Ebeveynlik","Çocuk gelişimi","Aile içi iletişim","Duygu düzenleme"],
+      approach:"Çözüm odaklı, gelişimsel ve aile merkezli yaklaşım.",
+      availability:"Hafta içi 09:00–17:00",
+      bio:"Ebeveynlik, aile içi iletişim ve çocuk gelişimi alanında destek."
+    },
+    {
+      id:"exp2",name:"Meryem El Amrani",role:"expert",title:"Gezinscoach",avatar:"ME",color:"#8c6a9e",
+      languages:["nl","ar-MA","tr"],status:"online",experienceYears:8,
+      education:["Social Work Lisans","Gezinscoaching Uzmanlık Programı","Interculturele communicatie eğitimi"],
+      specialties:["Çok dilli aileler","Göç ve uyum","Aile rutinleri","Ebeveyn-çocuk iletişimi"],
+      approach:"Kültüre duyarlı, pratik ve günlük yaşama uyarlanabilir aile koçluğu.",
+      availability:"Pzt–Cum 10:00–18:00",
+      bio:"Çok dilli aileler, göç deneyimi ve günlük aile rutinleri üzerine destek."
+    },
+    {
+      id:"exp3",name:"Omar Haddad",role:"expert",title:"Psychosociaal begeleider",avatar:"OH",color:"#b06b4f",
+      languages:["nl","ar-SY"],status:"away",experienceYears:10,
+      education:["Psychosociale Hulpverlening Lisans","Jeugd & Gezin uzmanlık eğitimi","Sistemik çalışma modülleri"],
+      specialties:["Ergenlik","Sosyal-duygusal destek","Aile iletişimi","Okul-aile iş birliği"],
+      approach:"Sistemik, güçlendirici ve ergenin söz hakkını merkeze alan yaklaşım.",
+      availability:"Salı–Cumartesi 12:00–20:00",
+      bio:"Aile iletişimi, ergenlik ve sosyal-duygusal destek."
+    }
   ];
 }
 function makeStateForCode(code){
