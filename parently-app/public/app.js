@@ -637,10 +637,9 @@ function renderHomeSlidesAdmin(){
   host.innerHTML=
     '<div class="home-slider-toolbar"><div><span class="eyebrow">SLIDER YÖNETİMİ</span><h3>'+slides.length+' slide</h3><p class="muted">Her slide için farklı görsel, başlık, açıklama ve buton ayarlayın.</p></div><button id="addHomeSlide" class="primary" type="button">+ Slide ekle</button></div>'+
     '<div class="home-slider-admin-grid">'+slides.map((s,i)=>{
-      const bg=s.image?'background-image:url('+JSON.stringify(s.image)+')':'';
       return `<article class="home-slide-editor" data-slide-editor="${i}">
         <div class="slide-image-manager slide-image-manager-prominent">
-          <div class="slide-image-preview slide-image-preview-large ${s.image?"has-image":""}" style="${bg}">${s.image?"":"SLIDE "+(i+1)+" GÖRSELİ YOK"}</div>
+          <div class="slide-image-preview slide-image-preview-large ${s.image?"has-image":""}">${s.image?'<img src="'+esc(s.image)+'" alt="Slide '+(i+1)+' önizleme">':'<div class="media-empty-preview"><span>＋</span><b>SLIDE '+(i+1)+' GÖRSELİ YOK</b></div>'}</div>
           <div class="slide-image-copy">
             <span class="slide-index">SLIDE ${i+1}</span>
             <h3>${esc(s.highlight||s.title||("Slide "+(i+1)))}</h3>
@@ -811,7 +810,7 @@ function renderIndexGeneralAdmin(){
   }
 
   const mediaControl=(id,title,help,value,accept="image/png,image/jpeg,image/webp",story=false,spec="")=>
-    '<div class="index-media-control"><div class="index-media-preview '+(story?"story ":"")+(value?"has-image":"")+'" style="'+(value?'background-image:url('+JSON.stringify(value)+')':'')+'">'+(value?"":"Görsel yok")+'</div><div class="index-media-copy"><b>'+esc(title)+'</b><small>'+esc(help)+'</small>'+(spec?'<div class="media-spec">'+spec+'</div>':'')+'</div><label class="upload-button">Görsel seç<input id="'+id+'" type="file" accept="'+accept+'" hidden></label><button class="secondary" data-remove-media="'+id+'" type="button">Görseli kaldır</button></div>';
+    '<div class="index-media-control"><div class="index-media-preview '+(story?"story ":"")+(value?"has-image":"")+'">'+(value?'<img src="'+esc(value)+'" alt="'+esc(title)+' önizleme">':'<div class="media-empty-preview"><span>＋</span><b>Görsel yok</b></div>')+'</div><div class="index-media-copy"><div class="media-title-row"><b>'+esc(title)+'</b><span class="media-status '+(value?'ok':'empty')+'">'+(value?'Yüklendi':'Boş')+'</span></div><small>'+esc(help)+'</small>'+(spec?'<div class="media-spec">'+spec+'</div>':'')+'</div><label class="upload-button">Görsel seç<input id="'+id+'" type="file" accept="'+accept+'" hidden></label><button class="secondary" data-remove-media="'+id+'" type="button" '+(value?'':'disabled')+'>Görseli kaldır</button></div>';
 
   host.innerHTML=
     '<section class="index-order-card card admin-panel"><div class="index-order-badge">01</div><div class="admin-panel-head"><div><span class="eyebrow">ÜST ALAN</span><h2>Logo, marka ve menü</h2><p class="muted">Index sayfasında en üstte görünen alan.</p></div></div>'+
@@ -821,7 +820,7 @@ function renderIndexGeneralAdmin(){
     '</section>'+
 
     '<section class="index-order-card card admin-panel"><div class="index-order-badge">02</div><div class="admin-panel-head"><div><span class="eyebrow">HERO</span><h2>Slider</h2><p class="muted">3 slide için 3 ayrı görsel yükleyin. Slide değişince Index’te sağdaki görsel de değişir.</p></div></div>'+
-      '<div class="hero-image-upload-grid">'+homeSlidesCache.slides.slice(0,3).map((sl,i)=>{const bg=sl.image?'background-image:url('+JSON.stringify(sl.image)+')':'';return '<div class="hero-image-upload-card"><div class="hero-image-upload-preview '+(sl.image?'has-image':'')+'" style="'+bg+'">'+(sl.image?'':'SLIDE '+(i+1)+' GÖRSELİ YOK')+'</div><b>Slide '+(i+1)+' görseli</b><small>Bu resim yalnızca Slide '+(i+1)+' aktifken görünür.</small><div class="media-spec"><b>Önerilen:</b> 1600 × 1600 px · <b>Oran:</b> 1:1 · <b>Format:</b> PNG / WebP / JPG · <b>Şeffaf PNG:</b> desteklenir</div><label class="upload-button hero-image-upload-button">Görsel seç<input type="file" data-hero-image-file="'+i+'" accept="image/jpeg,image/png,image/webp" hidden></label><button class="secondary" type="button" data-hero-image-remove="'+i+'">Görseli kaldır</button></div>';}).join("")+'</div>'+
+      '<div class="hero-image-upload-grid">'+homeSlidesCache.slides.slice(0,3).map((sl,i)=>{return '<div class="hero-image-upload-card"><div class="hero-image-upload-preview '+(sl.image?'has-image':'')+'">'+(sl.image?'<img src="'+esc(sl.image)+'" alt="Slide '+(i+1)+' önizleme">':'<div class="media-empty-preview"><span>＋</span><b>SLIDE '+(i+1)+' GÖRSELİ YOK</b></div>')+'</div><div class="media-title-row"><b>Slide '+(i+1)+' görseli</b><span class="media-status '+(sl.image?'ok':'empty')+'">'+(sl.image?'Yüklendi':'Boş')+'</span></div><small>Bu resim yalnızca Slide '+(i+1)+' aktifken görünür.</small><div class="media-spec"><b>Önerilen:</b> 1600 × 1600 px · <b>Oran:</b> 1:1 · <b>Format:</b> PNG / WebP / JPG · <b>Şeffaf PNG:</b> desteklenir</div><label class="upload-button hero-image-upload-button">Görsel seç<input type="file" data-hero-image-file="'+i+'" accept="image/jpeg,image/png,image/webp" hidden></label><button class="secondary" type="button" data-hero-image-remove="'+i+'">Görseli kaldır</button></div>';}).join("")+'</div>'+
       '<div class="index-editor-block"><h3>Slide metinleri ve butonları</h3><div id="homeSliderAdmin"></div></div></section>'+
 
     '<section class="index-order-card card admin-panel"><div class="index-order-badge">03</div><div class="admin-panel-head"><div><span class="eyebrow">BİLGİ ŞERİDİ</span><h2>Koyu şerit</h2></div></div><div class="index-field-grid">'+indexField("sections.strip.title","Ana metin")+indexField("sections.strip.meta","Yan metin")+'</div></section>'+
