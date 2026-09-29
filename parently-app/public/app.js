@@ -704,6 +704,8 @@ function renderHomeSlidesAdmin(){
     const btn=$("#saveHomeSlides");
     try{
       btn.disabled=true;
+      btn.textContent="Görseller bekleniyor...";
+      await waitForIndexMedia();
       btn.textContent="Hazırlanıyor...";
       await optimizeIndexMedia(homeSlidesCache);
       btn.textContent="Kaydediliyor...";
@@ -744,14 +746,40 @@ function indexField(path,label,type="input"){
   const v=esc(sitePathGet(homeSlidesCache,path)||"");
   return '<label class="index-field"><span>'+esc(label)+'</span>'+(type==="textarea"?'<textarea class="input" data-site-path="'+path+'">'+v+'</textarea>':'<input class="input" data-site-path="'+path+'" value="'+v+'">')+'</label>';
 }
+let indexMediaPending=0;
+let indexMediaWaiters=[];
+function setIndexMediaPending(delta){
+  indexMediaPending=Math.max(0,indexMediaPending+delta);
+  if(indexMediaPending===0){
+    const waiters=indexMediaWaiters.splice(0);
+    waiters.forEach(fn=>fn());
+  }
+  const save=$("#indexSaveAll");
+  if(save&&indexMediaPending>0){
+    save.disabled=true;
+    save.textContent="Görseller yükleniyor...";
+  }else if(save&&save.textContent==="Görseller yükleniyor..."){
+    save.disabled=false;
+    save.textContent="Tüm Index’i kaydet";
+  }
+}
+function waitForIndexMedia(){
+  if(indexMediaPending===0)return Promise.resolve();
+  return new Promise(resolve=>indexMediaWaiters.push(resolve));
+}
 async function saveIndexMedia(path,image){
-  const result=await api("/api/site/home/media",{
-    method:"PUT",
-    body:JSON.stringify({familyCode,pin:String(state?.pin||""),path,image:String(image||"")})
-  });
-  if(!result?.ok)throw new Error("site_media_save_failed");
-  sitePathSet(homeSlidesCache,path,String(image||""));
-  return result;
+  setIndexMediaPending(1);
+  try{
+    const result=await api("/api/site/home/media",{
+      method:"PUT",
+      body:JSON.stringify({familyCode,pin:String(state?.pin||""),path,image:String(image||"")})
+    });
+    if(!result?.ok)throw new Error("site_media_save_failed");
+    sitePathSet(homeSlidesCache,path,String(image||""));
+    return result;
+  }finally{
+    setIndexMediaPending(-1);
+  }
 }
 async function saveSingleSlideImage(index,image){
   return saveIndexMedia("slides."+index+".image",image);
@@ -901,7 +929,9 @@ function indexAdminView(){
     const saveBtn=$("#indexSaveAll");
     if(saveBtn)saveBtn.onclick=async()=>{
       try{
-        saveBtn.disabled=true;saveBtn.textContent="Hazırlanıyor...";
+        saveBtn.disabled=true;saveBtn.textContent="Görseller bekleniyor...";
+        await waitForIndexMedia();
+        saveBtn.textContent="Hazırlanıyor...";
         await optimizeIndexMedia(homeSlidesCache);
         saveBtn.textContent="Kaydediliyor...";
         homeSlidesCache=await api("/api/site/home",{method:"PUT",body:JSON.stringify({familyCode,pin:String(state.pin||""),config:homeSlidesCache})});
