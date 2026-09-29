@@ -10,6 +10,53 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/landing.css?v=20260929-organic-pricing-v1">
+<style id="pricing-critical">
+#pricing.pricing-organic{background:#f7f2e9;position:relative;overflow:hidden;padding:112px 0}
+#pricing.pricing-organic:before{content:"";position:absolute;width:340px;height:340px;border-radius:50%;background:#dfeee6;left:-130px;top:70px;opacity:.8}
+#pricing.pricing-organic:after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;background:#f8d5c8;right:-100px;bottom:20px;opacity:.55}
+#pricing .wrap{position:relative;z-index:1}
+#pricing .pricing-head-organic{display:flex;align-items:flex-end;justify-content:space-between;gap:38px;margin-bottom:48px}
+#pricing .pricing-head-organic .section-head{margin:0;max-width:760px;text-align:left}
+#pricing .pricing-note-organic{flex:0 0 250px;border-left:2px solid #b9d8c8;padding-left:18px}
+#pricing .pricing-note-organic span{display:block;font-size:.75rem;letter-spacing:.13em;text-transform:uppercase;color:#0c8061;font-weight:800;margin-bottom:8px}
+#pricing .pricing-note-organic b{font-family:"Fraunces",Georgia,serif;font-size:1.45rem;line-height:1.15}
+#pricing .plans-organic{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:24px!important;align-items:stretch!important}
+#pricing .plan-organic{position:relative!important;min-height:550px!important;padding:30px 30px 28px!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;isolation:isolate!important;transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s,border-radius .35s}
+#pricing .plan-organic:after{content:"";position:absolute;width:180px;height:180px;border-radius:50%;right:-55px;bottom:-75px;opacity:.18;z-index:-1;transition:transform .4s ease}
+#pricing .demo-plan{background:#fff!important;border:1px solid #d7dfda!important;border-radius:34px 92px 34px 34px!important;box-shadow:0 16px 38px rgba(20,47,43,.06)!important}
+#pricing .demo-plan:after{background:#cfe9dc}
+#pricing .family-plan{background:linear-gradient(155deg,#173a32,#0f3029)!important;color:#fff!important;border-radius:86px 34px 86px 34px!important;box-shadow:0 22px 45px rgba(20,47,43,.16)!important;border:1px solid #254d43!important}
+#pricing .family-plan:after{background:#5fa88e;opacity:.22}
+#pricing .pro-plan{background:linear-gradient(155deg,#fff,#fff4ef)!important;border:1px solid #ead9cf!important;border-radius:34px 34px 96px 34px!important;box-shadow:0 16px 38px rgba(88,56,42,.06)!important}
+#pricing .pro-plan:after{background:#f56e55}
+#pricing .plan-organic:hover{transform:translateY(-12px) rotate(-.8deg)!important;box-shadow:0 30px 60px rgba(20,47,43,.13)!important}
+#pricing .family-plan:hover{transform:translateY(-15px) rotate(.7deg) scale(1.015)!important}
+#pricing .pro-plan:hover{transform:translateY(-12px) rotate(.8deg)!important}
+#pricing .plan-topline{display:flex!important;align-items:center!important;justify-content:space-between!important;margin-bottom:18px!important}
+#pricing .plan-index{font-family:"Fraunces",Georgia,serif;font-size:2.2rem;font-weight:700;opacity:.45}
+#pricing .plan-organic .plan-tag{font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;font-weight:850;color:#0c8061}
+#pricing .family-plan .plan-tag{color:#a8e0c6}
+#pricing .plan-organic h3{font-size:1.6rem;margin:0 0 18px}
+#pricing .plan-organic .price{font-family:"Fraunces",Georgia,serif;font-size:3rem;line-height:1;margin:0 0 22px;letter-spacing:-.045em}
+#pricing .plan-organic p{font-size:1rem;line-height:1.55;margin:0 0 18px;min-height:52px}
+#pricing .family-plan p,#pricing .family-plan li{color:#d7e4de}
+#pricing .plan-organic ul{list-style:none;padding:0;margin:10px 0 24px;flex:1}
+#pricing .plan-organic li{padding:9px 0;color:#5f6e69;font-size:1rem}
+#pricing .plan-organic li:before{content:"✓";font-weight:900;color:#0c8061;margin-right:10px}
+#pricing .family-plan li:before{color:#9ee0bf}
+#pricing .plan-action{width:100%;margin-top:auto;justify-content:space-between;background:rgba(255,255,255,.78);border-color:#1d3c35}
+#pricing .family-plan .plan-action{background:#f56e55;border-color:#f56e55;color:#142f2b}
+#pricing .plan-orb{position:absolute;border-radius:50%;opacity:.55;transition:transform .45s ease}
+#pricing .plan-orb.orb-a{width:18px;height:18px;right:35px;top:36px;background:#f56e55}
+#pricing .plan-orb.orb-b{width:10px;height:10px;right:67px;top:67px;background:#0c8061}
+#pricing .family-plan .orb-a{background:#f6a68e}#pricing .family-plan .orb-b{background:#aee2c7}
+@media(max-width:980px){
+ #pricing .pricing-head-organic{flex-direction:column;align-items:flex-start}
+ #pricing .pricing-note-organic{flex:none;width:100%;max-width:360px}
+ #pricing .plans-organic{grid-template-columns:1fr!important}
+ #pricing .plan-organic{min-height:auto!important}
+}
+</style>
 </head>
 <body>
 <header class="header" id="top">
