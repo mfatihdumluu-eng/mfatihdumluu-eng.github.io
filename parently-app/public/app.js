@@ -558,7 +558,9 @@ function renderHomeSlidesAdmin(){
         <button class="secondary" data-slide-remove="${i}" type="button">Resmi kaldır</button>
       </div>
     </article>`;
-  }).join("")+'</div><div class="home-slider-save"><button id="saveHomeSlides" class="primary" type="button">3 slideı kaydet ve ana sayfada yayınla</button><small>Görseller PostgreSQL’de saklanır; deploy sonrası silinmez. Önerilen: WebP/JPG, yatay, mümkünse 2 MB altı.</small></div>';
+  }).join("")+'</div>'+
+  '<div class="home-demo-png"><div><span class="slide-index">KART / UYGULAMA PNG</span><h3>Şeffaf PNG görsel alanı</h3><p>“Kartları keşfet” bölümündeki sağ görsel alanına gelir. Arka plan görünür kalır.</p></div><div class="slide-image-preview demo-png-preview '+(homeSlidesCache.demoPng?"has-image":"")+'" style="'+(homeSlidesCache.demoPng?'background-image:url('+JSON.stringify(homeSlidesCache.demoPng)+')':'')+'">'+(homeSlidesCache.demoPng?"":"PNG yok")+'</div><label class="upload-button">PNG seç<input id="demoPngFile" type="file" accept="image/png" hidden></label><button id="removeDemoPng" class="secondary" type="button">PNG kaldır</button></div>'+
+  '<div class="home-slider-save"><button id="saveHomeSlides" class="primary" type="button">Ana sayfa ayarlarını kaydet ve yayınla</button><small>Slider görselleri ve PNG PostgreSQL’de saklanır. Slider için önerilen ölçü 1080×1920. Şeffaf PNG’de arka plan görünür kalır.</small></div>';
 
   $$("[data-slide-editor]").forEach(card=>{
     const i=Number(card.dataset.slideEditor);
@@ -578,10 +580,22 @@ function renderHomeSlidesAdmin(){
     };
     reader.readAsDataURL(file);
   });
-  $$("[data-slide-remove]").forEach(btn=>btn.onclick=()=>{
+  $("[data-slide-remove]").forEach(btn=>btn.onclick=()=>{
     homeSlidesCache.slides[Number(btn.dataset.slideRemove)].image="";
     renderHomeSlidesAdmin();
   });
+  const demoFile=$("#demoPngFile");
+  if(demoFile)demoFile.onchange=()=>{
+    const file=demoFile.files?.[0];
+    if(!file)return;
+    if(file.type!=="image/png"){toast("Bu alan için PNG seçin");demoFile.value="";return}
+    if(file.size>5*1024*1024){toast("PNG 5 MB'dan küçük olmalı");demoFile.value="";return}
+    const reader=new FileReader();
+    reader.onload=()=>{homeSlidesCache.demoPng=String(reader.result||"");renderHomeSlidesAdmin();toast("PNG hazır. Kaydetmeyi unutmayın.")};
+    reader.readAsDataURL(file);
+  };
+  const removeDemo=$("#removeDemoPng");
+  if(removeDemo)removeDemo.onclick=()=>{homeSlidesCache.demoPng="";renderHomeSlidesAdmin()};
   $("#saveHomeSlides").onclick=async()=>{
     const btn=$("#saveHomeSlides");
     try{
@@ -595,7 +609,7 @@ function renderHomeSlidesAdmin(){
       toast("Ana sayfa sliderı yayınlandı");
     }catch(e){
       btn.disabled=false;
-      btn.textContent="3 slideı kaydet ve ana sayfada yayınla";
+      btn.textContent="Ana sayfa ayarlarını kaydet ve yayınla";
       toast("Slider kaydedilemedi");
     }
   };
