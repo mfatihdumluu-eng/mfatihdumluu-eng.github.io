@@ -5,7 +5,7 @@ const FAMILY=()=>localStorage.getItem("parently_family")||"AILE2026";
 const KEY="parently_language";
 let state=null,currentCardId=null,busy=false,siteBase=null;
 const UI={
-"Aile bağını güçlendir":"Aile bağını güçlendir","Ana Sayfa":"Ana Sayfa","Kartlar":"Kartlar","Ajanda":"Ajanda","Mesajlar":"Mesajlar","Raporlar":"Raporlar","Yönetim":"Yönetim",
+"Aile bağını güçlendir":"Aile bağını güçlendir","Ana Sayfa":"Ana Sayfa","Kartlar":"Kartlar","Ajanda":"Ajanda","Mesajlar":"Mesajlar","Raporlar":"Raporlar","Yönetim":"Yönetim","Index":"Index",
 "Ebeveyn":"Ebeveyn","Çocuk Modu":"Çocuk Modu","Kart Kütüphanesi":"Kart Kütüphanesi","Favoriler":"Favoriler","Tümü":"Tümü","Takip sorusu:":"Takip sorusu:",
 "Rehber":"Rehber","Pekiştirme":"Pekiştirme","Ritüel":"Ritüel","Kaydet":"Kaydet","Tamamlandı":"Tamamlandı","Favoriye ekle":"Favoriye ekle","Favoride":"Favoride",
 "Ajanda & Görevler":"Ajanda & Görevler","Görevler":"Görevler","Ritüeller":"Ritüeller","Aile mesajları":"Aile mesajları","Gönder":"Gönder","Raporlar & İçgörüler":"Raporlar & İçgörüler",
