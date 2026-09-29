@@ -75,11 +75,27 @@ function applySections(config){
   const cb=q("#closingButton");if(cb){cb.textContent=s.closing?.button||"Uygulamaya Gir";cb.href=s.closing?.url||"/panel.html"}
   setText("#footerDescription",s.footer?.description);
 }
+function setStoryVisual(src){
+  const box=q("#storyPhoto"),story=q("#storyImage"),ph=q("#storyPlaceholder");
+  if(!box)return;
+  if(src){
+    box.style.backgroundImage='url('+JSON.stringify(src)+')';
+    box.style.backgroundSize="cover";
+    box.style.backgroundPosition="center";
+    box.classList.add("has-hover-image");
+    if(story){story.removeAttribute("src");story.hidden=true}
+    if(ph)ph.hidden=true;
+  }else{
+    box.style.backgroundImage="";
+    box.classList.remove("has-hover-image");
+    if(story){story.removeAttribute("src");story.hidden=true}
+    if(ph)ph.hidden=false;
+  }
+}
 function applyMedia(config){
   const demo=q("#demoPng"),stage=q(".demo-png-stage"),empty=q("#pngEmpty");
   if(config.demoPng){demo.src=config.demoPng;stage?.classList.add("has-image");if(empty)empty.hidden=true}else{demo?.removeAttribute("src");stage?.classList.remove("has-image");if(empty)empty.hidden=false}
-  const story=q("#storyImage"),ph=q("#storyPlaceholder");
-  if(config.storyImage){story.src=config.storyImage;story.hidden=false;if(ph)ph.hidden=true}else{story?.removeAttribute("src");if(story)story.hidden=true;if(ph)ph.hidden=false}
+  setStoryVisual(config.storyImage||"");
 }
 function renderDots(){
   const host=q("#heroDots");if(!host)return;
@@ -133,16 +149,8 @@ function activateFeature(el){
   features.forEach(x=>x.classList.toggle("active",x===el));
   if(featureIntro)featureIntro.textContent=el.dataset.copy||"";
   if(featureLabel)featureLabel.textContent=el.dataset.label||"";
-  const story=q("#storyImage"),ph=q("#storyPlaceholder"),src=el.dataset.image||siteConfig.storyImage||"";
-  if(story){
-    if(src){
-      story.src=src;story.hidden=false;if(ph)ph.hidden=true;
-      q("#storyPhoto")?.classList.add("has-hover-image");
-    }else{
-      story.removeAttribute("src");story.hidden=true;if(ph)ph.hidden=false;
-      q("#storyPhoto")?.classList.remove("has-hover-image");
-    }
-  }
+  const src=el.dataset.image||siteConfig.storyImage||"";
+  setStoryVisual(src);
 }
 features.forEach(el=>{el.addEventListener("mouseenter",()=>activateFeature(el));el.addEventListener("focus",()=>activateFeature(el))});
 q("#year").textContent=new Date().getFullYear();
