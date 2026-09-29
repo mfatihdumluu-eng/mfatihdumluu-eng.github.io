@@ -277,7 +277,19 @@ app.put("/api/site/home",async(req,res)=>{
     const pin=String(req.body?.pin||"");
     const family=await loadState(familyCode);
     if(!family||String(family.pin||"")!==pin)return res.status(403).json({error:"admin_auth_failed"});
-    res.json(await saveHomeConfig(req.body?.config||{}));
+    const current=deepMerge(defaultHomeConfig(),await loadHomeConfig());
+    const next=deepMerge(defaultHomeConfig(),req.body?.config||{});
+    next.branding=next.branding||{};
+    next.branding.logoImage=current.branding?.logoImage||"";
+    next.demoPng=current.demoPng||"";
+    next.storyImage=current.storyImage||"";
+    next.slides=Array.isArray(next.slides)?next.slides:[];
+    for(let i=0;i<next.slides.length;i++)next.slides[i].image=current.slides?.[i]?.image||"";
+    next.sections=next.sections||{};
+    next.sections.features=next.sections.features||{};
+    next.sections.features.items=Array.isArray(next.sections.features.items)?next.sections.features.items:[];
+    for(let i=0;i<next.sections.features.items.length;i++)next.sections.features.items[i].image=current.sections?.features?.items?.[i]?.image||"";
+    res.json(await saveHomeConfig(next));
   }catch(e){console.error(e);res.status(500).json({error:"site_home_save_failed"});}
 });
 app.put("/api/site/home/slide-image",async(req,res)=>{
