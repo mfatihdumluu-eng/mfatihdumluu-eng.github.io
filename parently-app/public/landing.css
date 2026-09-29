@@ -568,3 +568,13 @@ section.section{padding:112px 0}.section-head{max-width:720px;margin-bottom:46px
 .hero-art.theme-agenda .hero-panel{transform:rotate(1deg);background:#fdfefc}
 .hero-art.theme-agenda .floating-note{background:#244b42}
 .hero-art.theme-agenda .sun{background:#f4b892}
+
+/* editable index media */
+.brand-logo-image{display:none;width:auto;height:46px;max-width:190px;object-fit:contain}
+.brand-logo-image:not([hidden]){display:block}
+.story-image{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:1}
+.story-image:not([hidden]){display:block}
+.story-photo .story-placeholder{z-index:0}
+.story-photo .photo-label{z-index:3}
+html[dir="rtl"] .hero-grid,html[dir="rtl"] .demo-grid,html[dir="rtl"] .story-grid{direction:rtl}
+html[dir="rtl"] .hero-lead,html[dir="rtl"] .story-copy,html[dir="rtl"] .demo-intro{text-align:right}
