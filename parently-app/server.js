@@ -93,11 +93,50 @@ async function initDb(){
 }
 const SITE_FILE=path.join(__dirname,"site-config.json");
 function defaultHomeConfig(){
-  return {demoPng:"",slides:[
-    {id:"slide-1",badge:"♡ Daha güçlü aile bağları için",title:"Ailenizle daha fazla anlamlı zaman, daha",highlight:"güçlü yarınlar.",description:"Parently, ailelerin birlikte kaliteli zaman geçirmesini, duygularını paylaşmasını ve daha güçlü bağlar kurmasını destekleyen modern bir aile uygulamasıdır.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Tanıtımı Keşfet",secondaryUrl:"/uygulama.html",image:""},
-    {id:"slide-2",badge:"💬 Her gün yeni bir konuşma",title:"Doğru sorularla çocuğunuzun dünyasına",highlight:"daha yakından bakın.",description:"Yaşa uygun kartlar ve takip soruları, aile içinde doğal ve anlamlı sohbetler başlatmanıza yardımcı olur.",primaryLabel:"Kartları Keşfet",primaryUrl:"/panel.html",secondaryLabel:"Nasıl Çalışır?",secondaryUrl:"/uygulama.html",image:""},
-    {id:"slide-3",badge:"🌿 Küçük rutinler, güçlü bağlar",title:"Duygular, rutinler ve aile zamanı",highlight:"tek yerde.",description:"Duygu takibi, aile ajandası ve günlük küçük görevlerle birlikte geçirilen zamanı daha görünür hale getirin.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Özellikleri Gör",secondaryUrl:"/uygulama.html",image:""}
-  ]};
+  return {
+    branding:{name:"Parently",tagline:"Aile bağını güçlendir",logoImage:""},
+    demoPng:"",
+    storyImage:"",
+    slides:[
+      {id:"slide-1",badge:"♡ Daha güçlü aile bağları için",title:"Ailenizle daha fazla anlamlı zaman, daha",highlight:"güçlü yarınlar.",description:"Parently, ailelerin birlikte kaliteli zaman geçirmesini, duygularını paylaşmasını ve daha güçlü bağlar kurmasını destekleyen modern bir aile uygulamasıdır.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Tanıtımı Keşfet",secondaryUrl:"#how",image:""},
+      {id:"slide-2",badge:"💬 Her gün yeni bir konuşma",title:"Doğru sorularla çocuğunuzun dünyasına",highlight:"daha yakından bakın.",description:"Yaşa uygun kartlar ve takip soruları, aile içinde doğal ve anlamlı sohbetler başlatmanıza yardımcı olur.",primaryLabel:"Kartları Keşfet",primaryUrl:"#cards",secondaryLabel:"Nasıl Çalışır?",secondaryUrl:"#how",image:""},
+      {id:"slide-3",badge:"🌿 Küçük rutinler, güçlü bağlar",title:"Duygular, rutinler ve aile zamanı",highlight:"tek yerde.",description:"Duygu takibi, aile ajandası ve günlük küçük görevlerle birlikte geçirilen zamanı daha görünür hale getirin.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Özellikleri Gör",secondaryUrl:"#features",image:""}
+    ],
+    sections:{
+      strip:{title:"Birlikte geçirilen zaman, küçük anlarda büyür.",meta:"Kartlar · Rutinler · Aile ajandası"},
+      how:{eyebrow:"Nasıl çalışır?",title:"Başlamak için uzun bir plan yapmanız gerekmiyor.",description:"Bir kart seçin, birbirinizi dinleyin ve iyi gelen anları tekrar edin.",noteLabel:"3 adım",noteText:"Küçük ritüeller, güçlü bağlar.",steps:[
+        {label:"SOHBET",title:"Yaşa uygun bir kart seçin",description:"Çocuğunuzun dünyasına yakın bir soruyla sohbeti açın."},
+        {label:"DİNLEME",title:"Herkese söz verin",description:"Doğru cevap aramadan, merakla ve sırayla dinleyin."},
+        {label:"RUTİN",title:"Küçük bir alışkanlık oluşturun",description:"Günün size uygun bir anını aile zamanı olarak ayırın."}
+      ]},
+      cards:{eyebrow:"Kartları keşfet",title:"İlk soruyu şimdi deneyin.",description:"Yaş grubunu seçip yeni bir soru açın. Bu örnekler, Parently kartlarının sohbeti nasıl başlattığını göstermek için burada.",emptyTitle:"PNG alanı",emptyDescription:"Yönetim panelinden şeffaf PNG yükleyin."},
+      features:{eyebrow:"Parently ile",title:"Günlük hayatın içinde birbirinize yaklaşın.",description:"Bir uygulama, ailenizin yerini tutmaz. Sohbet için doğru anı bulmanıza ve birlikte kurduğunuz alışkanlıkları hatırlamanıza yardım eder.",items:[
+        {symbol:"✳",title:"Sohbet kartları",description:"Farklı yaşlara uygun sorularla konuşmaya başlayın.",label:"Bir soruyla başlayın ♡",copy:"Yaşa uygun sorularla sohbeti başlatın; doğru cevabı aramak yerine birbirinizi merakla dinleyin."},
+        {symbol:"◷",title:"Aile rutinleri",description:"Birlikte yapmak istediklerinize zaman ayırın.",label:"Küçük rutinleri koruyun ◷",copy:"Birlikte yapmak istediğiniz küçük şeylere zaman ayırın ve onları aile ritminizin doğal parçası haline getirin."},
+        {symbol:"▤",title:"Ortak ajanda",description:"Aile planlarını tek yerde görün.",label:"Aile planları tek yerde ▤",copy:"Okul, aktivite ve özel aile zamanlarını tek bir ortak ajandada görün; herkes ne olacağını bilsin."}
+      ]},
+      pricing:{eyebrow:"Planlar",title:"Ailenize uygun başlangıcı seçin.",description:"Planlar lansman öncesi taslak olarak gösterilmektedir.",noteLabel:"Esnek başlangıç",noteText:"İhtiyacınıza göre büyütün.",plans:[
+        {tag:"Başlangıç",name:"Demo",price:"Ücretsiz",description:"Parently deneyimini tanımak için.",features:["Temel kartlar","Demo aile profili","Ajanda ön izlemesi"],button:"Demoyu aç",url:"/panel.html"},
+        {tag:"Önerilen",name:"Aile",price:"Yakında",description:"Tam aile deneyimi için planlanan paket.",features:["Tüm kartlar ve aktiviteler","Aile rutinleri ve ajanda","Çoklu dil desteği"],button:"Erken erişim",url:"#contact"},
+        {tag:"Uzmanlar",name:"Profesyonel",price:"Yakında",description:"Uzmanlar ve kurumlar için genişletilmiş yapı.",features:["Birden fazla aile alanı","Gelişmiş raporlama","İçerik yönetimi"],button:"Bilgi al",url:"#contact"}
+      ]},
+      closing:{eyebrow:"Bir soru yeter",title:"Bu akşam nasıl bir sohbet başlatacaksınız?",description:"Parently’yi deneyin veya erken erişim hakkında bilgi alın.",button:"Uygulamaya Gir",url:"/panel.html"},
+      footer:{description:"Birlikte konuşmaya küçük bir başlangıç."}
+    }
+  };
+}
+function deepMerge(base,extra){
+  if(Array.isArray(base))return Array.isArray(extra)?extra:base;
+  if(base&&typeof base==="object"){
+    const out={...base};
+    if(extra&&typeof extra==="object")for(const [k,v] of Object.entries(extra))out[k]=k in base?deepMerge(base[k],v):v;
+    return out;
+  }
+  return extra===undefined?base:extra;
+}
+function translateSiteConfig(base,siteTranslation){
+  if(!siteTranslation||typeof siteTranslation!=="object")return base;
+  return deepMerge(base,siteTranslation);
 }
 async function loadHomeConfig(){
   if(pool){
@@ -111,19 +150,23 @@ async function loadHomeConfig(){
   try{return JSON.parse(fs.readFileSync(SITE_FILE,"utf8"));}catch{return defaultHomeConfig();}
 }
 async function saveHomeConfig(data){
-  const clean={demoPng:String(data?.demoPng||"").slice(0,8_000_000),slides:(data?.slides||[]).slice(0,12).map((s,i)=>({
-    id:"slide-"+(i+1),
-    badge:String(s.badge||"").slice(0,120),
-    title:String(s.title||"").slice(0,220),
-    highlight:String(s.highlight||"").slice(0,120),
-    description:String(s.description||"").slice(0,600),
-    primaryLabel:String(s.primaryLabel||"").slice(0,60),
-    primaryUrl:String(s.primaryUrl||"/panel.html").slice(0,300),
-    secondaryLabel:String(s.secondaryLabel||"").slice(0,60),
-    secondaryUrl:String(s.secondaryUrl||"/uygulama.html").slice(0,300),
-    image:String(s.image||"").slice(0,8_000_000)
-  }))};
-  if(clean.slides.length===0) clean.slides=[...defaultHomeConfig().slides];
+  const d=deepMerge(defaultHomeConfig(),data||{});
+  const clean={
+    branding:{
+      name:String(d.branding?.name||"Parently").slice(0,80),
+      tagline:String(d.branding?.tagline||"Aile bağını güçlendir").slice(0,140),
+      logoImage:String(d.branding?.logoImage||"").slice(0,8_000_000)
+    },
+    demoPng:String(d.demoPng||"").slice(0,8_000_000),
+    storyImage:String(d.storyImage||"").slice(0,8_000_000),
+    slides:(d.slides||[]).slice(0,12).map((s,i)=>({
+      id:"slide-"+(i+1),badge:String(s.badge||"").slice(0,120),title:String(s.title||"").slice(0,220),highlight:String(s.highlight||"").slice(0,160),
+      description:String(s.description||"").slice(0,700),primaryLabel:String(s.primaryLabel||"").slice(0,80),primaryUrl:String(s.primaryUrl||"/panel.html").slice(0,300),
+      secondaryLabel:String(s.secondaryLabel||"").slice(0,80),secondaryUrl:String(s.secondaryUrl||"#how").slice(0,300),image:String(s.image||"").slice(0,8_000_000)
+    })),
+    sections:d.sections
+  };
+  if(clean.slides.length===0)clean.slides=[...defaultHomeConfig().slides];
   if(pool){
     await initDb();
     await pool.query("INSERT INTO parently_site_settings(key,data,updated_at) VALUES($1,$2,now()) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=now()",["home",clean]);
@@ -203,7 +246,17 @@ setInterval(()=>{
 },25000).unref();
 
 app.get("/api/health",(req,res)=>res.json({ok:true,db:!!pool,time:new Date().toISOString(),realtime:true}));
-app.get("/api/site/home",async(req,res)=>{try{res.json(await loadHomeConfig());}catch(e){console.error(e);res.status(500).json({error:"site_home_load_failed"});}});
+app.get("/api/site/home",async(req,res)=>{
+  try{
+    const base=deepMerge(defaultHomeConfig(),await loadHomeConfig());
+    const lang=String(req.query.lang||"").trim();
+    if(!lang||/^tr(?:-|$)/i.test(lang))return res.json(base);
+    const state=await loadState("AILE2026");
+    const packs=state?.languagePacks||{};
+    const p=packs[lang]||Object.values(packs).find(x=>String(x?.meta?.code||"").toLowerCase()===lang.toLowerCase());
+    res.json(translateSiteConfig(base,p?.site||null));
+  }catch(e){console.error(e);res.status(500).json({error:"site_home_load_failed"});}
+});
 app.put("/api/site/home",async(req,res)=>{
   try{
     const familyCode=String(req.body?.familyCode||"").toUpperCase();
