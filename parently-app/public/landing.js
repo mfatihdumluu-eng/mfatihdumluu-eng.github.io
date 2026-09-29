@@ -26,13 +26,21 @@ async function showSlide(n,instant=false){
   q("#heroHighlight").textContent=s.highlight||"";
   q("#heroDescription").textContent=s.description||"";
   const totalTitle=((s.title||"")+" "+(s.highlight||"")).trim().length;
-  copy?.classList.toggle("title-long",totalTitle>48&&totalTitle<=72);
-  copy?.classList.toggle("title-xlong",totalTitle>72);
+  copy?.classList.toggle("title-long",totalTitle>42&&totalTitle<=62);
+  copy?.classList.toggle("title-xlong",totalTitle>62&&totalTitle<=84);
+  copy?.classList.toggle("title-xxlong",totalTitle>84);
   const p=q("#heroPrimary");p.textContent=s.primaryLabel||"Uygulamaya Gir";p.href=s.primaryUrl||"/panel.html";
   const sec=q("#heroSecondary");sec.textContent=s.secondaryLabel||"Nasıl çalışır?";sec.href=s.secondaryUrl||"#how";
   const img=q("#heroSlideImage");
-  if(s.image){img.src=s.image;img.alt=s.highlight||s.title||"Parently";art.classList.add("has-image")}
-  else{img.removeAttribute("src");img.alt="";art.classList.remove("has-image")}
+  if(s.image){
+    if(img.src!==s.image) img.src=s.image;
+    img.alt=s.highlight||s.title||"Parently";
+    art.classList.add("has-image");
+  }else{
+    img.removeAttribute("src");
+    img.alt="";
+    art.classList.remove("has-image");
+  }
   qa("#heroDots button").forEach((d,i)=>d.classList.toggle("active",i===index));
   requestAnimationFrame(()=>requestAnimationFrame(()=>{copy?.classList.remove("is-changing");art?.classList.remove("is-changing");changing=false}));
 }
