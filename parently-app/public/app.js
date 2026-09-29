@@ -672,20 +672,6 @@ function renderHomeSlidesAdmin(){
     });
   });
 
-  $("[data-slide-file]").forEach(inp=>inp.onchange=()=>{
-    const i=Number(inp.dataset.slideFile);
-    readImage(inp,"slides."+i+".image","Slide "+(i+1)+" görseli");
-  });
-
-  $("[data-slide-image-remove]").forEach(btn=>btn.onclick=async()=>{
-    const i=Number(btn.dataset.slideImageRemove);
-    try{
-      await saveIndexMedia("slides."+i+".image","");
-      renderIndexGeneralAdmin();renderHomeSlidesAdmin();
-      toast("Slide "+(i+1)+" görseli kaldırıldı");
-    }catch(err){console.error(err);toast("Slide görseli kaldırılamadı")}
-  });
-
   $$("[data-slide-delete]").forEach(btn=>btn.onclick=()=>{
     if(homeSlidesCache.slides.length<=1)return;
     const i=Number(btn.dataset.slideDelete);
