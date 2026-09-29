@@ -639,17 +639,15 @@ function renderHomeSlidesAdmin(){
     '<div class="home-slider-admin-grid">'+slides.map((s,i)=>{
       const bg=s.image?'background-image:url('+JSON.stringify(s.image)+')':'';
       return `<article class="home-slide-editor" data-slide-editor="${i}">
-        <div class="home-slide-editor-head">
-          <div><span class="slide-index">SLIDE ${i+1}</span><h3>${esc(s.highlight||s.title||("Slide "+(i+1)))}</h3></div>
-          <div class="slide-image-preview ${s.image?"has-image":""}" style="${bg}">${s.image?"":"Görsel yok"}</div>
-        </div>
-
-        <div class="slide-image-manager">
-          <div>
+        <div class="slide-image-manager slide-image-manager-prominent">
+          <div class="slide-image-preview slide-image-preview-large ${s.image?"has-image":""}" style="${bg}">${s.image?"":"SLIDE "+(i+1)+" GÖRSELİ YOK"}</div>
+          <div class="slide-image-copy">
+            <span class="slide-index">SLIDE ${i+1}</span>
+            <h3>${esc(s.highlight||s.title||("Slide "+(i+1)))}</h3>
             <b>Bu slide’ın görseli</b>
-            <small>Her slide için ayrı JPG, PNG veya WebP yükleyebilirsiniz.</small>
+            <small>Slide değiştiğinde ana sayfadaki sağ görsel de bu resimle değişir.</small>
           </div>
-          <label class="upload-button">Görsel seç<input type="file" data-slide-file="${i}" accept="image/jpeg,image/png,image/webp" hidden></label>
+          <label class="upload-button slide-upload-main">SLIDE GÖRSELİ SEÇ<input type="file" data-slide-file="${i}" accept="image/jpeg,image/png,image/webp" hidden></label>
           <button class="secondary" data-slide-image-remove="${i}" type="button">Görseli kaldır</button>
         </div>
 
