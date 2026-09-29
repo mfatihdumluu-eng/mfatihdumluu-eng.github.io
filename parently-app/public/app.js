@@ -525,6 +525,7 @@ async function loadHomeSlidesAdmin(){
   host.innerHTML='<div class="muted">Slider ayarları yükleniyor...</div>';
   try{
     homeSlidesCache=await api("/api/site/home");
+    renderIndexGeneralAdmin();
     renderHomeSlidesAdmin();
   }catch(e){
     host.innerHTML='<div class="upload-danger">Slider ayarları yüklenemedi.</div>';
@@ -664,6 +665,84 @@ function renderHomeSlidesAdmin(){
   };
 }
 
+
+function sitePathGet(obj,path){
+  return String(path||"").split(".").reduce((a,k)=>a==null?undefined:a[k],obj);
+}
+function sitePathSet(obj,path,value){
+  const parts=String(path||"").split(".");
+  let cur=obj;
+  parts.forEach((k,i)=>{
+    const last=i===parts.length-1;
+    const key=/^\d+$/.test(k)?Number(k):k;
+    if(last)cur[key]=value;
+    else{
+      const next=parts[i+1],arr=/^\d+$/.test(next);
+      if(cur[key]==null)cur[key]=arr?[]:{};
+      cur=cur[key];
+    }
+  });
+}
+function indexField(path,label,type="input"){
+  const v=esc(sitePathGet(homeSlidesCache,path)||"");
+  return '<label class="index-field"><span>'+esc(label)+'</span>'+(type==="textarea"?'<textarea class="input" data-site-path="'+path+'">'+v+'</textarea>':'<input class="input" data-site-path="'+path+'" value="'+v+'">')+'</label>';
+}
+function renderIndexGeneralAdmin(){
+  const host=$("#indexGeneralAdmin");
+  if(!host||!homeSlidesCache)return;
+  const b=homeSlidesCache.branding||{};
+  const s=homeSlidesCache.sections||{};
+  host.innerHTML=
+    '<section class="card admin-panel index-brand-card"><div class="admin-panel-head"><div><span class="eyebrow">MARKA</span><h2>Logo ve marka bilgileri</h2><p class="muted">Buradaki logo ve metinler index sayfasında kullanılır.</p></div></div>'+
+      '<div class="index-brand-grid"><div>'+indexField("branding.name","Marka adı")+indexField("branding.tagline","Alt slogan")+'</div>'+
+      '<div class="index-media-control"><div class="index-media-preview '+(b.logoImage?"has-image":"")+'" style="'+(b.logoImage?'background-image:url('+JSON.stringify(b.logoImage)+')':'')+'">'+(b.logoImage?"":"Logo yok")+'</div><div><b>Logo görseli</b><small>PNG / WebP önerilir. Yüklenmezse mevcut Parently işareti kullanılır.</small></div><label class="upload-button">Logo seç<input id="indexLogoFile" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><button id="removeIndexLogo" class="secondary" type="button">Logoyu kaldır</button></div></div>'+
+    '</section>'+
+    '<section class="card admin-panel"><div class="admin-panel-head"><div><span class="eyebrow">BÖLÜM GÖRSELİ</span><h2>Parently ile görseli</h2><p class="muted">Özellikler bölümündeki büyük görsel alanı.</p></div></div>'+
+      '<div class="index-media-control"><div class="index-media-preview story '+(homeSlidesCache.storyImage?"has-image":"")+'" style="'+(homeSlidesCache.storyImage?'background-image:url('+JSON.stringify(homeSlidesCache.storyImage)+')':'')+'">'+(homeSlidesCache.storyImage?"":"Görsel yok")+'</div><div><b>Aile / uygulama görseli</b><small>JPG, PNG veya WebP yükleyebilirsiniz.</small></div><label class="upload-button">Görsel seç<input id="storyImageFile" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><button id="removeStoryImage" class="secondary" type="button">Görseli kaldır</button></div>'+
+    '</section>'+
+    '<section class="card admin-panel"><div class="admin-panel-head"><div><span class="eyebrow">INDEX METİNLERİ</span><h2>Sayfa içerikleri</h2><p class="muted">Bu alanlar dil JSON paketlerine de dahil edilir.</p></div></div>'+
+      '<div class="index-editor-block"><h3>Bilgi şeridi</h3><div class="index-field-grid">'+indexField("sections.strip.title","Ana metin")+indexField("sections.strip.meta","Yan metin")+'</div></div>'+
+      '<div class="index-editor-block"><h3>Nasıl çalışır?</h3><div class="index-field-grid">'+indexField("sections.how.eyebrow","Etiket")+indexField("sections.how.title","Başlık")+indexField("sections.how.description","Açıklama","textarea")+indexField("sections.how.noteLabel","Kısa etiket")+indexField("sections.how.noteText","Kısa mesaj")+'</div>'+
+        '<div class="index-repeat-grid">'+(s.how?.steps||[]).map((_,i)=>'<div class="index-repeat-card"><b>Adım '+(i+1)+'</b>'+indexField("sections.how.steps."+i+".label","Etiket")+indexField("sections.how.steps."+i+".title","Başlık")+indexField("sections.how.steps."+i+".description","Açıklama","textarea")+'</div>').join("")+'</div></div>'+
+      '<div class="index-editor-block"><h3>Kartları keşfet</h3><div class="index-field-grid">'+indexField("sections.cards.eyebrow","Etiket")+indexField("sections.cards.title","Başlık")+indexField("sections.cards.description","Açıklama","textarea")+indexField("sections.cards.emptyTitle","PNG boş alan başlığı")+indexField("sections.cards.emptyDescription","PNG boş alan açıklaması")+'</div></div>'+
+      '<div class="index-editor-block"><h3>Özellikler</h3><div class="index-field-grid">'+indexField("sections.features.eyebrow","Etiket")+indexField("sections.features.title","Başlık")+indexField("sections.features.description","Başlangıç açıklaması","textarea")+'</div>'+
+        '<div class="index-repeat-grid">'+(s.features?.items||[]).map((_,i)=>'<div class="index-repeat-card"><b>Özellik '+(i+1)+'</b>'+indexField("sections.features.items."+i+".symbol","Simge")+indexField("sections.features.items."+i+".title","Başlık")+indexField("sections.features.items."+i+".description","Kısa açıklama")+indexField("sections.features.items."+i+".label","Görsel etiketi")+indexField("sections.features.items."+i+".copy","Hover açıklaması","textarea")+'</div>').join("")+'</div></div>'+
+      '<div class="index-editor-block"><h3>Fiyatlandırma</h3><div class="index-field-grid">'+indexField("sections.pricing.eyebrow","Etiket")+indexField("sections.pricing.title","Başlık")+indexField("sections.pricing.description","Açıklama")+indexField("sections.pricing.noteLabel","Yan etiket")+indexField("sections.pricing.noteText","Yan mesaj")+'</div>'+
+        '<div class="index-repeat-grid">'+(s.pricing?.plans||[]).map((p,i)=>'<div class="index-repeat-card"><b>Plan '+(i+1)+'</b>'+indexField("sections.pricing.plans."+i+".tag","Etiket")+indexField("sections.pricing.plans."+i+".name","Ad")+indexField("sections.pricing.plans."+i+".price","Fiyat")+indexField("sections.pricing.plans."+i+".description","Açıklama","textarea")+indexField("sections.pricing.plans."+i+".button","Buton")+indexField("sections.pricing.plans."+i+".url","Buton linki")+'<label class="index-field"><span>Özellikler (satır satır)</span><textarea class="input" data-plan-features="'+i+'">'+esc((p.features||[]).join("\n"))+'</textarea></label></div>').join("")+'</div></div>'+
+      '<div class="index-editor-block"><h3>Kapanış ve footer</h3><div class="index-field-grid">'+indexField("sections.closing.eyebrow","Kapanış etiketi")+indexField("sections.closing.title","Kapanış başlığı")+indexField("sections.closing.description","Kapanış açıklaması","textarea")+indexField("sections.closing.button","Kapanış butonu")+indexField("sections.closing.url","Kapanış linki")+indexField("sections.footer.description","Footer açıklaması")+'</div></div>'+
+    '</section>';
+
+  $$("[data-site-path]").forEach(el=>el.oninput=()=>sitePathSet(homeSlidesCache,el.dataset.sitePath,el.value));
+  $$("[data-plan-features]").forEach(el=>el.oninput=()=>{const i=Number(el.dataset.planFeatures);sitePathSet(homeSlidesCache,"sections.pricing.plans."+i+".features",el.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))});
+
+  const readImage=(input,assign,label)=>{
+    const file=input?.files?.[0];if(!file)return;
+    if(file.size>5*1024*1024){toast("Görsel 5 MB'dan küçük olmalı");input.value="";return}
+    const r=new FileReader();r.onload=()=>{assign(String(r.result||""));renderIndexGeneralAdmin();toast(label+" hazır. Kaydetmeyi unutmayın.")};r.readAsDataURL(file);
+  };
+  $("#indexLogoFile")&&( $("#indexLogoFile").onchange=()=>readImage($("#indexLogoFile"),v=>homeSlidesCache.branding.logoImage=v,"Logo") );
+  $("#storyImageFile")&&( $("#storyImageFile").onchange=()=>readImage($("#storyImageFile"),v=>homeSlidesCache.storyImage=v,"Görsel") );
+  $("#removeIndexLogo")&&( $("#removeIndexLogo").onclick=()=>{homeSlidesCache.branding.logoImage="";renderIndexGeneralAdmin()} );
+  $("#removeStoryImage")&&( $("#removeStoryImage").onclick=()=>{homeSlidesCache.storyImage="";renderIndexGeneralAdmin()} );
+}
+function indexAdminView(){
+  if(state.mode!=="parent"){route="home";render();return}
+  view.innerHTML=
+    '<section class="admin-head"><div><span class="eyebrow">INDEX</span><h1>Ön site yönetimi</h1><p>Logo, görseller, sliderlar ve index metinlerini tek yerden yönetin. Kaydedilen her şey tam JSON yedeğine dahil edilir.</p></div><div class="admin-head-actions"><a class="secondary" href="/" target="_blank">Index’i aç ↗</a><button id="indexSaveAll" class="primary">Index’i kaydet</button></div></section>'+
+    '<div id="indexGeneralAdmin"></div>'+
+    '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">SLIDER</span><h2>Hero slider</h2><p class="muted">İstediğiniz kadar slide ekleyin; her slide kendi görselini ve metinlerini kullanır.</p></div></div><div id="homeSliderAdmin"></div></section>';
+  loadHomeSlidesAdmin().then(()=>{
+    const saveBtn=$("#indexSaveAll");
+    if(saveBtn)saveBtn.onclick=async()=>{
+      try{
+        saveBtn.disabled=true;saveBtn.textContent="Kaydediliyor...";
+        homeSlidesCache=await api("/api/site/home",{method:"PUT",body:JSON.stringify({familyCode,pin:String(state.pin||""),config:homeSlidesCache})});
+        renderIndexGeneralAdmin();renderHomeSlidesAdmin();toast("Index yayınlandı");
+      }catch{toast("Index kaydedilemedi")}
+    };
+  });
+}
+
 function adminView(){
   if(state.mode!=="parent"){route="home";render();return}
   const groups=state.adminConfig.ageGroups,plans=state.adminConfig.plans;
@@ -680,11 +759,10 @@ function adminView(){
       '<label class="admin-upload"><div><b>CSV kart dosyası</b><small>Yaş grubu, kategori, soru ve rehber alanlarını toplu yükleyin.</small></div><span class="upload-button">CSV Dosyası Seç</span><input id="adminCsvIn" type="file" accept=".csv,text/csv" hidden></label><div id="csvPreview" class="upload-preview hidden"></div>'+
       '<label class="admin-upload"><div><b>JSON veri dosyası</b><small>Aile, profil, kart, görev, mesaj ve ayar verilerini içe aktarın.</small></div><span class="upload-button">JSON Dosyası Seç</span><input id="adminJsonIn" type="file" accept=".json,application/json" hidden></label><div id="jsonPreview" class="upload-preview hidden"></div></section>'+
     '</div>'+
-    '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">ANA SAYFA</span><h2>3’lü hero slider</h2><p class="muted">Ana sayfadaki üç büyük slaytın metinlerini ve görsellerini buradan yönetin.</p></div></div><div id="homeSliderAdmin"></div></section>'+
+
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">YAŞ GRUPLARI</span><h2>İçerik grupları</h2></div></div><div class="age-toggle-list">'+Object.entries(groups).map(([g,c])=>'<label class="age-toggle-row"><div><b>'+esc(c.label)+'</b><small>'+g+' içerikleri</small></div><input type="checkbox" data-age-toggle="'+g+'" '+(c.enabled?"checked":"")+'></label>').join("")+'</div></section>'+
     '<section class="card admin-panel section"><div class="admin-panel-head"><div><span class="eyebrow">ÜYELİKLER</span><h2>Paket ve erişim matrisi</h2></div><select id="adminPlanSelect" class="membership-select">'+Object.entries(plans).map(([id,p])=>'<option value="'+id+'" '+(state.membership.plan===id?"selected":"")+'>'+esc(p.name)+'</option>').join("")+'</select></div><div class="plans-grid">'+Object.entries(plans).map(([id,p])=>'<div class="plan-admin-card '+(state.membership.plan===id?"current":"")+'"><h3>'+esc(p.name)+'</h3><div class="plan-limits"><span><b>'+p.maxParents+'</b> ebeveyn</span><span><b>'+p.maxChildren+'</b> çocuk</span><span><b>'+(p.ai?"✓":"—")+'</b> AI</span></div><p class="muted">Yaş grubu erişimi</p><div class="plan-age-access">'+Object.keys(groups).map(g=>'<label><input type="checkbox" data-plan="'+id+'" data-plan-age="'+g+'" '+(p.ageGroups.includes(g)?"checked":"")+'>'+esc(groups[g].label)+'</label>').join("")+'</div></div>').join("")+'</div></section>';
 
-  loadHomeSlidesAdmin();
   $("#adminJsonOut").onclick=()=>downloadAdmin("parently-full-export.json",JSON.stringify(state,null,2),"application/json");
   $("#adminCsvOut").onclick=()=>exportCardsCsv();
   $("#adminPlanSelect").onchange=e=>{state.membership.plan=e.target.value;markDirty();adminView()};
