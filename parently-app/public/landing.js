@@ -82,18 +82,18 @@ function applySections(config){
 }
 function setStoryVisual(src){
   const box=q("#storyPhoto"),story=q("#storyImage"),ph=q("#storyPlaceholder");
-  if(!box)return;
+  if(!box||!story)return;
+  box.style.backgroundImage="";
   if(src){
-    box.style.backgroundImage='url('+JSON.stringify(src)+')';
-    box.style.backgroundSize="cover";
-    box.style.backgroundPosition="center";
+    story.src=String(src);
+    story.hidden=false;
+    story.alt="Parently özellik görseli";
     box.classList.add("has-hover-image");
-    if(story){story.removeAttribute("src");story.hidden=true}
     if(ph)ph.hidden=true;
   }else{
-    box.style.backgroundImage="";
+    story.removeAttribute("src");
+    story.hidden=true;
     box.classList.remove("has-hover-image");
-    if(story){story.removeAttribute("src");story.hidden=true}
     if(ph)ph.hidden=false;
   }
 }
