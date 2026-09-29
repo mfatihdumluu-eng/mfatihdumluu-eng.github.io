@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/landing.css?v=20260929-fallback-variants">
+<link rel="stylesheet" href="/landing.css?v=20260929-index-admin-i18n">
 <style id="pricing-critical">
 #pricing.pricing-organic{background:#f7f2e9;position:relative;overflow:hidden;padding:112px 0}
 #pricing.pricing-organic:before{content:"";position:absolute;width:340px;height:340px;border-radius:50%;background:#dfeee6;left:-130px;top:70px;opacity:.8}
@@ -62,8 +62,8 @@
 <header class="header" id="top">
   <div class="wrap header-inner">
     <a class="brand" href="#top" aria-label="Parently ana sayfa">
-      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
-      <span class="brand-copy"><strong>Parently</strong><small>Aile bağını güçlendir</small></span>
+      <span class="brand-mark" id="brandMark" aria-hidden="true"><i></i><i></i><i></i></span><img id="brandLogoImage" class="brand-logo-image" alt="Parently logo">
+      <span class="brand-copy"><strong id="brandName">Parently</strong><small id="brandTagline">Aile bağını güçlendir</small></span>
     </a>
     <nav class="nav" id="nav">
       <a href="#how">Nasıl çalışır?</a>
@@ -112,17 +112,17 @@
   </div>
 </section>
 
-<div class="strip"><div class="wrap strip-inner"><strong>Birlikte geçirilen zaman, küçük anlarda büyür.</strong><span>Kartlar · Rutinler · Aile ajandası</span></div></div>
+<div class="strip"><div class="wrap strip-inner"><strong id="stripTitle">Birlikte geçirilen zaman, küçük anlarda büyür.</strong><span id="stripMeta">Kartlar · Rutinler · Aile ajandası</span></div></div>
 
 <section class="section how-section" id="how">
   <div class="wrap">
     <div class="how-head">
       <div class="how-head-copy">
-        <span class="eyebrow">NASIL ÇALIŞIR?</span>
-        <h2>Başlamak için uzun bir plan yapmanız gerekmiyor.</h2>
-        <p>Bir kart seçin, birbirinizi dinleyin ve iyi gelen anları tekrar edin.</p>
+        <span class="eyebrow" id="howEyebrow">NASIL ÇALIŞIR?</span>
+        <h2 id="howTitle">Başlamak için uzun bir plan yapmanız gerekmiyor.</h2>
+        <p id="howDescription">Bir kart seçin, birbirinizi dinleyin ve iyi gelen anları tekrar edin.</p>
       </div>
-      <div class="how-head-note"><span>3 adım</span><b>Küçük ritüeller, güçlü bağlar.</b></div>
+      <div class="how-head-note"><span id="howNoteLabel">3 adım</span><b id="howNoteText">Küçük ritüeller, güçlü bağlar.</b></div>
     </div>
 
     <div class="how-forms">
@@ -158,12 +158,12 @@
 
 <section class="section demo" id="cards">
   <div class="wrap demo-grid">
-    <div class="demo-intro"><span class="eyebrow">Kartları keşfet</span><h2>İlk soruyu şimdi deneyin.</h2><p>Yaş grubunu seçip yeni bir soru açın. Bu örnekler, Parently kartlarının sohbeti nasıl başlattığını göstermek için burada.</p></div>
+    <div class="demo-intro"><span class="eyebrow" id="cardsEyebrow">Kartları keşfet</span><h2 id="cardsTitle">İlk soruyu şimdi deneyin.</h2><p id="cardsDescription">Yaş grubunu seçip yeni bir soru açın. Bu örnekler, Parently kartlarının sohbeti nasıl başlattığını göstermek için burada.</p></div>
     <div class="demo-visual">
       <div class="demo-png-stage">
         <div class="png-grid-bg"></div>
         <img id="demoPng" alt="Parently uygulama görseli">
-        <div class="png-empty" id="pngEmpty"><span>PNG alanı</span><small>Yönetim panelinden şeffaf PNG yükleyin.</small></div>
+        <div class="png-empty" id="pngEmpty"><span id="pngEmptyTitle">PNG alanı</span><small id="pngEmptyDescription">Yönetim panelinden şeffaf PNG yükleyin.</small></div>
       </div>
     </div>
   </div>
@@ -172,7 +172,7 @@
 <section class="section" id="features">
   <div class="wrap story-grid">
     <div class="story-photo" id="storyPhoto">
-      <div class="story-placeholder">
+      <img id="storyImage" class="story-image" alt="Parently aile görseli"><div class="story-placeholder" id="storyPlaceholder">
         <span class="brand-mark story-logo"><i></i><i></i><i></i></span>
         <strong>Parently</strong>
         <small>Aile görselinizi burada kullanabilirsiniz.</small>
@@ -180,8 +180,8 @@
       <span class="photo-label" id="featureLabel">Küçük anlara yer açın ♡</span>
     </div>
     <div class="story-copy">
-      <span class="eyebrow">Parently ile</span>
-      <h2>Günlük hayatın içinde birbirinize yaklaşın.</h2>
+      <span class="eyebrow" id="featuresEyebrow">Parently ile</span>
+      <h2 id="featuresTitle">Günlük hayatın içinde birbirinize yaklaşın.</h2>
       <p id="featureIntro">Bir uygulama, ailenizin yerini tutmaz. Sohbet için doğru anı bulmanıza ve birlikte kurduğunuz alışkanlıkları hatırlamanıza yardım eder.</p>
       <ul class="feature-list" id="featureList">
         <li tabindex="0" class="active" data-feature="cards" data-label="Bir soruyla başlayın ♡" data-copy="Yaşa uygun sorularla sohbeti başlatın; doğru cevabı aramak yerine birbirinizi merakla dinleyin."><span class="symbol">✳</span><div><b>Sohbet kartları</b><span>Farklı yaşlara uygun sorularla konuşmaya başlayın.</span></div></li>
@@ -196,11 +196,11 @@
   <div class="wrap">
     <div class="pricing-head-organic">
       <div class="section-head">
-        <span class="eyebrow">Planlar</span>
-        <h2>Ailenize uygun başlangıcı seçin.</h2>
-        <p>Planlar lansman öncesi taslak olarak gösterilmektedir.</p>
+        <span class="eyebrow" id="pricingEyebrow">Planlar</span>
+        <h2 id="pricingTitle">Ailenize uygun başlangıcı seçin.</h2>
+        <p id="pricingDescription">Planlar lansman öncesi taslak olarak gösterilmektedir.</p>
       </div>
-      <div class="pricing-note-organic"><span>Esnek başlangıç</span><b>İhtiyacınıza göre büyütün.</b></div>
+      <div class="pricing-note-organic"><span id="pricingNoteLabel">Esnek başlangıç</span><b id="pricingNoteText">İhtiyacınıza göre büyütün.</b></div>
     </div>
 
     <div class="plans-organic">
@@ -238,19 +238,19 @@
 </section>
 
 <section class="closing" id="contact">
-  <div class="wrap"><span class="eyebrow closing-eyebrow">Bir soru yeter</span><h2>Bu akşam nasıl bir sohbet başlatacaksınız?</h2><p>Parently’yi deneyin veya erken erişim hakkında bilgi alın.</p><a class="button dark" href="/panel.html">Uygulamaya Gir</a></div>
+  <div class="wrap"><span class="eyebrow closing-eyebrow" id="closingEyebrow">Bir soru yeter</span><h2 id="closingTitle">Bu akşam nasıl bir sohbet başlatacaksınız?</h2><p id="closingDescription">Parently’yi deneyin veya erken erişim hakkında bilgi alın.</p><a class="button dark" id="closingButton" href="/panel.html">Uygulamaya Gir</a></div>
 </section>
 </main>
 
 <footer class="footer">
   <div class="wrap">
     <div class="footer-grid">
-      <div><a class="brand footer-brand" href="#top"><span class="brand-mark"><i></i><i></i><i></i></span><span class="brand-copy"><strong>Parently</strong><small>Aile bağını güçlendir</small></span></a><p>Birlikte konuşmaya küçük bir başlangıç.</p></div>
+      <div><a class="brand footer-brand" href="#top"><span class="brand-mark"><i></i><i></i><i></i></span><span class="brand-copy"><strong>Parently</strong><small>Aile bağını güçlendir</small></span></a><p id="footerDescription">Birlikte konuşmaya küçük bir başlangıç.</p></div>
       <nav class="footer-links"><a href="#how">Nasıl çalışır?</a><a href="#cards">Kartlar</a><a href="#features">Özellikler</a><a href="#pricing">Planlar</a><a href="#contact">İletişim</a></nav>
     </div>
     <div class="footer-bottom">© <span id="year">2026</span> Parently. Tüm hakları saklıdır.</div>
   </div>
 </footer>
-<script src="/landing.js?v=20260929-fallback-variants"></script>
+<script src="/landing.js?v=20260929-index-admin-i18n"></script>
 </body>
 </html>
