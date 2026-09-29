@@ -93,7 +93,7 @@ async function initDb(){
 }
 const SITE_FILE=path.join(__dirname,"site-config.json");
 function defaultHomeConfig(){
-  return {slides:[
+  return {demoPng:"",slides:[
     {id:"slide-1",badge:"♡ Daha güçlü aile bağları için",title:"Ailenizle daha fazla anlamlı zaman, daha",highlight:"güçlü yarınlar.",description:"Parently, ailelerin birlikte kaliteli zaman geçirmesini, duygularını paylaşmasını ve daha güçlü bağlar kurmasını destekleyen modern bir aile uygulamasıdır.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Tanıtımı Keşfet",secondaryUrl:"/uygulama.html",image:""},
     {id:"slide-2",badge:"💬 Her gün yeni bir konuşma",title:"Doğru sorularla çocuğunuzun dünyasına",highlight:"daha yakından bakın.",description:"Yaşa uygun kartlar ve takip soruları, aile içinde doğal ve anlamlı sohbetler başlatmanıza yardımcı olur.",primaryLabel:"Kartları Keşfet",primaryUrl:"/panel.html",secondaryLabel:"Nasıl Çalışır?",secondaryUrl:"/uygulama.html",image:""},
     {id:"slide-3",badge:"🌿 Küçük rutinler, güçlü bağlar",title:"Duygular, rutinler ve aile zamanı",highlight:"tek yerde.",description:"Duygu takibi, aile ajandası ve günlük küçük görevlerle birlikte geçirilen zamanı daha görünür hale getirin.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Özellikleri Gör",secondaryUrl:"/uygulama.html",image:""}
@@ -111,7 +111,7 @@ async function loadHomeConfig(){
   try{return JSON.parse(fs.readFileSync(SITE_FILE,"utf8"));}catch{return defaultHomeConfig();}
 }
 async function saveHomeConfig(data){
-  const clean={slides:(data?.slides||[]).slice(0,3).map((s,i)=>({
+  const clean={demoPng:String(data?.demoPng||"").slice(0,8_000_000),slides:(data?.slides||[]).slice(0,3).map((s,i)=>({
     id:"slide-"+(i+1),
     badge:String(s.badge||"").slice(0,120),
     title:String(s.title||"").slice(0,220),
