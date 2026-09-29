@@ -4,6 +4,11 @@ const fallbackSlides=[
 {badge:"Her gün yeni bir konuşma",title:"Doğru sorularla",highlight:"çocuğunuzun dünyasına yaklaşın.",description:"Yaşa uygun sorular ve takip soruları, sohbeti doğal şekilde başlatmanıza yardımcı olur.",primaryLabel:"Kartları keşfet",primaryUrl:"#cards",secondaryLabel:"Özellikler",secondaryUrl:"#features",image:""},
 {badge:"Küçük rutinler, güçlü bağlar",title:"Duygular, rutinler ve planlar",highlight:"tek bir aile alanında.",description:"Duygu takibi, ortak ajanda ve günlük aile rutinleriyle birlikte geçirilen zamanı daha görünür hale getirin.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Planlar",secondaryUrl:"#pricing",image:""}
 ];
+const fallbackVisuals=[
+  {kicker:"BUGÜNÜN SOHBETİ",title:"Bugün seni en çok ne gülümsetti?",pill:"Birlikte konuşalım",foot:"Bir soruyla başlayın",noteKicker:"KÜÇÜK BİR RUTİN",note:"Akşam yemeğinde herkes bir şey anlatsın.",theme:"conversation"},
+  {kicker:"SOHBET KARTLARI",title:"Bugün birlikte yapmayı en çok ne isterdin?",pill:"Kartı aç",foot:"Merakla dinleyin",noteKicker:"KÜÇÜK BİR AN",note:"Herkes gününden bir güzel an paylaşsın.",theme:"cards"},
+  {kicker:"AİLE AJANDASI",title:"Bu hafta birlikte neye zaman ayıralım?",pill:"Plan oluşturalım",foot:"Birlikte karar verin",noteKicker:"ORTAK RUTİN",note:"Haftada bir aile zamanı seçin ve ajandaya ekleyin.",theme:"agenda"}
+];
 let slides=fallbackSlides,siteConfig={slides:fallbackSlides,demoPng:""},index=0,timer=null,changing=false;
 const preload=new Map();
 
@@ -36,10 +41,20 @@ async function showSlide(n,instant=false){
     if(img.src!==s.image) img.src=s.image;
     img.alt=s.highlight||s.title||"Parently";
     art.classList.add("has-image");
+    art.classList.remove("theme-conversation","theme-cards","theme-agenda");
   }else{
     img.removeAttribute("src");
     img.alt="";
     art.classList.remove("has-image");
+    const fv=fallbackVisuals[index%fallbackVisuals.length];
+    q("#fallbackKicker").textContent=fv.kicker;
+    q("#fallbackTitle").textContent=fv.title;
+    q("#fallbackPill").textContent=fv.pill;
+    q("#fallbackFoot").textContent=fv.foot;
+    q("#fallbackNoteKicker").textContent=fv.noteKicker;
+    q("#fallbackNote").textContent=fv.note;
+    art.classList.remove("theme-conversation","theme-cards","theme-agenda");
+    art.classList.add("theme-"+fv.theme);
   }
   qa("#heroDots button").forEach((d,i)=>d.classList.toggle("active",i===index));
   requestAnimationFrame(()=>requestAnimationFrame(()=>{copy?.classList.remove("is-changing");art?.classList.remove("is-changing");changing=false}));
