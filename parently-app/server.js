@@ -691,6 +691,30 @@ app.post("/api/expert/note/:code",async(req,res)=>{
   }catch(e){console.error(e);res.status(500).json({error:"expert_note_failed"});}
 });
 
+app.post("/api/expert/task/:code",async(req,res)=>{
+  try{
+    const saved=await withFamilyLock(req.params.code,async()=>{
+      const state=await loadState(req.params.code);
+      const expertId=String(req.body?.expertId||"");
+      const link=(state.expertConnections||[]).find(x=>x.expertId===expertId&&x.status==="active");
+      const childId=String(req.body?.childId||"");
+      if(!link||(childId&&!(link.childProfileIds||[]).includes(childId)))return null;
+      state.tasks=state.tasks||[];
+      const task={
+        id:"et-"+Date.now()+"-"+Math.random().toString(36).slice(2,5),
+        title:aiSafe(req.body?.title,220)||"Uzman önerisi",
+        description:aiSafe(req.body?.description,1200),
+        assigneeId:childId,
+        due:aiSafe(req.body?.due,20)||new Date().toISOString().slice(0,10),
+        status:"pending",requiresApproval:false,type:"expert-task",expertId
+      };
+      state.tasks.push(task);await saveState(req.params.code,state);return task;
+    });
+    if(!saved)return res.status(403).json({error:"expert_task_not_allowed"});
+    broadcast(req.params.code);res.json({ok:true,task:saved});
+  }catch(e){console.error(e);res.status(500).json({error:"expert_task_failed"});}
+});
+
 app.post("/api/expert/program/:code",async(req,res)=>{
   try{
     const saved=await withFamilyLock(req.params.code,async()=>{
