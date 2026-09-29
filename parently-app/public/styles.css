@@ -363,3 +363,8 @@ html[dir="rtl"] input,html[dir="rtl"] textarea,html[dir="rtl"] select{text-align
 .index-repeat-card{position:relative}
 .index-repeat-card:has(.index-field:first-of-type input){padding-top:16px}
 @media(max-width:800px){.index-order-badge{right:12px;top:12px}.index-order-card .admin-panel-head{padding-right:48px}}
+
+.feature-admin-grid .index-media-control{grid-template-columns:110px 1fr;align-items:start}
+.feature-admin-grid .index-media-preview{width:110px;height:110px}
+.feature-admin-grid .index-media-control .upload-button,.feature-admin-grid .index-media-control .secondary{width:100%}
+@media(max-width:900px){.feature-admin-grid .index-media-control{grid-template-columns:1fr}.feature-admin-grid .index-media-preview{width:100%;height:180px}}
