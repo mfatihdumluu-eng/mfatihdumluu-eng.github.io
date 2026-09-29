@@ -95,6 +95,7 @@ const SITE_FILE=path.join(__dirname,"site-config.json");
 function defaultHomeConfig(){
   return {
     branding:{name:"Parently",tagline:"Aile bağını güçlendir",logoImage:""},
+    navigation:{how:"Nasıl çalışır?",cards:"Kartları keşfet",features:"Özellikler",pricing:"Planlar",contact:"İletişim",app:"Uygulamaya Gir"},
     demoPng:"",
     storyImage:"",
     slides:[
@@ -169,6 +170,7 @@ async function saveHomeConfig(data){
       tagline:String(d.branding?.tagline||"Aile bağını güçlendir").slice(0,140),
       logoImage:String(d.branding?.logoImage||"").slice(0,8_000_000)
     },
+    navigation:d.navigation,
     demoPng:String(d.demoPng||"").slice(0,8_000_000),
     storyImage:String(d.storyImage||"").slice(0,8_000_000),
     slides:(d.slides||[]).slice(0,12).map((s,i)=>({
