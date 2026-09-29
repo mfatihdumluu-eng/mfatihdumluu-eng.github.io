@@ -588,3 +588,7 @@ html[dir="rtl"] .hero-lead,html[dir="rtl"] .story-copy,html[dir="rtl"] .demo-int
 .plan-card-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#e7f3ec;color:#0c8061;font-size:1.15rem;font-weight:800;margin-left:auto;margin-right:12px;transition:transform .3s ease,background .3s ease}
 .family-plan .plan-card-icon{background:#285045;color:#aee2c7}
 .plan-organic:hover .plan-card-icon{transform:rotate(8deg) scale(1.08)}
+
+.story-image{transition:opacity .28s ease,transform .28s ease}
+.story-photo.has-hover-image .story-image{opacity:1;transform:scale(1)}
+.story-photo .story-image[hidden]{opacity:0}
