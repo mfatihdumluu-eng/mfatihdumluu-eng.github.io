@@ -520,15 +520,22 @@ function settingsModal(){
 
 let homeSlidesCache=null;
 async function loadHomeSlidesAdmin(){
-  const host=$("#homeSliderAdmin");
-  if(!host)return;
-  host.innerHTML='<div class="muted">Slider ayarları yükleniyor...</div>';
+  const pageHost=$("#indexGeneralAdmin");
+  const sliderHost=$("#homeSliderAdmin");
+  if(pageHost)pageHost.innerHTML='<section class="card admin-panel"><div class="muted">Index ayarları yükleniyor...</div></section>';
+  else if(sliderHost)sliderHost.innerHTML='<div class="muted">Slider ayarları yükleniyor...</div>';
   try{
     homeSlidesCache=await api("/api/site/home");
-    renderIndexGeneralAdmin();
-    renderHomeSlidesAdmin();
+    if($("#indexGeneralAdmin")){
+      renderIndexGeneralAdmin();
+      renderHomeSlidesAdmin();
+    }else if($("#homeSliderAdmin")){
+      renderHomeSlidesAdmin();
+    }
   }catch(e){
-    host.innerHTML='<div class="upload-danger">Slider ayarları yüklenemedi.</div>';
+    const target=$("#indexGeneralAdmin")||$("#homeSliderAdmin");
+    if(target)target.innerHTML='<div class="upload-danger">Index ayarları yüklenemedi. Sayfayı yenileyin.</div>';
+    console.error("index admin load failed",e);
   }
 }
 function renderHomeSlidesAdmin(){
