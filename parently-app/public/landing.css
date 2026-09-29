@@ -266,3 +266,46 @@ section.section{padding:112px 0}.section-head{max-width:720px;margin-bottom:46px
     max-height:520px!important;
   }
 }
+
+/* PREMIUM HOW-IT-WORKS SECTION */
+.how-section{position:relative;padding:110px 0;background:#fffdf7;overflow:hidden}
+.how-section::before,.how-section::after{content:"";position:absolute;border-radius:999px;filter:blur(10px);z-index:0}
+.how-section::before{width:340px;height:340px;background:rgba(217,240,227,.55);top:40px;right:-120px}
+.how-section::after{width:260px;height:260px;background:rgba(245,110,85,.08);bottom:40px;left:-100px}
+.how-section .wrap{position:relative;z-index:1}
+.how-head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;margin-bottom:48px}
+.how-head-copy{max-width:760px}
+.how-head .eyebrow{display:inline-block;margin-bottom:16px;font-size:14px;font-weight:800;letter-spacing:.14em;color:#0c8061}
+.how-head h2{margin:0 0 18px;font-family:"Fraunces",Georgia,serif;font-size:clamp(3rem,5vw,5.2rem);line-height:.98;letter-spacing:-.05em;color:#142f2b;max-width:860px}
+.how-head p{margin:0;font-size:1.14rem;line-height:1.65;color:#586c67;max-width:620px}
+.how-head-badge{flex:0 0 240px;background:#fff;border:1px solid #d8dfd7;border-radius:22px;padding:22px 20px;box-shadow:0 16px 35px rgba(20,47,43,.06)}
+.how-head-badge strong{display:block;font-size:1.6rem;font-weight:800;color:#142f2b;margin-bottom:8px}
+.how-head-badge span{display:block;color:#667872;line-height:1.5;font-size:.98rem}
+.how-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.how-card{position:relative;background:#fff;border:1px solid #d9dfda;border-radius:28px;padding:28px 28px 30px;min-height:290px;box-shadow:0 14px 34px rgba(20,47,43,.05);transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+.how-card:hover{transform:translateY(-6px);box-shadow:0 24px 45px rgba(20,47,43,.10);border-color:#c6d3cb}
+.how-card:nth-child(1){background:linear-gradient(180deg,#fff 0%,#fcfcfb 100%)}
+.how-card:nth-child(2){background:linear-gradient(180deg,#eef7f1 0%,#e4f0e8 100%)}
+.how-card:nth-child(3){background:linear-gradient(180deg,#fbf2ec 0%,#f7ece5 100%)}
+.how-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+.how-step-no{width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:#142f2b;color:#fff;font-size:1.45rem;font-weight:800;box-shadow:0 10px 20px rgba(20,47,43,.14)}
+.how-chip{display:inline-flex;align-items:center;padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.72);border:1px solid rgba(20,47,43,.08);color:#234740;font-size:.92rem;font-weight:700}
+.how-card h3{margin:0 0 14px;font-size:2rem;line-height:1.12;letter-spacing:-.03em;color:#142f2b;max-width:320px}
+.how-card p{margin:0;font-size:1.06rem;line-height:1.7;color:#5c6f6a;max-width:320px}
+.how-card.is-featured{transform:translateY(-10px);box-shadow:0 24px 44px rgba(12,128,97,.10)}
+.how-card.is-featured:hover{transform:translateY(-14px)}
+@media(max-width:980px){
+  .how-head{flex-direction:column;align-items:flex-start}
+  .how-head-badge{width:100%;max-width:320px}
+  .how-cards{grid-template-columns:1fr}
+  .how-card,.how-card.is-featured{transform:none;min-height:auto}
+  .how-card.is-featured:hover,.how-card:hover{transform:translateY(-4px)}
+}
+@media(max-width:640px){
+  .how-section{padding:84px 0}
+  .how-head h2{font-size:clamp(2.4rem,10vw,3.5rem)}
+  .how-head p{font-size:1rem}
+  .how-card{padding:24px 22px 26px}
+  .how-step-no{width:50px;height:50px;font-size:1.2rem}
+  .how-card h3{font-size:1.8rem}
+}
