@@ -280,6 +280,26 @@ app.put("/api/site/home",async(req,res)=>{
     res.json(await saveHomeConfig(req.body?.config||{}));
   }catch(e){console.error(e);res.status(500).json({error:"site_home_save_failed"});}
 });
+app.put("/api/site/home/slide-image",async(req,res)=>{
+  try{
+    const familyCode=String(req.body?.familyCode||"").toUpperCase();
+    const pin=String(req.body?.pin||"");
+    const index=Number(req.body?.index);
+    const image=String(req.body?.image||"");
+    const family=await loadState(familyCode);
+    if(!family||String(family.pin||"")!==pin)return res.status(403).json({error:"admin_auth_failed"});
+    if(!Number.isInteger(index)||index<0||index>11)return res.status(400).json({error:"invalid_slide_index"});
+    if(image&&(!image.startsWith("data:image/")||image.length>8_000_000))return res.status(400).json({error:"invalid_slide_image"});
+    const config=deepMerge(defaultHomeConfig(),await loadHomeConfig());
+    while(config.slides.length<=index){
+      const n=config.slides.length+1;
+      config.slides.push({id:"slide-"+n,badge:"Slide "+n,title:"Yeni başlık",highlight:"Vurgulu metin.",description:"",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Daha fazla bilgi",secondaryUrl:"#features",image:""});
+    }
+    config.slides[index].image=image;
+    const saved=await saveHomeConfig(config);
+    res.json({ok:true,index,imageLen:(saved.slides[index]?.image||"").length,slide:saved.slides[index]});
+  }catch(e){console.error("slide image save failed",e);res.status(500).json({error:"slide_image_save_failed"});}
+});
 app.get("/api/state/:code",async(req,res)=>{try{res.json(await loadState(req.params.code));}catch(e){console.error(e);res.status(500).json({error:"state_load_failed"});}});
 app.get("/api/events/:code",(req,res)=>{
   const key=(req.params.code||"AILE2026").toUpperCase();
