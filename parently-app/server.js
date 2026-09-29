@@ -266,6 +266,28 @@ setInterval(()=>{
 },25000).unref();
 
 app.get("/api/health",(req,res)=>res.json({ok:true,db:!!pool,time:new Date().toISOString(),realtime:true}));
+app.get("/api/site/languages",async(req,res)=>{
+  try{
+    const state=await loadState("AILE2026");
+    const packs=state?.languagePacks||{};
+    const base=[
+      {code:"tr",name:"Türkçe",label:"Türkçe",flag:"🇹🇷",direction:"ltr",loaded:true},
+      {code:"nl",name:"Nederlands",label:"Nederlands",flag:"🇳🇱",direction:"ltr"},
+      {code:"ar-MA",name:"الدارجة المغربية",label:"Fas / Darija",flag:"🇲🇦",direction:"rtl"},
+      {code:"ar-SY",name:"العربية السورية",label:"Suriye Arapçası",flag:"🇸🇾",direction:"rtl"},
+      {code:"so",name:"Soomaali",label:"Soomaali",flag:"🇸🇴",direction:"ltr"},
+      {code:"pl",name:"Polski",label:"Polski",flag:"🇵🇱",direction:"ltr"}
+    ];
+    const loaded=Object.values(packs).map(p=>p?.meta).filter(Boolean);
+    res.json(base.map(x=>{
+      const hit=loaded.find(m=>String(m.code||"").toLowerCase()===String(x.code).toLowerCase());
+      return hit?{...x,...hit,loaded:true}:{...x,loaded:!!x.loaded};
+    }));
+  }catch(e){
+    console.error("site languages load failed",e);
+    res.status(500).json({error:"site_languages_load_failed"});
+  }
+});
 app.get("/api/site/home",async(req,res)=>{
   try{
     const base=deepMerge(defaultHomeConfig(),await loadHomeConfig());
