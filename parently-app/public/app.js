@@ -774,6 +774,16 @@ function renderIndexGeneralAdmin(){
   if(!host||!homeSlidesCache)return;
   const b=homeSlidesCache.branding||{};
   const s=homeSlidesCache.sections||{};
+  homeSlidesCache.slides=Array.isArray(homeSlidesCache.slides)?homeSlidesCache.slides:[];
+  while(homeSlidesCache.slides.length<3){
+    const n=homeSlidesCache.slides.length+1;
+    homeSlidesCache.slides.push({
+      id:"slide-"+n,badge:"Slide "+n,title:"Yeni başlık",highlight:"Vurgulu metin.",
+      description:"Bu slide için açıklamanızı yazın.",
+      primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",
+      secondaryLabel:"Daha fazla bilgi",secondaryUrl:"#features",image:""
+    });
+  }
 
   const mediaControl=(id,title,help,value,accept="image/png,image/jpeg,image/webp",story=false)=>
     '<div class="index-media-control"><div class="index-media-preview '+(story?"story ":"")+(value?"has-image":"")+'" style="'+(value?'background-image:url('+JSON.stringify(value)+')':'')+'">'+(value?"":"Görsel yok")+'</div><div><b>'+esc(title)+'</b><small>'+esc(help)+'</small></div><label class="upload-button">Görsel seç<input id="'+id+'" type="file" accept="'+accept+'" hidden></label><button class="secondary" data-remove-media="'+id+'" type="button">Görseli kaldır</button></div>';
@@ -785,7 +795,9 @@ function renderIndexGeneralAdmin(){
       '<div class="index-editor-block"><h3>Menü metinleri</h3><div class="index-field-grid">'+indexField("navigation.how","Nasıl çalışır")+indexField("navigation.cards","Kartları keşfet")+indexField("navigation.features","Özellikler")+indexField("navigation.pricing","Planlar")+indexField("navigation.contact","İletişim")+indexField("navigation.app","Uygulama butonu")+'</div></div>'+
     '</section>'+
 
-    '<section class="index-order-card card admin-panel"><div class="index-order-badge">02</div><div class="admin-panel-head"><div><span class="eyebrow">HERO</span><h2>Slider</h2><p class="muted">Index’in en üst büyük alanı. Her slide kendi metnini ve görselini kullanır.</p></div></div><div id="homeSliderAdmin"></div></section>'+
+    '<section class="index-order-card card admin-panel"><div class="index-order-badge">02</div><div class="admin-panel-head"><div><span class="eyebrow">HERO</span><h2>Slider</h2><p class="muted">3 slide için 3 ayrı görsel yükleyin. Slide değişince Index’te sağdaki görsel de değişir.</p></div></div>'+
+      '<div class="hero-image-upload-grid">'+homeSlidesCache.slides.slice(0,3).map((sl,i)=>{const bg=sl.image?'background-image:url('+JSON.stringify(sl.image)+')':'';return '<div class="hero-image-upload-card"><div class="hero-image-upload-preview '+(sl.image?'has-image':'')+'" style="'+bg+'">'+(sl.image?'':'SLIDE '+(i+1)+' GÖRSELİ YOK')+'</div><b>Slide '+(i+1)+' görseli</b><small>Bu resim yalnızca Slide '+(i+1)+' aktifken görünür.</small><label class="upload-button hero-image-upload-button">Görsel seç<input type="file" data-hero-image-file="'+i+'" accept="image/jpeg,image/png,image/webp" hidden></label><button class="secondary" type="button" data-hero-image-remove="'+i+'">Görseli kaldır</button></div>';}).join("")+'</div>'+
+      '<div class="index-editor-block"><h3>Slide metinleri ve butonları</h3><div id="homeSliderAdmin"></div></div></section>'+
 
     '<section class="index-order-card card admin-panel"><div class="index-order-badge">03</div><div class="admin-panel-head"><div><span class="eyebrow">BİLGİ ŞERİDİ</span><h2>Koyu şerit</h2></div></div><div class="index-field-grid">'+indexField("sections.strip.title","Ana metin")+indexField("sections.strip.meta","Yan metin")+'</div></section>'+
 
@@ -839,6 +851,26 @@ function renderIndexGeneralAdmin(){
   (s.features?.items||[]).forEach((_,i)=>{
     const input=$("#featureImageFile"+i);
     if(input)input.onchange=()=>readImage(input,v=>homeSlidesCache.sections.features.items[i].image=v,"Özellik "+(i+1)+" resmi");
+  });
+
+  $("[data-hero-image-file]").forEach(inp=>inp.onchange=async()=>{
+    const i=Number(inp.dataset.heroImageFile),file=inp.files?.[0];
+    if(!file)return;
+    if(file.size>12*1024*1024){toast("Görsel 12 MB'dan küçük olmalı");inp.value="";return}
+    try{
+      toast("Slide "+(i+1)+" görseli hazırlanıyor...");
+      homeSlidesCache.slides[i].image=await optimizeImageFile(file,{maxW:1200,maxH:1800,quality:.84});
+      renderIndexGeneralAdmin();
+      renderHomeSlidesAdmin();
+      toast("Slide "+(i+1)+" görseli hazır. Tüm Index’i kaydedin.");
+    }catch(e){console.error(e);toast("Slide görseli hazırlanamadı")}
+  });
+
+  $("[data-hero-image-remove]").forEach(btn=>btn.onclick=()=>{
+    const i=Number(btn.dataset.heroImageRemove);
+    if(homeSlidesCache.slides?.[i])homeSlidesCache.slides[i].image="";
+    renderIndexGeneralAdmin();
+    renderHomeSlidesAdmin();
   });
 
   $("[data-remove-media]").forEach(btn=>btn.onclick=()=>{
