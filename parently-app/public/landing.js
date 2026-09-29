@@ -16,9 +16,53 @@ function detectLanguage(){
   }
   return"tr";
 }
-const siteLang=detectLanguage();
+let siteLang=detectLanguage();
 document.documentElement.lang=siteLang;
 document.documentElement.dir=/^ar/i.test(siteLang)?"rtl":"ltr";
+const LANG_FALLBACK=[
+  {code:"tr",label:"Türkçe",flag:"🇹🇷",direction:"ltr",loaded:true},
+  {code:"nl",label:"Nederlands",flag:"🇳🇱",direction:"ltr",loaded:false},
+  {code:"ar-MA",label:"Fas / Darija",flag:"🇲🇦",direction:"rtl",loaded:false},
+  {code:"ar-SY",label:"Suriye Arapçası",flag:"🇸🇾",direction:"rtl",loaded:false},
+  {code:"so",label:"Soomaali",flag:"🇸🇴",direction:"ltr",loaded:false},
+  {code:"pl",label:"Polski",flag:"🇵🇱",direction:"ltr",loaded:false}
+];
+function setLanguageButtonLabel(list){
+  const b=q("#siteLanguageBtn");
+  if(!b)return;
+  const m=(list||LANG_FALLBACK).find(x=>String(x.code).toLowerCase()===String(siteLang).toLowerCase())||LANG_FALLBACK[0];
+  b.textContent=(m.flag||"🌐")+" "+String(m.code||siteLang).toUpperCase();
+}
+async function initLanguageMenu(){
+  const btn=q("#siteLanguageBtn"),menu=q("#siteLanguageMenu");
+  if(!btn||!menu)return;
+  let list=LANG_FALLBACK;
+  try{
+    const r=await fetch("/api/site/languages?t="+Date.now(),{cache:"no-store"});
+    if(r.ok){const data=await r.json();if(Array.isArray(data)&&data.length)list=data}
+  }catch{}
+  setLanguageButtonLabel(list);
+  menu.innerHTML=list.map(m=>{
+    const active=String(m.code).toLowerCase()===String(siteLang).toLowerCase();
+    return '<button type="button" class="site-language-option '+(active?"active ":"")+(m.loaded?"":"disabled")+'" data-site-lang="'+String(m.code).replace(/"/g,"&quot;")+'" '+(m.loaded?"":"disabled")+'><span>'+String(m.flag||"🌐")+'</span><span><b>'+String(m.label||m.name||m.code)+'</b><small>'+String(m.code).toUpperCase()+(m.loaded?"":" · JSON bekliyor")+'</small></span></button>';
+  }).join("");
+  btn.onclick=e=>{
+    e.stopPropagation();
+    const open=menu.hidden;
+    menu.hidden=!open;
+    btn.setAttribute("aria-expanded",String(open));
+  };
+  menu.querySelectorAll("[data-site-lang]").forEach(el=>el.onclick=()=>{
+    const next=el.dataset.siteLang;
+    if(!next)return;
+    localStorage.setItem("parently_language",next);
+    location.reload();
+  });
+  document.addEventListener("click",e=>{
+    if(!e.target.closest(".site-language")){menu.hidden=true;btn.setAttribute("aria-expanded","false")}
+  });
+}
+
 
 const fallbackSlides=[
 {badge:"Aile içinde yakınlığa küçük bir alan açın",title:"Bir soru sor.",highlight:"Birbirinizi yeniden keşfedin.",description:"Yoğun günlerin içinde konuşmaya nereden başlayacağınızı düşünmeyin. Parently, yaşa uygun sohbet kartları ve küçük aile rutinleriyle size bir başlangıç verir.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Nasıl çalışır?",secondaryUrl:"#how",image:""}
@@ -167,4 +211,5 @@ function activateFeature(el){
 features.forEach(el=>{el.addEventListener("mouseenter",()=>activateFeature(el));el.addEventListener("focus",()=>activateFeature(el))});
 q("#year").textContent=new Date().getFullYear();
 document.addEventListener("visibilitychange",()=>document.hidden?clearInterval(timer):restart());
+initLanguageMenu();
 loadSite();
