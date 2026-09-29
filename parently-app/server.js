@@ -50,6 +50,49 @@ const initialCards = [
   ["14-16","Hayal ve Gelecek","🌍","Şu an gelecekle ilgili seni heyecanlandıran ya da kaygılandıran ne var?","Bunu birlikte küçük parçalara ayıralım mı?","Belirsizliği normalleştirin.","Kendi planını üretmesine alan açın.","Geleceği tek başına çözmek zorunda değilsin."]
 ].map((x,i)=>({id:"card-"+(i+1),ageGroup:x[0],category:x[1],emoji:x[2],question:x[3],followUp:x[4],parentGuide:x[5],positiveReinforcement:x[6],connectionPhrase:x[7],difficulty:i%3+1,tags:[x[1].toLowerCase().replaceAll(" ","-")]}));
 
+function defaultExperts(){
+  return [
+    {id:"exp1",name:"Dr. Elif Kaya",role:"expert",title:"Aile ve Çocuk Uzmanı",avatar:"EK",color:"#2f7d68",languages:["tr","nl"],status:"online",bio:"Ebeveynlik, aile içi iletişim ve çocuk gelişimi alanında destek."},
+    {id:"exp2",name:"Meryem El Amrani",role:"expert",title:"Gezinscoach",avatar:"ME",color:"#8c6a9e",languages:["nl","ar-MA","tr"],status:"online",bio:"Çok dilli aileler, göç deneyimi ve günlük aile rutinleri üzerine destek."},
+    {id:"exp3",name:"Omar Haddad",role:"expert",title:"Psychosociaal begeleider",avatar:"OH",color:"#b06b4f",languages:["nl","ar-SY"],status:"away",bio:"Aile iletişimi, ergenlik ve sosyal-duygusal destek."}
+  ];
+}
+function makeStateForCode(code){
+  const s=baseState(code);
+  if(code==="UZMANDEMO1"){
+    s.familyName="Demir Ailesi";
+    s.pin="1111";
+    s.profiles=[
+      {id:"p1",name:"Ayşe",role:"parent",avatar:"A",color:"#21B889"},
+      {id:"p2",name:"Murat",role:"parent",avatar:"M",color:"#FF6255"},
+      {id:"c1",name:"Ece",role:"child",age:7,ageGroup:"6-9",avatar:"E",color:"#FFD75A",interests:"resim, dans"}
+    ];
+    s.expertConnections=[{id:"ec1",expertId:"exp1",status:"active",familyChatAccess:false,childProfileIds:["c1"],createdAt:new Date().toISOString()}];
+  }else if(code==="UZMANDEMO2"){
+    s.familyName="Yılmaz Ailesi";
+    s.pin="2222";
+    s.profiles=[
+      {id:"p1",name:"Selin",role:"parent",avatar:"S",color:"#21B889"},
+      {id:"p2",name:"Kerem",role:"parent",avatar:"K",color:"#5967d8"},
+      {id:"c1",name:"Deniz",role:"child",age:5,ageGroup:"2-5",avatar:"D",color:"#FFD75A",interests:"lego, müzik"},
+      {id:"c2",name:"Ada",role:"child",age:11,ageGroup:"10-13",avatar:"A",color:"#e59cbd",interests:"kitap, yüzme"}
+    ];
+    s.expertConnections=[{id:"ec1",expertId:"exp2",status:"active",familyChatAccess:true,childProfileIds:["c1","c2"],createdAt:new Date().toISOString()}];
+  }else if(code==="UZMANDEMO3"){
+    s.familyName="Acar Ailesi";
+    s.pin="3333";
+    s.profiles=[
+      {id:"p1",name:"Zeynep",role:"parent",avatar:"Z",color:"#21B889"},
+      {id:"c1",name:"Mina",role:"child",age:4,ageGroup:"2-5",avatar:"M",color:"#FFD75A",interests:"oyun"},
+      {id:"c2",name:"Emir",role:"child",age:9,ageGroup:"6-9",avatar:"E",color:"#84c5e8",interests:"futbol, oyun"},
+      {id:"c3",name:"Lina",role:"child",age:15,ageGroup:"14-16",avatar:"L",color:"#c6a2e8",interests:"müzik, arkadaşlar"}
+    ];
+    s.expertConnections=[{id:"ec1",expertId:"exp3",status:"active",familyChatAccess:false,childProfileIds:["c2","c3"],createdAt:new Date().toISOString()}];
+  }
+  s.activeProfileId=s.profiles.find(p=>p.role==="child")?.id||s.profiles[0]?.id;
+  s.experts=defaultExperts();
+  return s;
+}
 function baseState(code="AILE2026"){
   const today=new Date().toISOString().slice(0,10);
   return {
@@ -77,6 +120,11 @@ function baseState(code="AILE2026"){
     ],
     specialSessions:[],
     supportTickets:[],
+    experts:defaultExperts(),
+    expertConnections:[],
+    expertMessages:[],
+    expertSessions:[],
+    expertInvites:[],
     settings:{language:"tr",notifications:true,highContrast:false}
   };
 }
@@ -199,7 +247,7 @@ async function loadState(code){
     await initDb();
     const r=await pool.query("SELECT data FROM parently_state WHERE family_code=$1",[key]);
     if(r.rows[0]) return r.rows[0].data;
-    const state=baseState(key);
+    const state=makeStateForCode(key);
     await pool.query("INSERT INTO parently_state(family_code,data) VALUES($1,$2)",[key,state]);
     return state;
   }
@@ -240,7 +288,7 @@ function mergeMoods(current=[],incoming=[]){
 }
 function mergeState(current,incoming){
   const merged={...current,...incoming};
-  for(const key of ["profiles","cards","tasks","rituals","calendar","messages","specialSessions","completedCards","supportTickets"]){
+  for(const key of ["profiles","cards","tasks","rituals","calendar","messages","specialSessions","completedCards","supportTickets","expertConnections","expertMessages","expertSessions","expertInvites"]){
     if(incoming[key]) merged[key]=mergeById(current[key],incoming[key]);
   }
   if(incoming.moods) merged.moods=mergeMoods(current.moods,incoming.moods);
