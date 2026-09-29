@@ -149,6 +149,9 @@ function baseState(code="AILE2026"){
     expertMessages:[],
     expertSessions:[],
     expertInvites:[],
+    expertNotes:[],
+    aiGeneratedCards:[],
+    aiHistory:[],
     settings:{language:"tr",notifications:true,highContrast:false}
   };
 }
@@ -317,7 +320,7 @@ function mergeMoods(current=[],incoming=[]){
 }
 function mergeState(current,incoming){
   const merged={...current,...incoming};
-  for(const key of ["profiles","cards","tasks","rituals","calendar","messages","specialSessions","completedCards","supportTickets","expertConnections","expertMessages","expertSessions","expertInvites"]){
+  for(const key of ["profiles","cards","tasks","rituals","calendar","messages","specialSessions","completedCards","supportTickets","expertConnections","expertMessages","expertSessions","expertInvites","expertNotes","aiGeneratedCards","aiHistory"]){
     if(incoming[key]) merged[key]=mergeById(current[key],incoming[key]);
   }
   if(incoming.moods) merged.moods=mergeMoods(current.moods,incoming.moods);
@@ -470,7 +473,155 @@ app.put("/api/site/home/media",async(req,res)=>{
     res.status(500).json({error:"site_media_save_failed"});
   }
 });
+function aiSafe(v,max=1200){return String(v??"").replace(/[\u0000-\u001f]+/g," ").trim().slice(0,max)}
+function childContext(state,childId){
+  return {
+    moods:(state.moods||[]).filter(x=>x.profileId===childId).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,8).map(x=>({date:x.date,mood:x.mood,label:x.label,intensity:x.intensity,note:aiSafe(x.note,220)})),
+    tasks:(state.tasks||[]).filter(x=>x.assigneeId===childId).slice(-8).map(x=>({title:aiSafe(x.title,180),status:x.status,type:x.type})),
+    completedCards:(state.completedCards||[]).filter(x=>x.profileId===childId).slice(-8)
+  };
+}
+async function callParentlyAI({system,user,schemaName,schema,maxOutputTokens=1800}){
+  if(!process.env.OPENAI_API_KEY)return null;
+  const payload={
+    model:process.env.OPENAI_MODEL||"gpt-6-astra",
+    input:[
+      {role:"system",content:[{type:"input_text",text:system}]},
+      {role:"user",content:[{type:"input_text",text:user}]}
+    ],
+    text:{format:{type:"json_schema",name:schemaName,strict:true,schema}},
+    max_output_tokens:maxOutputTokens
+  };
+  const r=await fetch("https://api.openai.com/v1/responses",{
+    method:"POST",
+    headers:{"Authorization":"Bearer "+process.env.OPENAI_API_KEY,"Content-Type":"application/json"},
+    body:JSON.stringify(payload)
+  });
+  if(!r.ok){
+    const body=await r.text();
+    console.error("OpenAI API error",r.status,body.slice(0,600));
+    throw new Error("ai_provider_error");
+  }
+  const data=await r.json();
+  const raw=String(data.output_text||data.output?.flatMap?.(x=>x.content||[]).map?.(x=>x.text||"").join("")||"").trim();
+  return raw?JSON.parse(raw):null;
+}
+function fallbackCards(child,topic,goal,count){
+  const cards=[
+    {emoji:"💬",category:goal||"Aileye Özel",question:topic?topic+" hakkında bugün aklından en çok ne geçti?":"Bugün aklından en çok ne geçti?",followUp:"Bunu bana biraz daha anlatmak ister misin?",parentGuide:"Çözüm vermeden önce merakla dinleyin ve cevabı düzeltmeyin.",positiveReinforcement:"Düşüncesini paylaşmasını fark edin.",connectionPhrase:"Ne hissedersen hisset, benimle konuşabilirsin.",difficulty:2},
+    {emoji:"🧩",category:goal||"Aileye Özel",question:"Bu konuda seni en çok zorlayan şey ne?",followUp:"Benim yapabileceğim küçük bir şey var mı?",parentGuide:"Çocuğun ihtiyacını kendi kelimeleriyle tarif etmesine alan açın.",positiveReinforcement:"İhtiyacını söylemesini cesaret olarak çerçeveleyin.",connectionPhrase:"Bunu birlikte anlamaya çalışabiliriz.",difficulty:2},
+    {emoji:"🌱",category:goal||"Aileye Özel",question:"Bu durum biraz daha iyi olsa nasıl görünürdü?",followUp:"Bunun için atabileceğimiz minicik bir adım ne olabilir?",parentGuide:"Hedefi küçük ve uygulanabilir tutun.",positiveReinforcement:"Çabasını ve fikir üretmesini övün.",connectionPhrase:"Küçük adımlarda da yanındayım.",difficulty:2},
+    {emoji:"❤️",category:goal||"Aileye Özel",question:"Benden daha çok ne duymaya ihtiyacın var?",followUp:"Bunu sana nasıl gösterebilirim?",parentGuide:"Savunmaya geçmeden dinleyin.",positiveReinforcement:"Açık iletişimini takdir edin.",connectionPhrase:"Seni anlamak benim için önemli.",difficulty:2},
+    {emoji:"🌈",category:goal||"Aileye Özel",question:"Bu hafta kendinle gurur duyduğun bir an var mı?",followUp:"O anda hangi gücünü kullandın?",parentGuide:"Sonuca değil çabaya ve beceriye odaklanın.",positiveReinforcement:"Somut çabasını isimlendirin.",connectionPhrase:"Seni olduğun halinle görüyorum.",difficulty:1}
+  ];
+  return cards.slice(0,Math.max(1,Math.min(5,count||3))).map((x,i)=>({id:"ai-"+Date.now()+"-"+i,ageGroup:child?.ageGroup||"6-9",tags:["ai","family-personalized"],...x}));
+}
 app.get("/api/experts",(req,res)=>res.json(defaultExperts()));
+app.post("/api/ai/cards/:code",async(req,res)=>{
+  try{
+    const state=await loadState(req.params.code);
+    const child=state.profiles?.find(x=>x.id===String(req.body?.profileId||"")&&x.role==="child")||state.profiles?.find(x=>x.role==="child");
+    if(!child)return res.status(400).json({error:"child_required"});
+    const topic=aiSafe(req.body?.topic,500),goal=aiSafe(req.body?.goal,180)||"Bağ kurma";
+    const count=Math.max(1,Math.min(5,Number(req.body?.count)||3));
+    const schema={
+      type:"object",additionalProperties:false,required:["cards"],
+      properties:{cards:{type:"array",items:{type:"object",additionalProperties:false,required:["emoji","category","question","followUp","parentGuide","positiveReinforcement","connectionPhrase","difficulty"],properties:{
+        emoji:{type:"string"},category:{type:"string"},question:{type:"string"},followUp:{type:"string"},parentGuide:{type:"string"},positiveReinforcement:{type:"string"},connectionPhrase:{type:"string"},difficulty:{type:"integer"}
+      }}}}
+    };
+    let cards=null,provider="demo";
+    try{
+      const out=await callParentlyAI({
+        system:"You create age-appropriate family conversation cards. Never diagnose, label, or provide medical treatment advice. Make questions warm, concrete, non-leading, and suitable for the stated age. Return Turkish text. Do not mention that you are AI.",
+        user:JSON.stringify({child:{name:child.name,age:child.age,ageGroup:child.ageGroup,interests:child.interests||""},topic,goal,count,recent:childContext(state,child.id)}),
+        schemaName:"parently_family_cards",schema,maxOutputTokens:2000
+      });
+      if(Array.isArray(out?.cards)){
+        cards=out.cards.slice(0,count).map((x,i)=>({
+          id:"ai-"+Date.now()+"-"+i,ageGroup:child.ageGroup,tags:["ai","family-personalized"],
+          emoji:aiSafe(x.emoji,8)||"💬",category:aiSafe(x.category,120)||goal,question:aiSafe(x.question,500),
+          followUp:aiSafe(x.followUp,500),parentGuide:aiSafe(x.parentGuide,700),
+          positiveReinforcement:aiSafe(x.positiveReinforcement,500),connectionPhrase:aiSafe(x.connectionPhrase,500),
+          difficulty:Math.max(1,Math.min(3,Number(x.difficulty)||2))
+        }));
+        provider="openai";
+      }
+    }catch(e){console.error("AI cards fallback",e.message);}
+    if(!cards)cards=fallbackCards(child,topic,goal,count);
+    res.json({ok:true,provider,cards});
+  }catch(e){console.error(e);res.status(500).json({error:"ai_cards_failed"});}
+});
+
+app.post("/api/ai/cards/:code/save",async(req,res)=>{
+  try{
+    const incoming=Array.isArray(req.body?.cards)?req.body.cards.slice(0,10):[];
+    if(!incoming.length)return res.status(400).json({error:"cards_required"});
+    const saved=await withFamilyLock(req.params.code,async()=>{
+      const state=await loadState(req.params.code);
+      state.cards=state.cards||[];state.aiGeneratedCards=state.aiGeneratedCards||[];
+      const added=[];
+      for(const raw of incoming){
+        const card={
+          id:"custom-"+Date.now()+"-"+Math.random().toString(36).slice(2,6),
+          ageGroup:aiSafe(raw.ageGroup,30)||"6-9",category:aiSafe(raw.category,120)||"Aileye Özel",emoji:aiSafe(raw.emoji,8)||"💬",
+          question:aiSafe(raw.question,500),followUp:aiSafe(raw.followUp,500),parentGuide:aiSafe(raw.parentGuide,700),
+          positiveReinforcement:aiSafe(raw.positiveReinforcement,500),connectionPhrase:aiSafe(raw.connectionPhrase,500),
+          difficulty:Math.max(1,Math.min(3,Number(raw.difficulty)||2)),tags:["ai","family-personalized"]
+        };
+        state.cards.push(card);state.aiGeneratedCards.push({...card,createdAt:new Date().toISOString()});added.push(card);
+      }
+      await saveState(req.params.code,state);return added;
+    });
+    broadcast(req.params.code);res.json({ok:true,cards:saved});
+  }catch(e){console.error(e);res.status(500).json({error:"ai_cards_save_failed"});}
+});
+
+app.post("/api/ai/expert-summary/:code",async(req,res)=>{
+  try{
+    const state=await loadState(req.params.code);
+    const expertId=String(req.body?.expertId||"");
+    const link=(state.expertConnections||[]).find(x=>x.expertId===expertId&&x.status==="active");
+    if(!link)return res.status(403).json({error:"expert_not_connected"});
+    const children=(state.profiles||[]).filter(x=>x.role==="child"&&(link.childProfileIds||[]).includes(x.id));
+    const familyMessages=link.familyChatAccess?(state.messages||[]).slice(-20):[];
+    const privateMessages=(state.expertMessages||[]).filter(x=>x.expertId===expertId&&x.channel==="private").slice(-20);
+    const schema={type:"object",additionalProperties:false,required:["summary","strengths","attentionPoints","conversationIdeas"],properties:{
+      summary:{type:"string"},strengths:{type:"array",items:{type:"string"}},attentionPoints:{type:"array",items:{type:"string"}},conversationIdeas:{type:"array",items:{type:"string"}}
+    }};
+    let result=null,provider="demo";
+    try{
+      result=await callParentlyAI({
+        system:"You assist a family professional by summarizing only the supplied information. Do not diagnose or infer hidden conditions. Clearly distinguish observations from uncertainty. Use concise Turkish.",
+        user:JSON.stringify({familyName:state.familyName,children:children.map(ch=>({profile:{name:ch.name,age:ch.age,ageGroup:ch.ageGroup,interests:ch.interests||""},recent:childContext(state,ch.id)})),familyMessages,privateMessages}),
+        schemaName:"parently_expert_summary",schema,maxOutputTokens:1400
+      });if(result)provider="openai";
+    }catch(e){console.error("AI expert summary fallback",e.message);}
+    if(!result)result={summary:"İzin verilen aile verileri için kısa demo özeti hazırlandı.",strengths:["Aile düzenli iletişim alanı oluşturuyor."],attentionPoints:["Son duygu ve görev kayıtlarını görüşmede aileyle birlikte doğrulayın."],conversationIdeas:["Bu hafta evde en iyi giden şey neydi?","Aile olarak hangi küçük değişiklik size iyi gelebilir?"]};
+    res.json({ok:true,provider,result});
+  }catch(e){console.error(e);res.status(500).json({error:"ai_expert_summary_failed"});}
+});
+
+app.post("/api/ai/expert-reply/:code",async(req,res)=>{
+  try{
+    const state=await loadState(req.params.code),expertId=String(req.body?.expertId||"");
+    const link=(state.expertConnections||[]).find(x=>x.expertId===expertId&&x.status==="active");
+    if(!link)return res.status(403).json({error:"expert_not_connected"});
+    const messages=(state.expertMessages||[]).filter(x=>x.expertId===expertId&&x.channel==="private").slice(-12);
+    const schema={type:"object",additionalProperties:false,required:["draft"],properties:{draft:{type:"string"}}};
+    let result=null,provider="demo";
+    try{
+      result=await callParentlyAI({
+        system:"Draft a warm, professional reply for a family support professional. Do not diagnose, promise outcomes, or present medical advice. Keep it concise and editable. Turkish.",
+        user:JSON.stringify({familyName:state.familyName,messages,note:aiSafe(req.body?.instruction,500)}),
+        schemaName:"parently_expert_reply",schema,maxOutputTokens:700
+      });if(result)provider="openai";
+    }catch(e){console.error("AI reply fallback",e.message);}
+    if(!result)result={draft:"Paylaştığınız için teşekkür ederim. Bunu birlikte biraz daha açabiliriz. Son günlerde bu durumun en çok hangi anlarda ortaya çıktığını anlatabilir misiniz?"};
+    res.json({ok:true,provider,result});
+  }catch(e){console.error(e);res.status(500).json({error:"ai_expert_reply_failed"});}
+});
+
 
 app.post("/api/expert/message/:code",async(req,res)=>{
   try{
