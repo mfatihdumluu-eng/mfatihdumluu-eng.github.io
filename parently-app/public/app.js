@@ -519,23 +519,69 @@ function settingsModal(){
 }
 
 let homeSlidesCache=null;
+function indexAdminFallback(){
+  return {
+    branding:{name:"Parently",tagline:"Aile bağını güçlendir",logoImage:""},
+    navigation:{how:"Nasıl çalışır?",cards:"Kartları keşfet",features:"Özellikler",pricing:"Planlar",contact:"İletişim",app:"Uygulamaya Gir"},
+    demoPng:"",storyImage:"",
+    slides:[
+      {id:"slide-1",badge:"Aile içinde yakınlığa küçük bir alan açın",title:"Bir soru sor.",highlight:"Birbirinizi yeniden keşfedin.",description:"Yoğun günlerin içinde konuşmaya nereden başlayacağınızı düşünmeyin.",primaryLabel:"Uygulamaya Gir",primaryUrl:"/panel.html",secondaryLabel:"Nasıl çalışır?",secondaryUrl:"#how",image:""}
+    ],
+    sections:{
+      strip:{title:"Birlikte geçirilen zaman, küçük anlarda büyür.",meta:"Kartlar · Rutinler · Aile ajandası"},
+      how:{eyebrow:"Nasıl çalışır?",title:"Başlamak için uzun bir plan yapmanız gerekmiyor.",description:"Bir kart seçin, birbirinizi dinleyin ve iyi gelen anları tekrar edin.",noteLabel:"3 adım",noteText:"Küçük ritüeller, güçlü bağlar.",steps:[
+        {icon:"✦",label:"SOHBET",title:"Yaşa uygun bir kart seçin",description:"Çocuğunuzun dünyasına yakın bir soruyla sohbeti açın."},
+        {icon:"◌",label:"DİNLEME",title:"Herkese söz verin",description:"Doğru cevap aramadan, merakla ve sırayla dinleyin."},
+        {icon:"◷",label:"RUTİN",title:"Küçük bir alışkanlık oluşturun",description:"Günün size uygun bir anını aile zamanı olarak ayırın."}
+      ]},
+      cards:{eyebrow:"Kartları keşfet",title:"İlk soruyu şimdi deneyin.",description:"Yaş grubunu seçip yeni bir soru açın.",emptyTitle:"PNG alanı",emptyDescription:"Yönetim panelinden şeffaf PNG yükleyin."},
+      features:{eyebrow:"Parently ile",title:"Günlük hayatın içinde birbirinize yaklaşın.",description:"Bir uygulama, ailenizin yerini tutmaz.",items:[
+        {symbol:"✳",title:"Sohbet kartları",description:"Farklı yaşlara uygun sorularla konuşmaya başlayın.",label:"Bir soruyla başlayın ♡",copy:"Yaşa uygun sorularla sohbeti başlatın.",image:""},
+        {symbol:"◷",title:"Aile rutinleri",description:"Birlikte yapmak istediklerinize zaman ayırın.",label:"Küçük rutinleri koruyun ◷",copy:"Birlikte yapmak istediğiniz küçük şeylere zaman ayırın.",image:""},
+        {symbol:"▤",title:"Ortak ajanda",description:"Aile planlarını tek yerde görün.",label:"Aile planları tek yerde ▤",copy:"Aile planlarını tek yerde görün.",image:""}
+      ]},
+      pricing:{eyebrow:"Planlar",title:"Ailenize uygun başlangıcı seçin.",description:"Planlar lansman öncesi taslak olarak gösterilmektedir.",noteLabel:"Esnek başlangıç",noteText:"İhtiyacınıza göre büyütün.",plans:[
+        {icon:"✦",tag:"Başlangıç",name:"Demo",price:"Ücretsiz",description:"Parently deneyimini tanımak için.",features:["Temel kartlar"],button:"Demoyu aç",url:"/panel.html"},
+        {icon:"♡",tag:"Önerilen",name:"Aile",price:"Yakında",description:"Tam aile deneyimi için planlanan paket.",features:["Tüm kartlar ve aktiviteler"],button:"Erken erişim",url:"#contact"},
+        {icon:"◎",tag:"Uzmanlar",name:"Profesyonel",price:"Yakında",description:"Uzmanlar ve kurumlar için genişletilmiş yapı.",features:["Gelişmiş raporlama"],button:"Bilgi al",url:"#contact"}
+      ]},
+      closing:{eyebrow:"Bir soru yeter",title:"Bu akşam nasıl bir sohbet başlatacaksınız?",description:"Parently’yi deneyin veya erken erişim hakkında bilgi alın.",button:"Uygulamaya Gir",url:"/panel.html"},
+      footer:{description:"Birlikte konuşmaya küçük bir başlangıç."}
+    }
+  };
+}
+function mergeIndexAdmin(base,extra){
+  if(Array.isArray(base)){
+    if(!Array.isArray(extra))return base;
+    return base.map((v,i)=>extra[i]===undefined?v:mergeIndexAdmin(v,extra[i])).concat(extra.slice(base.length));
+  }
+  if(base&&typeof base==="object"){
+    const out={...base};
+    if(extra&&typeof extra==="object")Object.entries(extra).forEach(([k,v])=>{out[k]=k in base?mergeIndexAdmin(base[k],v):v});
+    return out;
+  }
+  return extra===undefined?base:extra;
+}
 async function loadHomeSlidesAdmin(){
   const pageHost=$("#indexGeneralAdmin");
   const sliderHost=$("#homeSliderAdmin");
-  if(pageHost)pageHost.innerHTML='<section class="card admin-panel"><div class="muted">Index ayarları yükleniyor...</div></section>';
-  else if(sliderHost)sliderHost.innerHTML='<div class="muted">Slider ayarları yükleniyor...</div>';
+  homeSlidesCache=mergeIndexAdmin(indexAdminFallback(),homeSlidesCache||{});
+  if(pageHost){
+    try{renderIndexGeneralAdmin();renderHomeSlidesAdmin()}catch(e){console.error("index fallback render failed",e)}
+  }else if(sliderHost){
+    try{renderHomeSlidesAdmin()}catch(e){console.error("slider fallback render failed",e)}
+  }
   try{
-    homeSlidesCache=await api("/api/site/home");
-    if($("#indexGeneralAdmin")){
-      renderIndexGeneralAdmin();
-      renderHomeSlidesAdmin();
-    }else if($("#homeSliderAdmin")){
-      renderHomeSlidesAdmin();
-    }
+    const r=await fetch("/api/site/home?admin=1&t="+Date.now(),{cache:"no-store",headers:{"Accept":"application/json"}});
+    if(!r.ok)throw new Error("site_home_http_"+r.status);
+    const remote=await r.json();
+    homeSlidesCache=mergeIndexAdmin(indexAdminFallback(),remote||{});
+    if($("#indexGeneralAdmin")){renderIndexGeneralAdmin();renderHomeSlidesAdmin()}
+    else if($("#homeSliderAdmin"))renderHomeSlidesAdmin();
   }catch(e){
-    const target=$("#indexGeneralAdmin")||$("#homeSliderAdmin");
-    if(target)target.innerHTML='<div class="upload-danger">Index ayarları yüklenemedi. Sayfayı yenileyin.</div>';
     console.error("index admin load failed",e);
+    const target=$("#indexGeneralAdmin")||$("#homeSliderAdmin");
+    if(target)target.insertAdjacentHTML("afterbegin",'<div class="upload-danger" id="indexLoadWarning">Sunucu verisi alınamadı; düzenleme alanları yine açık. Kaydetmeden önce bağlantıyı kontrol edin.</div>');
   }
 }
 function renderHomeSlidesAdmin(){
