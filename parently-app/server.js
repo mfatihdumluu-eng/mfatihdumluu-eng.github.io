@@ -111,7 +111,7 @@ async function loadHomeConfig(){
   try{return JSON.parse(fs.readFileSync(SITE_FILE,"utf8"));}catch{return defaultHomeConfig();}
 }
 async function saveHomeConfig(data){
-  const clean={demoPng:String(data?.demoPng||"").slice(0,8_000_000),slides:(data?.slides||[]).slice(0,3).map((s,i)=>({
+  const clean={demoPng:String(data?.demoPng||"").slice(0,8_000_000),slides:(data?.slides||[]).slice(0,12).map((s,i)=>({
     id:"slide-"+(i+1),
     badge:String(s.badge||"").slice(0,120),
     title:String(s.title||"").slice(0,220),
@@ -123,7 +123,7 @@ async function saveHomeConfig(data){
     secondaryUrl:String(s.secondaryUrl||"/uygulama.html").slice(0,300),
     image:String(s.image||"").slice(0,8_000_000)
   }))};
-  while(clean.slides.length<3)clean.slides.push(defaultHomeConfig().slides[clean.slides.length]);
+  if(clean.slides.length===0) clean.slides=[...defaultHomeConfig().slides];
   if(pool){
     await initDb();
     await pool.query("INSERT INTO parently_site_settings(key,data,updated_at) VALUES($1,$2,now()) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=now()",["home",clean]);
