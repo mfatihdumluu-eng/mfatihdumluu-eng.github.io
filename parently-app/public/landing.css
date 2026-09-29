@@ -676,3 +676,137 @@ html[dir="rtl"] .hero-lead,html[dir="rtl"] .story-copy,html[dir="rtl"] .demo-int
 .site-language-option.disabled,.site-language-option:disabled{opacity:.45;cursor:not-allowed}
 html[dir="rtl"] .site-language-menu{right:auto;left:0}
 @media(max-width:860px){.site-language-btn{min-height:42px}.site-language-menu{right:-56px;width:235px}}
+
+/* FULL RTL / ARABIC SUPPORT */
+html[dir="rtl"] body{
+  font-family:"Noto Sans Arabic","Outfit",system-ui,sans-serif!important;
+  text-align:right;
+}
+html[dir="rtl"] h1,
+html[dir="rtl"] h2,
+html[dir="rtl"] .price,
+html[dir="rtl"] .plan-index,
+html[dir="rtl"] .hero-panel h3{
+  font-family:"Noto Serif Arabic","Noto Sans Arabic",serif!important;
+  letter-spacing:0!important;
+}
+html[dir="rtl"] .eyebrow,
+html[dir="rtl"] .nav,
+html[dir="rtl"] .button,
+html[dir="rtl"] .site-language-btn,
+html[dir="rtl"] .site-language-option,
+html[dir="rtl"] .plan-tag{
+  font-family:"Noto Sans Arabic","Outfit",system-ui,sans-serif!important;
+  letter-spacing:0!important;
+}
+html[dir="rtl"] .header-inner,
+html[dir="rtl"] .hero-grid,
+html[dir="rtl"] .demo-grid,
+html[dir="rtl"] .story-grid,
+html[dir="rtl"] .pricing-head-organic,
+html[dir="rtl"] .footer-grid{
+  direction:rtl;
+}
+html[dir="rtl"] .header-actions,
+html[dir="rtl"] .hero-cta,
+html[dir="rtl"] .hero-navline{
+  direction:rtl;
+}
+html[dir="rtl"] .nav{
+  direction:rtl;
+}
+html[dir="rtl"] .hero-lead,
+html[dir="rtl"] .story-copy,
+html[dir="rtl"] .demo-intro,
+html[dir="rtl"] .section-head,
+html[dir="rtl"] .how-head-copy,
+html[dir="rtl"] .closing .wrap,
+html[dir="rtl"] .footer,
+html[dir="rtl"] .plan-organic{
+  text-align:right!important;
+}
+html[dir="rtl"] .feature-list li{
+  direction:rtl!important;
+  text-align:right!important;
+}
+html[dir="rtl"] .feature-list .symbol{
+  margin-left:0!important;
+  margin-right:0!important;
+}
+html[dir="rtl"] .feature-list .feature-text{
+  text-align:right!important;
+}
+html[dir="rtl"] .how-form,
+html[dir="rtl"] .plan-organic,
+html[dir="rtl"] .hero-panel,
+html[dir="rtl"] .floating-note{
+  direction:rtl;
+  text-align:right;
+}
+html[dir="rtl"] .form-meta,
+html[dir="rtl"] .plan-topline,
+html[dir="rtl"] .card-foot,
+html[dir="rtl"] .topline{
+  direction:rtl;
+}
+html[dir="rtl"] .form-arrow,
+html[dir="rtl"] .circle-arrow{
+  transform:scaleX(-1);
+}
+html[dir="rtl"] .plan-organic li:before{
+  margin-right:0!important;
+  margin-left:10px!important;
+}
+html[dir="rtl"] .pricing-note-organic{
+  border-left:0!important;
+  border-right:2px solid #b9d8c8!important;
+  padding-left:0!important;
+  padding-right:18px!important;
+}
+html[dir="rtl"] .site-language-menu{
+  right:auto!important;
+  left:0!important;
+  text-align:right!important;
+}
+html[dir="rtl"] .site-language-option{
+  text-align:right!important;
+  direction:rtl!important;
+}
+html[dir="rtl"] .footer-links{
+  text-align:right;
+}
+html[dir="rtl"] .footer-links a{
+  text-align:right;
+}
+html[dir="rtl"] .brand-copy,
+html[dir="rtl"] .footer-brand .brand-copy{
+  text-align:right;
+}
+html[dir="rtl"] input,
+html[dir="rtl"] textarea,
+html[dir="rtl"] select{
+  direction:rtl;
+  text-align:right;
+}
+html[dir="rtl"] .hero-slide-image,
+html[dir="rtl"] .story-image,
+html[dir="rtl"] .demo-png-stage img{
+  direction:ltr;
+}
+html[dir="rtl"] .plans-organic{
+  direction:rtl;
+}
+html[dir="rtl"] .plan-card-icon{
+  margin-right:auto!important;
+  margin-left:12px!important;
+}
+@media(max-width:900px){
+  html[dir="rtl"] .header-inner{direction:rtl}
+  html[dir="rtl"] .nav{direction:rtl;text-align:right}
+  html[dir="rtl"] .pricing-head-organic{align-items:stretch}
+  html[dir="rtl"] .pricing-note-organic{border-right:0!important;padding-right:0!important}
+}
+@media(max-width:680px){
+  html[dir="rtl"] .hero-cta{justify-content:flex-start}
+  html[dir="rtl"] .site-language-menu{left:-10px!important;right:auto!important}
+}
