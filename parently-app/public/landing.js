@@ -89,7 +89,7 @@ function safeIcon(value,fallback){
 }
 function setNavigation(config){
   const n=config.navigation||{};
-  setText("#navHow",n.how);setText("#navCards",n.cards);setText("#navFeatures",n.features);setText("#navPricing",n.pricing);setText("#navContact",n.contact);setText("#navAppButton",n.app);
+  setText("#navHow",n.how);setText("#navCards",n.cards);setText("#navFeatures",n.features);setText("#navExpert",n.expert);setText("#navPricing",n.pricing);setText("#navContact",n.contact);setText("#navAppButton",n.app);
 }
 function setBrand(config){
   const b=config.branding||{};
@@ -112,6 +112,10 @@ function applySections(config){
   setText("#pngEmptyTitle",s.cards?.emptyTitle);setText("#pngEmptyDescription",s.cards?.emptyDescription);
 
   setText("#featuresEyebrow",s.features?.eyebrow);setText("#featuresTitle",s.features?.title);setText("#featureIntro",s.features?.description);
+  setText("#expertEyebrow",s.expert?.eyebrow);setText("#expertTitle",s.expert?.title);setText("#expertDescription",s.expert?.description);
+  const expertButton=q("#expertButton");if(expertButton){expertButton.textContent=s.expert?.button||"Uzmana Sor";expertButton.href=s.expert?.url||"/expert-support.html"}
+  (s.expert?.items||[]).forEach((d,i)=>{setText("#expertItemIcon"+i,d.icon);setText("#expertItemTitle"+i,d.title);setText("#expertItemDescription"+i,d.description)});
+
   const items=s.features?.items||[];
   qa("#featureList li").forEach((el,i)=>{const d=items[i];if(!d)return;const sym=el.querySelector(".symbol"),b=el.querySelector(".feature-text b"),sp=el.querySelector(".feature-text span");if(sym)sym.textContent=safeIcon(d.symbol,["✳","◷","▤"][i]||"✳");if(b)b.textContent=d.title||"";if(sp)sp.textContent=d.description||"";el.dataset.label=d.label||"";el.dataset.copy=d.copy||"";el.dataset.image=d.image||""});
   if(items[0]){setText("#featureLabel",items[0].label);setText("#featureIntro",items[0].copy||s.features?.description)}
