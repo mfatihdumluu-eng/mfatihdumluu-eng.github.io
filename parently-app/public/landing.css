@@ -578,3 +578,13 @@ section.section{padding:112px 0}.section-head{max-width:720px;margin-bottom:46px
 .story-photo .photo-label{z-index:3}
 html[dir="rtl"] .hero-grid,html[dir="rtl"] .demo-grid,html[dir="rtl"] .story-grid{direction:rtl}
 html[dir="rtl"] .hero-lead,html[dir="rtl"] .story-copy,html[dir="rtl"] .demo-intro{text-align:right}
+
+/* FEATURE LIST HARDENING + EDITABLE PLAN ICONS */
+.feature-list li{min-width:0}
+.feature-list li>div{min-width:0;flex:1}
+.feature-list li>div>b{display:block!important;margin:0 0 5px;line-height:1.25;color:#142f2b}
+.feature-list li>div>span{display:block!important;width:auto!important;height:auto!important;min-width:0!important;background:none!important;border-radius:0!important;padding:0!important;color:var(--muted)!important;font-size:1rem!important;line-height:1.45!important;white-space:normal!important;overflow-wrap:anywhere}
+.feature-list .symbol{flex:0 0 38px!important;width:38px!important;height:38px!important;max-width:38px!important;overflow:hidden!important;white-space:nowrap!important;font-size:1rem!important;line-height:38px!important;text-align:center!important;padding:0!important;border-radius:11px!important;background:var(--mint)!important;color:var(--green)!important}
+.plan-card-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#e7f3ec;color:#0c8061;font-size:1.15rem;font-weight:800;margin-left:auto;margin-right:12px;transition:transform .3s ease,background .3s ease}
+.family-plan .plan-card-icon{background:#285045;color:#aee2c7}
+.plan-organic:hover .plan-card-icon{transform:rotate(8deg) scale(1.08)}
