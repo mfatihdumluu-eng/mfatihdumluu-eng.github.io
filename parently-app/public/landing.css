@@ -609,3 +609,28 @@ html[dir="rtl"] .hero-lead,html[dir="rtl"] .story-copy,html[dir="rtl"] .demo-int
   text-overflow:clip!important;
 }
 .feature-list .symbol::before,.feature-list .symbol::after{content:none!important}
+
+/* TRANSPARENT INDEX MEDIA — KEEP SECTION BACKGROUNDS VISIBLE */
+.hero-slide-image,
+.demo-png-stage img,
+.story-image{
+  background:transparent!important;
+  box-shadow:none!important;
+  object-fit:contain!important;
+  object-position:center!important;
+}
+.story-image{
+  inset:24px!important;
+  width:calc(100% - 48px)!important;
+  height:calc(100% - 48px)!important;
+}
+.story-photo.has-hover-image,
+.story-photo:has(.story-image:not([hidden])){
+  background:linear-gradient(145deg,#efe8d9,#d8eadf)!important;
+}
+.demo-png-stage.has-image{
+  background:linear-gradient(145deg,#dbeee3,#f8eadc)!important;
+}
+.hero-art.has-image{
+  background:linear-gradient(145deg,#e8f4eb,#f7ead7)!important;
+}
