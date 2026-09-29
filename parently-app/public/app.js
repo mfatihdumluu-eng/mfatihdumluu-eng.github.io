@@ -533,34 +533,50 @@ async function loadHomeSlidesAdmin(){
 function renderHomeSlidesAdmin(){
   const host=$("#homeSliderAdmin");
   if(!host||!homeSlidesCache)return;
-  const slides=(homeSlidesCache.slides||[]).slice(0,3);
-  host.innerHTML='<div class="home-slider-admin-grid">'+slides.map((s,i)=>{
-    const bg=s.image?'background-image:url('+JSON.stringify(s.image)+')':'';
-    return `<article class="home-slide-editor" data-slide-editor="${i}">
-      <div class="home-slide-editor-head">
-        <div><span class="slide-index">SLIDE ${i+1}</span><h3>${esc(s.highlight||s.title||("Slide "+(i+1)))}</h3></div>
-        <div class="slide-image-preview ${s.image?"has-image":""}" style="${bg}">${s.image?"":"Görsel yok"}</div>
-      </div>
-      <label>Üst etiket<input class="input" data-slide-field="badge" value="${esc(s.badge||"")}"></label>
-      <label>Ana başlık<input class="input" data-slide-field="title" value="${esc(s.title||"")}"></label>
-      <label>Vurgulu başlık<input class="input" data-slide-field="highlight" value="${esc(s.highlight||"")}"></label>
-      <label>Açıklama<textarea class="input slide-textarea" data-slide-field="description">${esc(s.description||"")}</textarea></label>
-      <div class="slide-two-col">
-        <label>1. Buton<input class="input" data-slide-field="primaryLabel" value="${esc(s.primaryLabel||"")}"></label>
-        <label>1. Link<input class="input" data-slide-field="primaryUrl" value="${esc(s.primaryUrl||"")}"></label>
-      </div>
-      <div class="slide-two-col">
-        <label>2. Buton<input class="input" data-slide-field="secondaryLabel" value="${esc(s.secondaryLabel||"")}"></label>
-        <label>2. Link<input class="input" data-slide-field="secondaryUrl" value="${esc(s.secondaryUrl||"")}"></label>
-      </div>
-      <div class="slide-upload-row">
-        <label class="upload-button">Resim seç<input type="file" data-slide-file="${i}" accept="image/jpeg,image/png,image/webp" hidden></label>
-        <button class="secondary" data-slide-remove="${i}" type="button">Resmi kaldır</button>
-      </div>
-    </article>`;
-  }).join("")+'</div>'+
-  '<div class="home-demo-png"><div><span class="slide-index">KART / UYGULAMA PNG</span><h3>Şeffaf PNG görsel alanı</h3><p>“Kartları keşfet” bölümündeki sağ görsel alanına gelir. Arka plan görünür kalır.</p></div><div class="slide-image-preview demo-png-preview '+(homeSlidesCache.demoPng?"has-image":"")+'" style="'+(homeSlidesCache.demoPng?'background-image:url('+JSON.stringify(homeSlidesCache.demoPng)+')':'')+'">'+(homeSlidesCache.demoPng?"":"PNG yok")+'</div><label class="upload-button">PNG seç<input id="demoPngFile" type="file" accept="image/png" hidden></label><button id="removeDemoPng" class="secondary" type="button">PNG kaldır</button></div>'+
-  '<div class="home-slider-save"><button id="saveHomeSlides" class="primary" type="button">Ana sayfa ayarlarını kaydet ve yayınla</button><small>Slider görselleri ve PNG PostgreSQL’de saklanır. Slider için önerilen ölçü 1080×1920. Şeffaf PNG’de arka plan görünür kalır.</small></div>';
+  if(!Array.isArray(homeSlidesCache.slides))homeSlidesCache.slides=[];
+  const slides=homeSlidesCache.slides;
+
+  host.innerHTML=
+    '<div class="home-slider-toolbar"><div><span class="eyebrow">SLIDER YÖNETİMİ</span><h3>'+slides.length+' slide</h3><p class="muted">Her slide için farklı görsel, başlık, açıklama ve buton ayarlayın.</p></div><button id="addHomeSlide" class="primary" type="button">+ Slide ekle</button></div>'+
+    '<div class="home-slider-admin-grid">'+slides.map((s,i)=>{
+      const bg=s.image?'background-image:url('+JSON.stringify(s.image)+')':'';
+      return `<article class="home-slide-editor" data-slide-editor="${i}">
+        <div class="home-slide-editor-head">
+          <div><span class="slide-index">SLIDE ${i+1}</span><h3>${esc(s.highlight||s.title||("Slide "+(i+1)))}</h3></div>
+          <div class="slide-image-preview ${s.image?"has-image":""}" style="${bg}">${s.image?"":"Görsel yok"}</div>
+        </div>
+
+        <div class="slide-image-manager">
+          <div>
+            <b>Bu slide’ın görseli</b>
+            <small>Her slide için ayrı JPG, PNG veya WebP yükleyebilirsiniz.</small>
+          </div>
+          <label class="upload-button">Görsel seç<input type="file" data-slide-file="${i}" accept="image/jpeg,image/png,image/webp" hidden></label>
+          <button class="secondary" data-slide-image-remove="${i}" type="button">Görseli kaldır</button>
+        </div>
+
+        <label>Üst etiket<input class="input" data-slide-field="badge" value="${esc(s.badge||"")}"></label>
+        <label>Ana başlık<input class="input" data-slide-field="title" value="${esc(s.title||"")}"></label>
+        <label>Vurgulu başlık<input class="input" data-slide-field="highlight" value="${esc(s.highlight||"")}"></label>
+        <label>Açıklama<textarea class="input slide-textarea" data-slide-field="description">${esc(s.description||"")}</textarea></label>
+
+        <div class="slide-two-col">
+          <label>1. Buton<input class="input" data-slide-field="primaryLabel" value="${esc(s.primaryLabel||"")}"></label>
+          <label>1. Link<input class="input" data-slide-field="primaryUrl" value="${esc(s.primaryUrl||"")}"></label>
+        </div>
+        <div class="slide-two-col">
+          <label>2. Buton<input class="input" data-slide-field="secondaryLabel" value="${esc(s.secondaryLabel||"")}"></label>
+          <label>2. Link<input class="input" data-slide-field="secondaryUrl" value="${esc(s.secondaryUrl||"")}"></label>
+        </div>
+
+        <div class="slide-editor-footer">
+          <small>Önerilen: 1080×1920 veya benzer 9:16 oran.</small>
+          <button class="danger-link" data-slide-delete="${i}" type="button" ${slides.length<=1?"disabled":""}>Slide’ı sil</button>
+        </div>
+      </article>`;
+    }).join("")+'</div>'+
+    '<div class="home-demo-png"><div><span class="slide-index">KART / UYGULAMA PNG</span><h3>Şeffaf PNG görsel alanı</h3><p>“Kartları keşfet” bölümündeki sağ görsel alanına gelir. Arka plan görünür kalır.</p></div><div class="slide-image-preview demo-png-preview '+(homeSlidesCache.demoPng?"has-image":"")+'" style="'+(homeSlidesCache.demoPng?'background-image:url('+JSON.stringify(homeSlidesCache.demoPng)+')':'')+'">'+(homeSlidesCache.demoPng?"":"PNG yok")+'</div><label class="upload-button">PNG seç<input id="demoPngFile" type="file" accept="image/png" hidden></label><button id="removeDemoPng" class="secondary" type="button">PNG kaldır</button></div>'+
+    '<div class="home-slider-save"><button id="saveHomeSlides" class="primary" type="button">Ana sayfa ayarlarını kaydet ve yayınla</button><small>Slide sayısı otomatik algılanır. Her slide kendi görselini kullanır ve ana sayfadaki noktalar slide sayısına göre oluşur.</small></div>';
 
   $$("[data-slide-editor]").forEach(card=>{
     const i=Number(card.dataset.slideEditor);
@@ -568,6 +584,7 @@ function renderHomeSlidesAdmin(){
       el.oninput=()=>{homeSlidesCache.slides[i][el.dataset.slideField]=el.value};
     });
   });
+
   $$("[data-slide-file]").forEach(inp=>inp.onchange=()=>{
     const i=Number(inp.dataset.slideFile),file=inp.files?.[0];
     if(!file)return;
@@ -576,14 +593,45 @@ function renderHomeSlidesAdmin(){
     reader.onload=()=>{
       homeSlidesCache.slides[i].image=String(reader.result||"");
       renderHomeSlidesAdmin();
-      toast("Görsel hazır. Kaydetmeyi unutmayın.");
+      toast("Slide "+(i+1)+" görseli hazır. Kaydetmeyi unutmayın.");
     };
     reader.readAsDataURL(file);
   });
-  $("[data-slide-remove]").forEach(btn=>btn.onclick=()=>{
-    homeSlidesCache.slides[Number(btn.dataset.slideRemove)].image="";
+
+  $$("[data-slide-image-remove]").forEach(btn=>btn.onclick=()=>{
+    const i=Number(btn.dataset.slideImageRemove);
+    homeSlidesCache.slides[i].image="";
     renderHomeSlidesAdmin();
   });
+
+  $$("[data-slide-delete]").forEach(btn=>btn.onclick=()=>{
+    if(homeSlidesCache.slides.length<=1)return;
+    const i=Number(btn.dataset.slideDelete);
+    homeSlidesCache.slides.splice(i,1);
+    renderHomeSlidesAdmin();
+    toast("Slide kaldırıldı. Kaydettiğinizde yayınlanacak.");
+  });
+
+  const add=$("#addHomeSlide");
+  if(add)add.onclick=()=>{
+    if(homeSlidesCache.slides.length>=12){toast("En fazla 12 slide ekleyebilirsiniz.");return}
+    const n=homeSlidesCache.slides.length+1;
+    homeSlidesCache.slides.push({
+      id:"slide-"+n,
+      badge:"Yeni slide",
+      title:"Yeni başlık",
+      highlight:"Vurgulu metin.",
+      description:"Bu slide için açıklamanızı yazın.",
+      primaryLabel:"Uygulamaya Gir",
+      primaryUrl:"/panel.html",
+      secondaryLabel:"Daha fazla bilgi",
+      secondaryUrl:"#features",
+      image:""
+    });
+    renderHomeSlidesAdmin();
+    toast("Yeni slide eklendi. Görselini seçip kaydedin.");
+  };
+
   const demoFile=$("#demoPngFile");
   if(demoFile)demoFile.onchange=()=>{
     const file=demoFile.files?.[0];
@@ -596,6 +644,7 @@ function renderHomeSlidesAdmin(){
   };
   const removeDemo=$("#removeDemoPng");
   if(removeDemo)removeDemo.onclick=()=>{homeSlidesCache.demoPng="";renderHomeSlidesAdmin()};
+
   $("#saveHomeSlides").onclick=async()=>{
     const btn=$("#saveHomeSlides");
     try{
