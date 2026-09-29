@@ -519,6 +519,50 @@ function settingsModal(){
 }
 
 let homeSlidesCache=null;
+async function optimizeImageDataUrl(source,{maxW=1600,maxH=1600,quality=.82}={}){
+  if(!source||!String(source).startsWith("data:image/"))return source;
+  try{
+    if(String(source).length<420000)return source;
+    const blob=await (await fetch(source)).blob();
+    const bitmap=await createImageBitmap(blob);
+    const scale=Math.min(1,maxW/bitmap.width,maxH/bitmap.height);
+    const w=Math.max(1,Math.round(bitmap.width*scale));
+    const h=Math.max(1,Math.round(bitmap.height*scale));
+    const canvas=document.createElement("canvas");
+    canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext("2d",{alpha:true});
+    ctx.drawImage(bitmap,0,0,w,h);
+    bitmap.close?.();
+    return canvas.toDataURL("image/webp",quality);
+  }catch(e){
+    console.warn("image optimization skipped",e);
+    return source;
+  }
+}
+async function optimizeImageFile(file,opts){
+  const raw=await new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(String(r.result||""));
+    r.onerror=reject;
+    r.readAsDataURL(file);
+  });
+  return optimizeImageDataUrl(raw,opts);
+}
+async function optimizeIndexMedia(config){
+  if(!config)return config;
+  const jobs=[];
+  const add=(getter,setter,opts)=>{
+    const v=getter();
+    if(v&&String(v).length>420000)jobs.push(optimizeImageDataUrl(v,opts).then(setter));
+  };
+  add(()=>config.branding?.logoImage,v=>config.branding.logoImage=v,{maxW:700,maxH:300,quality:.86});
+  add(()=>config.demoPng,v=>config.demoPng=v,{maxW:1400,maxH:1400,quality:.86});
+  add(()=>config.storyImage,v=>config.storyImage=v,{maxW:1600,maxH:1200,quality:.82});
+  (config.slides||[]).forEach((s)=>add(()=>s.image,v=>s.image=v,{maxW:1200,maxH:1800,quality:.82}));
+  (config.sections?.features?.items||[]).forEach((x)=>add(()=>x.image,v=>x.image=v,{maxW:1400,maxH:1200,quality:.82}));
+  if(jobs.length)await Promise.all(jobs);
+  return config;
+}
 function indexAdminFallback(){
   return {
     branding:{name:"Parently",tagline:"Aile bağını güçlendir",logoImage:""},
@@ -642,13 +686,11 @@ function renderHomeSlidesAdmin(){
     const i=Number(inp.dataset.slideFile),file=inp.files?.[0];
     if(!file)return;
     if(file.size>5*1024*1024){toast("Resim 5 MB'dan küçük olmalı");inp.value="";return}
-    const reader=new FileReader();
-    reader.onload=()=>{
-      homeSlidesCache.slides[i].image=String(reader.result||"");
+    optimizeImageFile(file,{maxW:1200,maxH:1800,quality:.82}).then(data=>{
+      homeSlidesCache.slides[i].image=data;
       renderHomeSlidesAdmin();
-      toast("Slide "+(i+1)+" görseli hazır. Kaydetmeyi unutmayın.");
-    };
-    reader.readAsDataURL(file);
+      toast("Slide "+(i+1)+" görseli optimize edildi. Kaydetmeyi unutmayın.");
+    }).catch(()=>toast("Slide görseli hazırlanamadı"));
   });
 
   $$("[data-slide-image-remove]").forEach(btn=>btn.onclick=()=>{
@@ -689,6 +731,8 @@ function renderHomeSlidesAdmin(){
     const btn=$("#saveHomeSlides");
     try{
       btn.disabled=true;
+      btn.textContent="Hazırlanıyor...";
+      await optimizeIndexMedia(homeSlidesCache);
       btn.textContent="Kaydediliyor...";
       homeSlidesCache=await api("/api/site/home",{
         method:"PUT",
@@ -697,9 +741,10 @@ function renderHomeSlidesAdmin(){
       renderHomeSlidesAdmin();
       toast("Ana sayfa sliderı yayınlandı");
     }catch(e){
-      btn.disabled=false;
-      btn.textContent="Ana sayfa ayarlarını kaydet ve yayınla";
+      console.error(e);
       toast("Slider kaydedilemedi");
+    }finally{
+      const b=$("#saveHomeSlides");if(b){b.disabled=false;b.textContent="Ana sayfa ayarlarını kaydet ve yayınla"}
     }
   };
 }
@@ -774,11 +819,20 @@ function renderIndexGeneralAdmin(){
   $$("[data-site-path]").forEach(el=>el.oninput=()=>sitePathSet(homeSlidesCache,el.dataset.sitePath,el.value));
   $$("[data-plan-features]").forEach(el=>el.oninput=()=>{const i=Number(el.dataset.planFeatures);sitePathSet(homeSlidesCache,"sections.pricing.plans."+i+".features",el.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))});
 
-  const readImage=(input,assign,label,requirePng=false)=>{
+  const readImage=async(input,assign,label,requirePng=false)=>{
     const file=input?.files?.[0];if(!file)return;
     if(requirePng&&file.type!=="image/png"){toast("Bu alan için PNG seçin");input.value="";return}
-    if(file.size>5*1024*1024){toast("Görsel 5 MB'dan küçük olmalı");input.value="";return}
-    const r=new FileReader();r.onload=()=>{assign(String(r.result||""));renderIndexGeneralAdmin();renderHomeSlidesAdmin();toast(label+" hazır. Kaydetmeyi unutmayın.")};r.readAsDataURL(file);
+    if(file.size>12*1024*1024){toast("Görsel 12 MB'dan küçük olmalı");input.value="";return}
+    try{
+      toast(label+" hazırlanıyor...");
+      const opts=label==="Logo"?{maxW:700,maxH:300,quality:.86}:{maxW:1400,maxH:1400,quality:.84};
+      const optimized=await optimizeImageFile(file,opts);
+      assign(optimized);
+      renderIndexGeneralAdmin();renderHomeSlidesAdmin();
+      toast(label+" hazır. Kaydetmeyi unutmayın.");
+    }catch(e){
+      console.error(e);toast("Görsel hazırlanamadı");
+    }
   };
 
   $("#indexLogoFile")&&( $("#indexLogoFile").onchange=()=>readImage($("#indexLogoFile"),v=>homeSlidesCache.branding.logoImage=v,"Logo") );
@@ -810,10 +864,16 @@ function indexAdminView(){
     const saveBtn=$("#indexSaveAll");
     if(saveBtn)saveBtn.onclick=async()=>{
       try{
-        saveBtn.disabled=true;saveBtn.textContent="Kaydediliyor...";
+        saveBtn.disabled=true;saveBtn.textContent="Hazırlanıyor...";
+        await optimizeIndexMedia(homeSlidesCache);
+        saveBtn.textContent="Kaydediliyor...";
         homeSlidesCache=await api("/api/site/home",{method:"PUT",body:JSON.stringify({familyCode,pin:String(state.pin||""),config:homeSlidesCache})});
         renderIndexGeneralAdmin();renderHomeSlidesAdmin();toast("Index yayınlandı");
-      }catch{toast("Index kaydedilemedi")}
+      }catch(e){
+        console.error(e);toast("Index kaydedilemedi");
+      }finally{
+        const b=$("#indexSaveAll");if(b){b.disabled=false;b.textContent="Tüm Index’i kaydet"}
+      }
     };
   });
 }
