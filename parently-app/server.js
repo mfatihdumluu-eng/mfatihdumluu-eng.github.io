@@ -143,7 +143,7 @@ const SITE_FILE=path.join(__dirname,"site-config.json");
 function defaultHomeConfig(){
   return {
     branding:{name:"Parently",tagline:"Aile bağını güçlendir",logoImage:""},
-    navigation:{how:"Nasıl çalışır?",cards:"Kartları keşfet",features:"Özellikler",pricing:"Planlar",contact:"İletişim",app:"Uygulamaya Gir"},
+    navigation:{how:"Nasıl çalışır?",cards:"Kartları keşfet",features:"Özellikler",expert:"Uzmana Sor",pricing:"Planlar",contact:"İletişim",app:"Uygulamaya Gir"},
     demoPng:"",
     storyImage:"",
     slides:[
@@ -163,6 +163,11 @@ function defaultHomeConfig(){
         {symbol:"✳",title:"Sohbet kartları",description:"Farklı yaşlara uygun sorularla konuşmaya başlayın.",label:"Bir soruyla başlayın ♡",copy:"Yaşa uygun sorularla sohbeti başlatın; doğru cevabı aramak yerine birbirinizi merakla dinleyin.",image:""},
         {symbol:"◷",title:"Aile rutinleri",description:"Birlikte yapmak istediklerinize zaman ayırın.",label:"Küçük rutinleri koruyun ◷",copy:"Birlikte yapmak istediğiniz küçük şeylere zaman ayırın ve onları aile ritminizin doğal parçası haline getirin.",image:""},
         {symbol:"▤",title:"Ortak ajanda",description:"Aile planlarını tek yerde görün.",label:"Aile planları tek yerde ▤",copy:"Okul, aktivite ve özel aile zamanlarını tek bir ortak ajandada görün; herkes ne olacağını bilsin.",image:""}
+      ]},
+      expert:{eyebrow:"Uzmana Sor",title:"Bazen doğru zamanda doğru kişiye ulaşmak yeter.",description:"Parently içinde seçtiğiniz uzmanla mesajlaşın, görüntülü görüşme planlayın ve ihtiyaç duyduğunuzda uzmanı aile sohbetine dahil edin.",button:"Uzmana Sor",url:"/expert-support.html",items:[
+        {icon:"💬",title:"Uzmanla mesajlaşın",description:"Sorularınızı özel mesajla paylaşın ve yanıtları tek yerde tutun."},
+        {icon:"◉",title:"Görüntülü görüşün",description:"Uygun zamanda görüntülü görüşme talebi oluşturun ve görüşme odasına katılın."},
+        {icon:"＋",title:"Aile sohbetine davet edin",description:"İsterseniz uzmanı yalnızca seçtiğiniz aile sohbetine dahil edin."}
       ]},
       pricing:{eyebrow:"Planlar",title:"Ailenize uygun başlangıcı seçin.",description:"Planlar lansman öncesi taslak olarak gösterilmektedir.",noteLabel:"Esnek başlangıç",noteText:"İhtiyacınıza göre büyütün.",plans:[
         {icon:"✦",tag:"Başlangıç",name:"Demo",price:"Ücretsiz",description:"Parently deneyimini tanımak için.",features:["Temel kartlar","Demo aile profili","Ajanda ön izlemesi"],button:"Demoyu aç",url:"/panel.html"},
