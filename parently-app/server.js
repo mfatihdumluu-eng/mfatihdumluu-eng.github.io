@@ -441,6 +441,100 @@ app.put("/api/site/home/media",async(req,res)=>{
     res.status(500).json({error:"site_media_save_failed"});
   }
 });
+app.get("/api/experts",(req,res)=>res.json(defaultExperts()));
+
+app.post("/api/expert/message/:code",async(req,res)=>{
+  try{
+    const saved=await withFamilyLock(req.params.code,async()=>{
+      const state=await loadState(req.params.code);
+      state.experts=state.experts?.length?state.experts:defaultExperts();
+      state.expertConnections=state.expertConnections||[];
+      state.expertMessages=state.expertMessages||[];
+      const expertId=String(req.body?.expertId||"");
+      const senderType=String(req.body?.senderType||"parent");
+      const senderId=String(req.body?.senderId||"");
+      const channel=String(req.body?.channel||"private");
+      const text=String(req.body?.text||"").trim().slice(0,4000);
+      if(!expertId||!text)return null;
+      const connection=state.expertConnections.find(x=>x.expertId===expertId&&x.status!=="revoked");
+      if(channel==="family"&&!connection?.familyChatAccess)return null;
+      state.expertMessages.push({
+        id:"em-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),
+        expertId,senderType,senderId,channel,text,at:new Date().toISOString()
+      });
+      return saveState(req.params.code,state);
+    });
+    if(!saved)return res.status(400).json({error:"expert_message_invalid"});
+    broadcast(req.params.code);
+    res.json({ok:true});
+  }catch(e){console.error(e);res.status(500).json({error:"expert_message_failed"});}
+});
+
+app.post("/api/expert/connection/:code",async(req,res)=>{
+  try{
+    const saved=await withFamilyLock(req.params.code,async()=>{
+      const state=await loadState(req.params.code);
+      state.experts=state.experts?.length?state.experts:defaultExperts();
+      state.expertConnections=state.expertConnections||[];
+      const expertId=String(req.body?.expertId||"");
+      if(!expertId)return null;
+      let link=state.expertConnections.find(x=>x.expertId===expertId&&x.status!=="revoked");
+      if(!link){
+        link={id:"ec-"+Date.now(),expertId,status:"active",familyChatAccess:false,childProfileIds:[],createdAt:new Date().toISOString()};
+        state.expertConnections.push(link);
+      }
+      if(Array.isArray(req.body?.childProfileIds))link.childProfileIds=req.body.childProfileIds.map(String);
+      if(typeof req.body?.familyChatAccess==="boolean")link.familyChatAccess=req.body.familyChatAccess;
+      if(req.body?.status)link.status=String(req.body.status);
+      link.updatedAt=new Date().toISOString();
+      await saveState(req.params.code,state);
+      return link;
+    });
+    if(!saved)return res.status(400).json({error:"expert_connection_invalid"});
+    broadcast(req.params.code);
+    res.json({ok:true,connection:saved});
+  }catch(e){console.error(e);res.status(500).json({error:"expert_connection_failed"});}
+});
+
+app.post("/api/expert/session/:code",async(req,res)=>{
+  try{
+    const saved=await withFamilyLock(req.params.code,async()=>{
+      const state=await loadState(req.params.code);
+      state.expertSessions=state.expertSessions||[];
+      const action=String(req.body?.action||"request");
+      const sessionId=String(req.body?.sessionId||"");
+      if(action==="request"){
+        const expertId=String(req.body?.expertId||"");
+        if(!expertId)return null;
+        const id="es-"+Date.now()+"-"+Math.random().toString(36).slice(2,6);
+        const safeCode=String(req.params.code||"family").replace(/[^a-z0-9]/gi,"");
+        const session={
+          id,expertId,type:"video",status:"requested",
+          requestedBy:String(req.body?.requestedBy||""),
+          requestedAt:new Date().toISOString(),
+          scheduledFor:String(req.body?.scheduledFor||""),
+          note:String(req.body?.note||"").slice(0,1000),
+          roomUrl:"https://meet.jit.si/Parently-"+safeCode+"-"+id.replace(/[^a-z0-9]/gi,"")
+        };
+        state.expertSessions.push(session);
+        await saveState(req.params.code,state);
+        return session;
+      }
+      const session=state.expertSessions.find(x=>x.id===sessionId);
+      if(!session)return null;
+      if(["accept","start","complete","cancel"].includes(action)){
+        session.status={accept:"accepted",start:"active",complete:"completed",cancel:"cancelled"}[action];
+        session.updatedAt=new Date().toISOString();
+      }
+      await saveState(req.params.code,state);
+      return session;
+    });
+    if(!saved)return res.status(400).json({error:"expert_session_invalid"});
+    broadcast(req.params.code);
+    res.json({ok:true,session:saved});
+  }catch(e){console.error(e);res.status(500).json({error:"expert_session_failed"});}
+});
+
 app.get("/api/state/:code",async(req,res)=>{try{res.json(await loadState(req.params.code));}catch(e){console.error(e);res.status(500).json({error:"state_load_failed"});}});
 app.get("/api/events/:code",(req,res)=>{
   const key=(req.params.code||"AILE2026").toUpperCase();
