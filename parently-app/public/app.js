@@ -576,7 +576,6 @@ function renderHomeSlidesAdmin(){
         </div>
       </article>`;
     }).join("")+'</div>'+
-    '<div class="home-demo-png"><div><span class="slide-index">KART / UYGULAMA PNG</span><h3>Şeffaf PNG görsel alanı</h3><p>“Kartları keşfet” bölümündeki sağ görsel alanına gelir. Arka plan görünür kalır.</p></div><div class="slide-image-preview demo-png-preview '+(homeSlidesCache.demoPng?"has-image":"")+'" style="'+(homeSlidesCache.demoPng?'background-image:url('+JSON.stringify(homeSlidesCache.demoPng)+')':'')+'">'+(homeSlidesCache.demoPng?"":"PNG yok")+'</div><label class="upload-button">PNG seç<input id="demoPngFile" type="file" accept="image/png" hidden></label><button id="removeDemoPng" class="secondary" type="button">PNG kaldır</button></div>'+
     '<div class="home-slider-save"><button id="saveHomeSlides" class="primary" type="button">Ana sayfa ayarlarını kaydet ve yayınla</button><small>Slide sayısı otomatik algılanır. Her slide kendi görselini kullanır ve ana sayfadaki noktalar slide sayısına göre oluşur.</small></div>';
 
   $$("[data-slide-editor]").forEach(card=>{
@@ -632,19 +631,6 @@ function renderHomeSlidesAdmin(){
     renderHomeSlidesAdmin();
     toast("Yeni slide eklendi. Görselini seçip kaydedin.");
   };
-
-  const demoFile=$("#demoPngFile");
-  if(demoFile)demoFile.onchange=()=>{
-    const file=demoFile.files?.[0];
-    if(!file)return;
-    if(file.type!=="image/png"){toast("Bu alan için PNG seçin");demoFile.value="";return}
-    if(file.size>5*1024*1024){toast("PNG 5 MB'dan küçük olmalı");demoFile.value="";return}
-    const reader=new FileReader();
-    reader.onload=()=>{homeSlidesCache.demoPng=String(reader.result||"");renderHomeSlidesAdmin();toast("PNG hazır. Kaydetmeyi unutmayın.")};
-    reader.readAsDataURL(file);
-  };
-  const removeDemo=$("#removeDemoPng");
-  if(removeDemo)removeDemo.onclick=()=>{homeSlidesCache.demoPng="";renderHomeSlidesAdmin()};
 
   $("#saveHomeSlides").onclick=async()=>{
     const btn=$("#saveHomeSlides");
