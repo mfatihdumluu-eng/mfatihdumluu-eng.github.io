@@ -556,3 +556,15 @@ section.section{padding:112px 0}.section-head{max-width:720px;margin-bottom:46px
     max-height:560px!important;
   }
 }
+
+/* FALLBACK HERO VISUAL VARIANTS PER SLIDE */
+.hero-art.theme-conversation{background:linear-gradient(145deg,#e8f4eb,#f7ead7)}
+.hero-art.theme-cards{background:linear-gradient(145deg,#f5eee6,#e6f3ec)}
+.hero-art.theme-agenda{background:linear-gradient(145deg,#eef1e8,#fff0e7)}
+.hero-art.theme-cards .hero-panel{transform:rotate(-2deg);background:#fffaf6}
+.hero-art.theme-cards .floating-note{background:#d96d55;color:#142f2b}
+.hero-art.theme-cards .floating-note span{color:#173e34}
+.hero-art.theme-cards .sun{background:#b9e1cf}
+.hero-art.theme-agenda .hero-panel{transform:rotate(1deg);background:#fdfefc}
+.hero-art.theme-agenda .floating-note{background:#244b42}
+.hero-art.theme-agenda .sun{background:#f4b892}
