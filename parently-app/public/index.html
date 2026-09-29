@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/landing.css?v=20260929-slide-fit-images-v2">
+<link rel="stylesheet" href="/landing.css?v=20260929-fallback-variants">
 <style id="pricing-critical">
 #pricing.pricing-organic{background:#f7f2e9;position:relative;overflow:hidden;padding:112px 0}
 #pricing.pricing-organic:before{content:"";position:absolute;width:340px;height:340px;border-radius:50%;background:#dfeee6;left:-130px;top:70px;opacity:.8}
@@ -101,12 +101,12 @@
       <div class="hero-bg-shape"></div>
       <img id="heroSlideImage" class="hero-slide-image" alt="">
       <div class="hero-panel" id="heroFallback">
-        <div class="topline"><span>BUGÜNÜN SOHBETİ</span><span class="avatar-stack"><i>👩</i><i>🧒</i><i>👨</i></span></div>
-        <h3>Bugün seni en çok ne gülümsetti?</h3>
-        <span class="pill">Birlikte konuşalım</span>
-        <div class="card-foot"><span>Bir soruyla başlayın</span><span class="circle-arrow">↗</span></div>
+        <div class="topline"><span id="fallbackKicker">BUGÜNÜN SOHBETİ</span><span class="avatar-stack"><i>👩</i><i>🧒</i><i>👨</i></span></div>
+        <h3 id="fallbackTitle">Bugün seni en çok ne gülümsetti?</h3>
+        <span class="pill" id="fallbackPill">Birlikte konuşalım</span>
+        <div class="card-foot"><span id="fallbackFoot">Bir soruyla başlayın</span><span class="circle-arrow">↗</span></div>
       </div>
-      <div class="floating-note"><span>Küçük bir rutin</span><strong>Akşam yemeğinde herkes bir şey anlatsın.</strong></div>
+      <div class="floating-note"><span id="fallbackNoteKicker">Küçük bir rutin</span><strong id="fallbackNote">Akşam yemeğinde herkes bir şey anlatsın.</strong></div>
       <div class="sun"></div>
     </div>
   </div>
@@ -251,6 +251,6 @@
     <div class="footer-bottom">© <span id="year">2026</span> Parently. Tüm hakları saklıdır.</div>
   </div>
 </footer>
-<script src="/landing.js?v=20260929-slide-fit-images-v2"></script>
+<script src="/landing.js?v=20260929-fallback-variants"></script>
 </body>
 </html>
