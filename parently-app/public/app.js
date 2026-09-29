@@ -25,6 +25,11 @@ function defaults(){
   state.moodStreaks ||= {};
   state.quietHours ||= {enabled:false,start:"20:30",end:"07:00"};
   state.encouragements ||= [];
+  state.experts ||= [];
+  state.expertConnections ||= [];
+  state.expertMessages ||= [];
+  state.expertSessions ||= [];
+  state.expertInvites ||= [];
   state.settings ||= {language:"tr",notifications:true,highContrast:false};
   state.membership ||= {plan:"premium",status:"active",startedAt:today(),renewalAt:""};
   state.adminConfig ||= {ageGroups:{"2-5":{enabled:true,label:"2–5 yaş"},"6-9":{enabled:true,label:"6–9 yaş"},"10-13":{enabled:true,label:"10–13 yaş"},"14-16":{enabled:true,label:"14–16 yaş"}},plans:{trial:{name:"Trial",maxParents:1,maxChildren:1,ageGroups:["2-5","6-9","10-13","14-16"],ai:false},standard:{name:"Standard",maxParents:1,maxChildren:1,ageGroups:["2-5","6-9","10-13","14-16"],ai:false},premium:{name:"Premium",maxParents:2,maxChildren:4,ageGroups:["2-5","6-9","10-13","14-16"],ai:true}}};
@@ -410,8 +415,14 @@ function specialTime(){let seconds=600;openModal('<h2>⏱️ 10 Dakika Özel Zam
 
 function chatView(){
  const me=state.mode==="child"?activeChild():(profile(state.activeProfileId)?.role==="parent"?profile(state.activeProfileId):state.profiles.find(p=>p.role==="parent")||profile(state.activeProfileId));
- const messages=state.messages||[], quiet=state.quietHours.enabled;
- const members=state.profiles.map(p=>'<div class="chat-member"><span style="background:'+p.color+'">'+esc(p.avatar)+'</span><div><b>'+esc(p.name)+'</b><small>'+(p.role==="child"?"Çocuk":"Ebeveyn")+'</small></div></div>').join("");
+ const quiet=state.quietHours.enabled;
+ const expertLinks=(state.expertConnections||[]).filter(x=>x.status!=="revoked"&&x.familyChatAccess);
+ const familyExperts=expertLinks.map(x=>(state.experts||[]).find(e=>e.id===x.expertId)).filter(Boolean);
+ const familyMessages=(state.messages||[]).map(m=>({...m,_kind:"family"}));
+ const expertFamilyMessages=(state.expertMessages||[]).filter(m=>m.channel==="family").map(m=>({...m,_kind:"expert"}));
+ const messages=[...familyMessages,...expertFamilyMessages].sort((a,b)=>new Date(a.at)-new Date(b.at));
+ const members=state.profiles.map(p=>'<div class="chat-member"><span style="background:'+p.color+'">'+esc(p.avatar)+'</span><div><b>'+esc(p.name)+'</b><small>'+(p.role==="child"?"Çocuk":"Ebeveyn")+'</small></div></div>').join("")+
+   familyExperts.map(e=>'<div class="chat-member expert-member"><span style="background:'+e.color+'">'+esc(e.avatar)+'</span><div><b>'+esc(e.name)+'</b><small>Uzman</small></div></div>').join("");
  const recentCount=messages.filter(m=>Date.now()-new Date(m.at).getTime()<86400000).length;
  view.innerHTML=`
  <div class="family-chat-layout">
@@ -427,8 +438,10 @@ function chatView(){
        ${quiet?'<span class="quiet-chip">🌙 '+state.quietHours.start+'–'+state.quietHours.end+'</span>':''}
      </div>
      <div id="chatBox" class="chat-box family-group-chat">${messages.map(m=>{
-       const p=profile(m.senderId);
-       return '<div class="group-message '+(m.senderId===me.id?"me":"")+'"><span class="group-avatar" style="background:'+(p?.color||"#21B889")+'">'+esc(p?.avatar||"?")+'</span><div class="group-bubble"><div class="group-name">'+esc(p?.name||"Aile")+'</div><div>'+esc(m.text)+'</div><div class="meta">'+new Date(m.at).toLocaleString("tr-TR")+'</div></div></div>'
+       const ep=m._kind==="expert"?(state.experts||[]).find(e=>e.id===m.expertId):null;
+       const p=ep||profile(m.senderId);
+       const mine=m._kind!=="expert"&&m.senderId===me.id;
+       return '<div class="group-message '+(mine?"me":"")+' '+(ep?"expert-message":"")+'"><span class="group-avatar" style="background:'+(p?.color||"#21B889")+'">'+esc(p?.avatar||"?")+'</span><div class="group-bubble"><div class="group-name">'+esc(p?.name||(ep?"Uzman":"Aile"))+(ep?' <span class="expert-badge">Uzman</span>':'')+'</div><div>'+esc(m.text)+'</div><div class="meta">'+new Date(m.at).toLocaleString("tr-TR")+'</div></div></div>'
      }).join("")}</div>
      <div class="chat-compose">
        <div class="compose-who">Gönderen: <b>${esc(me.name)}</b>${state.mode==="parent"?'<button id="changeSender" class="sender-change">Değiştir</button>':""}</div>
@@ -443,7 +456,7 @@ function chatView(){
  const changeSender=$("#changeSender");
  if(changeSender)changeSender.onclick=()=>{openModal('<h2>Mesajı kim gönderiyor?</h2><p class="muted">Ebeveyn profilini seçin.</p><div class="profile-picker">'+state.profiles.filter(p=>p.role==="parent").map(p=>'<button class="pick-profile" data-sender="'+p.id+'"><span class="profile-dot" style="background:'+p.color+'">'+esc(p.avatar)+'</span><b>'+esc(p.name)+'</b></button>').join("")+'</div>');$$("[data-sender]").forEach(b=>b.onclick=()=>{state.activeProfileId=b.dataset.sender;persistDeviceUi();closeModal();chatView()})};
 }
-async function refreshMessages(){try{const fresh=await api("/api/state/"+encodeURIComponent(familyCode));state.messages=fresh.messages||[];if(route==="chat")chatView()}catch{}}
+async function refreshMessages(){try{const fresh=await api("/api/state/"+encodeURIComponent(familyCode));state.messages=fresh.messages||[];state.experts=fresh.experts||state.experts||[];state.expertConnections=fresh.expertConnections||[];state.expertMessages=fresh.expertMessages||[];state.expertSessions=fresh.expertSessions||[];if(route==="chat")chatView()}catch{}}
 function pollMessages(){setInterval(()=>{if(route==="chat")refreshMessages()},3500)}
 function changeFamilyCode(){openModal('<h2>Aile kodu</h2><p class="muted">Başka cihazda aynı kodu yazarak aynı aile alanına bağlanabilirsiniz.</p><input id="fc" class="input" value="'+esc(familyCode)+'"><button id="fcSave" class="primary full">Bağlan</button>');$("#fcSave").onclick=()=>{const v=$("#fc").value.toUpperCase().replace(/[^A-Z0-9_-]/g,"").slice(0,30);if(!v)return;familyCode=v;localStorage.setItem("parently_family",v);closeModal();load();toast("Aile alanı değiştirildi")}}
 
