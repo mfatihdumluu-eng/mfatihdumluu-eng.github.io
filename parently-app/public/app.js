@@ -666,7 +666,7 @@ function renderHomeSlidesAdmin(){
         </div>
 
         <div class="slide-editor-footer">
-          <small>Önerilen: 1080×1920 veya benzer 9:16 oran.</small>
+          <small>Önerilen: 1600×1600 px · 1:1 · transparan PNG önerilir.</small>
           <button class="danger-link" data-slide-delete="${i}" type="button" ${slides.length<=1?"disabled":""}>Slide’ı sil</button>
         </div>
       </article>`;
@@ -683,21 +683,29 @@ function renderHomeSlidesAdmin(){
   $$("[data-slide-file]").forEach(inp=>inp.onchange=()=>{
     const i=Number(inp.dataset.slideFile),file=inp.files?.[0];
     if(!file)return;
-    if(file.size>5*1024*1024){toast("Resim 5 MB'dan küçük olmalı");inp.value="";return}
-    optimizeImageFile(file,{maxW:1600,maxH:1600,quality:.84}).then(async data=>{
-      homeSlidesCache.slides[i].image=data;
-      await saveIndexConfigNow("Slide "+(i+1)+" görseli kaydedildi");
-      renderIndexGeneralAdmin();
-      renderHomeSlidesAdmin();
-    }).catch(()=>toast("Slide görseli hazırlanamadı"));
+    if(!/^image\/(png|jpeg|webp)$/i.test(file.type||"")){toast("PNG, JPG veya WebP seçin");inp.value="";return}
+    if(file.size>5*1024*1024){toast("Slide görseli 5 MB'dan küçük olmalı");inp.value="";return}
+    const reader=new FileReader();
+    reader.onload=async()=>{
+      try{
+        const raw=String(reader.result||"");
+        await saveSingleSlideImage(i,raw);
+        homeSlidesCache.slides[i].image=raw;
+        renderIndexGeneralAdmin();renderHomeSlidesAdmin();
+        toast("Slide "+(i+1)+" görseli kaydedildi");
+      }catch(err){console.error(err);toast("Slide görseli kaydedilemedi")}
+    };
+    reader.readAsDataURL(file);
   });
 
   $$("[data-slide-image-remove]").forEach(btn=>btn.onclick=async()=>{
     const i=Number(btn.dataset.slideImageRemove);
-    homeSlidesCache.slides[i].image="";
-    await saveIndexConfigNow("Slide "+(i+1)+" görseli kaldırıldı");
-    renderIndexGeneralAdmin();
-    renderHomeSlidesAdmin();
+    try{
+      await saveSingleSlideImage(i,"");
+      homeSlidesCache.slides[i].image="";
+      renderIndexGeneralAdmin();renderHomeSlidesAdmin();
+      toast("Slide "+(i+1)+" görseli kaldırıldı");
+    }catch(err){console.error(err);toast("Slide görseli kaldırılamadı")}
   });
 
   $$("[data-slide-delete]").forEach(btn=>btn.onclick=()=>{
