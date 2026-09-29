@@ -713,7 +713,7 @@ function renderIndexGeneralAdmin(){
     '<section class="index-order-card card admin-panel"><div class="index-order-badge">06</div><div class="admin-panel-head"><div><span class="eyebrow">ÖZELLİKLER</span><h2>Parently ile</h2><p class="muted">Büyük görsel ve üç özellik satırı burada birlikte yönetilir.</p></div></div>'+
       '<div class="index-field-grid">'+indexField("sections.features.eyebrow","Etiket")+indexField("sections.features.title","Başlık")+indexField("sections.features.description","Başlangıç açıklaması","textarea")+'</div>'+
       mediaControl("storyImageFile","Büyük bölüm görseli","Aile veya uygulama görselinizi yükleyin.",homeSlidesCache.storyImage||"","image/png,image/jpeg,image/webp",true)+
-      '<div class="index-repeat-grid">'+(s.features?.items||[]).map((_,i)=>'<div class="index-repeat-card"><b>Özellik '+(i+1)+'</b>'+indexField("sections.features.items."+i+".symbol","İkon")+indexField("sections.features.items."+i+".title","Başlık")+indexField("sections.features.items."+i+".description","Kısa açıklama")+indexField("sections.features.items."+i+".label","Görsel etiketi")+indexField("sections.features.items."+i+".copy","Hover açıklaması","textarea")+'</div>').join("")+'</div>'+
+      '<div class="index-repeat-grid feature-admin-grid">'+(s.features?.items||[]).map((item,i)=>'<div class="index-repeat-card"><b>Özellik '+(i+1)+'</b>'+mediaControl("featureImageFile"+i,"Hover resmi","Mouse bu özelliğin üzerine gelince soldaki büyük alanda bu resim gösterilir.",item.image||"","image/png,image/jpeg,image/webp",true)+indexField("sections.features.items."+i+".symbol","İkon")+indexField("sections.features.items."+i+".title","Başlık")+indexField("sections.features.items."+i+".description","Kısa açıklama")+indexField("sections.features.items."+i+".label","Görsel etiketi")+indexField("sections.features.items."+i+".copy","Hover açıklaması","textarea")+'</div>').join("")+'</div>'+
     '</section>'+
 
     '<section class="index-order-card card admin-panel"><div class="index-order-badge">07</div><div class="admin-panel-head"><div><span class="eyebrow">FİYATLANDIRMA</span><h2>Planlar</h2><p class="muted">Her planın ikonu, metinleri ve butonu kendi kartında.</p></div></div>'+
@@ -738,11 +738,19 @@ function renderIndexGeneralAdmin(){
   $("#indexLogoFile")&&( $("#indexLogoFile").onchange=()=>readImage($("#indexLogoFile"),v=>homeSlidesCache.branding.logoImage=v,"Logo") );
   $("#demoPngFile")&&( $("#demoPngFile").onchange=()=>readImage($("#demoPngFile"),v=>homeSlidesCache.demoPng=v,"PNG",true) );
   $("#storyImageFile")&&( $("#storyImageFile").onchange=()=>readImage($("#storyImageFile"),v=>homeSlidesCache.storyImage=v,"Bölüm görseli") );
+  (s.features?.items||[]).forEach((_,i)=>{
+    const input=$("#featureImageFile"+i);
+    if(input)input.onchange=()=>readImage(input,v=>homeSlidesCache.sections.features.items[i].image=v,"Özellik "+(i+1)+" resmi");
+  });
 
-  $$("[data-remove-media]").forEach(btn=>btn.onclick=()=>{
+  $("[data-remove-media]").forEach(btn=>btn.onclick=()=>{
     if(btn.dataset.removeMedia==="indexLogoFile")homeSlidesCache.branding.logoImage="";
     if(btn.dataset.removeMedia==="demoPngFile")homeSlidesCache.demoPng="";
     if(btn.dataset.removeMedia==="storyImageFile")homeSlidesCache.storyImage="";
+    if(/^featureImageFile\d+$/.test(btn.dataset.removeMedia)){
+      const i=Number(btn.dataset.removeMedia.replace("featureImageFile",""));
+      if(homeSlidesCache.sections?.features?.items?.[i])homeSlidesCache.sections.features.items[i].image="";
+    }
     renderIndexGeneralAdmin();renderHomeSlidesAdmin();
   });
 }
