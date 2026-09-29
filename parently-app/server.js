@@ -150,6 +150,9 @@ function baseState(code="AILE2026"){
     expertSessions:[],
     expertInvites:[],
     expertNotes:[],
+    expertPrograms:[],
+    expertProgramAssignments:[],
+    expertProfiles:{},
     aiGeneratedCards:[],
     aiHistory:[],
     settings:{language:"tr",notifications:true,highContrast:false}
@@ -320,12 +323,13 @@ function mergeMoods(current=[],incoming=[]){
 }
 function mergeState(current,incoming){
   const merged={...current,...incoming};
-  for(const key of ["profiles","cards","tasks","rituals","calendar","messages","specialSessions","completedCards","supportTickets","expertConnections","expertMessages","expertSessions","expertInvites","expertNotes","aiGeneratedCards","aiHistory"]){
+  for(const key of ["profiles","cards","tasks","rituals","calendar","messages","specialSessions","completedCards","supportTickets","expertConnections","expertMessages","expertSessions","expertInvites","expertNotes","expertPrograms","expertProgramAssignments","aiGeneratedCards","aiHistory"]){
     if(incoming[key]) merged[key]=mergeById(current[key],incoming[key]);
   }
   if(incoming.moods) merged.moods=mergeMoods(current.moods,incoming.moods);
   if(incoming.cardNotes) merged.cardNotes={...(current.cardNotes||{}),...incoming.cardNotes};
   if(incoming.points) merged.points={...(current.points||{}),...incoming.points};
+  if(incoming.expertProfiles) merged.expertProfiles={...(current.expertProfiles||{}),...incoming.expertProfiles};
   delete merged.mode;
   delete merged.activeProfileId;
   merged._rev=(Number(current?._rev)||0)+1;
@@ -516,7 +520,13 @@ function fallbackCards(child,topic,goal,count){
   ];
   return cards.slice(0,Math.max(1,Math.min(5,count||3))).map((x,i)=>({id:"ai-"+Date.now()+"-"+i,ageGroup:child?.ageGroup||"6-9",tags:["ai","family-personalized"],...x}));
 }
-app.get("/api/experts",(req,res)=>res.json(defaultExperts()));
+app.get("/api/experts",async(req,res)=>{
+  try{
+    const globalState=await loadState("AILE2026");
+    const overrides=globalState?.expertProfiles||{};
+    res.json(defaultExperts().map(x=>({...x,...(overrides[x.id]||{}),id:x.id,role:"expert"})));
+  }catch(e){console.error(e);res.json(defaultExperts());}
+});
 app.post("/api/ai/cards/:code",async(req,res)=>{
   try{
     const state=await loadState(req.params.code);
@@ -602,6 +612,39 @@ app.post("/api/ai/expert-summary/:code",async(req,res)=>{
   }catch(e){console.error(e);res.status(500).json({error:"ai_expert_summary_failed"});}
 });
 
+app.post("/api/ai/expert-tool/:code",async(req,res)=>{
+  try{
+    const state=await loadState(req.params.code);
+    const expertId=String(req.body?.expertId||""),mode=String(req.body?.mode||"questions");
+    const link=(state.expertConnections||[]).find(x=>x.expertId===expertId&&x.status==="active");
+    if(!link)return res.status(403).json({error:"expert_not_connected"});
+    const children=(state.profiles||[]).filter(x=>x.role==="child"&&(link.childProfileIds||[]).includes(x.id));
+    const data={familyName:state.familyName,children:children.map(ch=>({profile:{name:ch.name,age:ch.age,ageGroup:ch.ageGroup,interests:ch.interests||""},recent:childContext(state,ch.id)})),privateMessages:(state.expertMessages||[]).filter(x=>x.expertId===expertId&&x.channel==="private").slice(-16),expertNotes:(state.expertNotes||[]).filter(x=>x.expertId===expertId).slice(-12),instruction:aiSafe(req.body?.instruction,1000)};
+    const schemas={
+      questions:{type:"object",additionalProperties:false,required:["questions"],properties:{questions:{type:"array",items:{type:"string"}}}},
+      prebrief:{type:"object",additionalProperties:false,required:["brief","priorities","questions"],properties:{brief:{type:"string"},priorities:{type:"array",items:{type:"string"}},questions:{type:"array",items:{type:"string"}}}},
+      postsummary:{type:"object",additionalProperties:false,required:["familySummary","nextSteps","recommendedCards"],properties:{familySummary:{type:"string"},nextSteps:{type:"array",items:{type:"string"}},recommendedCards:{type:"array",items:{type:"string"}}}}
+    };
+    const schema=schemas[mode]||schemas.questions;
+    let result=null,provider="demo";
+    try{
+      const prompts={
+        questions:"Generate practical, non-leading questions a family professional can ask in the next session. Do not diagnose. Turkish.",
+        prebrief:"Prepare a concise pre-session brief from only the supplied information. Separate observed facts from suggested focus areas. Do not diagnose. Turkish.",
+        postsummary:"Turn the professional's rough notes into a warm family-facing session summary, next steps, and suggested conversation-card themes. Do not diagnose or claim treatment outcomes. Turkish."
+      };
+      result=await callParentlyAI({system:prompts[mode]||prompts.questions,user:JSON.stringify(data),schemaName:"parently_"+mode,schema,maxOutputTokens:1400});
+      if(result)provider="openai";
+    }catch(e){console.error("AI expert tool fallback",e.message);}
+    if(!result){
+      if(mode==="prebrief")result={brief:"İzin verilen son aile kayıtları için görüşme öncesi kısa özet.",priorities:["Son haftanın duygu değişimlerini aileyle doğrulayın.","Geçen görüşmeden kalan küçük adımı kontrol edin."],questions:["Bu hafta evde en iyi giden şey neydi?","Nerede daha fazla desteğe ihtiyaç duydunuz?"]};
+      else if(mode==="postsummary")result={familySummary:"Bugünkü görüşmede ailenin son haftadaki deneyimleri ve iletişim ihtiyaçları ele alındı.",nextSteps:["Hafta içinde kısa bir özel zaman planlayın.","Bir sohbet kartını birlikte deneyin."],recommendedCards:["Duyguları konuşma","Birbirini dinleme","Küçük aile rutinleri"]};
+      else result={questions:["Bu hafta sizin için en iyi giden şey neydi?","Zorlandığınız anlarda neler yardımcı oldu?","Çocuğunuzun sizden daha fazla neye ihtiyacı olduğunu düşünüyorsunuz?","Bir sonraki haftaya tek bir küçük hedef seçsek bu ne olurdu?"]};
+    }
+    res.json({ok:true,provider,result});
+  }catch(e){console.error(e);res.status(500).json({error:"ai_expert_tool_failed"});}
+});
+
 app.post("/api/ai/expert-reply/:code",async(req,res)=>{
   try{
     const state=await loadState(req.params.code),expertId=String(req.body?.expertId||"");
@@ -622,6 +665,88 @@ app.post("/api/ai/expert-reply/:code",async(req,res)=>{
   }catch(e){console.error(e);res.status(500).json({error:"ai_expert_reply_failed"});}
 });
 
+
+app.post("/api/expert/note/:code",async(req,res)=>{
+  try{
+    const saved=await withFamilyLock(req.params.code,async()=>{
+      const state=await loadState(req.params.code);
+      state.expertNotes=state.expertNotes||[];
+      const note={
+        id:"en-"+Date.now()+"-"+Math.random().toString(36).slice(2,6),
+        expertId:String(req.body?.expertId||""),
+        childId:String(req.body?.childId||""),
+        type:String(req.body?.type||"private"),
+        title:aiSafe(req.body?.title,180),
+        text:aiSafe(req.body?.text,5000),
+        sharedWithFamily:!!req.body?.sharedWithFamily,
+        createdAt:new Date().toISOString()
+      };
+      if(!note.expertId||!note.text)return null;
+      state.expertNotes.push(note);
+      await saveState(req.params.code,state);
+      return note;
+    });
+    if(!saved)return res.status(400).json({error:"expert_note_invalid"});
+    broadcast(req.params.code);res.json({ok:true,note:saved});
+  }catch(e){console.error(e);res.status(500).json({error:"expert_note_failed"});}
+});
+
+app.post("/api/expert/program/:code",async(req,res)=>{
+  try{
+    const saved=await withFamilyLock(req.params.code,async()=>{
+      const state=await loadState(req.params.code);
+      state.expertPrograms=state.expertPrograms||[];
+      state.expertProgramAssignments=state.expertProgramAssignments||[];
+      const action=String(req.body?.action||"create");
+      if(action==="create"){
+        const weeks=Array.isArray(req.body?.weeks)?req.body.weeks.slice(0,12).map((w,i)=>({
+          week:i+1,title:aiSafe(w.title,180),goal:aiSafe(w.goal,500),task:aiSafe(w.task,700),cardPrompt:aiSafe(w.cardPrompt,700)
+        })):[];
+        const program={id:"ep-"+Date.now()+"-"+Math.random().toString(36).slice(2,5),expertId:String(req.body?.expertId||""),title:aiSafe(req.body?.title,200)||"Yeni program",description:aiSafe(req.body?.description,1200),weeks,createdAt:new Date().toISOString()};
+        if(!program.expertId)return null;
+        state.expertPrograms.push(program);await saveState(req.params.code,state);return {program};
+      }
+      if(action==="assign"){
+        const program=state.expertPrograms.find(x=>x.id===String(req.body?.programId||""));
+        if(!program)return null;
+        const assignment={id:"epa-"+Date.now(),programId:program.id,expertId:program.expertId,childId:String(req.body?.childId||""),status:"active",startedAt:new Date().toISOString(),completedWeeks:[]};
+        state.expertProgramAssignments.push(assignment);
+        // Add first week's task without touching other family tasks
+        const w=program.weeks?.[0];
+        if(w&&assignment.childId){
+          state.tasks=state.tasks||[];
+          state.tasks.push({id:"pt-"+Date.now(),title:w.title||program.title,description:w.task||w.goal||"",assigneeId:assignment.childId,due:new Date().toISOString().slice(0,10),status:"pending",requiresApproval:false,type:"expert-program"});
+        }
+        await saveState(req.params.code,state);return {assignment};
+      }
+      return null;
+    });
+    if(!saved)return res.status(400).json({error:"expert_program_invalid"});
+    broadcast(req.params.code);res.json({ok:true,...saved});
+  }catch(e){console.error(e);res.status(500).json({error:"expert_program_failed"});}
+});
+
+app.post("/api/expert/profile/:expertId",async(req,res)=>{
+  try{
+    const expertId=String(req.params.expertId||"");
+    if(!defaultExperts().some(x=>x.id===expertId))return res.status(404).json({error:"expert_not_found"});
+    const saved=await withFamilyLock("AILE2026",async()=>{
+      const state=await loadState("AILE2026");state.expertProfiles=state.expertProfiles||{};
+      const incoming=req.body||{};
+      const profile={
+        name:aiSafe(incoming.name,120),title:aiSafe(incoming.title,160),bio:aiSafe(incoming.bio,1800),
+        availability:aiSafe(incoming.availability,500),approach:aiSafe(incoming.approach,1200),
+        experienceYears:Math.max(0,Math.min(60,Number(incoming.experienceYears)||0)),
+        education:Array.isArray(incoming.education)?incoming.education.slice(0,12).map(x=>aiSafe(x,220)).filter(Boolean):[],
+        specialties:Array.isArray(incoming.specialties)?incoming.specialties.slice(0,20).map(x=>aiSafe(x,160)).filter(Boolean):[],
+        languages:Array.isArray(incoming.languages)?incoming.languages.slice(0,12).map(x=>aiSafe(x,30)).filter(Boolean):[]
+      };
+      state.expertProfiles[expertId]={...(state.expertProfiles[expertId]||{}),...profile,updatedAt:new Date().toISOString()};
+      await saveState("AILE2026",state);return state.expertProfiles[expertId];
+    });
+    res.json({ok:true,profile:saved});
+  }catch(e){console.error(e);res.status(500).json({error:"expert_profile_save_failed"});}
+});
 
 app.post("/api/expert/message/:code",async(req,res)=>{
   try{
