@@ -65,7 +65,7 @@ function renderAIOutput(){
 function renderTool(data){
  if(!data)return '<div class="empty">Çıktı yok.</div>';
  if(Array.isArray(data))return '<ul>'+data.map(x=>'<li>'+esc(typeof x==="string"?x:JSON.stringify(x))+'</li>').join("")+'</ul>';
- if(data.cards)return '<div>'+data.cards.map(c=>'<div class="task-card"><b>'+esc((c.emoji||"💬")+" "+c.question)+'</b><small>'+esc(c.followUp||"")+'</small></div>').join("")+'</div>';
+ if(data.cards)return '<div>'+data.cards.map(c=>'<div class="task-card"><b>'+esc((c.emoji||"💬")+" "+c.question)+'</b><small>'+esc(c.followUp||"")+'</small></div>').join("")+'<div class="xp-controls"><button id="sendGeneratedCards" class="secondary">Bu kartları aileye gönder</button></div></div>';
  let html="";
  for(const [k,v] of Object.entries(data)){const label={brief:"Özet",priorities:"Öncelikler",questions:"Sorular",familySummary:"Aileye gönderilecek özet",nextSteps:"Sonraki adımlar",recommendedCards:"Önerilen kart temaları",summary:"Özet",strengths:"Güçlü taraflar",attentionPoints:"Dikkat noktaları",conversationIdeas:"Görüşme fikirleri"}[k]||k;if(Array.isArray(v))html+='<div class="section"><b>'+esc(label)+'</b><ul>'+v.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul></div>';else html+='<div class="section"><b>'+esc(label)+'</b><p>'+esc(v)+'</p></div>'}
  return html;
@@ -101,6 +101,7 @@ function bindPrograms(){
  ];await api("/api/expert/program/"+familyCode,{method:"POST",body:JSON.stringify({action:"create",expertId,title:"4 Haftalık Ebeveyn–Çocuk Bağ Programı",description:"Dinleme, duygu, sınırlar ve aile rutini üzerine dört haftalık yapı.",weeks})});await load()});
  $$("[data-assign-program]").forEach(b=>b.onclick=async()=>{const sel=$('[data-program-child="'+b.dataset.assignProgram+'"]');await api("/api/expert/program/"+familyCode,{method:"POST",body:JSON.stringify({action:"assign",programId:b.dataset.assignProgram,childId:sel?.value||""})});await load()});
  $("#proGenerateCard")?.addEventListener("click",async()=>{const out=await api("/api/ai/cards/"+familyCode,{method:"POST",body:JSON.stringify({profileId:$("#proAiChild").value,topic:$("#proAiTopic").value,goal:"Uzman tarafından önerilen",count:3})});aiTool={mode:"cards",data:out};render()});
+ $("#sendGeneratedCards")?.addEventListener("click",async()=>{if(!aiTool?.data?.cards?.length)return;await api("/api/ai/cards/"+familyCode+"/save",{method:"POST",body:JSON.stringify({cards:aiTool.data.cards})});$("#sendGeneratedCards").textContent="Aile kartlarına eklendi ✓";$("#sendGeneratedCards").disabled=true});
 }
 function bindAI(){
  $("#aiPrebrief")?.addEventListener("click",async()=>{const out=await api("/api/ai/expert-tool/"+familyCode,{method:"POST",body:JSON.stringify({expertId,mode:"prebrief",instruction:$("#aiInstruction").value})});aiTool={mode:"prebrief",data:out.result};aiSummary=null;aiDraft="";render()});
