@@ -118,15 +118,36 @@
 
 <script>
 const $=id=>document.getElementById(id);
-let testMode=true, imageData=[], runnerConnected=false;
+let testMode=true, imageData=[], runnerConnected=false, activeRunId=localStorage.getItem("emigro-active-run")||"";
 const RUNNER_URL="https://emigro-social-runner.onrender.com";
 let controlKey=localStorage.getItem("emigro-control-key")||"";
 if(location.hash.startsWith("#connect=")){controlKey=decodeURIComponent(location.hash.slice(9));localStorage.setItem("emigro-control-key",controlKey);history.replaceState(null,"",location.pathname+location.search);}
 const log=(m)=>{const d=document.createElement("div");d.textContent="["+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})+"] "+m;$("log").appendChild(d);$("log").scrollTop=$("log").scrollHeight};
 function channels(){const a=[];if($("igPost").checked)a.push("Instagram Gönderi");if($("igStory").checked)a.push("Instagram Hikâye");if($("fbPost").checked)a.push("Facebook Gönderi");if($("fbStory").checked)a.push("Facebook Hikâye");return a}
+function saveDraft(){
+  localStorage.setItem("emigro-draft",JSON.stringify({
+    caption:$("caption").value,
+    tr:$("tr").value,
+    date:$("date").value,
+    time:$("time").value,
+    igPost:$("igPost").checked,
+    igStory:$("igStory").checked,
+    fbPost:$("fbPost").checked,
+    fbStory:$("fbStory").checked
+  }));
+}
+function restoreDraft(){
+  try{
+    const d=JSON.parse(localStorage.getItem("emigro-draft")||"null");
+    if(!d)return;
+    $("caption").value=d.caption||"";$("tr").value=d.tr||"";
+    if(d.date)$("date").value=d.date;if(d.time)$("time").value=d.time;
+    ["igPost","igStory","fbPost","fbStory"].forEach(id=>{if(typeof d[id]==="boolean")$(id).checked=d[id]});
+  }catch{}
+}
 function renderPreview(){const c=channels();$("previewTitle").textContent=c.length?c.join(" + "):"Platform seçilmedi";$("postText").textContent=$("caption").value.trim()||"Gönderi metniniz burada görünecek.";const box=$("postImages");box.innerHTML="";imageData.forEach(src=>{const im=document.createElement("img");im.src=src;im.style.width="100%";im.style.borderRadius="10px";im.alt="Paylaşım görseli";box.appendChild(im)})}
 $("img").addEventListener("change",e=>{const files=[...e.target.files];imageData=[];$("imgPreviewGrid").innerHTML="";if(!files.length){renderPreview();return;}let done=0;files.forEach((f,i)=>{const r=new FileReader();r.onload=()=>{imageData[i]=r.result;const im=document.createElement("img");im.src=r.result;im.style.width="100%";im.style.aspectRatio="1/1";im.style.objectFit="cover";im.style.borderRadius="10px";$("imgPreviewGrid").appendChild(im);done++;if(done===files.length){renderPreview();log(files.length+" görsel test için yüklendi.");}};r.readAsDataURL(f)});});
-$("caption").addEventListener("input",renderPreview);["igPost","igStory","fbPost","fbStory"].forEach(id=>$(id).addEventListener("change",renderPreview));
+$("caption").addEventListener("input",()=>{renderPreview();saveDraft()});$("tr").addEventListener("input",saveDraft);["igPost","igStory","fbPost","fbStory"].forEach(id=>$(id).addEventListener("change",()=>{renderPreview();saveDraft()}));$("date").addEventListener("change",saveDraft);$("time").addEventListener("change",saveDraft);
 $("previewBtn").onclick=()=>{renderPreview();log("Önizleme bijgewerkt.");};
 function setMode(live){
   testMode=!live;
@@ -152,31 +173,51 @@ async function refreshRunner(){
     if(runnerConnected)log("Uzak tarayıcı servisi hazır.");
   }catch(e){runnerConnected=false;$("runnerText").textContent="Bağlantı kurulamadı."; $("runnerStatus").style.background="#f7e4e2";}
 }
+async function pollRun(runId,historyEl){
+  try{
+    const r=await fetch(RUNNER_URL+"/run/"+encodeURIComponent(runId),{headers:{"X-Control-Key":controlKey},cache:"no-store"});
+    const d=await r.json();
+    const status=(d.status||d.state||"").toUpperCase();
+    if(status==="COMPLETED"){
+      activeRunId="";localStorage.removeItem("emigro-active-run");$("publishBtn").disabled=false;$("publishBtn").textContent="Gerçek Yayınla";
+      if(historyEl){historyEl.querySelector(".pill").textContent="Tamamlandı";historyEl.querySelector(".pill").className="pill ok";}
+      log("Gerçek yayın işlemi tamamlandı.");return;
+    }
+    if(status==="FAILED"||status==="CANCELLED"){
+      activeRunId="";localStorage.removeItem("emigro-active-run");$("publishBtn").disabled=false;$("publishBtn").textContent="Gerçek Yayınla";
+      if(historyEl){historyEl.querySelector(".pill").textContent=status==="FAILED"?"Hata":"İptal";}
+      log("Yayın işlemi "+(status==="FAILED"?"başarısız oldu.":"iptal edildi."));return;
+    }
+    setTimeout(()=>pollRun(runId,historyEl),15000);
+  }catch(e){setTimeout(()=>pollRun(runId,historyEl),20000)}
+}
 $("publishBtn").onclick=async()=>{
   if(testMode)return;
+  if(activeRunId)return alert("Zaten çalışan bir gerçek yayın işlemi var. Sonuçlanmasını bekleyin.");
   if(!channels().length)return alert("En az bir paylaşım türü seçin.");
-  if(!$("caption").value.trim() && !imageData.length)return alert("Paylaşılacak metin veya görsel ekleyin.");
+  if(!$("caption").value.trim() && !$("img").files.length)return alert("Paylaşılacak metin veya görsel ekleyin.");
   if(!runnerConnected){await refreshRunner();if(!runnerConnected)return alert("Uzak tarayıcı bağlantısı hazır değil.");}
   if(!confirm("Seçili platformlarda GERÇEKTEN yayınlansın mı?"))return;
   try{
-    $("publishBtn").disabled=true;$("publishBtn").textContent="Gönderiliyor…";
+    $("publishBtn").disabled=true;$("publishBtn").textContent="Yayınlanıyor…";
     log("Gerçek yayın isteği hazırlanıyor.");
     const fd=new FormData();
     fd.append("targets",JSON.stringify(channels()));
     fd.append("caption",$("caption").value.trim());
-    const files=[...$("img").files];files.forEach(f=>fd.append("images",f));
+    [...$("img").files].forEach(f=>fd.append("images",f));
     const r=await fetch(RUNNER_URL+"/publish",{method:"POST",headers:{"X-Control-Key":controlKey},body:fd});
     const d=await r.json();
     if(!r.ok)throw new Error(d.error||"Yayın başlatılamadı.");
     const runId=d?.run?.runId||d?.run?.run_id||d?.run?.id||"";
-    log("Uzak tarayıcı başlatıldı"+(runId?": "+runId:"")+".");
-    alert("Gerçek yayın işlemi başlatıldı. Ajan Facebook/Instagram üzerinde işlemi gerçekleştiriyor.");
+    if(!runId)throw new Error("Uzak tarayıcı çalışma kimliği alınamadı.");
+    activeRunId=runId;localStorage.setItem("emigro-active-run",runId);
+    log("Uzak tarayıcı başlatıldı: "+runId+".");
     const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>Gerçek yayın başlatıldı</strong><div class="muted" style="font-size:12px">'+channels().join(" + ")+'</div></div><span class="pill ok">İşleniyor</span>';$("history").prepend(h);
-  }catch(e){log("Yayın hatası: "+e.message);alert("Yayın başlatılamadı: "+e.message);}
-  finally{$("publishBtn").disabled=false;$("publishBtn").textContent="Gerçek Yayınla";}
+    pollRun(runId,h);
+  }catch(e){log("Yayın hatası: "+e.message);alert("Yayın başlatılamadı: "+e.message);$("publishBtn").disabled=false;$("publishBtn").textContent="Gerçek Yayınla";}
 };
 $("cancelBtn").onclick=()=>{if(confirm("Taslak temizlensin mi?")){$("caption").value="";$("tr").value="";$("img").value="";imageData=[];$("imgPreviewGrid").innerHTML="";renderPreview();log("Taslak iptal edildi.");}};
-const today=new Date();$("date").value=today.toISOString().slice(0,10);$("time").value="13:00";renderPreview();refreshRunner();setInterval(refreshRunner,30000);
+const today=new Date();$("date").value=today.toISOString().slice(0,10);$("time").value="13:00";restoreDraft();renderPreview();refreshRunner();setInterval(refreshRunner,30000);if(activeRunId){$("publishBtn").disabled=true;$("publishBtn").textContent="Yayın işleniyor…";log("Devam eden yayın bulundu: "+activeRunId);pollRun(activeRunId,null);}
 </script>
 </body>
 </html>
