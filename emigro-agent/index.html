@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Emigro Social Agent</title>
+<style>
+:root{--bg:#f6f8f6;--card:#fff;--ink:#17211b;--muted:#6f7c73;--line:#e4e9e5;--green:#176b46;--green2:#dff3e9;--warn:#fff4d6;--red:#a83b35;--shadow:0 10px 30px rgba(24,42,30,.08)}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,#f2f7f4 0,#f9faf9 100%);color:var(--ink)}
+.wrap{max-width:1180px;margin:0 auto;padding:22px}.top{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:18px}.brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:14px;background:var(--green);color:#fff;display:grid;place-items:center;font-weight:800}.title h1{font-size:22px;margin:0}.title p{margin:3px 0 0;color:var(--muted);font-size:13px}
+.badge{padding:8px 12px;border-radius:999px;background:var(--green2);color:var(--green);font-weight:700;font-size:12px}
+.banner{background:#10261b;color:#fff;padding:13px 16px;border-radius:16px;margin-bottom:18px;display:flex;justify-content:space-between;gap:16px;align-items:center}.banner small{opacity:.78}
+.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:20px}.card h2{font-size:16px;margin:0 0 14px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{margin-bottom:14px}.field label{display:block;font-size:12px;font-weight:700;margin-bottom:7px}.field small{display:block;color:var(--muted);margin-top:5px}textarea,input,select{width:100%;border:1px solid #d9dfda;border-radius:12px;padding:12px 13px;font:inherit;background:#fff}textarea{min-height:132px;resize:vertical}
+.channels{display:flex;gap:10px;flex-wrap:wrap}.chip{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;display:flex;align-items:center;gap:8px}.chip input{width:auto}
+.upload{border:1.5px dashed #b8c6bc;border-radius:14px;padding:18px;text-align:center;background:#fbfcfb}.preview-img{margin-top:10px;max-width:100%;max-height:280px;border-radius:14px;display:none}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.btn{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer}.btn.primary{background:var(--green);color:#fff}.btn.secondary{background:#eef2ef;color:var(--ink)}.btn.danger{background:#f7e4e2;color:var(--red)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.status{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}.status:last-child{border-bottom:0}.dot{width:9px;height:9px;border-radius:50%;background:#35a36b;display:inline-block;margin-right:7px}.dot.off{background:#c2c8c3}
+.toggle{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:14px;background:#f3f7f4}.switch{position:relative;width:48px;height:28px;background:#cbd4cd;border-radius:999px;cursor:pointer}.switch:after{content:"";position:absolute;width:22px;height:22px;top:3px;left:3px;background:#fff;border-radius:50%;transition:.2s}.switch.on{background:var(--green)}.switch.on:after{left:23px}
+.log{background:#0f1712;color:#cfe4d6;border-radius:14px;padding:14px;height:210px;overflow:auto;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}.log div{margin-bottom:4px}.preview{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff}.preview-head{padding:12px 14px;border-bottom:1px solid var(--line);font-weight:800}.preview-body{padding:14px}.preview-body img{width:100%;border-radius:10px;margin:8px 0}.muted{color:var(--muted)}.history{margin-top:18px}.history-item{display:grid;grid-template-columns:1fr auto;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.pill{font-size:11px;border-radius:999px;padding:6px 9px;background:#eef3ef;color:#476052;font-weight:700}.ok{background:var(--green2);color:var(--green)}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}.banner{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><div class="logo">E</div><div class="title"><h1>EMIGRO SOCIAL AGENT</h1><p>Social media werkruimte · testomgeving</p></div></div>
+    <div class="badge">LIVE • GitHub Pages</div>
+  </div>
+  <div class="banner"><div><strong>Gratis testomgeving — geen API, geen publicatiekosten</strong><br><small>Test eerst de volledige workflow. Live publicatie blijft geblokkeerd totdat een remote browser-runner is gekoppeld.</small></div><div>🔒 Geen wachtwoorden opgeslagen</div></div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Nieuwe social post</h2>
+
+      <div class="field"><label>Kanalen</label><div class="channels">
+        <label class="chip"><input id="fb" type="checkbox" checked> Facebook</label>
+        <label class="chip"><input id="ig" type="checkbox" checked> Instagram</label>
+      </div></div>
+
+      <div class="field"><label>Afbeelding</label><div class="upload">
+        <input id="img" type="file" accept="image/*">
+        <small>Upload een product- of campagnebeeld.</small>
+        <img id="imgPreview" class="preview-img" alt="">
+      </div></div>
+
+      <div class="field"><label>Nederlandse tekst</label><textarea id="caption" placeholder="Bijvoorbeeld: Alleen dit weekend! Profiteer van onze scherpe aanbiedingen bij Emigro Cash & Carry. Op = op!"></textarea></div>
+      <div class="field"><label>Turkse notitie <span class="muted">(optioneel)</span></label><textarea id="tr" style="min-height:86px" placeholder="İstersen Türkçe notunu buraya yaz."></textarea></div>
+
+      <div class="row">
+        <div class="field"><label>Datum</label><input id="date" type="date"></div>
+        <div class="field"><label>Tijd</label><input id="time" type="time"></div>
+      </div>
+
+      <div class="toggle"><div><strong>TEST MODE</strong><div class="muted" style="font-size:12px">Hiçbir şey yayınlanmaz / er wordt niets gepubliceerd.</div></div><div id="switch" class="switch on"></div></div>
+
+      <div class="actions">
+        <button class="btn secondary" id="previewBtn">Voorbeeld bekijken</button>
+        <button class="btn primary" id="testBtn">Test uitvoeren</button>
+        <button class="btn secondary" id="approveBtn">Goedkeuren</button>
+        <button class="btn danger" id="cancelBtn">Annuleren</button>
+      </div>
+    </section>
+
+    <aside>
+      <div class="card">
+        <h2>Accountstatus</h2>
+        <div class="status"><span><span class="dot"></span>Persoonlijk Facebook testaccount</span><strong>Test</strong></div>
+        <div class="status"><span><span class="dot off"></span>Emigro Facebook-pagina</span><span class="muted">Nog niet actief</span></div>
+        <div class="status"><span><span class="dot off"></span>Emigro Instagram</span><span class="muted">Nog niet actief</span></div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <h2>Voorbeeld</h2>
+        <div class="preview">
+          <div class="preview-head" id="previewTitle">Facebook + Instagram</div>
+          <div class="preview-body">
+            <div style="font-weight:800">Emigro</div>
+            <div class="muted" style="font-size:12px;margin-bottom:8px">Conceptvoorbeeld</div>
+            <img id="postImage" style="display:none" alt="">
+            <div id="postText" class="muted">Je bericht verschijnt hier.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <h2>Agent activiteit</h2>
+        <div id="log" class="log"><div>[ready] Emigro Social Agent gestart.</div><div>[safe] Testmodus actief. Publicatie geblokkeerd.</div></div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="card history">
+    <h2>Wachtrij & geschiedenis</h2>
+    <div id="history"><div class="history-item"><div><strong>Geen echte publicaties</strong><div class="muted" style="font-size:12px">Voer een test uit om de workflow te controleren.</div></div><span class="pill">Leeg</span></div></div>
+  </section>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let testMode=true, imageData="";
+const log=(m)=>{const d=document.createElement("div");d.textContent="["+new Date().toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit",second:"2-digit"})+"] "+m;$("log").appendChild(d);$("log").scrollTop=$("log").scrollHeight};
+function channels(){const a=[];if($("fb").checked)a.push("Facebook");if($("ig").checked)a.push("Instagram");return a}
+function renderPreview(){const c=channels();$("previewTitle").textContent=c.length?c.join(" + "):"Geen kanaal";$("postText").textContent=$("caption").value.trim()||"Je bericht verschijnt hier.";if(imageData){$("postImage").src=imageData;$("postImage").style.display="block"}else{$("postImage").style.display="none"}}
+$("img").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{imageData=r.result;$("imgPreview").src=imageData;$("imgPreview").style.display="inline-block";renderPreview();log("Afbeelding geladen voor test.");};r.readAsDataURL(f)});
+$("caption").addEventListener("input",renderPreview);$("fb").addEventListener("change",renderPreview);$("ig").addEventListener("change",renderPreview);
+$("previewBtn").onclick=()=>{renderPreview();log("Voorbeeld bijgewerkt.");};
+$("switch").onclick=()=>{if(testMode){alert("Live mode is tijdens de gratis test bewust geblokkeerd. Eerst koppelen we later een remote browser-runner.");log("Live mode geweigerd: remote browser-runner ontbreekt.");return;}};
+$("testBtn").onclick=async()=>{if(!channels().length)return alert("Kies minimaal één kanaal.");if(!$("caption").value.trim())return alert("Voer eerst een berichttekst in.");renderPreview();log("Test gestart.");await new Promise(r=>setTimeout(r,450));log("Kanalen gecontroleerd: "+channels().join(", "));await new Promise(r=>setTimeout(r,450));log(imageData?"Afbeelding klaar voor upload.":"Geen afbeelding gekozen.");await new Promise(r=>setTimeout(r,450));log("Tekstvalidatie voltooid.");await new Promise(r=>setTimeout(r,450));log("Publicatiestap GEBLOKKEERD door Test Mode.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>'+new Date().toLocaleString("nl-NL")+' — '+channels().join(" + ")+'</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110))+'</div></div><span class="pill ok">Test voltooid</span>';$("history").prepend(h);localStorage.setItem("emigro-last-test",JSON.stringify({caption:$("caption").value,channels:channels(),at:new Date().toISOString()}));alert("Test voltooid — niets gepubliceerd.");};
+$("approveBtn").onclick=()=>{if(confirm("Dit concept goedkeuren voor de wachtrij? Er wordt nog niets gepubliceerd.")){log("Concept goedgekeurd voor wachtrij.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>Goedgekeurd concept</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110)||"Zonder tekst")+'</div></div><span class="pill">Ready for approval</span>';$("history").prepend(h)}};
+$("cancelBtn").onclick=()=>{if(confirm("Concept leegmaken?")){$("caption").value="";$("tr").value="";$("img").value="";imageData="";$("imgPreview").style.display="none";renderPreview();log("Concept geannuleerd.");}};
+const today=new Date();$("date").value=today.toISOString().slice(0,10);$("time").value="13:00";renderPreview();
+</script>
+</body>
+</html>
