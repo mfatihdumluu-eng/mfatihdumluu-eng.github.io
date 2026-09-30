@@ -23,6 +23,7 @@ const TINYFISH_PROFILE_ID=process.env.TINYFISH_PROFILE_ID||"prof_91c373d0b2654a8
 const bb=BROWSERBASE_API_KEY?new Browserbase({apiKey:BROWSERBASE_API_KEY}):null;
 const jobs=new Map();
 const loginSessions=new Map();
+let browserbaseInitError="";
 
 const uploadDir="/tmp/emigro-uploads";
 fs.mkdirSync(uploadDir,{recursive:true});
@@ -72,7 +73,8 @@ app.get("/health",async(_,res)=>{
   const provider=currentProvider();
   try{
     if(provider==="browserbase" && BROWSERBASE_API_KEY && !BROWSERBASE_CONTEXT_ID) await ensureBrowserbaseContext();
-  }catch(e){}
+    browserbaseInitError="";
+  }catch(e){browserbaseInitError=String(e?.message||e)}
   res.json({
     ok:true,
     runner:"render",
@@ -82,6 +84,7 @@ app.get("/health",async(_,res)=>{
     browserbaseProjectId:BROWSERBASE_PROJECT_ID||null,
     browserbaseContextConfigured:Boolean(BROWSERBASE_CONTEXT_ID),
     browserbaseContextId:BROWSERBASE_CONTEXT_ID||null,
+    browserbaseInitError:browserbaseInitError||null,
     tinyfishConfigured:Boolean(TINYFISH_API_KEY),
     ready:provider==="browserbase"?Boolean(BROWSERBASE_API_KEY&&BROWSERBASE_CONTEXT_ID):provider==="tinyfish"?Boolean(TINYFISH_API_KEY&&TINYFISH_PROFILE_ID):false
   });
