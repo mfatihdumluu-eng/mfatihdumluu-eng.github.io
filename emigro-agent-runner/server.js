@@ -14,7 +14,7 @@ const PUBLIC_BASE_URL=process.env.PUBLIC_BASE_URL||"";
 const BROWSER_PROVIDER=(process.env.BROWSER_PROVIDER||"browserbase").toLowerCase();
 
 const BROWSERBASE_API_KEY=process.env.BROWSERBASE_API_KEY||"";
-const BROWSERBASE_CONTEXT_ID=process.env.BROWSERBASE_CONTEXT_ID||"";
+let BROWSERBASE_CONTEXT_ID=process.env.BROWSERBASE_CONTEXT_ID||"";
 
 const TINYFISH_API_KEY=process.env.TINYFISH_API_KEY||"";
 const TINYFISH_PROFILE_ID=process.env.TINYFISH_PROFILE_ID||"prof_91c373d0b2654a8f";
@@ -42,6 +42,13 @@ app.use("/media",express.static(uploadDir,{maxAge:"1h"}));
 function authorized(req){return CONTROL_KEY && req.get("X-Control-Key")===CONTROL_KEY}
 function cleanup(files=[]){for(const f of files){try{fs.unlinkSync(f.path)}catch{}}}
 function jobUpdate(id,patch){const j=jobs.get(id)||{};jobs.set(id,{...j,...patch,updatedAt:new Date().toISOString()})}
+async function ensureBrowserbaseContext(){
+  if(!bb) return "";
+  if(BROWSERBASE_CONTEXT_ID) return BROWSERBASE_CONTEXT_ID;
+  const ctx=await bb.contexts.create({name:"emigro-social-agent-"+Date.now()});
+  BROWSERBASE_CONTEXT_ID=ctx.id;
+  return BROWSERBASE_CONTEXT_ID;
+}
 function currentProvider(){
   if(BROWSER_PROVIDER==="browserbase" && BROWSERBASE_API_KEY) return "browserbase";
   if(BROWSER_PROVIDER==="tinyfish" && TINYFISH_API_KEY) return "tinyfish";
@@ -51,14 +58,18 @@ function currentProvider(){
 }
 
 app.get("/",(_,res)=>res.json({service:"Emigro Social Runner",version:"2.0.0",ok:true}));
-app.get("/health",(_,res)=>{
+app.get("/health",async(_,res)=>{
   const provider=currentProvider();
+  try{
+    if(provider==="browserbase" && BROWSERBASE_API_KEY && !BROWSERBASE_CONTEXT_ID) await ensureBrowserbaseContext();
+  }catch(e){}
   res.json({
     ok:true,
     runner:"render",
     provider,
     browserbaseConfigured:Boolean(BROWSERBASE_API_KEY),
     browserbaseContextConfigured:Boolean(BROWSERBASE_CONTEXT_ID),
+    browserbaseContextId:BROWSERBASE_CONTEXT_ID||null,
     tinyfishConfigured:Boolean(TINYFISH_API_KEY),
     ready:provider==="browserbase"?Boolean(BROWSERBASE_API_KEY&&BROWSERBASE_CONTEXT_ID):provider==="tinyfish"?Boolean(TINYFISH_API_KEY&&TINYFISH_PROFILE_ID):false
   });
@@ -76,7 +87,7 @@ app.post("/browserbase/context/create",async(req,res)=>{
 app.post("/browserbase/login/start",async(req,res)=>{
   if(!authorized(req))return res.status(401).json({ok:false,error:"Yetkisiz istek."});
   if(!bb)return res.status(503).json({ok:false,error:"Browserbase API anahtarı bağlı değil."});
-  if(!BROWSERBASE_CONTEXT_ID)return res.status(503).json({ok:false,error:"Browserbase context henüz ayarlanmadı."});
+  if(!BROWSERBASE_CONTEXT_ID) await ensureBrowserbaseContext();
   try{
     const session=await bb.sessions.create({
       browserSettings:{context:{id:BROWSERBASE_CONTEXT_ID,persist:true}}
@@ -283,7 +294,7 @@ app.post("/publish",upload.array("images",10),async(req,res)=>{
 
   const provider=currentProvider();
   if(provider==="browserbase"){
-    if(!BROWSERBASE_CONTEXT_ID){cleanup(req.files);return res.status(503).json({ok:false,error:"Browserbase context henüz ayarlanmadı."});}
+    if(!BROWSERBASE_CONTEXT_ID) await ensureBrowserbaseContext();
     const jobId=crypto.randomUUID();
     jobs.set(jobId,{id:jobId,status:"PENDING",provider:"browserbase",createdAt:new Date().toISOString(),targets});
     runBrowserbaseJob(jobId,targets,req.files||[],caption);
