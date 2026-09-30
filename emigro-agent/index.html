@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl">
+<html lang="tr">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -23,91 +23,91 @@
 <body>
 <div class="wrap">
   <div class="top">
-    <div class="brand"><div class="logo">E</div><div class="title"><h1>EMIGRO SOCIAL AGENT</h1><p>Social media werkruimte · testomgeving</p></div></div>
-    <div class="badge">LIVE • GitHub Pages</div>
+    <div class="brand"><div class="logo">E</div><div class="title"><h1>EMIGRO SOCIAL AGENT</h1><p>Sosyal medya çalışma alanı · test ortamı</p></div></div>
+    <div class="badge">CANLI • GitHub Pages</div>
   </div>
-  <div class="banner"><div><strong>Gratis testomgeving — geen API, geen publicatiekosten</strong><br><small>Test eerst de volledige workflow. Live publicatie blijft geblokkeerd totdat een remote browser-runner is gekoppeld.</small></div><div>🔒 Geen wachtwoorden opgeslagen</div></div>
+  <div class="banner"><div><strong>Ücretsiz test ortamı — API yok, yayın maliyeti yok</strong><br><small>Önce tüm akışı test edin. Uzak tarayıcı sistemi bağlanana kadar gerçek paylaşım kapalıdır.</small></div><div>🔒 Şifreler kaydedilmez</div></div>
 
   <div class="grid">
     <section class="card">
-      <h2>Nieuwe social post</h2>
+      <h2>Yeni sosyal medya gönderisi</h2>
 
-      <div class="field"><label>Kanalen</label><div class="channels">
+      <div class="field"><label>Platformlar</label><div class="channels">
         <label class="chip"><input id="fb" type="checkbox" checked> Facebook</label>
         <label class="chip"><input id="ig" type="checkbox" checked> Instagram</label>
       </div></div>
 
-      <div class="field"><label>Afbeelding</label><div class="upload">
+      <div class="field"><label>Görsel</label><div class="upload">
         <input id="img" type="file" accept="image/*">
-        <small>Upload een product- of campagnebeeld.</small>
+        <small>Ürün veya kampanya görseli yükleyin.</small>
         <img id="imgPreview" class="preview-img" alt="">
       </div></div>
 
-      <div class="field"><label>Nederlandse tekst</label><textarea id="caption" placeholder="Bijvoorbeeld: Alleen dit weekend! Profiteer van onze scherpe aanbiedingen bij Emigro Cash & Carry. Op = op!"></textarea></div>
-      <div class="field"><label>Turkse notitie <span class="muted">(optioneel)</span></label><textarea id="tr" style="min-height:86px" placeholder="İstersen Türkçe notunu buraya yaz."></textarea></div>
+      <div class="field"><label>Hollandaca paylaşım metni</label><textarea id="caption" placeholder="Örneğin: Alleen dit weekend! Profiteer van onze scherpe aanbiedingen bij Emigro Cash & Carry. Op = op!"></textarea></div>
+      <div class="field"><label>Türkçe not <span class="muted">(isteğe bağlı)</span></label><textarea id="tr" style="min-height:86px" placeholder="İstersen Türkçe notunu buraya yaz."></textarea></div>
 
       <div class="row">
-        <div class="field"><label>Datum</label><input id="date" type="date"></div>
-        <div class="field"><label>Tijd</label><input id="time" type="time"></div>
+        <div class="field"><label>Tarih</label><input id="date" type="date"></div>
+        <div class="field"><label>Saat</label><input id="time" type="time"></div>
       </div>
 
-      <div class="toggle"><div><strong>TEST MODE</strong><div class="muted" style="font-size:12px">Hiçbir şey yayınlanmaz / er wordt niets gepubliceerd.</div></div><div id="switch" class="switch on"></div></div>
+      <div class="toggle"><div><strong>TEST MODU</strong><div class="muted" style="font-size:12px">Hiçbir şey yayınlanmaz.</div></div><div id="switch" class="switch on"></div></div>
 
       <div class="actions">
-        <button class="btn secondary" id="previewBtn">Voorbeeld bekijken</button>
-        <button class="btn primary" id="testBtn">Test uitvoeren</button>
-        <button class="btn secondary" id="approveBtn">Goedkeuren</button>
-        <button class="btn danger" id="cancelBtn">Annuleren</button>
+        <button class="btn secondary" id="previewBtn">Önizle</button>
+        <button class="btn primary" id="testBtn">Testi çalıştır</button>
+        <button class="btn secondary" id="approveBtn">Onayla</button>
+        <button class="btn danger" id="cancelBtn">İptal</button>
       </div>
     </section>
 
     <aside>
       <div class="card">
-        <h2>Accountstatus</h2>
-        <div class="status"><span><span class="dot"></span>Persoonlijk Facebook testaccount</span><strong>Test</strong></div>
-        <div class="status"><span><span class="dot off"></span>Emigro Facebook-pagina</span><span class="muted">Nog niet actief</span></div>
-        <div class="status"><span><span class="dot off"></span>Emigro Instagram</span><span class="muted">Nog niet actief</span></div>
+        <h2>Hesap durumu</h2>
+        <div class="status"><span><span class="dot"></span>Kişisel Facebook test hesabı</span><strong>Test</strong></div>
+        <div class="status"><span><span class="dot off"></span>Emigro Facebook sayfası</span><span class="muted">Henüz aktif değil</span></div>
+        <div class="status"><span><span class="dot off"></span>Emigro Instagram</span><span class="muted">Henüz aktif değil</span></div>
       </div>
 
       <div class="card" style="margin-top:18px">
-        <h2>Voorbeeld</h2>
+        <h2>Önizleme</h2>
         <div class="preview">
           <div class="preview-head" id="previewTitle">Facebook + Instagram</div>
           <div class="preview-body">
             <div style="font-weight:800">Emigro</div>
-            <div class="muted" style="font-size:12px;margin-bottom:8px">Conceptvoorbeeld</div>
+            <div class="muted" style="font-size:12px;margin-bottom:8px">Taslak önizleme</div>
             <img id="postImage" style="display:none" alt="">
-            <div id="postText" class="muted">Je bericht verschijnt hier.</div>
+            <div id="postText" class="muted">Gönderi metniniz burada görünecek.</div>
           </div>
         </div>
       </div>
 
       <div class="card" style="margin-top:18px">
-        <h2>Agent activiteit</h2>
-        <div id="log" class="log"><div>[ready] Emigro Social Agent gestart.</div><div>[safe] Testmodus actief. Publicatie geblokkeerd.</div></div>
+        <h2>Ajan hareketleri</h2>
+        <div id="log" class="log"><div>[hazır] Emigro Social Agent başlatıldı.</div><div>[güvenli] Test modu aktif. Gerçek paylaşım engellendi.</div></div>
       </div>
     </aside>
   </div>
 
   <section class="card history">
-    <h2>Wachtrij & geschiedenis</h2>
-    <div id="history"><div class="history-item"><div><strong>Geen echte publicaties</strong><div class="muted" style="font-size:12px">Voer een test uit om de workflow te controleren.</div></div><span class="pill">Leeg</span></div></div>
+    <h2>Kuyruk ve geçmiş</h2>
+    <div id="history"><div class="history-item"><div><strong>Henüz gerçek paylaşım yok</strong><div class="muted" style="font-size:12px">Akışı kontrol etmek için bir test çalıştırın.</div></div><span class="pill">Boş</span></div></div>
   </section>
 </div>
 
 <script>
 const $=id=>document.getElementById(id);
 let testMode=true, imageData="";
-const log=(m)=>{const d=document.createElement("div");d.textContent="["+new Date().toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit",second:"2-digit"})+"] "+m;$("log").appendChild(d);$("log").scrollTop=$("log").scrollHeight};
+const log=(m)=>{const d=document.createElement("div");d.textContent="["+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})+"] "+m;$("log").appendChild(d);$("log").scrollTop=$("log").scrollHeight};
 function channels(){const a=[];if($("fb").checked)a.push("Facebook");if($("ig").checked)a.push("Instagram");return a}
-function renderPreview(){const c=channels();$("previewTitle").textContent=c.length?c.join(" + "):"Geen kanaal";$("postText").textContent=$("caption").value.trim()||"Je bericht verschijnt hier.";if(imageData){$("postImage").src=imageData;$("postImage").style.display="block"}else{$("postImage").style.display="none"}}
-$("img").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{imageData=r.result;$("imgPreview").src=imageData;$("imgPreview").style.display="inline-block";renderPreview();log("Afbeelding geladen voor test.");};r.readAsDataURL(f)});
+function renderPreview(){const c=channels();$("previewTitle").textContent=c.length?c.join(" + "):"Platform seçilmedi";$("postText").textContent=$("caption").value.trim()||"Gönderi metniniz burada görünecek.";if(imageData){$("postImage").src=imageData;$("postImage").style.display="block"}else{$("postImage").style.display="none"}}
+$("img").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{imageData=r.result;$("imgPreview").src=imageData;$("imgPreview").style.display="inline-block";renderPreview();log("Görsel geladen voor test.");};r.readAsDataURL(f)});
 $("caption").addEventListener("input",renderPreview);$("fb").addEventListener("change",renderPreview);$("ig").addEventListener("change",renderPreview);
-$("previewBtn").onclick=()=>{renderPreview();log("Voorbeeld bijgewerkt.");};
-$("switch").onclick=()=>{if(testMode){alert("Live mode is tijdens de gratis test bewust geblokkeerd. Eerst koppelen we later een remote browser-runner.");log("Live mode geweigerd: remote browser-runner ontbreekt.");return;}};
-$("testBtn").onclick=async()=>{if(!channels().length)return alert("Kies minimaal één kanaal.");if(!$("caption").value.trim())return alert("Voer eerst een berichttekst in.");renderPreview();log("Test gestart.");await new Promise(r=>setTimeout(r,450));log("Kanalen gecontroleerd: "+channels().join(", "));await new Promise(r=>setTimeout(r,450));log(imageData?"Afbeelding klaar voor upload.":"Geen afbeelding gekozen.");await new Promise(r=>setTimeout(r,450));log("Tekstvalidatie voltooid.");await new Promise(r=>setTimeout(r,450));log("Publicatiestap GEBLOKKEERD door Test Mode.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>'+new Date().toLocaleString("nl-NL")+' — '+channels().join(" + ")+'</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110))+'</div></div><span class="pill ok">Test voltooid</span>';$("history").prepend(h);localStorage.setItem("emigro-last-test",JSON.stringify({caption:$("caption").value,channels:channels(),at:new Date().toISOString()}));alert("Test voltooid — niets gepubliceerd.");};
-$("approveBtn").onclick=()=>{if(confirm("Dit concept goedkeuren voor de wachtrij? Er wordt nog niets gepubliceerd.")){log("Concept goedgekeurd voor wachtrij.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>Goedgekeurd concept</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110)||"Zonder tekst")+'</div></div><span class="pill">Ready for approval</span>';$("history").prepend(h)}};
-$("cancelBtn").onclick=()=>{if(confirm("Concept leegmaken?")){$("caption").value="";$("tr").value="";$("img").value="";imageData="";$("imgPreview").style.display="none";renderPreview();log("Concept geannuleerd.");}};
+$("previewBtn").onclick=()=>{renderPreview();log("Önizleme bijgewerkt.");};
+$("switch").onclick=()=>{if(testMode){alert("Ücretsiz test sırasında canlı mod bilinçli olarak kapalıdır. Daha sonra uzak tarayıcı sistemi bağlanacaktır.");log("Canlı mod kapalı: uzak tarayıcı sistemi bağlı değil.");return;}};
+$("testBtn").onclick=async()=>{if(!channels().length)return alert("En az bir platform seçin.");if(!$("caption").value.trim())return alert("Önce paylaşım metni girin.");renderPreview();log("Test başlatıldı.");await new Promise(r=>setTimeout(r,450));log("Platformlar gecontroleerd: "+channels().join(", "));await new Promise(r=>setTimeout(r,450));log(imageData?"Görsel klaar voor upload.":"Görsel seçilmedi.");await new Promise(r=>setTimeout(r,450));log("Metin kontrolü tamamlandı.");await new Promise(r=>setTimeout(r,450));log("Gerçek paylaşım adımı TEST MODU tarafından ENGELLENDİ.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>'+new Date().toLocaleString("tr-TR")+' — '+channels().join(" + ")+'</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110))+'</div></div><span class="pill ok">Test tamamlandı</span>';$("history").prepend(h);localStorage.setItem("emigro-last-test",JSON.stringify({caption:$("caption").value,channels:channels(),at:new Date().toISOString()}));alert("Test tamamlandı — niets gepubliceerd.");};
+$("approveBtn").onclick=()=>{if(confirm("Bu taslak kuyruğa alınmak üzere onaylansın mı? Henüz hiçbir şey yayınlanmayacak.")){log("Taslak kuyruk için onaylandı.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>Onaylanmış taslak</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110)||"Metinsiz")+'</div></div><span class="pill">Onaylandı</span>';$("history").prepend(h)}};
+$("cancelBtn").onclick=()=>{if(confirm("Taslak temizlensin mi?")){$("caption").value="";$("tr").value="";$("img").value="";imageData="";$("imgPreview").style.display="none";renderPreview();log("Taslak iptal edildi.");}};
 const today=new Date();$("date").value=today.toISOString().slice(0,10);$("time").value="13:00";renderPreview();
 </script>
 </body>
