@@ -119,6 +119,9 @@
 <script>
 const $=id=>document.getElementById(id);
 let testMode=true, imageData=[], runnerConnected=false;
+const RUNNER_URL="https://emigro-social-runner.onrender.com";
+let controlKey=localStorage.getItem("emigro-control-key")||"";
+if(location.hash.startsWith("#connect=")){controlKey=decodeURIComponent(location.hash.slice(9));localStorage.setItem("emigro-control-key",controlKey);history.replaceState(null,"",location.pathname+location.search);}
 const log=(m)=>{const d=document.createElement("div");d.textContent="["+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})+"] "+m;$("log").appendChild(d);$("log").scrollTop=$("log").scrollHeight};
 function channels(){const a=[];if($("igPost").checked)a.push("Instagram Gönderi");if($("igStory").checked)a.push("Instagram Hikâye");if($("fbPost").checked)a.push("Facebook Gönderi");if($("fbStory").checked)a.push("Facebook Hikâye");return a}
 function renderPreview(){const c=channels();$("previewTitle").textContent=c.length?c.join(" + "):"Platform seçilmedi";$("postText").textContent=$("caption").value.trim()||"Gönderi metniniz burada görünecek.";const box=$("postImages");box.innerHTML="";imageData.forEach(src=>{const im=document.createElement("img");im.src=src;im.style.width="100%";im.style.borderRadius="10px";im.alt="Paylaşım görseli";box.appendChild(im)})}
@@ -139,9 +142,41 @@ $("testModeBtn").onclick=()=>setMode(false);
 $("liveModeBtn").onclick=()=>setMode(true);
 $("testBtn").onclick=async()=>{if(!channels().length)return alert("En az bir platform seçin.");if(!$("caption").value.trim())return alert("Önce paylaşım metni girin.");renderPreview();log("Test başlatıldı.");await new Promise(r=>setTimeout(r,450));log("Platformlar gecontroleerd: "+channels().join(", "));await new Promise(r=>setTimeout(r,450));log(imageData.length?imageData.length+" görsel yüklemeye hazır.":"Görsel seçilmedi.");await new Promise(r=>setTimeout(r,450));log("Metin kontrolü tamamlandı.");await new Promise(r=>setTimeout(r,450));log("Gerçek paylaşım adımı TEST MODU tarafından ENGELLENDİ.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>'+new Date().toLocaleString("tr-TR")+' — '+channels().join(" + ")+'</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110))+'</div></div><span class="pill ok">Test tamamlandı</span>';$("history").prepend(h);localStorage.setItem("emigro-last-test",JSON.stringify({caption:$("caption").value,channels:channels(),imageCount:imageData.length,at:new Date().toISOString()}));alert("Test tamamlandı — niets gepubliceerd.");};
 $("approveBtn").onclick=()=>{if(confirm("Bu taslak kuyruğa alınmak üzere onaylansın mı?")){log("Taslak kuyruk için onaylandı.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>Onaylanmış taslak</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110)||"Metinsiz")+'</div></div><span class="pill">Onaylandı</span>';$("history").prepend(h)}};
-$("publishBtn").onclick=()=>{if(testMode)return;if(!channels().length)return alert("En az bir paylaşım türü seçin.");if(!$("caption").value.trim() && !imageData.length)return alert("Paylaşılacak metin veya görsel ekleyin.");if(!runnerConnected){log("Gerçek yayın durduruldu: uzak tarayıcı bağlantısı yok.");alert("Gerçek paylaşım için uzak tarayıcı bağlantısı henüz aktif değil. Bağlantı doğrulanınca bu düğme doğrudan yayınlayacak.");return;}if(confirm("Seçili platformlarda GERÇEKTEN yayınlansın mı?")){log("Gerçek yayın isteği uzak tarayıcıya gönderildi.");}};
+async function refreshRunner(){
+  try{
+    const r=await fetch(RUNNER_URL+"/health",{cache:"no-store"});
+    const d=await r.json();
+    runnerConnected=Boolean(d&&d.ready&&controlKey);
+    $("runnerText").textContent=d&&d.ready?(controlKey?"Bağlandı — gerçek yayın hazır.":"Sunucu hazır — panel bağlantı anahtarı gerekli."):"Sunucu hazırlanıyor.";
+    $("runnerStatus").style.background=runnerConnected?"#dff3e9":"#fff4d6";
+    if(runnerConnected)log("Uzak tarayıcı servisi hazır.");
+  }catch(e){runnerConnected=false;$("runnerText").textContent="Bağlantı kurulamadı."; $("runnerStatus").style.background="#f7e4e2";}
+}
+$("publishBtn").onclick=async()=>{
+  if(testMode)return;
+  if(!channels().length)return alert("En az bir paylaşım türü seçin.");
+  if(!$("caption").value.trim() && !imageData.length)return alert("Paylaşılacak metin veya görsel ekleyin.");
+  if(!runnerConnected){await refreshRunner();if(!runnerConnected)return alert("Uzak tarayıcı bağlantısı hazır değil.");}
+  if(!confirm("Seçili platformlarda GERÇEKTEN yayınlansın mı?"))return;
+  try{
+    $("publishBtn").disabled=true;$("publishBtn").textContent="Gönderiliyor…";
+    log("Gerçek yayın isteği hazırlanıyor.");
+    const fd=new FormData();
+    fd.append("targets",JSON.stringify(channels()));
+    fd.append("caption",$("caption").value.trim());
+    const files=[...$("img").files];files.forEach(f=>fd.append("images",f));
+    const r=await fetch(RUNNER_URL+"/publish",{method:"POST",headers:{"X-Control-Key":controlKey},body:fd});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||"Yayın başlatılamadı.");
+    const runId=d?.run?.runId||d?.run?.run_id||d?.run?.id||"";
+    log("Uzak tarayıcı başlatıldı"+(runId?": "+runId:"")+".");
+    alert("Gerçek yayın işlemi başlatıldı. Ajan Facebook/Instagram üzerinde işlemi gerçekleştiriyor.");
+    const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>Gerçek yayın başlatıldı</strong><div class="muted" style="font-size:12px">'+channels().join(" + ")+'</div></div><span class="pill ok">İşleniyor</span>';$("history").prepend(h);
+  }catch(e){log("Yayın hatası: "+e.message);alert("Yayın başlatılamadı: "+e.message);}
+  finally{$("publishBtn").disabled=false;$("publishBtn").textContent="Gerçek Yayınla";}
+};
 $("cancelBtn").onclick=()=>{if(confirm("Taslak temizlensin mi?")){$("caption").value="";$("tr").value="";$("img").value="";imageData=[];$("imgPreviewGrid").innerHTML="";renderPreview();log("Taslak iptal edildi.");}};
-const today=new Date();$("date").value=today.toISOString().slice(0,10);$("time").value="13:00";renderPreview();
+const today=new Date();$("date").value=today.toISOString().slice(0,10);$("time").value="13:00";renderPreview();refreshRunner();setInterval(refreshRunner,30000);
 </script>
 </body>
 </html>
