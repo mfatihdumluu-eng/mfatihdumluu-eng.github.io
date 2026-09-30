@@ -15,6 +15,7 @@ const BROWSER_PROVIDER=(process.env.BROWSER_PROVIDER||"browserbase").toLowerCase
 
 const BROWSERBASE_API_KEY=process.env.BROWSERBASE_API_KEY||"";
 let BROWSERBASE_CONTEXT_ID=process.env.BROWSERBASE_CONTEXT_ID||"";
+let BROWSERBASE_PROJECT_ID=process.env.BROWSERBASE_PROJECT_ID||"";
 
 const TINYFISH_API_KEY=process.env.TINYFISH_API_KEY||"";
 const TINYFISH_PROFILE_ID=process.env.TINYFISH_PROFILE_ID||"prof_91c373d0b2654a8f";
@@ -42,10 +43,19 @@ app.use("/media",express.static(uploadDir,{maxAge:"1h"}));
 function authorized(req){return CONTROL_KEY && req.get("X-Control-Key")===CONTROL_KEY}
 function cleanup(files=[]){for(const f of files){try{fs.unlinkSync(f.path)}catch{}}}
 function jobUpdate(id,patch){const j=jobs.get(id)||{};jobs.set(id,{...j,...patch,updatedAt:new Date().toISOString()})}
+async function ensureBrowserbaseProject(){
+  if(!bb) return "";
+  if(BROWSERBASE_PROJECT_ID) return BROWSERBASE_PROJECT_ID;
+  const projects=await bb.projects.list();
+  if(!projects?.length) throw new Error("Browserbase projesi bulunamadı.");
+  BROWSERBASE_PROJECT_ID=projects[0].id;
+  return BROWSERBASE_PROJECT_ID;
+}
 async function ensureBrowserbaseContext(){
   if(!bb) return "";
   if(BROWSERBASE_CONTEXT_ID) return BROWSERBASE_CONTEXT_ID;
-  const ctx=await bb.contexts.create({name:"emigro-social-agent-"+Date.now()});
+  const projectId=await ensureBrowserbaseProject();
+  const ctx=await bb.contexts.create({projectId,name:"emigro-social-agent-"+Date.now()});
   BROWSERBASE_CONTEXT_ID=ctx.id;
   return BROWSERBASE_CONTEXT_ID;
 }
@@ -68,6 +78,8 @@ app.get("/health",async(_,res)=>{
     runner:"render",
     provider,
     browserbaseConfigured:Boolean(BROWSERBASE_API_KEY),
+    browserbaseProjectConfigured:Boolean(BROWSERBASE_PROJECT_ID),
+    browserbaseProjectId:BROWSERBASE_PROJECT_ID||null,
     browserbaseContextConfigured:Boolean(BROWSERBASE_CONTEXT_ID),
     browserbaseContextId:BROWSERBASE_CONTEXT_ID||null,
     tinyfishConfigured:Boolean(TINYFISH_API_KEY),
@@ -89,7 +101,9 @@ app.post("/browserbase/login/start",async(req,res)=>{
   if(!bb)return res.status(503).json({ok:false,error:"Browserbase API anahtarı bağlı değil."});
   if(!BROWSERBASE_CONTEXT_ID) await ensureBrowserbaseContext();
   try{
+    const projectId=await ensureBrowserbaseProject();
     const session=await bb.sessions.create({
+      projectId,
       browserSettings:{context:{id:BROWSERBASE_CONTEXT_ID,persist:true}}
     });
     const browser=await chromium.connectOverCDP(session.connectUrl);
@@ -230,7 +244,9 @@ async function runBrowserbaseJob(jobId,targets,files,caption){
   let sessionId="";
   try{
     jobUpdate(jobId,{status:"RUNNING",startedAt:new Date().toISOString(),provider:"browserbase"});
+    const projectId=await ensureBrowserbaseProject();
     const session=await bb.sessions.create({
+      projectId,
       browserSettings:{context:{id:BROWSERBASE_CONTEXT_ID,persist:true}}
     });
     sessionId=session.id;
