@@ -32,10 +32,12 @@
     <section class="card">
       <h2>Yeni sosyal medya gönderisi</h2>
 
-      <div class="field"><label>Platformlar</label><div class="channels">
-        <label class="chip"><input id="fb" type="checkbox" checked> Facebook</label>
-        <label class="chip"><input id="ig" type="checkbox" checked> Instagram</label>
-      </div></div>
+      <div class="field"><label>Paylaşım türleri</label><div class="channels">
+        <label class="chip"><input id="igPost" type="checkbox" checked> Instagram Gönderi</label>
+        <label class="chip"><input id="igStory" type="checkbox"> Instagram Hikâye</label>
+        <label class="chip"><input id="fbPost" type="checkbox" checked> Facebook Gönderi</label>
+        <label class="chip"><input id="fbStory" type="checkbox"> Facebook Hikâye</label>
+      </div><small>Birden fazla paylaşım türünü aynı anda seçebilirsiniz.</small></div>
 
       <div class="field"><label>Görsel</label><div class="upload">
         <input id="img" type="file" accept="image/*">
@@ -72,7 +74,7 @@
       <div class="card" style="margin-top:18px">
         <h2>Önizleme</h2>
         <div class="preview">
-          <div class="preview-head" id="previewTitle">Facebook + Instagram</div>
+          <div class="preview-head" id="previewTitle">Instagram Gönderi + Facebook Gönderi</div>
           <div class="preview-body">
             <div style="font-weight:800">Emigro</div>
             <div class="muted" style="font-size:12px;margin-bottom:8px">Taslak önizleme</div>
@@ -99,10 +101,10 @@
 const $=id=>document.getElementById(id);
 let testMode=true, imageData="";
 const log=(m)=>{const d=document.createElement("div");d.textContent="["+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})+"] "+m;$("log").appendChild(d);$("log").scrollTop=$("log").scrollHeight};
-function channels(){const a=[];if($("fb").checked)a.push("Facebook");if($("ig").checked)a.push("Instagram");return a}
+function channels(){const a=[];if($("igPost").checked)a.push("Instagram Gönderi");if($("igStory").checked)a.push("Instagram Hikâye");if($("fbPost").checked)a.push("Facebook Gönderi");if($("fbStory").checked)a.push("Facebook Hikâye");return a}
 function renderPreview(){const c=channels();$("previewTitle").textContent=c.length?c.join(" + "):"Platform seçilmedi";$("postText").textContent=$("caption").value.trim()||"Gönderi metniniz burada görünecek.";if(imageData){$("postImage").src=imageData;$("postImage").style.display="block"}else{$("postImage").style.display="none"}}
 $("img").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{imageData=r.result;$("imgPreview").src=imageData;$("imgPreview").style.display="inline-block";renderPreview();log("Görsel geladen voor test.");};r.readAsDataURL(f)});
-$("caption").addEventListener("input",renderPreview);$("fb").addEventListener("change",renderPreview);$("ig").addEventListener("change",renderPreview);
+$("caption").addEventListener("input",renderPreview);["igPost","igStory","fbPost","fbStory"].forEach(id=>$(id).addEventListener("change",renderPreview));
 $("previewBtn").onclick=()=>{renderPreview();log("Önizleme bijgewerkt.");};
 $("switch").onclick=()=>{if(testMode){alert("Ücretsiz test sırasında canlı mod bilinçli olarak kapalıdır. Daha sonra uzak tarayıcı sistemi bağlanacaktır.");log("Canlı mod kapalı: uzak tarayıcı sistemi bağlı değil.");return;}};
 $("testBtn").onclick=async()=>{if(!channels().length)return alert("En az bir platform seçin.");if(!$("caption").value.trim())return alert("Önce paylaşım metni girin.");renderPreview();log("Test başlatıldı.");await new Promise(r=>setTimeout(r,450));log("Platformlar gecontroleerd: "+channels().join(", "));await new Promise(r=>setTimeout(r,450));log(imageData?"Görsel klaar voor upload.":"Görsel seçilmedi.");await new Promise(r=>setTimeout(r,450));log("Metin kontrolü tamamlandı.");await new Promise(r=>setTimeout(r,450));log("Gerçek paylaşım adımı TEST MODU tarafından ENGELLENDİ.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>'+new Date().toLocaleString("tr-TR")+' — '+channels().join(" + ")+'</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110))+'</div></div><span class="pill ok">Test tamamlandı</span>';$("history").prepend(h);localStorage.setItem("emigro-last-test",JSON.stringify({caption:$("caption").value,channels:channels(),at:new Date().toISOString()}));alert("Test tamamlandı — niets gepubliceerd.");};
