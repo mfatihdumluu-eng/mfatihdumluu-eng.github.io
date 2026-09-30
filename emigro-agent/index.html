@@ -53,12 +53,27 @@
         <div class="field"><label>Saat</label><input id="time" type="time"></div>
       </div>
 
-      <div class="toggle"><div><strong>TEST MODU</strong><div class="muted" style="font-size:12px">Hiçbir şey yayınlanmaz.</div></div><div id="switch" class="switch on"></div></div>
+      <div class="toggle" style="gap:12px">
+        <div>
+          <strong>ÇALIŞMA MODU</strong>
+          <div id="modeText" class="muted" style="font-size:12px">Test modu aktif — hiçbir şey yayınlanmaz.</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn primary" id="testModeBtn" type="button">Test</button>
+          <button class="btn secondary" id="liveModeBtn" type="button">Canlı</button>
+        </div>
+      </div>
+
+      <div id="liveNotice" style="display:none;margin-top:10px;padding:12px;border-radius:12px;background:#fff4d6;font-size:12px">
+        <strong>Canlı yayın modu</strong><br>
+        Gerçek paylaşım için uzak tarayıcı bağlantısı gereklidir. Bağlantı doğrulanmadan paylaşım yapılmaz.
+      </div>
 
       <div class="actions">
         <button class="btn secondary" id="previewBtn">Önizle</button>
         <button class="btn primary" id="testBtn">Testi çalıştır</button>
         <button class="btn secondary" id="approveBtn">Onayla</button>
+        <button class="btn primary" id="publishBtn" style="display:none">Gerçek Yayınla</button>
         <button class="btn danger" id="cancelBtn">İptal</button>
       </div>
     </section>
@@ -69,9 +84,9 @@
         <div class="status"><span><span class="dot"></span>Kişisel Facebook test hesabı</span><strong>Test</strong></div>
         <div class="status"><span><span class="dot off"></span>Emigro Facebook sayfası</span><span class="muted">Henüz aktif değil</span></div>
         <div class="status"><span><span class="dot off"></span>Emigro Instagram</span><span class="muted">Henüz aktif değil</span></div>
-        <div style="margin-top:14px;padding:12px;border-radius:12px;background:#fff4d6;font-size:12px">
-          <strong>Canlı paylaşım hazırlığı</strong><br>
-          Uzak tarayıcı bağlandığında burada gerçek “Yayınla” düğmesi aktif olacak. Şu an güvenli test modu açık.
+        <div id="runnerStatus" style="margin-top:14px;padding:12px;border-radius:12px;background:#fff4d6;font-size:12px">
+          <strong>Uzak tarayıcı durumu</strong><br>
+          <span id="runnerText">Bağlantı bekleniyor.</span>
         </div>
       </div>
 
@@ -103,16 +118,28 @@
 
 <script>
 const $=id=>document.getElementById(id);
-let testMode=true, imageData=[];
+let testMode=true, imageData=[], runnerConnected=false;
 const log=(m)=>{const d=document.createElement("div");d.textContent="["+new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})+"] "+m;$("log").appendChild(d);$("log").scrollTop=$("log").scrollHeight};
 function channels(){const a=[];if($("igPost").checked)a.push("Instagram Gönderi");if($("igStory").checked)a.push("Instagram Hikâye");if($("fbPost").checked)a.push("Facebook Gönderi");if($("fbStory").checked)a.push("Facebook Hikâye");return a}
 function renderPreview(){const c=channels();$("previewTitle").textContent=c.length?c.join(" + "):"Platform seçilmedi";$("postText").textContent=$("caption").value.trim()||"Gönderi metniniz burada görünecek.";const box=$("postImages");box.innerHTML="";imageData.forEach(src=>{const im=document.createElement("img");im.src=src;im.style.width="100%";im.style.borderRadius="10px";im.alt="Paylaşım görseli";box.appendChild(im)})}
 $("img").addEventListener("change",e=>{const files=[...e.target.files];imageData=[];$("imgPreviewGrid").innerHTML="";if(!files.length){renderPreview();return;}let done=0;files.forEach((f,i)=>{const r=new FileReader();r.onload=()=>{imageData[i]=r.result;const im=document.createElement("img");im.src=r.result;im.style.width="100%";im.style.aspectRatio="1/1";im.style.objectFit="cover";im.style.borderRadius="10px";$("imgPreviewGrid").appendChild(im);done++;if(done===files.length){renderPreview();log(files.length+" görsel test için yüklendi.");}};r.readAsDataURL(f)});});
 $("caption").addEventListener("input",renderPreview);["igPost","igStory","fbPost","fbStory"].forEach(id=>$(id).addEventListener("change",renderPreview));
 $("previewBtn").onclick=()=>{renderPreview();log("Önizleme bijgewerkt.");};
-$("switch").onclick=()=>{if(testMode){alert("Ücretsiz test sırasında canlı mod bilinçli olarak kapalıdır. Daha sonra uzak tarayıcı sistemi bağlanacaktır.");log("Canlı mod kapalı: uzak tarayıcı sistemi bağlı değil.");return;}};
+function setMode(live){
+  testMode=!live;
+  $("testModeBtn").className="btn "+(testMode?"primary":"secondary");
+  $("liveModeBtn").className="btn "+(!testMode?"primary":"secondary");
+  $("testBtn").style.display=testMode?"inline-block":"none";
+  $("publishBtn").style.display=testMode?"none":"inline-block";
+  $("liveNotice").style.display=testMode?"none":"block";
+  $("modeText").textContent=testMode?"Test modu aktif — hiçbir şey yayınlanmaz.":"Canlı mod aktif — gerçek paylaşım için uzak tarayıcı bağlantısı gerekir.";
+  log(testMode?"Test moduna geçildi.":"Canlı moda geçildi.");
+}
+$("testModeBtn").onclick=()=>setMode(false);
+$("liveModeBtn").onclick=()=>setMode(true);
 $("testBtn").onclick=async()=>{if(!channels().length)return alert("En az bir platform seçin.");if(!$("caption").value.trim())return alert("Önce paylaşım metni girin.");renderPreview();log("Test başlatıldı.");await new Promise(r=>setTimeout(r,450));log("Platformlar gecontroleerd: "+channels().join(", "));await new Promise(r=>setTimeout(r,450));log(imageData.length?imageData.length+" görsel yüklemeye hazır.":"Görsel seçilmedi.");await new Promise(r=>setTimeout(r,450));log("Metin kontrolü tamamlandı.");await new Promise(r=>setTimeout(r,450));log("Gerçek paylaşım adımı TEST MODU tarafından ENGELLENDİ.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>'+new Date().toLocaleString("tr-TR")+' — '+channels().join(" + ")+'</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110))+'</div></div><span class="pill ok">Test tamamlandı</span>';$("history").prepend(h);localStorage.setItem("emigro-last-test",JSON.stringify({caption:$("caption").value,channels:channels(),imageCount:imageData.length,at:new Date().toISOString()}));alert("Test tamamlandı — niets gepubliceerd.");};
-$("approveBtn").onclick=()=>{if(confirm("Bu taslak kuyruğa alınmak üzere onaylansın mı? Henüz hiçbir şey yayınlanmayacak.")){log("Taslak kuyruk için onaylandı.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>Onaylanmış taslak</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110)||"Metinsiz")+'</div></div><span class="pill">Onaylandı</span>';$("history").prepend(h)}};
+$("approveBtn").onclick=()=>{if(confirm("Bu taslak kuyruğa alınmak üzere onaylansın mı?")){log("Taslak kuyruk için onaylandı.");const h=document.createElement("div");h.className="history-item";h.innerHTML='<div><strong>Onaylanmış taslak</strong><div class="muted" style="font-size:12px">'+($("caption").value.slice(0,110)||"Metinsiz")+'</div></div><span class="pill">Onaylandı</span>';$("history").prepend(h)}};
+$("publishBtn").onclick=()=>{if(testMode)return;if(!channels().length)return alert("En az bir paylaşım türü seçin.");if(!$("caption").value.trim() && !imageData.length)return alert("Paylaşılacak metin veya görsel ekleyin.");if(!runnerConnected){log("Gerçek yayın durduruldu: uzak tarayıcı bağlantısı yok.");alert("Gerçek paylaşım için uzak tarayıcı bağlantısı henüz aktif değil. Bağlantı doğrulanınca bu düğme doğrudan yayınlayacak.");return;}if(confirm("Seçili platformlarda GERÇEKTEN yayınlansın mı?")){log("Gerçek yayın isteği uzak tarayıcıya gönderildi.");}};
 $("cancelBtn").onclick=()=>{if(confirm("Taslak temizlensin mi?")){$("caption").value="";$("tr").value="";$("img").value="";imageData=[];$("imgPreviewGrid").innerHTML="";renderPreview();log("Taslak iptal edildi.");}};
 const today=new Date();$("date").value=today.toISOString().slice(0,10);$("time").value="13:00";renderPreview();
 </script>
