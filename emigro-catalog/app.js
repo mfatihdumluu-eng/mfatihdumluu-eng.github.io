@@ -31,7 +31,7 @@ let products=[...demoProducts];
 const euro=n=>n==null?"—":new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n));
 const esc=(v="")=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const jsId=id=>JSON.stringify(id);
-let active="All",shown=24,sort="name",query="",originFilter="",saleFilter="",depositFilter="",selected=null,selectedImage=0,compare=[],priceMode={};
+let active="All",shown=24,sort="name",query="",originFilter="",saleFilter="",depositFilter="",selected=null,selectedImage=0,priceMode={};
 let favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]");
 let quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
 let session=null,profile=null,priceMap={},pendingAction=null,kvkVerified=false,verifiedKvkData=null,demoMode=false;
@@ -363,11 +363,11 @@ function card(p,index){
  const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable;
  return `${index>0&&index%12===0?heroBlock(index):""}<article class="card">
  <button class="card-media" onclick="openProduct(${jsId(p.id)})"><span class="badge">${p.icon} ${p.category}</span>${bottle(p)}${(p.beverage||p.statiegeld>0)?`<span class="deposit-badge ${p.statiegeld>0?"yes":"no"}">${p.statiegeld>0?"Statiegeld":"Geen statiegeld"}</span>`:""}</button>
- <div class="card-body"><div class="brandline">${p.brand} · ${p.origin}</div><h3>${p.name}</h3><div class="meta"><span>${p.net}</span><span class="barcode-meta">Barkod: ${p.ean}</span><span>${p.palletCases} koli/palet</span></div>
+ <div class="card-body"><div class="brandline">${p.brand} · ${p.origin}</div><h3 class="product-title-link" onclick="openProduct(${jsId(p.id)})">${p.name}</h3><div class="meta"><span>${p.net}</span><span class="barcode-meta">Barkod: ${p.ean}</span><span>${p.palletCases} koli/palet</span></div>
  ${(p.beverage||p.statiegeld>0)?`<div class="deposit-line">${depositText(p)}</div>`:""}
  ${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},'case')">Koli</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},'pallet')">Palet</button></div>`:`<div class="single-type">ⓘ ${p.caseAvailable?"Sadece koli":"Sadece palet"}</div>`}
  ${approved()?`<div class="pricebox"><div><span>${mode==="case"?"Koli fiyatı":"Palet fiyatı"}</span><strong>${euro(currentPrice(p))}</strong></div><small>${mode==="case"?p.caseQty+" adet / koli":p.palletCases+" koli / palet"}</small></div><div class="price-valid-mini">Geçerli: ${VALIDITY.from} / ${VALIDITY.to}</div>`:lockedPrice()}
- <div class="card-actions"><button class="ghost" onclick="openProduct(${jsId(p.id)})">Detay</button><button class="ghost" ${compare.length>=3&&!compare.includes(p.id)?"disabled":""} onclick="toggleCompare(${jsId(p.id)})">${compare.includes(p.id)?"Seçildi":"Kıyasla"}</button></div></div></article>`;
+ </div></article>`;
 }
 function renderProducts(){
  const list=filtered();document.getElementById("resultCount").textContent=`${list.length} sonuç · ilk ${Math.min(shown,list.length)} ürün gösteriliyor`;
@@ -807,32 +807,6 @@ document.getElementById("quoteForm").onsubmit=async e=>{
  alert("Teklif talebiniz başarıyla Emigro'ya gönderildi. Talep no: "+String(data).slice(0,8).toUpperCase()+". Emigro teklifinizi admin panelinden hazırlayacak.");
 };
 
-function toggleCompare(id){compare=compare.includes(id)?compare.filter(x=>x!==id):compare.length<3?[...compare,id]:compare;renderAll()}
-window.toggleCompare=toggleCompare;
-function renderCompareBar(){
- const bar=document.getElementById("compareBar");if(!compare.length){bar.classList.add("hidden");return}bar.classList.remove("hidden");
- document.getElementById("compareCount").textContent=`${compare.length}/3 ürün seçildi`;
- document.getElementById("compareChips").innerHTML=compare.map(id=>{const p=products.find(x=>x.id===id);return `<span class="chip">${p.name}</span>`}).join("");
- document.getElementById("compareOpen").disabled=compare.length<2;
-}
-function openCompare(){
- if(!approved()){openAuth("Fiyat bazlı kıyaslama için onaylı üyelikle giriş yapın.");return}
- const list=compare.map(id=>products.find(p=>p.id===id)),modes=list.map(modeFor),aligned=modes.every(m=>m===modes[0]);
- if(!aligned){
-  document.getElementById("warnRows").innerHTML=list.map(p=>`<div class="facts-grid"><div><span>${p.name}</span><strong>${modeFor(p)==="case"?"Koli":"Palet"}</strong></div></div>`).join("");
-  const canCase=list.every(p=>p.caseAvailable),canPallet=list.every(p=>p.palletAvailable);
-  document.getElementById("warnActions").innerHTML=`${canCase?'<button class="btn" onclick="alignCompare(\'case\')">Tümünü koliye çevir</button>':""}${canPallet?'<button class="btn" onclick="alignCompare(\'pallet\')">Tümünü palete çevir</button>':""}`;
-  openModal("compareWarn");return;
- }
- renderCompare(list);
-}
-function alignCompare(mode){compare.forEach(id=>priceMode[id]=mode);closeModal("compareWarn");renderCompare(compare.map(id=>products.find(p=>p.id===id)))}
-window.alignCompare=alignCompare;
-function renderCompare(list){
- const mode=modeFor(list[0]);document.getElementById("compareDesc").textContent=(mode==="case"?"Koli":"Palet")+" fiyatları yan yana karşılaştırılıyor.";
- document.getElementById("compareGrid").innerHTML=list.map(p=>`<article class="compare-col"><div class="visual">${bottle(p)}</div><div class="brandline">${p.category}</div><h3>${p.brand}<br>${p.name}</h3><div class="compare-price"><span>${mode==="case"?"Koli fiyatı":"Palet fiyatı"}</span><strong>${euro(priceFor(p,mode))}</strong></div><dl><div><dt>Menşei</dt><dd>${p.origin}</dd></div><div><dt>Net</dt><dd>${p.net}</dd></div><div><dt>Koli içi</dt><dd>${p.caseQty}</dd></div><div><dt>Palet içi</dt><dd>${p.palletCases}</dd></div><div><dt>EAN</dt><dd>${p.ean}</dd></div>${p.beverage?`<div><dt>Statiegeld</dt><dd>${p.statiegeld>0?euro(p.statiegeld):"Yok"}</dd></div>`:""}</dl></article>`).join("");
- openModal("compareModal");
-}
 async function scanBarcode(){
  const search=document.getElementById("search");
  if(!("BarcodeDetector" in window)||!navigator.mediaDevices?.getUserMedia){
@@ -864,7 +838,6 @@ async function scanBarcode(){
    if(code!=null){query=code.trim();search.value=query;shown=24;renderProducts()}
  }
 }
-document.getElementById("compareOpen").onclick=openCompare;
 document.getElementById("priceInfoBtn").onclick=()=>openModal("priceInfo");
 document.getElementById("search").oninput=e=>{query=e.target.value;shown=24;renderProducts()};
 document.getElementById("sort").onchange=e=>{sort=e.target.value;if((sort==="low"||sort==="high")&&!approved()){sort="name";e.target.value="name";openAuth("Fiyata göre sıralama yalnızca onaylı üyeler için kullanılabilir.")}renderProducts()};
@@ -874,7 +847,7 @@ document.getElementById("depositFilter").onchange=e=>{depositFilter=e.target.val
 document.getElementById("scanBarcodeBtn").onclick=scanBarcode;
 document.getElementById("loadMore").onclick=()=>{shown+=24;renderProducts()};
 
-function renderAll(){renderBanner();renderCategories();renderProducts();renderCompareBar();renderQuoteCart()}
+function renderAll(){renderBanner();renderCategories();renderProducts();renderQuoteCart()}
 function setMobileNavActive(name){
  document.querySelectorAll("[data-mobile-nav]").forEach(b=>b.classList.toggle("active",b.dataset.mobileNav===name));
 }
