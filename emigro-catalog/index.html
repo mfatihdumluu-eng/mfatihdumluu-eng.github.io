@@ -100,7 +100,7 @@
     <div class="account-panel hidden" id="accountPanel">
       <div class="account-status" id="accountStatus"></div>
       <div class="account-facts" id="accountFacts"></div>
-      <div class="account-actions"><button class="ghost hidden" id="adminPanelBtn">Admin paneli</button><button class="ghost" id="logoutBtn">Çıkış yap</button></div>
+      <div class="account-actions"><button class="btn" id="myQuotesBtn">Tekliflerim</button><button class="ghost hidden" id="adminPanelBtn">Admin paneli</button><button class="ghost" id="logoutBtn">Çıkış yap</button></div>
     </div>
   </div>
 </div>
@@ -143,6 +143,14 @@
         <small>Talep Emigro'ya iletilir ve üyelik bilgilerinizle eşleştirilir.</small>
       </form>
     </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="myQuotesModal">
+  <div class="modal my-quotes-modal">
+    <button class="close" data-close="myQuotesModal">×</button>
+    <div class="modal-title-row"><div><div class="eyebrow">MÜŞTERİ HESABI</div><h2>Tekliflerim</h2><p>Gönderdiğiniz talepleri ve Emigro tarafından hazırlanmış teklifleri burada görebilirsiniz.</p></div></div>
+    <div class="my-quotes-list" id="myQuotesList"><div class="admin-loading">Teklifler yükleniyor…</div></div>
   </div>
 </div>
 
