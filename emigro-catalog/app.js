@@ -315,7 +315,7 @@ function card(p,index){
  const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable;
  return `${index>0&&index%12===0?heroBlock(index):""}<article class="card">
  <button class="card-media" onclick="openProduct(${p.id})"><span class="badge">${p.icon} ${p.category}</span>${bottle(p)}${(p.beverage||p.statiegeld>0)?`<span class="deposit-badge ${p.statiegeld>0?"yes":"no"}">${p.statiegeld>0?"Statiegeld":"Geen statiegeld"}</span>`:""}</button>
- <div class="card-body"><div class="brandline">${p.brand} · ${p.origin}</div><h3>${p.name}</h3><div class="meta"><span>${p.net}</span><span>EAN ${p.ean}</span><span>${p.palletCases} koli/palet</span></div>
+ <div class="card-body"><div class="brandline">${p.brand} · ${p.origin}</div><h3>${p.name}</h3><div class="meta"><span>${p.net}</span><span class="barcode-meta">Barkod: ${p.ean}</span><span>${p.palletCases} koli/palet</span></div>
  ${(p.beverage||p.statiegeld>0)?`<div class="deposit-line">${depositText(p)}</div>`:""}
  ${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${p.id},'case')">Koli</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${p.id},'pallet')">Palet</button></div>`:`<div class="single-type">ⓘ ${p.caseAvailable?"Sadece koli":"Sadece palet"}</div>`}
  ${approved()?`<div class="pricebox"><div><span>${mode==="case"?"Koli fiyatı":"Palet fiyatı"}</span><strong>${euro(currentPrice(p))}</strong></div><small>${mode==="case"?p.caseQty+" adet / koli":p.palletCases+" koli / palet"}</small></div><div class="price-valid-mini">Geçerli: ${VALIDITY.from} / ${VALIDITY.to}</div>`:lockedPrice()}
@@ -337,7 +337,7 @@ function openProduct(id){
  selected=products.find(p=>p.id===id);selectedImage=0;
  document.getElementById("modalTitle").textContent=selected.brand+" "+selected.name;
  document.getElementById("modalSub").textContent=selected.origin+" · "+selected.category;
- document.getElementById("factsGrid").innerHTML=[["SKU",selected.sku],["EAN",selected.ean],["Net",selected.net],["Koli içi",selected.caseQty],["Palet içi",selected.palletCases],["Menşei",selected.origin]].map(([a,b])=>`<div><span>${a}</span><strong>${b}</strong></div>`).join("");
+ document.getElementById("factsGrid").innerHTML=[["SKU",selected.sku],["Barkod",selected.ean],["Net",selected.net],["Koli içi",selected.caseQty],["Palet içi",selected.palletCases],["Menşei",selected.origin]].map(([a,b])=>`<div><span>${a}</span><strong>${b}</strong></div>`).join("");
  document.getElementById("depositDetail").innerHTML=(selected.beverage||selected.statiegeld>0)?`<div class="deposit-detail ${selected.statiegeld>0?"yes":"no"}"><b>${selected.statiegeld>0?"Statiegeld aanwezig":"Geen statiegeld"}</b><span>${selected.statiegeld>0?euro(selected.statiegeld)+" · "+(selected.statiegeldScope==="case"?"yalnız koli":selected.statiegeldScope==="pallet"?"yalnız palet":"koli + palet"):"Dit product heeft geen statiegeld"}</span></div>`:"";
  renderMedia();renderDetailCommerce();renderFav();renderDetailQuoteButton();openModal("productModal");
  history.replaceState(null,"",`?product=${encodeURIComponent(selected.sku)}`);
