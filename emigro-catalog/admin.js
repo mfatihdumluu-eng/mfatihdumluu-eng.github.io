@@ -252,7 +252,7 @@ async function saveOffer(forceStatus=null){
  updateOfferPreview();
  return true;
 }
-document.getElementById("saveOfferBtn").onclick=async()=>{if(await saveOffer())notify("Taslak kaydedildi.")};
+document.getElementById("saveOfferBtn").onclick=async()=>{if(await saveOffer())closeOfferModal()};
 document.getElementById("publishOfferBtn").onclick=async()=>{
  document.getElementById("offerStatus").value="offered";
  if(await saveOffer("offered"))notify("Teklif müşteriye yayınlandı. Müşteri hesabındaki Tekliflerim bölümünde görebilir.");
