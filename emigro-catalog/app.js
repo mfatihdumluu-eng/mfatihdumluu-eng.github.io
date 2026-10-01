@@ -640,13 +640,21 @@ function renderAll(){renderBanner();renderCategories();renderProducts();renderCo
 function setMobileNavActive(name){
  document.querySelectorAll("[data-mobile-nav]").forEach(b=>b.classList.toggle("active",b.dataset.mobileNav===name));
 }
+function closeMobilePanels(){
+ document.querySelectorAll(".modal-backdrop").forEach(m=>m.classList.add("hidden"));
+ const dash=document.getElementById("customerDashboard");
+ if(dash)dash.classList.add("hidden");
+ document.body.classList.remove("mobile-panel-open");
+}
 function scrollMobileTarget(id,name){
+ closeMobilePanels();
  const el=document.getElementById(id);if(!el)return;
  setMobileNavActive(name);
  el.scrollIntoView({behavior:"smooth",block:"start"});
 }
 document.querySelectorAll("[data-mobile-nav]").forEach(btn=>btn.onclick=()=>{
  const action=btn.dataset.mobileNav;
+ closeMobilePanels();
  if(action==="home"){scrollMobileTarget("home","home");return}
  if(action==="categories"){scrollMobileTarget("categoryBrowser","categories");return}
  if(action==="products"){scrollMobileTarget("products","products");return}
