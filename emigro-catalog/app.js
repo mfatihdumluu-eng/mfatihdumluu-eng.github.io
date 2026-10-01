@@ -24,7 +24,7 @@ const demoProducts=cats.flatMap((c,ci)=>Array.from({length:23},(_,i)=>{
    caseQty:[6,12,18,24][(i+ci)%4],palletCases:48+((i+ci)%5)*6,
    caseAvailable:!palletOnly,palletAvailable:!caseOnly,
    tone:c[1],icon:c[3],hero:i===0,featured:i===1||i===7,heroLayout:ci%2===0?"editorial":"grid4",
-   beverage,statiegeld
+   beverage,statiegeld,statiegeldScope:statiegeld>0?"both":"none"
  };
 }));
 let products=[...demoProducts];
@@ -49,7 +49,12 @@ const priceFor=(p,mode)=>{
 };
 const modeFor=p=>priceMode[p.id]||(p.caseAvailable?"case":"pallet");
 const currentPrice=p=>priceFor(p,modeFor(p));
-const depositText=p=>!p.beverage?"":(p.statiegeld>0?`Statiegeld: Ja · ${euro(p.statiegeld)}`:"Statiegeld: Nee");
+const depositText=p=>{
+ if(!p.beverage&&Number(p.statiegeld||0)<=0)return"";
+ if(!p.statiegeld||p.statiegeldScope==="none")return"Statiegeld: Nee";
+ const scope=p.statiegeldScope==="case"?"Sadece koli":p.statiegeldScope==="pallet"?"Sadece palet":"Koli + palet";
+ return `Statiegeld: Ja · ${euro(p.statiegeld)} · ${scope}`;
+};
 const bottle=(p,large=false)=>p.image1
  ? `<img class="real-product-image ${large?"large":""}" src="${p.image1}" alt="${p.brand} ${p.name}">`
  : `<div class="bottle ${large?"large":""}" style="background:linear-gradient(155deg,${p.tone},#1c234a)"><div class="cap"></div><div class="label">PREMIUM<br>SELECTION</div></div>`;
@@ -80,8 +85,8 @@ async function loadLiveCatalog(){
     net:`${Number(r.net_value)} ${r.net_unit}`,
     caseQty:Number(r.units_per_case),
     palletCases:Number(r.cases_per_pallet),
-    caseAvailable:true,
-    palletAvailable:true,
+    caseAvailable:r.sale_type==="case"||r.sale_type==="both",
+    palletAvailable:r.sale_type==="pallet"||r.sale_type==="both",
     tone:cats[ci]?.[1]||palette[ci%palette.length],
     icon:cats[ci]?.[3]||"🧺",
     hero:isFirst,
@@ -89,6 +94,7 @@ async function loadLiveCatalog(){
     heroLayout:ci%2===0?"editorial":"grid4",
     beverage:Number(r.statiegeld||0)>0||/drink|juice|soft/i.test(r.category||""),
     statiegeld:Number(r.statiegeld||0),
+    statiegeldScope:r.statiegeld_scope||"none",
     image1:r.image_1||null,
     image2:r.image_2||null,
     image3:r.image_3||null
@@ -308,9 +314,9 @@ function lockedPrice(){
 function card(p,index){
  const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable;
  return `${index>0&&index%12===0?heroBlock(index):""}<article class="card">
- <button class="card-media" onclick="openProduct(${p.id})"><span class="badge">${p.icon} ${p.category}</span>${bottle(p)}${p.beverage?`<span class="deposit-badge ${p.statiegeld>0?"yes":"no"}">${p.statiegeld>0?"Statiegeld":"Geen statiegeld"}</span>`:""}</button>
+ <button class="card-media" onclick="openProduct(${p.id})"><span class="badge">${p.icon} ${p.category}</span>${bottle(p)}${(p.beverage||p.statiegeld>0)?`<span class="deposit-badge ${p.statiegeld>0?"yes":"no"}">${p.statiegeld>0?"Statiegeld":"Geen statiegeld"}</span>`:""}</button>
  <div class="card-body"><div class="brandline">${p.brand} · ${p.origin}</div><h3>${p.name}</h3><div class="meta"><span>${p.net}</span><span>EAN ${p.ean}</span><span>${p.palletCases} koli/palet</span></div>
- ${p.beverage?`<div class="deposit-line">${depositText(p)}</div>`:""}
+ ${(p.beverage||p.statiegeld>0)?`<div class="deposit-line">${depositText(p)}</div>`:""}
  ${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${p.id},'case')">Koli</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${p.id},'pallet')">Palet</button></div>`:`<div class="single-type">ⓘ ${p.caseAvailable?"Sadece koli":"Sadece palet"}</div>`}
  ${approved()?`<div class="pricebox"><div><span>${mode==="case"?"Koli fiyatı":"Palet fiyatı"}</span><strong>${euro(currentPrice(p))}</strong></div><small>${mode==="case"?p.caseQty+" adet / koli":p.palletCases+" koli / palet"}</small></div><div class="price-valid-mini">Geçerli: ${VALIDITY.from} / ${VALIDITY.to}</div>`:lockedPrice()}
  <div class="card-actions"><button class="ghost" onclick="openProduct(${p.id})">Detay</button><button class="ghost" ${compare.length>=3&&!compare.includes(p.id)?"disabled":""} onclick="toggleCompare(${p.id})">${compare.includes(p.id)?"Seçildi":"Kıyasla"}</button></div></div></article>`;
@@ -332,7 +338,7 @@ function openProduct(id){
  document.getElementById("modalTitle").textContent=selected.brand+" "+selected.name;
  document.getElementById("modalSub").textContent=selected.origin+" · "+selected.category;
  document.getElementById("factsGrid").innerHTML=[["SKU",selected.sku],["EAN",selected.ean],["Net",selected.net],["Koli içi",selected.caseQty],["Palet içi",selected.palletCases],["Menşei",selected.origin]].map(([a,b])=>`<div><span>${a}</span><strong>${b}</strong></div>`).join("");
- document.getElementById("depositDetail").innerHTML=selected.beverage?`<div class="deposit-detail ${selected.statiegeld>0?"yes":"no"}"><b>${selected.statiegeld>0?"Statiegeld aanwezig":"Geen statiegeld"}</b><span>${selected.statiegeld>0?euro(selected.statiegeld)+" per verpakking":"Dit product heeft geen statiegeld"}</span></div>`:"";
+ document.getElementById("depositDetail").innerHTML=(selected.beverage||selected.statiegeld>0)?`<div class="deposit-detail ${selected.statiegeld>0?"yes":"no"}"><b>${selected.statiegeld>0?"Statiegeld aanwezig":"Geen statiegeld"}</b><span>${selected.statiegeld>0?euro(selected.statiegeld)+" · "+(selected.statiegeldScope==="case"?"yalnız koli":selected.statiegeldScope==="pallet"?"yalnız palet":"koli + palet"):"Dit product heeft geen statiegeld"}</span></div>`:"";
  renderMedia();renderDetailCommerce();renderFav();renderDetailQuoteButton();openModal("productModal");
  history.replaceState(null,"",`?product=${encodeURIComponent(selected.sku)}`);
 }
