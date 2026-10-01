@@ -113,7 +113,14 @@ function openModal(id){
    requestAnimationFrame(()=>{modal.scrollTop=0});
  }
 }
-function closeModal(id){document.getElementById(id).classList.add("hidden");if(id==="productModal")history.replaceState(null,"",location.pathname)}
+function closeModal(id){
+ document.getElementById(id).classList.add("hidden");
+ if(id==="productModal"){
+   clearInterval(alternativeTimer);
+   alternativeTimer=null;
+   history.replaceState(null,"",location.pathname);
+ }
+}
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
 
 async function loadProfile(){
@@ -348,10 +355,49 @@ function openProduct(id){
  document.getElementById("modalSub").textContent=selected.origin+" · "+selected.category;
  document.getElementById("factsGrid").innerHTML=[["SKU",selected.sku],["Barkod",selected.ean],["Net",selected.net],["Koli içi",selected.caseQty],["Palet içi",selected.palletCases],["Menşei",selected.origin]].map(([a,b])=>`<div><span>${a}</span><strong>${b}</strong></div>`).join("");
  document.getElementById("depositDetail").innerHTML=(selected.beverage||selected.statiegeld>0)?`<div class="deposit-detail ${selected.statiegeld>0?"yes":"no"}"><b>${selected.statiegeld>0?"Statiegeld aanwezig":"Geen statiegeld"}</b><span>${selected.statiegeld>0?euro(selected.statiegeld)+" · "+(selected.statiegeldScope==="case"?"yalnız koli":selected.statiegeldScope==="pallet"?"yalnız palet":"koli + palet"):"Dit product heeft geen statiegeld"}</span></div>`:"";
- renderMedia();renderDetailCommerce();renderFav();renderDetailQuoteButton();openModal("productModal");
+ renderMedia();renderDetailCommerce();renderFav();renderDetailQuoteButton();renderAlternativeProducts();openModal("productModal");
  history.replaceState(null,"",`?product=${encodeURIComponent(selected.sku)}`);
 }
 window.openProduct=openProduct;
+
+let alternativeTimer=null;
+function pickAlternativeProducts(){
+ if(!selected)return [];
+ const sameCategory=products.filter(p=>p.id!==selected.id&&p.category===selected.category);
+ const other=products.filter(p=>p.id!==selected.id&&p.category!==selected.category);
+ const pool=[...sameCategory.sort(()=>Math.random()-.5),...other.sort(()=>Math.random()-.5)];
+ const seen=new Set(),result=[];
+ for(const p of pool){
+   if(seen.has(p.id))continue;
+   seen.add(p.id);result.push(p);
+   if(result.length>=8)break;
+ }
+ return result;
+}
+function renderAlternativeProducts(){
+ const root=document.getElementById("alternativeProducts");
+ if(!root||!selected)return;
+ const list=pickAlternativeProducts();
+ root.innerHTML=list.map(p=>{
+   const mode=modeFor(p);
+   const price=approved()?euro(priceFor(p,mode)||0):"";
+   return `<button type="button" class="alternative-card" onclick="openProduct('${p.id}')">
+      <div class="alternative-image">${bottle(p)}</div>
+      <div class="alternative-copy">
+        <span>${esc(p.category)}</span>
+        <b>${esc(p.brand)} ${esc(p.name)}</b>
+        <small>Barkod: ${esc(p.ean)}</small>
+        ${approved()?`<strong>${price} <em>/ ${mode==="case"?"koli":"palet"}</em></strong>`:""}
+      </div>
+    </button>`;
+ }).join("");
+ clearInterval(alternativeTimer);
+ alternativeTimer=setInterval(()=>{
+   const modal=document.getElementById("productModal");
+   if(modal&&!modal.classList.contains("hidden"))renderAlternativeProducts();
+ },12000);
+}
+window.renderAlternativeProducts=renderAlternativeProducts;
 function renderMedia(){
  const media=document.getElementById("mainMedia");
  const options=[{label:"Ürün",idx:0,show:true},{label:"Koli",idx:1,show:selected.caseAvailable},{label:"Palet",idx:2,show:selected.palletAvailable}].filter(x=>x.show);
