@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="./styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <section class="admin-login-shell" id="adminLoginShell">
@@ -39,6 +40,7 @@
   <div class="admin-main-tabs">
     <button class="active" data-admin-tab="members">Üyelikler</button>
     <button data-admin-tab="quotes">Teklif talepleri <span id="newQuoteBadge"></span></button>
+    <button data-admin-tab="products">Toplu ürün girişi</button>
   </div>
 
   <section id="membersPanel">
@@ -51,6 +53,35 @@
     <div class="admin-stats quote-stats" id="quoteStats"></div>
     <div class="admin-filter"><button data-qfilter="all" class="active">Tümü</button><button data-qfilter="new">Yeni</button><button data-qfilter="reviewing">İnceleniyor</button><button data-qfilter="offered">Teklif verildi</button><button data-qfilter="accepted">Kabul</button><button data-qfilter="declined">Reddedildi</button></div>
     <section class="admin-list" id="quoteList"><div class="admin-loading">Teklif talepleri yükleniyor…</div></section>
+  </section>
+
+  <section id="productsPanel" class="hidden">
+    <div class="product-import-head">
+      <div>
+        <div class="eyebrow">TOPLU ÜRÜN GİRİŞİ</div>
+        <h2>Excel + toplu görsel yükleme</h2>
+        <p>Önce Excel dosyasını yükleyin, sonra ürün görsellerini topluca seçin. Barkod ile görseller otomatik eşleşir.</p>
+      </div>
+      <button class="ghost" id="downloadProductTemplate">Excel şablonunu indir</button>
+    </div>
+
+    <div class="product-import-rules">
+      <div><b>Zorunlu alanlar</b><span>Ürün adı, barkod, marka, kategori, tek birim fiyatı, net gramaj/değer, birim, koli içi adet, palet içi koli adedi ve menşei.</span></div>
+      <div><b>Görsel isimleri</b><span><code>111232132131.jpg</code>, <code>111232132131-2.jpg</code>, <code>111232132131-3.jpg</code>. Varsayılanlar: <code>kutu.jpg</code> ve <code>palet.jpg</code>.</span></div>
+      <div><b>Fiyat mantığı</b><span>Excel'deki tek ürün fiyatı yalnızca hesaplama için saklanır; müşteriye hiçbir yerde gösterilmez. Koli ve palet fiyatı sistem tarafından hesaplanır.</span></div>
+    </div>
+
+    <div class="product-import-upload-grid">
+      <label class="import-drop"><span>1. Excel dosyası</span><input type="file" id="productExcelInput" accept=".xlsx,.xls"><b>Excel seç</b><small>.xlsx / .xls</small></label>
+      <label class="import-drop"><span>2. Ürün görselleri</span><input type="file" id="productImagesInput" accept="image/*" multiple><b>Görselleri toplu seç</b><small>Barkod isimli dosyalar + kutu/palet</small></label>
+    </div>
+
+    <div class="product-import-summary" id="productImportSummary"></div>
+    <div class="product-import-actions hidden" id="productImportActions">
+      <button class="btn" id="saveValidProducts">Geçerli ürünleri sisteme ekle</button>
+      <button class="ghost" id="clearProductImport">Listeyi temizle</button>
+    </div>
+    <div class="product-import-list" id="productImportList"><div class="admin-loading">Excel yüklendiğinde ürün kartları burada oluşacak.</div></div>
   </section>
 </main>
 
