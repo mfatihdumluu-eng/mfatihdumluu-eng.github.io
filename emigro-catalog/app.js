@@ -86,7 +86,7 @@ function renderAuthButton(){
  if(demoMode){
    btn.textContent="Emigro Demo B.V.";
    accountQuick?.classList.remove("hidden");
-   nav?.classList.remove("hidden");dash?.classList.remove("hidden");
+   nav?.classList.remove("hidden");dash?.classList.add("hidden");
    return;
  }
  if(!session){
@@ -97,8 +97,7 @@ function renderAuthButton(){
  }
  btn.textContent=profile?.company_name||session.user.email||"Hesabım";
  accountQuick?.classList.remove("hidden");
- nav?.classList.remove("hidden");dash?.classList.remove("hidden");
- loadCustomerDashboard();
+ nav?.classList.remove("hidden");dash?.classList.add("hidden");
 }
 function openAuth(reason="Fiyatları görmek ve teklif istemek için onaylı üyelik gerekir.",action=null){
  pendingAction=action;
@@ -144,7 +143,10 @@ document.getElementById("loginTab").onclick=()=>switchAuthTab("login");
 document.getElementById("registerTab").onclick=()=>switchAuthTab("register");
 document.getElementById("accountBtn").onclick=()=>openAuth();
 document.getElementById("customerAccountBtn").onclick=()=>{
- document.getElementById("customerDashboard").scrollIntoView({behavior:"smooth",block:"start"});
+ const dash=document.getElementById("customerDashboard");
+ dash.classList.remove("hidden");
+ loadCustomerDashboard();
+ dash.scrollIntoView({behavior:"smooth",block:"start"});
 };
 document.getElementById("adminPanelBtn").onclick=()=>location.href="./admin.html";
 document.getElementById("myQuotesBtn").onclick=()=>openMyQuotes();
@@ -471,7 +473,10 @@ async function loadCustomerDashboard(){
 }
 
 document.getElementById("customerDashboardNav").onclick=()=>{
- document.getElementById("customerDashboard").scrollIntoView({behavior:"smooth",block:"start"});
+ const dash=document.getElementById("customerDashboard");
+ dash.classList.remove("hidden");
+ loadCustomerDashboard();
+ dash.scrollIntoView({behavior:"smooth",block:"start"});
 };
 document.getElementById("refreshCustomerDashboard").onclick=loadCustomerDashboard;
 document.querySelectorAll("[data-customer-tab]").forEach(b=>b.onclick=()=>{
