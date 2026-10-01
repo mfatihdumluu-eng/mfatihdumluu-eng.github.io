@@ -603,6 +603,7 @@ window.openMyQuotes=openMyQuotes;
 let customerDashboardTab="quotes";
 async function loadCustomerDashboard(){
  if(!session||!document.getElementById("customerDashboard"))return;
+ try{await sb.rpc("emigro_catalog_sync_my_completed_orders")}catch{}
  const root=document.getElementById("customerDashboardList");
  root.innerHTML='<div class="admin-loading">Hesap verileri yükleniyor…</div>';
 
@@ -700,18 +701,40 @@ async function loadCustomerDashboard(){
  }
 
  if(customerDashboardTab==="orders"){
-   root.innerHTML=customerOrders.length?customerOrders.map(o=>{
+   const activeOrders=customerOrders.filter(o=>!["completed","cancelled"].includes(o.status));
+   const finishedOrders=customerOrders.filter(o=>["completed","cancelled"].includes(o.status));
+   const renderOrder=o=>{
      const items=(o.items||[]).map(i=>`<div class="customer-dash-item"><div><b>${esc(i.name)}</b><small>${esc(i.sku)} · ${i.mode==="case"?"Koli":"Palet"} · ${i.qty} adet</small></div><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>`).join("");
      const addressOptions=customerAddresses.map(a=>`<option value="${a.id}" ${o.delivery_address_id===a.id?"selected":""}>${esc(a.label)} · ${esc(a.city)}</option>`).join("");
+     const canConfirm=["ready","shipped"].includes(o.status);
+     const shippedText=o.shipped_at?new Date(o.shipped_at).toLocaleString("nl-NL"):"—";
+     const completedText=o.completed_at?new Date(o.completed_at).toLocaleString("nl-NL"):"—";
      return `<article class="customer-dash-card order-card ${o.status}">
        <div class="customer-dash-card-head"><div><span class="my-quote-status ${o.status}">${customerOrderStatus(o.status)}</span><h3>${esc(o.order_number||"Sipariş")}</h3><small>${new Date(o.created_at).toLocaleString("nl-NL")}</small></div><strong>${euro(o.total)}</strong></div>
        <div class="customer-dash-items">${items}</div>
-       <div class="order-customer-meta"><span>İstenen teslim: <b>${o.requested_delivery_date?new Date(o.requested_delivery_date).toLocaleDateString("nl-NL"):"—"}</b></span><span>Onaylanan teslim: <b>${o.confirmed_delivery_date?new Date(o.confirmed_delivery_date).toLocaleDateString("nl-NL"):"—"}</b></span></div>
+       <div class="order-customer-meta">
+         <span>İstenen teslim: <b>${o.requested_delivery_date?new Date(o.requested_delivery_date+"T12:00:00").toLocaleDateString("nl-NL"):"—"}</b></span>
+         <span>Onaylanan teslim: <b>${o.confirmed_delivery_date?new Date(o.confirmed_delivery_date+"T12:00:00").toLocaleDateString("nl-NL"):"—"}</b></span>
+         <span>Kargoya verildi: <b>${shippedText}</b></span>
+         ${o.status==="completed"?`<span>Tamamlandı: <b>${completedText}</b></span>`:""}
+       </div>
        ${o.status==="shipped"&&o.tracking_number?`<div class="shipping-track"><span>Kargo takip numarası</span><strong>${esc(o.tracking_number)}</strong>${/^https?:\/\//i.test(o.tracking_url||"")?`<a class="btn" href="${esc(o.tracking_url)}" target="_blank" rel="noopener">Kargoyu takip et</a>`:""}</div>`:""}
        ${["new","preparing"].includes(o.status)?`<div class="order-delivery-edit"><select id="order-address-${o.id}"><option value="">Teslimat adresi seçin</option>${addressOptions}</select><input id="order-request-date-${o.id}" type="date" value="${o.requested_delivery_date||""}"><button class="ghost" onclick="saveCustomerOrderDelivery('${o.id}')">Teslimat bilgisini kaydet</button></div>`:""}
-       <div class="customer-offer-actions"><button class="btn" onclick="repeatOrder('${o.id}')">Bu siparişi tekrar oluştur</button></div>
+       <div class="customer-offer-actions">
+         ${canConfirm?`<button class="btn delivery-confirm-btn" onclick="confirmOrderDelivered('${o.id}')">Teslim aldım</button>`:""}
+         <button class="ghost" onclick="repeatOrder('${o.id}')">Aynı ürünler için yeniden teklif iste</button>
+       </div>
       </article>`;
-   }).join(""):'<div class="my-quotes-empty"><b>Henüz siparişiniz yok.</b><span>Kabul ettiğiniz teklifler burada siparişe dönüşür.</span></div>';
+   };
+   root.innerHTML=customerOrders.length?`
+     <div class="customer-order-section">
+       <div class="customer-order-section-head"><div><span>AKTİF SİPARİŞLER</span><strong>${activeOrders.length}</strong></div><small>Hazırlık, sevkiyat ve teslimat sürecindeki siparişleriniz.</small></div>
+       <div class="customer-order-list">${activeOrders.length?activeOrders.map(renderOrder).join(""):'<div class="my-quotes-empty"><b>Aktif siparişiniz yok.</b><span>Yeni bir teklifi kabul ettiğinizde siparişiniz burada görünür.</span></div>'}</div>
+     </div>
+     <div class="customer-order-section finished">
+       <div class="customer-order-section-head"><div><span>BİTEN SİPARİŞLER</span><strong>${finishedOrders.length}</strong></div><small>Teslim alınan, teslim tarihi geçen veya iptal edilen siparişler.</small></div>
+       <div class="customer-order-list">${finishedOrders.length?finishedOrders.map(renderOrder).join(""):'<div class="my-quotes-empty"><b>Henüz biten sipariş yok.</b></div>'}</div>
+     </div>`:'<div class="my-quotes-empty"><b>Henüz siparişiniz yok.</b><span>Kabul ettiğiniz teklifler otomatik olarak Siparişlerim bölümüne düşer.</span></div>';
    return;
  }
 
@@ -782,6 +805,15 @@ async function saveCustomerOrderDelivery(id){
 }
 window.saveCustomerOrderDelivery=saveCustomerOrderDelivery;
 
+async function confirmOrderDelivered(id){
+ if(!confirm("Bu siparişi teslim aldığınızı onaylıyor musunuz?"))return;
+ const {error}=await sb.rpc("emigro_catalog_customer_confirm_delivery",{p_order_id:id});
+ if(error){notify("Teslimat onaylanamadı: "+error.message,"error");return}
+ notify("Sipariş teslim alındı olarak tamamlandı.","success");
+ await loadCustomerDashboard();
+}
+window.confirmOrderDelivered=confirmOrderDelivered;
+
 function repeatOrder(id){
  const order=customerOrders.find(o=>o.id===id);if(!order)return;
  const next=[];
@@ -825,6 +857,14 @@ async function decideCustomerQuote(id,decision){
  const {error}=await sb.rpc("emigro_catalog_customer_decide_quote",{quote_id:id,p_decision:decision});
  if(error){notify("İşlem tamamlanamadı: "+error.message);return}
  await openMyQuotes();
+ if(decision==="accepted"){
+   customerDashboardTab="orders";
+   document.querySelectorAll("[data-customer-tab]").forEach(x=>x.classList.toggle("active",x.dataset.customerTab==="orders"));
+   document.getElementById("customerDashboard")?.classList.remove("hidden");
+   if(matchMedia("(max-width:700px)").matches)setMobileScreen("dashboard");
+   setMobileNavActive("account");
+   notify("Teklif kabul edildi. Siparişiniz Siparişlerim bölümüne eklendi.","success");
+ }
  await loadCustomerDashboard();
 }
 window.decideCustomerQuote=decideCustomerQuote;
