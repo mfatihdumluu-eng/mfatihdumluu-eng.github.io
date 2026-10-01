@@ -1064,3 +1064,41 @@ img,svg,video,canvas{max-width:100%}
     top:1px!important;
   }
 }
+
+/* Center admin navigation and mirror customer dock motion/colors */
+.admin-main-tabs{
+  justify-content:center!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+@media(max-width:700px){
+  .admin-main-tabs{
+    left:50%!important;
+    right:auto!important;
+    width:calc(100% - 32px)!important;
+    max-width:760px!important;
+    transform:translateX(-50%)!important;
+    transition:transform .22s ease, box-shadow .22s ease, background .22s ease!important;
+  }
+  .admin-main-tabs button{
+    transition:transform .18s ease, color .18s ease!important;
+  }
+  .admin-main-tabs button .admin-tab-icon{
+    transition:transform .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease!important;
+  }
+  .admin-main-tabs button:active .admin-tab-icon{
+    transform:scale(.94)!important;
+  }
+  .admin-main-tabs button.active:not(:nth-child(3)) .admin-tab-icon{
+    background:#eef1fb!important;
+    color:#293369!important;
+  }
+  .admin-main-tabs button:nth-child(3) .admin-tab-icon{
+    background:linear-gradient(180deg,#ec2637 0%,#ec0419 100%)!important;
+    color:#fff!important;
+  }
+  .admin-main-tabs button:nth-child(3).active .admin-tab-icon{
+    background:linear-gradient(180deg,#2f3f88 0%,#293369 100%)!important;
+    color:#fff!important;
+  }
+}
