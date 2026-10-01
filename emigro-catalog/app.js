@@ -4,13 +4,13 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emig
 const BRAND={navy:"#293369",red:"#ec0419"};
 const VALIDITY={from:"01-10-2026",to:"30-10-2026"};
 const palette=["#293369","#3b4a89","#5663a3","#ec0419","#f03748","#b60618","#68729d","#8890b1","#a61b2b"];
-const cats=[
+let cats=[
  ["Soft Drinks",palette[0],"Australia","🥤"],["Juices",palette[1],"Turkey","🍎"],["Sauces",palette[3],"Belgium","🥣"],
  ["Snacks",palette[4],"Netherlands","🍿"],["Frozen",palette[2],"Netherlands","❄️"],["Grocery",palette[5],"Turkey","🧺"],
  ["Dairy",palette[6],"Germany","🥛"],["Sweets",palette[8],"Turkey","🍬"],["Non-Food",palette[7],"Netherlands","✨"]
 ];
 const names=["Original","Classic","Premium","Gold","Family","Select","Fresh","Royal","Extra","Natural","Special","Max","Traditional","Deluxe","Daily","Pro","Mini","XL","Pure","Signature","Choice","Plus","Top"];
-const products=cats.flatMap((c,ci)=>Array.from({length:23},(_,i)=>{
+const demoProducts=cats.flatMap((c,ci)=>Array.from({length:23},(_,i)=>{
  const id=ci*23+i+1;
  const palletOnly=i%7===0,caseOnly=!palletOnly&&i%6===0;
  const beverage=ci===0||ci===1;
@@ -27,6 +27,7 @@ const products=cats.flatMap((c,ci)=>Array.from({length:23},(_,i)=>{
    beverage,statiegeld
  };
 }));
+let products=[...demoProducts];
 const euro=n=>n==null?"—":new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n));
 let active="All",shown=24,sort="name",query="",selected=null,selectedImage=0,compare=[],priceMode={};
 let favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]");
@@ -49,8 +50,53 @@ const priceFor=(p,mode)=>{
 const modeFor=p=>priceMode[p.id]||(p.caseAvailable?"case":"pallet");
 const currentPrice=p=>priceFor(p,modeFor(p));
 const depositText=p=>!p.beverage?"":(p.statiegeld>0?`Statiegeld: Ja · ${euro(p.statiegeld)}`:"Statiegeld: Nee");
-const bottle=(p,large=false)=>`<div class="bottle ${large?"large":""}" style="background:linear-gradient(155deg,${p.tone},#1c234a)"><div class="cap"></div><div class="label">PREMIUM<br>SELECTION</div></div>`;
+const bottle=(p,large=false)=>p.image1
+ ? `<img class="real-product-image ${large?"large":""}" src="${p.image1}" alt="${p.brand} ${p.name}">`
+ : `<div class="bottle ${large?"large":""}" style="background:linear-gradient(155deg,${p.tone},#1c234a)"><div class="cap"></div><div class="label">PREMIUM<br>SELECTION</div></div>`;
 
+async function loadLiveCatalog(){
+ const {data,error}=await sb.from("emigro_catalog_products").select("*").eq("is_active",true).order("category").order("product_name");
+ if(error||!data?.length)return;
+
+ const oldMeta=new Map(cats.map(c=>[c[0].toLowerCase(),c]));
+ const unique=[...new Set(data.map(x=>x.category).filter(Boolean))];
+ cats=unique.map((name,i)=>{
+   const known=oldMeta.get(String(name).toLowerCase());
+   return known||[name,palette[i%palette.length],"—",["🧺","🥤","🍬","🥣","❄️","🥛","✨"][i%7]];
+ });
+
+ const firstByCat=new Set();
+ products=data.map((r,i)=>{
+   const ci=Math.max(0,cats.findIndex(c=>c[0]===r.category));
+   const isFirst=!firstByCat.has(r.category);if(isFirst)firstByCat.add(r.category);
+   return {
+    id:r.id,
+    sku:r.barcode,
+    brand:r.brand,
+    name:r.product_name,
+    category:r.category,
+    origin:r.origin,
+    ean:r.barcode,
+    net:`${Number(r.net_value)} ${r.net_unit}`,
+    caseQty:Number(r.units_per_case),
+    palletCases:Number(r.cases_per_pallet),
+    caseAvailable:true,
+    palletAvailable:true,
+    tone:cats[ci]?.[1]||palette[ci%palette.length],
+    icon:cats[ci]?.[3]||"🧺",
+    hero:isFirst,
+    featured:!!r.is_featured,
+    heroLayout:ci%2===0?"editorial":"grid4",
+    beverage:Number(r.statiegeld||0)>0||/drink|juice|soft/i.test(r.category||""),
+    statiegeld:Number(r.statiegeld||0),
+    image1:r.image_1||null,
+    image2:r.image_2||null,
+    image3:r.image_3||null
+   };
+ });
+ const statEls=document.querySelectorAll(".stats strong");
+ if(statEls[0])statEls[0].textContent=products.length+"+";
+}
 function openModal(id){document.getElementById(id).classList.remove("hidden")}
 function closeModal(id){document.getElementById(id).classList.add("hidden");if(id==="productModal")history.replaceState(null,"",location.pathname)}
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
@@ -230,11 +276,11 @@ function renderHero(){
  :heroes.map(p=>`<div class="hero-tile" onclick="openProduct(${p.id})">${bottle(p)}<small>${p.name}</small></div>`).join("");
 }
 function renderCategorySquares(){
- document.getElementById("categorySquares").innerHTML=cats.map(c=>`<button class="category-square" style="--cat:${c[1]}" onclick="setCategory('${c[0]}')"><span class="category-square-icon">${c[3]}</span><strong>${c[0]}</strong><small>23 ürün</small></button>`).join("");
+ document.getElementById("categorySquares").innerHTML=cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-square" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="category-square-icon">${c[3]}</span><strong>${c[0]}</strong><small>${count} ürün</small></button>`}).join("");
 }
 function renderCategories(){
- document.getElementById("categories").innerHTML=`<button class="category-btn ${active==="All"?"active":""}" style="${active==="All"?`background:${BRAND.navy}`:""}" onclick="setCategory('All')"><span class="cat-icon">☰</span>Tümü (207)</button>`+
- cats.map(c=>`<button class="category-btn ${active===c[0]?"active":""}" ${active===c[0]?`style="background:${c[1]}"`:""} onclick="setCategory('${c[0]}')"><span class="cat-icon">${c[3]}</span>${c[0]} (23)</button>`).join("");
+ document.getElementById("categories").innerHTML=`<button class="category-btn ${active==="All"?"active":""}" style="${active==="All"?`background:${BRAND.navy}`:""}" onclick="setCategory('All')"><span class="cat-icon">☰</span>Tümü (${products.length})</button>`+
+ cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-btn ${active===c[0]?"active":""}" ${active===c[0]?`style="background:${c[1]}"`:""} onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="cat-icon">${c[3]}</span>${c[0]} (${count})</button>`}).join("");
 }
 function setCategory(c){active=c;shown=24;renderAll();document.getElementById("products").scrollIntoView({behavior:"smooth",block:"start"})}
 window.setCategory=setCategory;
@@ -248,7 +294,7 @@ function filtered(){
 function renderBanner(){
  const root=document.getElementById("categoryBanner");if(active==="All"){root.innerHTML="";return}
  const c=cats.find(x=>x[0]===active);
- root.innerHTML=`<div class="category-banner" style="background:linear-gradient(135deg,${c[1]},${BRAND.navy})"><div><div class="eyebrow" style="color:#fff;opacity:.8">KATEGORİ ${String(cats.indexOf(c)+1).padStart(2,"0")}</div><h2>${c[3]} ${c[0]}</h2><p>23 ürün · ${c[2]} ağırlıklı seçki</p></div><div class="category-mark">${c[3]}</div></div>`;
+ const count=products.filter(p=>p.category===active).length;root.innerHTML=`<div class="category-banner" style="background:linear-gradient(135deg,${c[1]},${BRAND.navy})"><div><div class="eyebrow" style="color:#fff;opacity:.8">KATEGORİ ${String(cats.indexOf(c)+1).padStart(2,"0")}</div><h2>${c[3]} ${c[0]}</h2><p>${count} ürün · ${c[2]} ağırlıklı seçki</p></div><div class="category-mark">${c[3]}</div></div>`;
 }
 function heroBlock(index){
  const hp=products.filter(p=>p.hero),p=hp[Math.floor(index/12-1)%hp.length];if(!p)return"";
@@ -275,7 +321,7 @@ function renderProducts(){
  document.getElementById("loadMore").style.display=shown<list.length?"inline-block":"none";
 }
 function renderFeatured(){
- const list=cats.map(c=>products.find(p=>p.category===c[0]&&p.featured)).filter(Boolean);
+ const list=cats.map(c=>products.find(p=>p.category===c[0]&&p.featured)||products.find(p=>p.category===c[0])).filter(Boolean);
  document.getElementById("featuredGrid").innerHTML=list.map(p=>`<article class="featured-card" onclick="openProduct(${p.id})">${bottle(p)}<div class="brandline">${p.category}</div><h3>${p.brand}<br>${p.name}</h3><div class="meta">${p.origin} · ${p.net}</div>${p.beverage?`<div class="deposit-line">${depositText(p)}</div>`:""}</article>`).join("");
 }
 function setMode(id,mode){priceMode[id]=mode;renderProducts();if(selected?.id===id){renderDetailCommerce();renderDetailQuoteButton()}renderQuoteCart()}
@@ -293,8 +339,14 @@ function openProduct(id){
 window.openProduct=openProduct;
 function renderMedia(){
  const media=document.getElementById("mainMedia");
- media.innerHTML=selectedImage===0?bottle(selected,true):selectedImage===1?`<div class="case-visual">CASE<small>${selected.caseQty} PCS</small></div>`:`<div class="pallet-visual"><b>PALLET</b><small>${selected.palletCases} CASES</small></div>`;
- document.getElementById("thumbs").innerHTML=[["Ürün",0,bottle(selected)],["Koli",1,'<div class="case-visual" style="width:70px;height:46px;font-size:12px">CASE</div>'],["Palet",2,'<div class="pallet-visual" style="width:70px;height:46px;font-size:10px">PALLET</div>']].map(([n,i,v])=>`<button class="thumb ${selectedImage==i?"active":""}" onclick="selectedImage=${i};renderMedia()">${v}<span>${n}</span></button>`).join("");
+ const visual=(idx)=>{
+   if(idx===0)return bottle(selected,true);
+   const url=idx===1?selected.image2:selected.image3;
+   if(url)return `<img class="detail-real-image" src="${url}" alt="${idx===1?"Koli":"Palet"}">`;
+   return idx===1?`<div class="case-visual">CASE<small>${selected.caseQty} PCS</small></div>`:`<div class="pallet-visual"><b>PALLET</b><small>${selected.palletCases} CASES</small></div>`;
+ };
+ media.innerHTML=visual(selectedImage);
+ document.getElementById("thumbs").innerHTML=[["Ürün",0,visual(0)],["Koli",1,visual(1)],["Palet",2,visual(2)]].map(([n,i,v])=>`<button class="thumb ${selectedImage==i?"active":""}" onclick="selectedImage=${i};renderMedia()">${v}<span>${n}</span></button>`).join("");
 }
 window.renderMedia=renderMedia;
 function renderDetailCommerce(){
@@ -567,7 +619,11 @@ document.getElementById("sort").onchange=e=>{sort=e.target.value;if((sort==="low
 document.getElementById("loadMore").onclick=()=>{shown+=24;renderProducts()};
 
 function renderAll(){renderBanner();renderCategories();renderProducts();renderCompareBar();renderQuoteCart()}
-renderHero();renderCategorySquares();renderFeatured();renderAll();
-syncAuth();
+async function bootstrapCatalog(){
+ await loadLiveCatalog();
+ renderHero();renderCategorySquares();renderFeatured();renderAll();
+ await syncAuth();
+ const sku=new URLSearchParams(location.search).get("product");if(sku){const p=products.find(x=>x.sku===sku);if(p)openProduct(p.id)}
+}
+bootstrapCatalog();
 sb.auth.onAuthStateChange(()=>setTimeout(syncAuth,0));
-const sku=new URLSearchParams(location.search).get("product");if(sku){const p=products.find(x=>x.sku===sku);if(p)openProduct(p.id)}
