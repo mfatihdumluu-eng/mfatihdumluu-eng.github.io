@@ -1102,3 +1102,6 @@ img,svg,video,canvas{max-width:100%}
     color:#fff!important;
   }
 }
+
+/* Hide empty quote notification badge */
+#newQuoteBadge:empty{display:none!important}
