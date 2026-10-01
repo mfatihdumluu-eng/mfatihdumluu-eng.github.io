@@ -376,6 +376,15 @@ document.getElementById("mailOfferBtn").onclick=async()=>{
  }
 };
 
+document.getElementById("whatsappOfferBtn").onclick=()=>{
+ if(!activeQuote)return;
+ const p=profileMap[activeQuote.user_id]||{},v=currentOfferValues();
+ const final=quoteGrand(activeQuote,v.percent,v.amount,v.shipping);
+ const phone=String(p.phone||"").replace(/\D/g,"");
+ const text=encodeURIComponent(`Beste ${p.contact_name||""},\nEmigro offerte ${v.number}\nTotaal: ${euro(final)}\nGeldig t/m: ${v.validTo?new Date(v.validTo).toLocaleDateString("nl-NL"):"—"}\n\nDe PDF-offerte kan vanuit het adminpaneel worden gedeeld.`);
+ window.open("https://wa.me/"+phone+"?text="+text,"_blank");
+};
+
 
 const PRODUCT_HEADERS=[
  {key:"product_name",label:"urun_adi"},
@@ -725,13 +734,126 @@ document.getElementById("saveValidProducts").onclick=async()=>{
  }
 };
 
+
+async function loadAdminProducts(){
+ const [{data:prods,error:pErr},{data:units,error:uErr}]=await Promise.all([
+   sb.from("emigro_catalog_products").select("*").order("updated_at",{ascending:false}),
+   sb.from("emigro_catalog_unit_prices").select("product_id,unit_price")
+ ]);
+ if(pErr||uErr){console.warn(pErr||uErr);return}
+ const um=new Map((units||[]).map(x=>[x.product_id,x.unit_price]));
+ adminProducts=(prods||[]).map(p=>({...p,unit_price:Number(um.get(p.id)||0)}));
+ renderAdminProducts();
+}
+function renderAdminProducts(){
+ const root=document.getElementById("adminProductList");if(!root)return;
+ const q=(document.getElementById("adminProductSearch")?.value||"").toLowerCase().trim();
+ const list=adminProducts.filter(p=>!q||[p.product_name,p.brand,p.barcode,p.category].some(v=>String(v||"").toLowerCase().includes(q)));
+ root.innerHTML=list.length?list.map(p=>`
+  <article class="admin-product-card ${p.is_active?"":"inactive"}">
+   <div class="admin-product-media">${p.image_1?'<img src="'+esc(p.image_1)+'" alt="">':'<span>Resim yok</span>'}</div>
+   <div class="admin-product-edit">
+    <div class="admin-product-title"><div><span>${esc(p.category)}</span><h3>${esc(p.brand)} ${esc(p.product_name)}</h3><small>Barkod: ${esc(p.barcode)}</small></div><b>${p.is_active?"Aktif":"Pasif"}</b></div>
+    <div class="admin-product-fields">
+      <label>Ürün adı<input id="pm-name-${p.id}" value="${escAttr(p.product_name)}"></label>
+      <label>Marka<input id="pm-brand-${p.id}" value="${escAttr(p.brand)}"></label>
+      <label>Kategori<select id="pm-cat-${p.id}">${SITE_CATEGORIES.map(x=>'<option value="'+x+'" '+(p.category===x?'selected':'')+'>'+x+'</option>').join("")}</select></label>
+      <label>Satış tipi<select id="pm-sale-${p.id}"><option value="both" ${p.sale_type==="both"?"selected":""}>Koli + Palet</option><option value="case" ${p.sale_type==="case"?"selected":""}>Sadece Koli</option><option value="pallet" ${p.sale_type==="pallet"?"selected":""}>Sadece Palet</option></select></label>
+      <label>Tek birim fiyatı (€)<input id="pm-unit-${p.id}" type="number" step="0.0001" value="${p.unit_price}"><small>Müşteriye gösterilmez</small></label>
+      <label>Net değer<input id="pm-net-${p.id}" type="number" step="0.001" value="${p.net_value}"></label>
+      <label>Net birim<input id="pm-netunit-${p.id}" value="${escAttr(p.net_unit)}"></label>
+      <label>Koli içi<input id="pm-case-${p.id}" type="number" min="1" value="${p.units_per_case}"></label>
+      <label>Palet içi koli<input id="pm-pallet-${p.id}" type="number" min="1" value="${p.cases_per_pallet}"></label>
+      <label>Minimum talep<input id="pm-min-${p.id}" type="number" min="1" value="${p.min_order_qty||1}"></label>
+      <label>Maksimum talep<input id="pm-max-${p.id}" type="number" min="1" value="${p.max_order_qty??""}"><small>Müşteri tarafında gösterilmez</small></label>
+      <label>Menşei<input id="pm-origin-${p.id}" value="${escAttr(p.origin)}"></label>
+      <label>Statiegeld (€)<input id="pm-stat-${p.id}" type="number" min="0" step="0.01" value="${p.statiegeld||0}"></label>
+      <label>Statiegeld tipi<select id="pm-stscope-${p.id}"><option value="none" ${p.statiegeld_scope==="none"?"selected":""}>Yok</option><option value="both" ${p.statiegeld_scope==="both"?"selected":""}>Koli + Palet</option><option value="case" ${p.statiegeld_scope==="case"?"selected":""}>Sadece Koli</option><option value="pallet" ${p.statiegeld_scope==="pallet"?"selected":""}>Sadece Palet</option></select></label>
+    </div>
+    <div class="admin-product-actions"><button class="btn" onclick="saveAdminProduct('${p.id}')">Kaydet</button><button class="ghost" onclick="toggleAdminProduct('${p.id}',${!p.is_active})">${p.is_active?"Pasife al":"Aktifleştir"}</button><button class="ghost" onclick="showPriceHistory('${p.id}')">Fiyat geçmişi</button></div>
+    <div id="price-history-${p.id}" class="price-history hidden"></div>
+   </div>
+  </article>`).join(""):'<div class="admin-loading">Ürün bulunamadı.</div>';
+}
+async function saveAdminProduct(id){
+ const p=adminProducts.find(x=>x.id===id);if(!p)return;
+ const get=s=>document.getElementById(s+"-"+id)?.value;
+ const maxRaw=get("pm-max");
+ const {error}=await sb.rpc("emigro_catalog_admin_upsert_product",{
+  p_barcode:p.barcode,p_product_name:get("pm-name"),p_brand:get("pm-brand"),p_category:get("pm-cat"),
+  p_unit_price:Number(get("pm-unit")),p_net_value:Number(get("pm-net")),p_net_unit:get("pm-netunit"),
+  p_units_per_case:Number(get("pm-case")),p_cases_per_pallet:Number(get("pm-pallet")),p_origin:get("pm-origin"),
+  p_statiegeld:Number(get("pm-stat")||0),p_sale_type:get("pm-sale"),p_statiegeld_scope:get("pm-stscope"),
+  p_min_order_qty:Number(get("pm-min")||1),p_max_order_qty:String(maxRaw||"").trim()===""?null:Number(maxRaw),
+  p_image_1:p.image_1,p_image_2:p.image_2,p_image_3:p.image_3,p_is_featured:!!p.is_featured
+ });
+ if(error){alert("Ürün kaydedilemedi: "+error.message);return}
+ await loadAdminProducts();alert("Ürün güncellendi.");
+}
+window.saveAdminProduct=saveAdminProduct;
+async function toggleAdminProduct(id,active){
+ const {error}=await sb.rpc("emigro_catalog_admin_set_product_active",{p_product_id:id,p_active:active});
+ if(error){alert("Ürün durumu değiştirilemedi: "+error.message);return}
+ await loadAdminProducts();
+}
+window.toggleAdminProduct=toggleAdminProduct;
+async function showPriceHistory(id){
+ const root=document.getElementById("price-history-"+id);if(!root)return;
+ root.classList.remove("hidden");root.innerHTML="Yükleniyor…";
+ const {data,error}=await sb.from("emigro_catalog_price_history").select("*").eq("product_id",id).order("created_at",{ascending:false}).limit(12);
+ if(error){root.textContent=error.message;return}
+ root.innerHTML=(data||[]).map(x=>'<div><span>'+new Date(x.created_at).toLocaleDateString("nl-NL")+'</span><b>'+euro(x.case_price)+' / koli</b><b>'+euro(x.pallet_price)+' / palet</b></div>').join("")||"Geçmiş yok.";
+}
+window.showPriceHistory=showPriceHistory;
+
+const orderStatusLabel=s=>({new:"Yeni",preparing:"Hazırlanıyor",ready:"Hazır",shipped:"Sevk edildi",completed:"Tamamlandı",cancelled:"İptal"}[s]||s);
+async function loadOrders(){
+ const {data,error}=await sb.from("emigro_catalog_orders").select("*").order("created_at",{ascending:false});
+ if(error){console.warn(error);return}
+ orders=data||[];renderOrders();
+}
+function renderOrders(){
+ const root=document.getElementById("orderList");if(!root)return;
+ const list=orderFilter==="all"?orders:orders.filter(o=>o.status===orderFilter);
+ root.innerHTML=list.length?list.map(o=>{
+  const p=profileMap[o.user_id]||{};
+  return `<article class="quote-admin-card">
+    <div class="quote-admin-head"><div><span class="quote-status ${o.status}">${orderStatusLabel(o.status)}</span><h3>${esc(o.order_number||"Sipariş")}</h3><p>${esc(p.company_name||"")} · ${esc(p.contact_name||"")}</p></div><div><small>${new Date(o.created_at).toLocaleString("nl-NL")}</small><strong>${euro(o.total)}</strong></div></div>
+    <div class="quote-admin-meta"><span>${(o.items||[]).length} ürün</span><span>Talep teslim: ${o.requested_delivery_date?new Date(o.requested_delivery_date).toLocaleDateString("nl-NL"):"—"}</span><span>Onaylı teslim: ${o.confirmed_delivery_date?new Date(o.confirmed_delivery_date).toLocaleDateString("nl-NL"):"—"}</span></div>
+    <div class="order-admin-controls">
+      <select id="order-status-${o.id}"><option value="new" ${o.status==="new"?"selected":""}>Yeni</option><option value="preparing" ${o.status==="preparing"?"selected":""}>Hazırlanıyor</option><option value="ready" ${o.status==="ready"?"selected":""}>Hazır</option><option value="shipped" ${o.status==="shipped"?"selected":""}>Sevk edildi</option><option value="completed" ${o.status==="completed"?"selected":""}>Tamamlandı</option><option value="cancelled" ${o.status==="cancelled"?"selected":""}>İptal</option></select>
+      <input id="order-date-${o.id}" type="date" value="${o.confirmed_delivery_date||""}">
+      <input id="order-note-${o.id}" placeholder="Admin notu" value="${escAttr(o.admin_note||"")}">
+      <button class="btn" onclick="saveOrder('${o.id}')">Siparişi güncelle</button>
+    </div>
+  </article>`;
+ }).join(""):'<div class="admin-loading">Sipariş bulunamadı.</div>';
+}
+async function saveOrder(id){
+ const {error}=await sb.rpc("emigro_catalog_admin_update_order",{
+  p_order_id:id,p_status:document.getElementById("order-status-"+id).value,
+  p_confirmed_delivery_date:document.getElementById("order-date-"+id).value||null,
+  p_admin_note:document.getElementById("order-note-"+id).value||""
+ });
+ if(error){alert("Sipariş güncellenemedi: "+error.message);return}
+ await loadOrders();
+}
+window.saveOrder=saveOrder;
+
+document.getElementById("adminProductSearch").oninput=renderAdminProducts;
+document.querySelectorAll("[data-ofilter]").forEach(b=>b.onclick=()=>{orderFilter=b.dataset.ofilter;document.querySelectorAll("[data-ofilter]").forEach(x=>x.classList.toggle("active",x===b));renderOrders()});
+
 document.querySelectorAll("[data-admin-tab]").forEach(b=>b.onclick=async()=>{
  const tab=b.dataset.adminTab;
  document.getElementById("membersPanel").classList.toggle("hidden",tab!=="members");
  document.getElementById("quotesPanel").classList.toggle("hidden",tab!=="quotes");
  document.getElementById("productsPanel").classList.toggle("hidden",tab!=="products");
+ document.getElementById("productManagerPanel").classList.toggle("hidden",tab!=="productManager");
+ document.getElementById("ordersPanel").classList.toggle("hidden",tab!=="orders");
  document.querySelectorAll("[data-admin-tab]").forEach(x=>x.classList.toggle("active",x===b));
  if(tab==="products"){await loadDefaultImages();await loadExistingProductMap();renderImportRows()}
+ if(tab==="productManager"){await loadAdminProducts()}
+ if(tab==="orders"){await loadOrders()}
 });
 document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{memberFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));renderMembers()});
 document.querySelectorAll("[data-qfilter]").forEach(b=>b.onclick=()=>{quoteFilter=b.dataset.qfilter;document.querySelectorAll("[data-qfilter]").forEach(x=>x.classList.toggle("active",x===b));renderQuotes()});
