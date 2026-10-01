@@ -31,7 +31,7 @@ const euro=n=>n==null?"—":new Intl.NumberFormat("nl-NL",{style:"currency",curr
 let active="All",shown=24,sort="name",query="",selected=null,selectedImage=0,compare=[],priceMode={};
 let favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]");
 let quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
-let session=null,profile=null,priceMap={},pendingAction=null;
+let session=null,profile=null,priceMap={},pendingAction=null,kvkVerified=false,verifiedKvkData=null;
 
 const approved=()=>profile?.status==="approved";
 const isAdmin=()=>profile?.role==="admin";
@@ -130,8 +130,35 @@ document.getElementById("loginForm").onsubmit=async e=>{
  if(!approved()){box.textContent="Bu üyelik henüz fiyat erişimine açık değil.";return}
  closeModal("authModal");await finishPendingAction();
 };
+async function verifyKvk(){
+ const input=document.getElementById("regKvk"),status=document.getElementById("kvkStatus"),btn=document.getElementById("verifyKvkBtn");
+ const kvk=input.value.replace(/\D/g,"");
+ kvkVerified=false;verifiedKvkData=null;
+ if(!/^\d{8}$/.test(kvk)){status.textContent="KVK numarası 8 rakamdan oluşmalı.";status.className="kvk-status error";return}
+ btn.disabled=true;btn.textContent="Doğrulanıyor…";status.textContent="Resmi KVK kaydı kontrol ediliyor…";status.className="kvk-status";
+ try{
+  const res=await fetch(SUPABASE_URL+"/functions/v1/verify-kvk",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},body:JSON.stringify({kvk})});
+  const data=await res.json();
+  if(!res.ok||!data.ok){
+    if(data.reason==="KVK_API_KEY_NOT_CONFIGURED") status.textContent="Canlı KVK doğrulaması için Emigro KVK API anahtarı henüz bağlanmadı.";
+    else if(data.reason==="NOT_FOUND") status.textContent="Bu KVK numarası resmi kayıtta bulunamadı.";
+    else status.textContent="KVK doğrulanamadı. Numarayı kontrol edin.";
+    status.className="kvk-status error";return;
+  }
+  kvkVerified=true;verifiedKvkData=data;input.value=data.kvkNummer||kvk;
+  status.textContent="✓ KVK doğrulandı"+(data.naam?" · "+data.naam:"");
+  status.className="kvk-status success";
+  if(data.naam&&!document.getElementById("regCompany").value.trim())document.getElementById("regCompany").value=data.naam;
+ }catch{
+  status.textContent="KVK doğrulama servisine ulaşılamadı.";status.className="kvk-status error";
+ }finally{btn.disabled=false;btn.textContent="KVK doğrula"}
+}
+document.getElementById("verifyKvkBtn").onclick=verifyKvk;
+document.getElementById("regKvk").addEventListener("input",()=>{kvkVerified=false;verifiedKvkData=null;document.getElementById("kvkStatus").textContent="KVK numarası değişti; yeniden doğrulayın.";document.getElementById("kvkStatus").className="kvk-status"});
 document.getElementById("registerForm").onsubmit=async e=>{
- e.preventDefault();const box=document.getElementById("registerMessage");box.textContent="Başvurunuz oluşturuluyor...";
+ e.preventDefault();const box=document.getElementById("registerMessage");
+ if(!kvkVerified){box.textContent="Üyelik başvurusu için KVK numarasını önce resmi KVK kaydından doğrulamanız gerekir.";return}
+ box.textContent="Başvurunuz oluşturuluyor...";
  const email=document.getElementById("regEmail").value.trim();
  const password=document.getElementById("regPassword").value;
  const metadata={
