@@ -1572,3 +1572,75 @@ img,svg,video,canvas{max-width:100%}
     min-height:calc(100dvh - 110px);
   }
 }
+
+/* Admin mobile app screens: show only the selected function */
+@media(max-width:700px){
+  body[class*="admin-screen-"] .admin-hero{
+    display:none!important;
+  }
+
+  body.admin-screen-members #quotesPanel,
+  body.admin-screen-members #productsPanel,
+  body.admin-screen-members #productManagerPanel,
+  body.admin-screen-members #ordersPanel,
+  body.admin-screen-quotes #membersPanel,
+  body.admin-screen-quotes #productsPanel,
+  body.admin-screen-quotes #productManagerPanel,
+  body.admin-screen-quotes #ordersPanel,
+  body.admin-screen-products #membersPanel,
+  body.admin-screen-products #quotesPanel,
+  body.admin-screen-products #productManagerPanel,
+  body.admin-screen-products #ordersPanel,
+  body.admin-screen-productManager #membersPanel,
+  body.admin-screen-productManager #quotesPanel,
+  body.admin-screen-productManager #productsPanel,
+  body.admin-screen-productManager #ordersPanel,
+  body.admin-screen-orders #membersPanel,
+  body.admin-screen-orders #quotesPanel,
+  body.admin-screen-orders #productsPanel,
+  body.admin-screen-orders #productManagerPanel{
+    display:none!important;
+  }
+
+  body.admin-screen-members #membersPanel,
+  body.admin-screen-quotes #quotesPanel,
+  body.admin-screen-products #productsPanel,
+  body.admin-screen-productManager #productManagerPanel,
+  body.admin-screen-orders #ordersPanel{
+    display:block!important;
+    margin-top:8px!important;
+  }
+
+  body[class*="admin-screen-"] .admin-shell{
+    min-height:calc(100dvh - 96px)!important;
+    padding-top:4px!important;
+  }
+
+  body.admin-screen-members #membersPanel::before{
+    content:"Üyelikler";
+  }
+  body.admin-screen-quotes #quotesPanel::before{
+    content:"Teklif talepleri";
+  }
+  body.admin-screen-products #productsPanel::before{
+    content:"Toplu ürün girişi";
+  }
+  body.admin-screen-productManager #productManagerPanel::before{
+    content:"Ürün yönetimi";
+  }
+  body.admin-screen-orders #ordersPanel::before{
+    content:"Siparişler";
+  }
+
+  body.admin-screen-members #membersPanel::before,
+  body.admin-screen-quotes #quotesPanel::before,
+  body.admin-screen-products #productsPanel::before,
+  body.admin-screen-productManager #productManagerPanel::before,
+  body.admin-screen-orders #ordersPanel::before{
+    display:block!important;
+    margin:0 0 12px!important;
+    padding:0 2px!important;
+    font:700 26px/1.1 'Roboto',sans-serif!important;
+    color:#293369!important;
+  }
+}
