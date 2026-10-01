@@ -172,7 +172,8 @@ demoBtn.onclick=()=>{
 };
 document.getElementById("registerForm").onsubmit=async e=>{
  e.preventDefault();const box=document.getElementById("registerMessage");
- if(!kvkVerified){box.textContent="Üyelik başvurusu için KVK numarasını önce resmi KVK kaydından doğrulamanız gerekir.";return}
+ const kvkValue=document.getElementById("regKvk").value.trim();
+ if(kvkValue && !kvkVerified){box.textContent="KVK numarası girdiyseniz önce doğrulayın veya alanı boş bırakın.";return}
  box.textContent="Başvurunuz oluşturuluyor...";
  const email=document.getElementById("regEmail").value.trim();
  const password=document.getElementById("regPassword").value;
