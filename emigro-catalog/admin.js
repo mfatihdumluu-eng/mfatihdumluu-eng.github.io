@@ -1,6 +1,6 @@
 const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-admin-auth",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let profiles=[],quotes=[],memberFilter="all",quoteFilter="all",activeQuote=null,profileMap={};
 
 const euro=n=>new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n||0));
@@ -10,19 +10,24 @@ const quoteStatus=s=>({new:"Yeni",reviewing:"İnceleniyor",offered:"Teklif veril
 
 async function guard(){
  const {data:{session}}=await sb.auth.getSession();
- if(!session){location.replace("./index.html?auth=1&source=admin");return false}
- let {data:me}=await sb.from("emigro_catalog_profiles").select("*").eq("id",session.user.id).single();
- if(me?.role!=="admin"){
-   const claim=await sb.rpc("emigro_catalog_claim_first_admin");
-   if(!claim.error){
-     const refreshed=await sb.from("emigro_catalog_profiles").select("*").eq("id",session.user.id).single();
-     me=refreshed.data;
-   }
- }
- if(me?.role!=="admin"){
-   document.querySelector(".admin-shell").innerHTML='<section class="admin-hero"><div class="eyebrow">EMIGRO B2B ADMIN</div><h1>Erişim yok</h1><p>Bu alan yalnızca Emigro admin kullanıcıları içindir. İlk admin hesabı güvenlik için @emigro.nl e-posta adresiyle açılmalıdır.</p><a class="btn" href="./index.html">Kataloğa dön</a></section>';
+ if(!session){
+   document.getElementById("adminLoginShell").classList.remove("hidden");
+   document.getElementById("adminShell").classList.add("hidden");
+   document.getElementById("adminTopbar").classList.add("hidden");
    return false;
  }
+ const {data:me,error}=await sb.from("emigro_catalog_profiles").select("*").eq("id",session.user.id).single();
+ if(error||me?.role!=="admin"){
+   await sb.auth.signOut();
+   document.getElementById("adminLoginShell").classList.remove("hidden");
+   document.getElementById("adminShell").classList.add("hidden");
+   document.getElementById("adminTopbar").classList.add("hidden");
+   document.getElementById("adminLoginMessage").textContent="Bu hesap admin hesabı değil. Müşteri hesabıyla admin paneline giriş yapılamaz.";
+   return false;
+ }
+ document.getElementById("adminLoginShell").classList.add("hidden");
+ document.getElementById("adminShell").classList.remove("hidden");
+ document.getElementById("adminTopbar").classList.remove("hidden");
  return true;
 }
 
@@ -203,6 +208,21 @@ document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{memberFilte
 document.querySelectorAll("[data-qfilter]").forEach(b=>b.onclick=()=>{quoteFilter=b.dataset.qfilter;document.querySelectorAll("[data-qfilter]").forEach(x=>x.classList.toggle("active",x===b));renderQuotes()});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>document.getElementById(b.dataset.close).classList.add("hidden"));
 document.getElementById("refreshBtn").onclick=loadAll;
-document.getElementById("logoutAdmin").onclick=async()=>{await sb.auth.signOut();location.href="./index.html"};
+document.getElementById("adminLoginForm").onsubmit=async e=>{
+ e.preventDefault();
+ const msg=document.getElementById("adminLoginMessage");
+ msg.textContent="Admin hesabı kontrol ediliyor...";
+ const email=document.getElementById("adminEmail").value.trim();
+ const password=document.getElementById("adminPassword").value;
+ const {error}=await sb.auth.signInWithPassword({email,password});
+ if(error){msg.textContent="Giriş başarısız: "+error.message;return}
+ if(await guard()){msg.textContent="";await loadAll()}
+};
+document.getElementById("logoutAdmin").onclick=async()=>{
+ await sb.auth.signOut();
+ document.getElementById("adminShell").classList.add("hidden");
+ document.getElementById("adminTopbar").classList.add("hidden");
+ document.getElementById("adminLoginShell").classList.remove("hidden");
+};
 
 (async()=>{if(await guard())await loadAll()})();
