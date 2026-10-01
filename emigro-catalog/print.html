@@ -26,11 +26,16 @@ let cats=[["Soft Drinks",palette[0],"Australia","🥤"],["Juices",palette[1],"Tu
 const names=["Original","Classic","Premium","Gold","Family","Select","Fresh","Royal","Extra","Natural","Special","Max","Traditional","Deluxe","Daily","Pro","Mini","XL","Pure","Signature","Choice","Plus","Top"];
 const demoProducts=cats.flatMap((c,ci)=>Array.from({length:23},(_,i)=>{
  const id=ci*23+i+1,palletOnly=i%7===0,caseOnly=!palletOnly&&i%6===0,beverage=ci===0||ci===1;
- return {id,sku:`EM-${String(ci+1).padStart(2,"0")}-${String(i+1).padStart(3,"0")}`,brand:["Emigro","Manna","Golden","Anatolia","EuroTaste"][(i+ci)%5],name:`${names[i%names.length]} ${c[0].replace("Soft Drinks","Drink").replace("Non-Food","Care")}`,category:c[0],origin:c[2],ean:`87${String(10000000000+id*731).slice(-11)}`,net:["250 ml","330 ml","375 ml","500 ml","750 g","1 kg"][(i+ci)%6],caseQty:[6,12,18,24][(i+ci)%4],palletCases:48+((i+ci)%5)*6,caseAvailable:!palletOnly,palletAvailable:!caseOnly,tone:c[1],hero:i===0,heroLayout:ci%2===0?"editorial":"grid4",beverage,statiegeld:beverage?(i%3===0?0:(i%2===0?0.15:0.25)):null};
+ return {id,sku:`EM-${String(ci+1).padStart(2,"0")}-${String(i+1).padStart(3,"0")}`,brand:["Emigro","Manna","Golden","Anatolia","EuroTaste"][(i+ci)%5],name:`${names[i%names.length]} ${c[0].replace("Soft Drinks","Drink").replace("Non-Food","Care")}`,category:c[0],origin:c[2],ean:`87${String(10000000000+id*731).slice(-11)}`,net:["250 ml","330 ml","375 ml","500 ml","750 g","1 kg"][(i+ci)%6],caseQty:[6,12,18,24][(i+ci)%4],palletCases:48+((i+ci)%5)*6,caseAvailable:!palletOnly,palletAvailable:!caseOnly,tone:c[1],hero:i===0,heroLayout:ci%2===0?"editorial":"grid4",beverage,statiegeld:beverage?(i%3===0?0:(i%2===0?0.15:0.25)):null,statiegeldScope:beverage?"both":"none"};
 }));
 let products=[...demoProducts];
 const euro=n=>n==null?"—":new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n));
-const deposit=p=>!p.beverage?"":(p.statiegeld>0?`Statiegeld ${euro(p.statiegeld)}`:"Geen statiegeld");
+const deposit=p=>{
+ if(!p.beverage&&Number(p.statiegeld||0)<=0)return"";
+ if(!p.statiegeld||p.statiegeldScope==="none")return"Geen statiegeld";
+ const scope=p.statiegeldScope==="case"?"alleen case":p.statiegeldScope==="pallet"?"alleen pallet":"case + pallet";
+ return `Statiegeld ${euro(p.statiegeld)} · ${scope}`;
+};
 const bottle=(p,cls="")=>p.image1
  ? `<img class="print-real-product ${cls}" src="${p.image1}" alt="${p.brand} ${p.name}">`
  : `<div class="product-image ${cls}" style="--tone:${p.tone}"><div class="cap"></div><div class="body"><div class="label">PREMIUM<br>SELECTION</div></div></div>`;
@@ -52,9 +57,9 @@ async function loadLivePrintCatalog(){
   return {
    id:r.id,sku:r.barcode,brand:r.brand,name:r.product_name,category:r.category,origin:r.origin,ean:r.barcode,
    net:`${Number(r.net_value)} ${r.net_unit}`,caseQty:Number(r.units_per_case),palletCases:Number(r.cases_per_pallet),
-   caseAvailable:true,palletAvailable:true,tone:cats[ci]?.[1]||paletteLocal[ci%paletteLocal.length],hero:isFirst,
+   caseAvailable:r.sale_type==="case"||r.sale_type==="both",palletAvailable:r.sale_type==="pallet"||r.sale_type==="both",tone:cats[ci]?.[1]||paletteLocal[ci%paletteLocal.length],hero:isFirst,
    heroLayout:ci%2===0?"editorial":"grid4",beverage:Number(r.statiegeld||0)>0||/drink|juice|soft/i.test(r.category||""),
-   statiegeld:Number(r.statiegeld||0),image1:r.image_1||null,image2:r.image_2||null,image3:r.image_3||null
+   statiegeld:Number(r.statiegeld||0),statiegeldScope:r.statiegeld_scope||"none",image1:r.image_1||null,image2:r.image_2||null,image3:r.image_3||null
   };
  });
 }
@@ -86,12 +91,12 @@ function build(){
  cats.forEach((c,ci)=>{const list=products.filter(p=>p.category===c[0]),hero=list[0];
   html+=`<section class="page category-page" style="--cat:${c[1]}"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="cat-band">CATEGORY ${String(ci+1).padStart(2,"0")}</div><div class="category-copy"><div class="smallcap">NEW SECTION</div><h2>${c[3]} ${c[0]}</h2><p>23 products · ${c[2]}</p><div class="rule"></div><b>CASE · PALLET · B2B</b></div><div class="category-bottles">${bottle(hero)}${bottle(list[1])}${bottle(list[2])}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
   if(hero.heroLayout==="grid4"){
-   html+=`<section class="page hero-grid-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="smallcap">HERO SELECTION · ${c[0]}</div><h2>Featured four</h2><div class="hero4">${list.slice(0,4).map(p=>`<article>${bottle(p,"hero4-img")}<div><small>${p.brand}</small><h3>${p.name}</h3><p>${p.net} · ${p.origin}</p><div class="pack-icons"><span>▣ ${p.caseQty} / koli</span><span>▦ ${p.palletCases} koli / palet</span></div>${p.beverage?`<p class="deposit-print">${deposit(p)}</p>`:""}<strong>${p.caseAvailable?euro(price(p,"case")):euro(price(p,"pallet"))}</strong></div></article>`).join("")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
+   html+=`<section class="page hero-grid-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="smallcap">HERO SELECTION · ${c[0]}</div><h2>Featured four</h2><div class="hero4">${list.slice(0,4).map(p=>`<article>${bottle(p,"hero4-img")}<div><small>${p.brand}</small><h3>${p.name}</h3><p>${p.net} · ${p.origin}</p><div class="pack-icons">${p.caseAvailable?`<span>▣ ${p.caseQty} / koli</span>`:""}${p.palletAvailable?`<span>▦ ${p.palletCases} koli / palet</span>`:""}</div>${p.beverage?`<p class="deposit-print">${deposit(p)}</p>`:""}<strong>${p.caseAvailable?euro(price(p,"case")):euro(price(p,"pallet"))}</strong></div></article>`).join("")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
   }else{
    html+=`<section class="page hero-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="hero-copy"><div class="smallcap">HERO PRODUCT · ${c[0]}</div><h2>${hero.brand}<br>${hero.name}</h2><p>${hero.origin} · ${hero.net}</p>${hero.beverage?`<p class="deposit-print">${deposit(hero)}</p>`:""}<div class="hero-prices">${hero.caseAvailable?`<div><span>CASE</span><strong>${euro(price(hero,"case"))}</strong></div>`:""}${hero.palletAvailable?`<div><span>PALLET</span><strong>${euro(price(hero,"pallet"))}</strong></div>`:""}</div></div><div class="hero-image">${bottle(hero,"hero-img")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
   }
   chunks(list,9).forEach(group=>{
-   html+=`<section class="page grid-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="grid-head"><div><div class="smallcap">${c[3]} ${c[0]}</div><h3>${c[0]} selection</h3></div><span class="num" style="background:${c[1]}">${String(ci+1).padStart(2,"0")}</span></div><div class="grid">${group.map(p=>`<article class="card"><div class="pic">${bottle(p,"card-img")}</div><small>${p.brand}</small><h4>${p.name}</h4><p>${p.net} · ${p.origin}</p><div class="pack-icons"><span>▣ ${p.caseQty} / koli</span><span>▦ ${p.palletCases} koli / palet</span></div>${p.beverage?`<p class="deposit-print">${deposit(p)}</p>`:""}<p class="ean">EAN ${p.ean}</p><div class="prices">${p.caseAvailable?`<div><span>CASE</span><strong>${euro(price(p,"case"))}</strong></div>`:""}${p.palletAvailable?`<div><span>PALLET</span><strong>${euro(price(p,"pallet"))}</strong></div>`:""}</div></article>`).join("")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
+   html+=`<section class="page grid-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="grid-head"><div><div class="smallcap">${c[3]} ${c[0]}</div><h3>${c[0]} selection</h3></div><span class="num" style="background:${c[1]}">${String(ci+1).padStart(2,"0")}</span></div><div class="grid">${group.map(p=>`<article class="card"><div class="pic">${bottle(p,"card-img")}</div><small>${p.brand}</small><h4>${p.name}</h4><p>${p.net} · ${p.origin}</p><div class="pack-icons">${p.caseAvailable?`<span>▣ ${p.caseQty} / koli</span>`:""}${p.palletAvailable?`<span>▦ ${p.palletCases} koli / palet</span>`:""}</div>${p.beverage?`<p class="deposit-print">${deposit(p)}</p>`:""}<p class="ean">EAN ${p.ean}</p><div class="prices">${p.caseAvailable?`<div><span>CASE</span><strong>${euro(price(p,"case"))}</strong></div>`:""}${p.palletAvailable?`<div><span>PALLET</span><strong>${euro(price(p,"pallet"))}</strong></div>`:""}</div></article>`).join("")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
   });
  });
  html+=`<section class="page qr-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="qr-final"><div id="qrCodeFinal"></div><div><div class="smallcap">DIGITAL CATALOGUE</div><h2>Actuele prijzen online</h2><p>Scan de QR-code om in te loggen of een B2B-account aan te vragen.</p><strong>${VALIDITY.from} — ${VALIDITY.to}</strong></div></div><div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
