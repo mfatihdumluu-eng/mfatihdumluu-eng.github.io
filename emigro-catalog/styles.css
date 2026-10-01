@@ -1110,3 +1110,40 @@ img,svg,video,canvas{max-width:100%}
 .product-title-link:hover{color:#ec0419}
 .card-media{cursor:pointer}
 .compare-bar,.compare-modal,.compare-grid,.compare-col,.compare-price{display:none!important}
+
+/* Referral / invitation panels */
+.admin-invite-strip,.customer-invite-panel{
+  display:flex;justify-content:space-between;gap:18px;align-items:center;
+  background:linear-gradient(135deg,#f8f9ff,#fff);border:1px solid var(--line);
+  border-radius:18px;padding:18px;margin:0 0 16px
+}
+.admin-invite-strip h2,.customer-invite-panel h3{margin:4px 0 6px;color:#293369}
+.admin-invite-strip p,.customer-invite-panel p{margin:0;color:var(--muted);font-size:11px;line-height:1.55}
+.invite-modal{max-width:620px}
+.invite-link-box{display:grid;gap:5px;background:#f7f8fc;border:1px solid var(--line);border-radius:13px;padding:13px;margin:14px 0}
+.invite-link-box span{font-size:8px;color:#ec0419;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.invite-link-box strong{font-size:11px;color:#293369;overflow-wrap:anywhere}
+.invite-link-box small{font-size:8px;color:var(--muted)}
+.invite-recipient-label{display:grid;gap:6px;font-size:9px;color:#59617c;font-weight:700}
+.invite-recipient-label textarea{border:1px solid var(--line);border-radius:12px;padding:11px;font:500 12px 'Roboto',sans-serif;resize:vertical}
+.invite-recipient-label small{font-size:8px;color:var(--muted);font-weight:400}
+.invite-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.member-referral{display:grid;gap:4px;margin:11px 0;padding:11px 12px;border-radius:11px;background:#fff8ea;border:1px solid #efd8a5}
+.member-referral span{font-size:8px;color:#9b6400;font-weight:700;letter-spacing:.08em}
+.member-referral b{font-size:11px;color:#293369}
+.member-referral small{font-size:9px;color:#6d7285}
+.customer-invite-panel{display:block}
+.customer-invite-copy{max-width:760px}
+.invite-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:14px 0}
+.invite-stat-grid>div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+.invite-stat-grid span{display:block;font-size:8px;color:var(--muted);text-transform:uppercase}
+.invite-stat-grid strong{display:block;margin-top:4px;font-size:18px;color:#293369}
+.referral-notice{display:grid;gap:4px;padding:12px;border:1px solid #dce2f1;border-radius:12px;background:#f6f8ff;color:#293369}
+.referral-notice b{font-size:11px}.referral-notice span{font-size:9px;color:#69708b;line-height:1.45}
+@media(max-width:700px){
+  .admin-invite-strip{align-items:flex-start;flex-direction:column}
+  .admin-invite-strip .btn{width:100%}
+  .invite-actions{display:grid;grid-template-columns:1fr}
+  .invite-actions .btn,.invite-actions .ghost{width:100%}
+  .invite-stat-grid{grid-template-columns:1fr}
+}
