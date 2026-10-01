@@ -236,6 +236,7 @@ document.getElementById("loginTab").onclick=()=>switchAuthTab("login");
 document.getElementById("registerTab").onclick=()=>switchAuthTab("register");
 document.getElementById("accountBtn").onclick=()=>openAuth();
 document.getElementById("customerAccountBtn").onclick=()=>{
+ if(matchMedia("(max-width:700px)").matches){openCustomerDashboardScreen(customerDashboardTab||"quotes","account");return}
  const dash=document.getElementById("customerDashboard");
  dash.classList.remove("hidden");
  loadCustomerDashboard();
@@ -882,35 +883,39 @@ function renderAll(){renderBanner();renderCategories();renderProducts();renderQu
 function setMobileNavActive(name){
  document.querySelectorAll("[data-mobile-nav]").forEach(b=>b.classList.toggle("active",b.dataset.mobileNav===name));
 }
+function setMobileScreen(name){
+ document.body.classList.remove("screen-home","screen-categories","screen-products","screen-dashboard","screen-account");
+ document.body.classList.add("screen-"+name);
+ setMobileNavActive(name==="dashboard"?"quotes":name);
+ window.scrollTo({top:0,behavior:"smooth"});
+}
 function closeMobilePanels(){
  document.querySelectorAll(".modal-backdrop").forEach(m=>m.classList.add("hidden"));
- const dash=document.getElementById("customerDashboard");
- if(dash)dash.classList.add("hidden");
  document.body.classList.remove("mobile-panel-open");
 }
-function scrollMobileTarget(id,name){
- closeMobilePanels();
- const el=document.getElementById(id);if(!el)return;
- setMobileNavActive(name);
- el.scrollIntoView({behavior:"smooth",block:"start"});
+function openCustomerDashboardScreen(tab="quotes",navName="account"){
+ if(!session){openAuth("Müşteri hesabınızı açmak için giriş yapın.");return}
+ customerDashboardTab=tab;
+ document.querySelectorAll("[data-customer-tab]").forEach(x=>x.classList.toggle("active",x.dataset.customerTab===tab));
+ const dash=document.getElementById("customerDashboard");
+ dash.classList.remove("hidden");
+ setMobileScreen("dashboard");
+ setMobileNavActive(navName);
+ loadCustomerDashboard();
 }
 document.querySelectorAll("[data-mobile-nav]").forEach(btn=>btn.onclick=()=>{
  const action=btn.dataset.mobileNav;
  closeMobilePanels();
- if(action==="home"){scrollMobileTarget("home","home");return}
- if(action==="categories"){scrollMobileTarget("categoryBrowser","categories");return}
- if(action==="products"){scrollMobileTarget("products","products");return}
+ if(action==="home"){document.getElementById("customerDashboard")?.classList.add("hidden");setMobileScreen("home");return}
+ if(action==="categories"){document.getElementById("customerDashboard")?.classList.add("hidden");setMobileScreen("categories");return}
+ if(action==="products"){document.getElementById("customerDashboard")?.classList.add("hidden");setMobileScreen("products");return}
  if(action==="quotes"){
-   setMobileNavActive("quotes");
    if(!session){openAuth("Tekliflerinizi görmek için müşteri hesabınızla giriş yapın.");return}
-   openMyQuotes();return;
+   openCustomerDashboardScreen("quotes","quotes");return;
  }
  if(action==="account"){
-   setMobileNavActive("account");
    if(!session){openAuth("Müşteri hesabınızı açmak için giriş yapın.");return}
-   const dash=document.getElementById("customerDashboard");
-   dash.classList.remove("hidden");loadCustomerDashboard();
-   dash.scrollIntoView({behavior:"smooth",block:"start"});
+   openCustomerDashboardScreen(customerDashboardTab||"quotes","account");return;
  }
 });
 
@@ -988,6 +993,7 @@ async function bootstrapCatalog(){
  await Promise.all([loadActiveValidity(),loadLiveCatalog()]);
  renderHero();renderCategorySquares();renderFeatured();renderAll();
  await syncAuth();
+ if(matchMedia("(max-width:700px)").matches&&!document.body.classList.contains("screen-home")&&!document.body.classList.contains("screen-categories")&&!document.body.classList.contains("screen-products")&&!document.body.classList.contains("screen-dashboard"))setMobileScreen("home");
  await handleReferralLanding();
  const sku=new URLSearchParams(location.search).get("product");if(sku){const p=products.find(x=>x.sku===sku);if(p)openProduct(p.id)}
 }
