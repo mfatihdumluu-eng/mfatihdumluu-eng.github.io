@@ -295,7 +295,7 @@ function renderHero(){
  const heroes=products.filter(p=>p.hero).slice(0,4),root=document.getElementById("heroCluster");
  root.innerHTML=heroes[0].heroLayout==="editorial"
  ?`<div class="hero-tile editorial" onclick="openProduct(${heroes[0].id})"><div><div class="eyebrow">HERO PRODUCT</div><h3>${heroes[0].brand}<br>${heroes[0].name}</h3><small>${heroes[0].category} · ${heroes[0].origin}</small></div><div style="display:grid;place-items:center">${bottle(heroes[0],true)}</div></div>`
- :heroes.map(p=>`<div class="hero-tile" onclick="openProduct(${p.id})">${bottle(p)}<small>${p.name}</small></div>`).join("");
+ :heroes.map(p=>`<div class="hero-tile" onclick="openProduct(${jsId(p.id)})">${bottle(p)}<small>${p.name}</small></div>`).join("");
 }
 function renderCategorySquares(){
  document.getElementById("categorySquares").innerHTML=cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-square" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="category-square-icon">${c[3]}</span><strong>${c[0]}</strong><small>${count} ürün</small></button>`}).join("");
@@ -321,7 +321,7 @@ function renderBanner(){
 function heroBlock(index){
  const hp=products.filter(p=>p.hero),p=hp[Math.floor(index/12-1)%hp.length];if(!p)return"";
  if(p.heroLayout==="grid4"){const four=products.filter(x=>x.category===p.category).slice(0,4);return `<section class="inline-hero grid4">${four.map(x=>`<div class="mini-hero" onclick="openProduct(${x.id})">${bottle(x)}<h4>${x.name}</h4><small>${x.brand}</small></div>`).join("")}</section>`}
- return `<section class="inline-hero"><div><div class="eyebrow">HERO PRODUCT · ${p.category}</div><h2 style="font:600 42px/.96 var(--serif);margin:8px 0">${p.brand}<br>${p.name}</h2><p>${p.origin} · ${p.net}</p><button class="ghost" onclick="openProduct(${p.id})">Ürünü aç</button></div><div style="display:grid;place-items:center">${bottle(p,true)}</div></section>`;
+ return `<section class="inline-hero"><div><div class="eyebrow">HERO PRODUCT · ${p.category}</div><h2 style="font:600 42px/.96 var(--serif);margin:8px 0">${p.brand}<br>${p.name}</h2><p>${p.origin} · ${p.net}</p><button class="ghost" onclick="openProduct(${jsId(p.id)})">Ürünü aç</button></div><div style="display:grid;place-items:center">${bottle(p,true)}</div></section>`;
 }
 function lockedPrice(){
  const text=session?(profile?.status==="pending"?"Üyelik onayı bekleniyor":"Fiyat erişimi kapalı"):"Fiyatları görmek için giriş yapın";
@@ -330,12 +330,12 @@ function lockedPrice(){
 function card(p,index){
  const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable;
  return `${index>0&&index%12===0?heroBlock(index):""}<article class="card">
- <button class="card-media" onclick="openProduct(${p.id})"><span class="badge">${p.icon} ${p.category}</span>${bottle(p)}${(p.beverage||p.statiegeld>0)?`<span class="deposit-badge ${p.statiegeld>0?"yes":"no"}">${p.statiegeld>0?"Statiegeld":"Geen statiegeld"}</span>`:""}</button>
+ <button class="card-media" onclick="openProduct(${jsId(p.id)})"><span class="badge">${p.icon} ${p.category}</span>${bottle(p)}${(p.beverage||p.statiegeld>0)?`<span class="deposit-badge ${p.statiegeld>0?"yes":"no"}">${p.statiegeld>0?"Statiegeld":"Geen statiegeld"}</span>`:""}</button>
  <div class="card-body"><div class="brandline">${p.brand} · ${p.origin}</div><h3>${p.name}</h3><div class="meta"><span>${p.net}</span><span class="barcode-meta">Barkod: ${p.ean}</span><span>${p.palletCases} koli/palet</span></div>
  ${(p.beverage||p.statiegeld>0)?`<div class="deposit-line">${depositText(p)}</div>`:""}
- ${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${p.id},'case')">Koli</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${p.id},'pallet')">Palet</button></div>`:`<div class="single-type">ⓘ ${p.caseAvailable?"Sadece koli":"Sadece palet"}</div>`}
+ ${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},'case')">Koli</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},'pallet')">Palet</button></div>`:`<div class="single-type">ⓘ ${p.caseAvailable?"Sadece koli":"Sadece palet"}</div>`}
  ${approved()?`<div class="pricebox"><div><span>${mode==="case"?"Koli fiyatı":"Palet fiyatı"}</span><strong>${euro(currentPrice(p))}</strong></div><small>${mode==="case"?p.caseQty+" adet / koli":p.palletCases+" koli / palet"}</small></div><div class="price-valid-mini">Geçerli: ${VALIDITY.from} / ${VALIDITY.to}</div>`:lockedPrice()}
- <div class="card-actions"><button class="ghost" onclick="openProduct(${p.id})">Detay</button><button class="ghost" ${compare.length>=3&&!compare.includes(p.id)?"disabled":""} onclick="toggleCompare(${p.id})">${compare.includes(p.id)?"Seçildi":"Kıyasla"}</button></div></div></article>`;
+ <div class="card-actions"><button class="ghost" onclick="openProduct(${jsId(p.id)})">Detay</button><button class="ghost" ${compare.length>=3&&!compare.includes(p.id)?"disabled":""} onclick="toggleCompare(${jsId(p.id)})">${compare.includes(p.id)?"Seçildi":"Kıyasla"}</button></div></div></article>`;
 }
 function renderProducts(){
  const list=filtered();document.getElementById("resultCount").textContent=`${list.length} sonuç · ilk ${Math.min(shown,list.length)} ürün gösteriliyor`;
@@ -344,7 +344,7 @@ function renderProducts(){
 }
 function renderFeatured(){
  const list=cats.map(c=>products.find(p=>p.category===c[0]&&p.featured)||products.find(p=>p.category===c[0])).filter(Boolean);
- document.getElementById("featuredGrid").innerHTML=list.map(p=>`<article class="featured-card" onclick="openProduct(${p.id})">${bottle(p)}<div class="brandline">${p.category}</div><h3>${p.brand}<br>${p.name}</h3><div class="meta">${p.origin} · ${p.net}</div>${p.beverage?`<div class="deposit-line">${depositText(p)}</div>`:""}</article>`).join("");
+ document.getElementById("featuredGrid").innerHTML=list.map(p=>`<article class="featured-card" onclick="openProduct(${jsId(p.id)})">${bottle(p)}<div class="brandline">${p.category}</div><h3>${p.brand}<br>${p.name}</h3><div class="meta">${p.origin} · ${p.net}</div>${p.beverage?`<div class="deposit-line">${depositText(p)}</div>`:""}</article>`).join("");
 }
 function setMode(id,mode){priceMode[id]=mode;renderProducts();if(selected?.id===id){renderDetailCommerce();renderDetailQuoteButton()}renderQuoteCart()}
 window.setMode=setMode;
@@ -381,7 +381,7 @@ function renderAlternativeProducts(){
  root.innerHTML=list.map(p=>{
    const mode=modeFor(p);
    const price=approved()?euro(priceFor(p,mode)||0):"";
-   return `<button type="button" class="alternative-card" onclick="openProduct('${p.id}')">
+   return `<button type="button" class="alternative-card" onclick="openProduct(${jsId(p.id)})">
       <div class="alternative-image">${bottle(p)}</div>
       <div class="alternative-copy">
         <span>${esc(p.category)}</span>
@@ -424,7 +424,7 @@ function renderMedia(){
 window.renderMedia=renderMedia;
 function renderDetailCommerce(){
  const dual=selected.caseAvailable&&selected.palletAvailable,mode=modeFor(selected);
- document.getElementById("detailPriceArea").innerHTML=`<div class="detail-commerce">${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${selected.id},'case')">Koli</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${selected.id},'pallet')">Palet</button></div>`:`<div class="single-type">ⓘ ${selected.caseAvailable?"Sadece koli":"Sadece palet"}</div>`}${approved()?`<div class="detail-price"><span>${mode==="case"?"Koli fiyatı":"Palet fiyatı"}</span><strong>${euro(currentPrice(selected))}</strong><small>${mode==="case"?selected.caseQty+" adet / koli":selected.palletCases+" koli / palet"}</small></div><div class="detail-validity">Fiyat geçerliliği: <b>${VALIDITY.from} — ${VALIDITY.to}</b></div>`:lockedPrice()}</div>`;
+ document.getElementById("detailPriceArea").innerHTML=`<div class="detail-commerce">${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(selected.id)},'case')">Koli</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(selected.id)},'pallet')">Palet</button></div>`:`<div class="single-type">ⓘ ${selected.caseAvailable?"Sadece koli":"Sadece palet"}</div>`}${approved()?`<div class="detail-price"><span>${mode==="case"?"Koli fiyatı":"Palet fiyatı"}</span><strong>${euro(currentPrice(selected))}</strong><small>${mode==="case"?selected.caseQty+" adet / koli":selected.palletCases+" koli / palet"}</small></div><div class="detail-validity">Fiyat geçerliliği: <b>${VALIDITY.from} — ${VALIDITY.to}</b></div>`:lockedPrice()}</div>`;
 }
 function renderDetailQuoteButton(){
  const b=document.getElementById("detailQuoteBtn");
@@ -441,8 +441,8 @@ function renderDetailQuoteButton(){
      <div class="detail-quote-field">
        <span>Talep türü</span>
        <div class="detail-quote-type">
-         ${selected.caseAvailable?`<button type="button" class="${mode==="case"?"active":""}" onclick="setMode(${selected.id},'case')">Koli</button>`:""}
-         ${selected.palletAvailable?`<button type="button" class="${mode==="pallet"?"active":""}" onclick="setMode(${selected.id},'pallet')">Palet</button>`:""}
+         ${selected.caseAvailable?`<button type="button" class="${mode==="case"?"active":""}" onclick="setMode(${jsId(selected.id)},'case')">Koli</button>`:""}
+         ${selected.palletAvailable?`<button type="button" class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(selected.id)},'pallet')">Palet</button>`:""}
        </div>
      </div>
      <label class="detail-quote-field"><span>Adet</span><input id="detailQuoteQty" type="number" min="1" step="1" value="${qty}" oninput="updateDetailQuoteTotal(this.value)"></label>
