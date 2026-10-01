@@ -1709,3 +1709,18 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .admin-shipping-summary{grid-template-columns:1fr}
   .admin-shipping-summary small{grid-column:auto}
 }
+
+/* Customer-visible shipping state */
+.customer-shipping-state{
+  display:grid;gap:4px;margin:10px 0;padding:12px 13px;border-radius:12px;
+  border:1px solid var(--line);background:#f7f8fc
+}
+.customer-shipping-state b{font-size:11px;color:#293369}
+.customer-shipping-state span{font-size:9px;color:var(--muted)}
+.customer-shipping-state.preparing{background:#fff8ea;border-color:#efd8a5}
+.customer-shipping-state.preparing b{color:#8a5b00}
+.customer-shipping-state.emigro{background:#eef3ff;border-color:#d7e0f6}
+.customer-shipping-state.emigro b{color:#293369}
+.customer-shipping-state.carrier{background:#edf8f1;border-color:#d3eadb}
+.customer-shipping-state.carrier b{color:#24613d}
+.customer-shipping-state.carrier .btn{margin-top:5px;width:max-content}
