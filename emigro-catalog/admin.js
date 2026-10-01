@@ -6,9 +6,16 @@ let profiles=[],filter="all";
 async function guard(){
  const {data:{session}}=await sb.auth.getSession();
  if(!session){location.replace("./index.html?auth=1&source=admin");return false}
- const {data:me}=await sb.from("emigro_catalog_profiles").select("*").eq("id",session.user.id).single();
+ let {data:me}=await sb.from("emigro_catalog_profiles").select("*").eq("id",session.user.id).single();
  if(me?.role!=="admin"){
-   document.querySelector(".admin-shell").innerHTML='<section class="admin-hero"><div class="eyebrow">EMIGRO B2B ADMIN</div><h1>Erişim yok</h1><p>Bu alan yalnızca Emigro admin kullanıcıları içindir.</p><a class="btn" href="./index.html">Kataloğa dön</a></section>';
+   const claim=await sb.rpc("emigro_catalog_claim_first_admin");
+   if(!claim.error){
+     const refreshed=await sb.from("emigro_catalog_profiles").select("*").eq("id",session.user.id).single();
+     me=refreshed.data;
+   }
+ }
+ if(me?.role!=="admin"){
+   document.querySelector(".admin-shell").innerHTML='<section class="admin-hero"><div class="eyebrow">EMIGRO B2B ADMIN</div><h1>Erişim yok</h1><p>Bu alan yalnızca Emigro admin kullanıcıları içindir. İlk admin hesabı güvenlik için @emigro.nl e-posta adresiyle açılmalıdır.</p><a class="btn" href="./index.html">Kataloğa dön</a></section>';
    return false;
  }
  return true;
