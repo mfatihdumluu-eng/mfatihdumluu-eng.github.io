@@ -97,3 +97,9 @@ h1,h2,h3,h4,.hero h1,.catalog h2,.featured-section h2,.modal h2,.card-body h3,.p
 .admin-login-card h1{font:700 38px/1.05 'Roboto',sans-serif;margin:6px 0 10px;color:#293369}
 .admin-login-card>p{margin:0 0 22px;color:var(--muted);line-height:1.6;font-size:12px}
 .admin-back-link{display:inline-flex;margin-top:12px;text-decoration:none}
+
+.detail-quote-box{display:grid;grid-template-columns:1fr 110px 1fr;gap:10px;align-items:end;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#f8f9fc}
+.detail-quote-field{display:grid;gap:6px}.detail-quote-field>span,.detail-quote-summary>span{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.detail-quote-field input{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 11px;background:#fff;color:#293369;font-weight:700}
+.detail-quote-type{display:flex;gap:6px}.detail-quote-type button{flex:1;border:1px solid var(--line);background:#fff;color:#293369;border-radius:10px;padding:10px;font-weight:700;cursor:pointer}.detail-quote-type button.active{background:#293369;color:#fff;border-color:#293369}
+.detail-quote-summary{display:grid;gap:4px;text-align:right}.detail-quote-summary strong{font:700 22px 'Roboto',sans-serif;color:#293369}
+@media(max-width:640px){.detail-quote-box{grid-template-columns:1fr 90px}.detail-quote-summary{grid-column:1/-1;text-align:left}}
