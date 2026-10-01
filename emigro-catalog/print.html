@@ -19,7 +19,7 @@
 const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-customer-auth",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const VALIDITY={from:"01-10-2026",to:"30-10-2026"};
+let VALIDITY={from:"01-10-2026",to:"30-10-2026"};
 const LOGIN_URL="https://mfatihdumluu-eng.github.io/emigro-catalog/?auth=1&source=print-catalog";
 const palette=["#293369","#3b4a89","#5663a3","#ec0419","#f03748","#b60618","#68729d","#8890b1","#a61b2b"];
 let cats=[["Soft Drinks",palette[0],"Australia","🥤"],["Juices",palette[1],"Turkey","🍎"],["Sauces",palette[3],"Belgium","🥣"],["Snacks",palette[4],"Netherlands","🍿"],["Frozen",palette[2],"Netherlands","❄️"],["Grocery",palette[5],"Turkey","🧺"],["Dairy",palette[6],"Germany","🥛"],["Sweets",palette[8],"Turkey","🍬"],["Non-Food",palette[7],"Netherlands","✨"]];
@@ -43,8 +43,14 @@ const chunks=(arr,n)=>Array.from({length:Math.ceil(arr.length/n)},(_,i)=>arr.sli
 const validity=()=>`<div class="validity"><span>FİYATLARIN GEÇERLİLİK DÖNEMİ</span><strong>${VALIDITY.from} — ${VALIDITY.to}</strong></div>`;
 let priceMap={};
 
+async function loadPrintValidity(){
+ const {data,error}=await sb.from("emigro_catalog_price_periods").select("name,valid_from,valid_to").eq("is_active",true).order("created_at",{ascending:false}).limit(1).maybeSingle();
+ if(error||!data)return;
+ const fmt=s=>new Date(s+"T12:00:00").toLocaleDateString("nl-NL");
+ VALIDITY={from:fmt(data.valid_from),to:fmt(data.valid_to),rawFrom:data.valid_from,rawTo:data.valid_to,name:data.name};
+}
 async function loadLivePrintCatalog(){
- const {data,error}=await sb.from("emigro_catalog_products").select("*").eq("is_active",true).order("category").order("product_name");
+ const {data,error}=await sb.from("emigro_catalog_products_public").select("*").order("category").order("product_name");
  if(error||!data?.length)return;
  const paletteLocal=palette;
  const oldMeta=new Map(cats.map(c=>[c[0].toLowerCase(),c]));
@@ -70,17 +76,18 @@ async function authorize(){
      const ci=Math.floor((p.id-1)/23),i=(p.id-1)%23;
      const casePrice=p.caseAvailable?Number((14.5+ci*1.35+(i%9)*.85).toFixed(2)):null;
      const palletPrice=p.palletAvailable?Number(((casePrice??20.5)*p.palletCases*.965).toFixed(2)):null;
-     priceMap[p.sku]={case_price:casePrice,pallet_price:palletPrice,valid_from:"2026-10-01",valid_to:"2026-10-30"};
+     priceMap[p.sku]={case_price:casePrice,pallet_price:palletPrice,valid_from:VALIDITY.rawFrom||"2026-10-01",valid_to:VALIDITY.rawTo||"2026-10-30"};
    });
    return true;
  }
  const {data:{session}}=await sb.auth.getSession();
  if(!session){location.replace("./index.html?auth=required&next=print&source=pdf");return false}
- const {data:profile}=await sb.from("emigro_catalog_profiles").select("status").eq("id",session.user.id).single();
+ const {data:profile}=await sb.from("emigro_catalog_profiles").select("status,customer_discount_percent").eq("id",session.user.id).single();
  if(profile?.status!=="approved"){location.replace("./index.html?auth=required&next=print&source=pdf");return false}
  const {data:prices,error}=await sb.from("emigro_catalog_prices").select("sku,case_price,pallet_price,valid_from,valid_to");
  if(error){document.getElementById("loading").textContent="Fiyatlar yüklenemedi.";return false}
- priceMap=Object.fromEntries((prices||[]).map(r=>[r.sku,r]));
+ const discount=Number(profile?.customer_discount_percent||0);
+ priceMap=Object.fromEntries((prices||[]).map(r=>[r.sku,{...r,case_price:r.case_price==null?null:Number((Number(r.case_price)*(1-discount/100)).toFixed(2)),pallet_price:r.pallet_price==null?null:Number((Number(r.pallet_price)*(1-discount/100)).toFixed(2))}]));
  return true;
 }
 function price(p,type){return type==="case"?priceMap[p.sku]?.case_price:priceMap[p.sku]?.pallet_price}
@@ -106,7 +113,7 @@ function build(){
  new QRCode(document.getElementById("qrCodeFinal"),{text:LOGIN_URL,width:190,height:190,colorDark:"#293369",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
 }
 (async()=>{
- await loadLivePrintCatalog();
+ await Promise.all([loadPrintValidity(),loadLivePrintCatalog()]);
  if(!(await authorize()))return;
  build();
  document.getElementById("printBtn").onclick=()=>window.print();
