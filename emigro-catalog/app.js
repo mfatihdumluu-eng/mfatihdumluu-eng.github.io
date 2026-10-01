@@ -36,6 +36,8 @@ let favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]");
 let quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
 let session=null,profile=null,priceMap={},pendingAction=null,kvkVerified=false,verifiedKvkData=null,demoMode=false;
 let customerOrders=[],customerAddresses=[],customerNotifications=[];
+const REFERRAL_CODE=(new URLSearchParams(location.search).get("ref")||"").trim().toUpperCase();
+let referralLandingHandled=false;
 
 const approved=()=>demoMode||profile?.status==="approved";
 const isAdmin=()=>profile?.role==="admin";
@@ -306,7 +308,8 @@ document.getElementById("registerForm").onsubmit=async e=>{
   contact_role:document.getElementById("regRole").value.trim(),
   phone:document.getElementById("regPhone").value.trim(),
   kvk_number:document.getElementById("regKvk").value.trim(),
-  btw_number:document.getElementById("regBtw").value.trim()
+  btw_number:document.getElementById("regBtw").value.trim(),
+  referral_code:REFERRAL_CODE
  };
  const {data,error}=await sb.auth.signUp({email,password,options:{data:metadata}});
  if(error){box.textContent=error.message;return}
@@ -644,6 +647,34 @@ async function loadCustomerDashboard(){
    return;
  }
 
+ if(customerDashboardTab==="invite"){
+   const {data:stats,error:statsError}=await sb.rpc("emigro_catalog_referral_stats");
+   const stat=Array.isArray(stats)?stats[0]:stats;
+   const code=stat?.referral_code||profile?.referral_code||"";
+   const link=code?new URL("./?ref="+encodeURIComponent(code),location.href).href:"";
+   root.innerHTML=`
+    <section class="customer-invite-panel">
+      <div class="customer-invite-copy">
+        <div class="eyebrow">DAVET ET & AVANTAJ KAZAN</div>
+        <h3>Zakelijke müşterilerinizi Emigro B2B'ye davet edin</h3>
+        <p>Sizden gelen müşterilerimizin ilk alışverişlerinde hem size hem de davet ettiğiniz kişilere ekstra indirim avantajları sunulacaktır.</p>
+        <p>Davet bağlantınızla kayıt olan kişinin sizin tarafınızdan geldiği sistemde otomatik olarak kaydedilir.</p>
+      </div>
+      <div class="invite-stat-grid">
+        <div><span>Davet kodunuz</span><strong>${esc(code||"—")}</strong></div>
+        <div><span>Kayıt olan</span><strong>${statsError?"—":Number(stat?.invited_count||0)}</strong></div>
+        <div><span>Onaylanan</span><strong>${statsError?"—":Number(stat?.approved_count||0)}</strong></div>
+      </div>
+      <div class="invite-link-box"><span>Davet bağlantısı</span><strong id="customerInviteLink">${esc(link)}</strong></div>
+      <div class="invite-actions">
+        <button class="btn" onclick="shareCustomerInvite()">Telefondan paylaş</button>
+        <button class="ghost" onclick="emailCustomerInvite()">E-posta ile gönder</button>
+        <button class="ghost" onclick="copyCustomerInvite()">Bağlantıyı kopyala</button>
+      </div>
+    </section>`;
+   return;
+ }
+
  if(customerDashboardTab==="orders"){
    root.innerHTML=customerOrders.length?customerOrders.map(o=>{
      const items=(o.items||[]).map(i=>`<div class="customer-dash-item"><div><b>${esc(i.name)}</b><small>${esc(i.sku)} · ${i.mode==="case"?"Koli":"Palet"} · ${i.qty} adet</small></div><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>`).join("");
@@ -883,10 +914,63 @@ document.querySelectorAll("[data-mobile-nav]").forEach(btn=>btn.onclick=()=>{
  }
 });
 
+function customerInviteMessage(){
+ const link=document.getElementById("customerInviteLink")?.textContent||"";
+ return `Emigro Cash & Carry B2B platformuna sizi davet ediyorum.
+
+Bu platform üzerinden özel teklifler ve hızlı sipariş imkanlarından yararlanabilirsiniz.
+
+Davet bağlantım:
+${link}
+
+İlk alışverişinizde hem size hem de beni davet eden müşteri olarak bana ekstra indirim avantajı sağlanacaktır.`;
+}
+async function copyCustomerInvite(){
+ const link=document.getElementById("customerInviteLink")?.textContent||"";
+ try{await navigator.clipboard.writeText(link);alert("Davet bağlantısı kopyalandı.");}
+ catch{prompt("Davet bağlantısını kopyalayın:",link)}
+}
+async function shareCustomerInvite(){
+ const link=document.getElementById("customerInviteLink")?.textContent||"";
+ const text=customerInviteMessage();
+ if(navigator.share){
+   try{await navigator.share({title:"Emigro Cash & Carry B2B daveti",text,url:link});return}catch{}
+ }
+ try{await navigator.clipboard.writeText(text);alert("Davet metni kopyalandı. WhatsApp, SMS veya başka bir uygulamada paylaşabilirsiniz.");}
+ catch{prompt("Davet metnini kopyalayın:",text)}
+}
+function emailCustomerInvite(){
+ const subject=encodeURIComponent("Emigro Cash & Carry B2B daveti");
+ const body=encodeURIComponent(customerInviteMessage());
+ location.href=`mailto:?subject=${subject}&body=${body}`;
+}
+window.copyCustomerInvite=copyCustomerInvite;
+window.shareCustomerInvite=shareCustomerInvite;
+window.emailCustomerInvite=emailCustomerInvite;
+
+async function handleReferralLanding(){
+ if(referralLandingHandled||!REFERRAL_CODE||session)return;
+ referralLandingHandled=true;
+ let inviterLabel="Emigro müşterisi";
+ try{
+   const {data}=await sb.rpc("emigro_catalog_referral_inviter",{p_code:REFERRAL_CODE});
+   const row=Array.isArray(data)?data[0]:data;
+   if(row?.company_name)inviterLabel=row.company_name;
+ }catch{}
+ const notice=document.getElementById("referralNotice");
+ if(notice){
+   notice.classList.remove("hidden");
+   notice.innerHTML=`<b>${esc(inviterLabel)} tarafından davet edildiniz.</b><span>Davet kodu: ${esc(REFERRAL_CODE)}. Başvurunuz tamamlandığında bu davet otomatik olarak hesabınıza bağlanacaktır.</span>`;
+ }
+ openAuth("Emigro B2B platformuna davet edildiniz.");
+ switchAuthTab("register");
+}
+
 async function bootstrapCatalog(){
  await Promise.all([loadActiveValidity(),loadLiveCatalog()]);
  renderHero();renderCategorySquares();renderFeatured();renderAll();
  await syncAuth();
+ await handleReferralLanding();
  const sku=new URLSearchParams(location.search).get("product");if(sku){const p=products.find(x=>x.sku===sku);if(p)openProduct(p.id)}
 }
 bootstrapCatalog();
