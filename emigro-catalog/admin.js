@@ -353,9 +353,28 @@ document.getElementById("mailOfferBtn").onclick=async()=>{
  btn.disabled=true;btn.textContent="PDF hazırlanıyor…";
  try{
    const file=await generateOfferPdfFile();
+   const mailText=`Beste ${p.contact_name||""},\n\nHierbij ontvangt u onze offerte ${v.number}.\nTotaal: ${euro(final)}\nVerzendkosten: ${euro(v.shipping)}\nGeldig t/m: ${v.validTo?new Date(v.validTo).toLocaleDateString("nl-NL"):"—"}\n\nMet vriendelijke groet,\nEmigro Cash & Carry`;
+
+   let sentAutomatically=false;
+   try{
+     const {data:{session}}=await sb.auth.getSession();
+     const bytes=new Uint8Array(await file.arrayBuffer());
+     let binary="";const chunk=0x8000;
+     for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+     const pdfBase64=btoa(binary);
+     const res=await fetch(SUPABASE_URL+"/functions/v1/send-offer-email",{
+       method:"POST",
+       headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+session.access_token},
+       body:JSON.stringify({to:p.email,subject:`Emigro offerte ${v.number}`,body:mailText,filename:file.name,pdf_base64:pdfBase64})
+     });
+     const result=await res.json().catch(()=>({}));
+     if(res.ok&&result.ok){sentAutomatically=true;alert("Teklif PDF olarak müşteriye e-posta ile gönderildi.");}
+   }catch{}
+   if(sentAutomatically)return;
+
    const shareData={
      title:`Emigro offerte ${v.number}`,
-     text:`Beste ${p.contact_name||""},\n\nHierbij ontvangt u onze offerte ${v.number}.\nTotaal: ${euro(final)}\nVerzendkosten: ${euro(v.shipping)}\nGeldig t/m: ${v.validTo?new Date(v.validTo).toLocaleDateString("nl-NL"):"—"}\n\nMet vriendelijke groet,\nEmigro Cash & Carry`,
+     text:mailText,
      files:[file]
    };
    if(navigator.canShare&&navigator.canShare({files:[file]})){
