@@ -35,7 +35,7 @@
 </section>
 
 <section class="notice"><b>Üyelik kontrollü fiyatlandırma.</b><span>Fiyatlar yalnızca giriş yapmış ve Emigro tarafından onaylanmış üyeler tarafından görülebilir. İçeceklerde statiegeld bilgisi herkese açık gösterilir.</span></section>
-<section class="validity-banner"><div><span>FİYAT GEÇERLİLİK DÖNEMİ</span><strong>01-10-2026 — 30-10-2026</strong></div><p>Onaylı üyelere gösterilen katalog fiyatları yalnızca belirtilen tarih aralığında geçerlidir. Stok ve ticari koşullar değişebilir.</p></section>
+<section class="validity-banner"><div><span>FİYAT GEÇERLİLİK DÖNEMİ</span><strong id="globalValidity">01-10-2026 — 30-10-2026</strong></div><p>Onaylı üyelere gösterilen katalog fiyatları yalnızca belirtilen tarih aralığında geçerlidir. Stok ve ticari koşullar değişebilir.</p></section>
 
 <section class="customer-dashboard hidden" id="customerDashboard">
   <div class="customer-dashboard-head">
@@ -172,15 +172,15 @@
     <div class="quote-layout">
       <div class="quote-lines" id="quoteLines"></div>
       <form class="quote-form" id="quoteForm">
-        <div class="quote-validity-alert"><span>FİYAT GEÇERLİLİK DÖNEMİ</span><strong>01-10-2026 — 30-10-2026</strong><p>Teklif talebiniz bu katalog dönemindeki fiyatlar üzerinden hazırlanır. Tarih dışındaki taleplerde fiyatlar yeniden teyit edilir.</p></div>        <input type="hidden" name="Urunler" id="quoteSummaryField">
-        <input type="hidden" name="Fiyat Gecerlilik Donemi" value="01-10-2026 / 30-10-2026">
+        <div class="quote-validity-alert"><span>FİYAT GEÇERLİLİK DÖNEMİ</span><strong id="quoteValidityStrong">01-10-2026 — 30-10-2026</strong><p>Teklif talebiniz bu katalog dönemindeki fiyatlar üzerinden hazırlanır. Tarih dışındaki taleplerde fiyatlar yeniden teyit edilir.</p></div>        <input type="hidden" name="Urunler" id="quoteSummaryField">
+        <input type="hidden" name="Fiyat Gecerlilik Donemi" id="quoteValidityHidden" value="01-10-2026 / 30-10-2026">
         <input type="hidden" name="Uye No" id="memberNumber">
         <label>Ad soyad<input id="memberName" name="Ad Soyad" required readonly></label>
         <label>Firma adı<input id="memberCompany" name="Firma" required readonly></label>
         <label>E-posta<input id="memberEmail" type="email" name="E-posta" required readonly></label>
         <label>Telefon<input id="memberPhone" name="Telefon" readonly></label>
         <label>Not<textarea name="Not" id="quoteNote" rows="4" placeholder="Teslimat, miktar veya diğer notlar..."></textarea></label>
-        <label class="validity-check"><input type="checkbox" id="validityConfirm" required><span>Fiyatların yalnızca <b>01-10-2026 — 30-10-2026</b> tarihleri arasında geçerli olduğunu gördüm ve kabul ediyorum.</span></label>
+        <label class="validity-check"><input type="checkbox" id="validityConfirm" required><span id="quoteValidityConfirmText">Fiyatların yalnızca <b>01-10-2026 — 30-10-2026</b> tarihleri arasında geçerli olduğunu gördüm ve kabul ediyorum.</span></label>
         <div class="form-total"><span>Tahmini toplam</span><strong id="formQuoteTotal">€0,00</strong></div>
         <button class="btn" id="quoteSubmitBtn" type="submit">Teklif talebini gönder</button>
         <small>Talep Emigro'ya iletilir ve üyelik bilgilerinizle eşleştirilir.</small>
