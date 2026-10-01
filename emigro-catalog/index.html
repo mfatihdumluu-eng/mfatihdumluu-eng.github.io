@@ -11,6 +11,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+<div class="network-banner hidden" id="networkBanner">Bağlantı kesildi. İnternet geri geldiğinde işlemlerinize devam edebilirsiniz.</div>
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
 <header class="topbar">
   <a class="brand" href="#home"><img src="./logo.svg" alt="Emigro Cash & Carry"><span class="brand-fallback"><b>emigro</b><small>Cash & Carry</small></span></a>
   <nav><a href="#categoryBrowser">Ürünler</a><a href="#featured">Öne çıkan</a><button class="nav-link-btn hidden" id="customerDashboardNav">Müşteri Hesabı</button><button class="nav-link-btn" onclick="requestPdf()">PDF katalog</button></nav>
