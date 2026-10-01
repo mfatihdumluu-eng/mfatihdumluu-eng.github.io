@@ -112,13 +112,43 @@ function openOffer(id){
  document.getElementById("shippingFee").value=Number(activeQuote.shipping_fee||0);
  document.getElementById("offerValidTo").value=activeQuote.offer_valid_to||"2026-10-30";
  document.getElementById("adminNote").value=activeQuote.admin_note||"";
- document.getElementById("offerProducts").innerHTML=(activeQuote.items||[]).map((i,idx)=>`
-   <div class="offer-product-line"><span>${idx+1}</span><div><b>${esc(i.name)}</b><small>${esc(i.sku)} · ${i.mode==="case"?"Koli":"Palet"} · Adet: ${i.qty}</small></div><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>
- `).join("");
+ renderOfferProducts();
  updateOfferPreview();
  document.getElementById("offerModal").classList.remove("hidden");
 }
 window.openOffer=openOffer;
+
+function recalcActiveQuoteBase(){
+ if(!activeQuote)return 0;
+ const total=(activeQuote.items||[]).reduce((s,i)=>s+Number(i.unit_price||0)*Number(i.qty||0),0);
+ activeQuote.estimated_total=Number(total.toFixed(2));
+ return activeQuote.estimated_total;
+}
+function renderOfferProducts(){
+ const root=document.getElementById("offerProducts");
+ const items=activeQuote?.items||[];
+ if(!items.length){
+   root.innerHTML='<div class="admin-loading">Teklifte ürün kalmadı. En az bir ürün bırakın.</div>';
+   recalcActiveQuoteBase();updateOfferPreview();return;
+ }
+ root.innerHTML=items.map((i,idx)=>`
+   <div class="offer-product-line">
+     <span>${idx+1}</span>
+     <div><b>${esc(i.name)}</b><small>${esc(i.sku)} · ${i.mode==="case"?"Koli":"Palet"} · Adet: ${i.qty}</small></div>
+     <strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong>
+     <button type="button" class="remove-offer-item" onclick="removeOfferItem(${idx})">Ürünü çıkar</button>
+   </div>
+ `).join("");
+ recalcActiveQuoteBase();
+}
+function removeOfferItem(idx){
+ if(!activeQuote?.items?.[idx])return;
+ if(!confirm("Bu ürünü tekliften çıkarmak istiyor musunuz?"))return;
+ activeQuote.items.splice(idx,1);
+ renderOfferProducts();
+ updateOfferPreview();
+}
+window.removeOfferItem=removeOfferItem;
 
 function currentOfferValues(){
  return {
@@ -149,35 +179,47 @@ function updateOfferPreview(){
 }
 ["discountPercent","discountAmount","shippingFee","offerValidTo","offerNumber","adminNote","offerStatus"].forEach(id=>document.getElementById(id).addEventListener("input",updateOfferPreview));
 
-async function saveOffer(){
- if(!activeQuote)return;
+async function saveOffer(forceStatus=null){
+ if(!activeQuote)return false;
+ if(!(activeQuote.items||[]).length){alert("Teklifte en az bir ürün olmalı.");return false}
  const v=currentOfferValues();
- const {error}=await sb.rpc("emigro_catalog_admin_update_quote",{
+ const status=forceStatus||v.status;
+ recalcActiveQuoteBase();
+ const {error}=await sb.rpc("emigro_catalog_admin_update_quote_full",{
   quote_id:activeQuote.id,
-  p_status:v.status,
+  p_status:status,
   p_shipping_fee:v.shipping,
   p_discount_percent:v.percent,
   p_discount_amount:v.amount,
   p_offer_valid_to:v.validTo||null,
   p_admin_note:v.note,
-  p_offer_number:v.number
+  p_offer_number:v.number,
+  p_items:activeQuote.items,
+  p_estimated_total:activeQuote.estimated_total
  });
- if(error){alert("Teklif kaydedilemedi: "+error.message);return}
+ if(error){alert("Teklif kaydedilemedi: "+error.message);return false}
  await loadQuotes();
  activeQuote=quotes.find(q=>q.id===activeQuote.id);
+ document.getElementById("offerStatus").value=activeQuote.status;
+ renderOfferProducts();
  updateOfferPreview();
- alert("Teklif kaydedildi.");
+ return true;
 }
-document.getElementById("saveOfferBtn").onclick=saveOffer;
+document.getElementById("saveOfferBtn").onclick=async()=>{if(await saveOffer())alert("Taslak kaydedildi.")};
+document.getElementById("publishOfferBtn").onclick=async()=>{
+ document.getElementById("offerStatus").value="offered";
+ if(await saveOffer("offered"))alert("Teklif müşteriye yayınlandı. Müşteri hesabındaki Tekliflerim bölümünde görebilir.");
+};
 
 function offerPrintHtml(){
  const q=activeQuote,v=currentOfferValues(),p=profileMap[q.user_id]||{};
  const discount=quoteDiscount(q,v.percent,v.amount),final=quoteGrand(q,v.percent,v.amount,v.shipping);
+ const logoUrl=new URL("./logo.svg",location.href).href;
  const rows=(q.items||[]).map((i,idx)=>`<tr><td>${idx+1}</td><td><b>${esc(i.name)}</b><br><small>${esc(i.sku)}</small></td><td>${i.mode==="case"?"Koli":"Palet"}</td><td>${i.qty}</td><td>${euro(i.unit_price)}</td><td>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</td></tr>`).join("");
- return `<!doctype html><html><head><meta charset="utf-8"><title>Offerte ${esc(v.number)}</title><style>
- body{font-family:Arial,sans-serif;color:#293369;margin:0;background:#fff}.sheet{width:210mm;min-height:297mm;padding:18mm;box-sizing:border-box;position:relative}.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #293369;padding-bottom:8mm}.head img{width:62mm}.head h1{margin:0;color:#ec0419;font-size:26px}.head p{margin:3px 0;font-size:11px}.cols{display:grid;grid-template-columns:1fr 1fr;gap:15mm;margin:10mm 0}.box{border:1px solid #dfe2ed;border-radius:3mm;padding:5mm}.box span{display:block;font-size:8px;color:#717996;text-transform:uppercase}.box b{display:block;margin:1mm 0;font-size:12px}table{width:100%;border-collapse:collapse;font-size:9px}th,td{text-align:left;padding:3mm 2mm;border-bottom:1px solid #e7e9f0}th{color:#6f7690;font-size:8px}.totals{width:80mm;margin-left:auto;margin-top:8mm}.totals div{display:flex;justify-content:space-between;padding:2.4mm 0;border-bottom:1px solid #e7e9f0}.totals .grand{font-size:16px;font-weight:700;color:#ec0419}.note{margin-top:10mm;border-left:3px solid #293369;padding-left:5mm;font-size:10px;line-height:1.5}.valid{position:absolute;left:18mm;right:18mm;bottom:15mm;background:#fff1f3;border:1px solid #f3c4ca;border-radius:3mm;padding:4mm;display:flex;justify-content:space-between;color:#9f1321}.valid strong{color:#ec0419}.foot{position:absolute;right:18mm;bottom:7mm;font-size:8px;color:#858ba1}
+ return `<!doctype html><html><head><meta charset="utf-8"><title>Offerte ${esc(v.number)}</title><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet"><style>
+ body{font-family:Roboto,Arial,sans-serif;color:#293369;margin:0;background:#fff}.sheet{width:210mm;min-height:297mm;padding:18mm;box-sizing:border-box;position:relative}.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #293369;padding-bottom:8mm}.head img{width:62mm}.head h1{margin:0;color:#ec0419;font-size:26px}.head p{margin:3px 0;font-size:11px}.cols{display:grid;grid-template-columns:1fr 1fr;gap:15mm;margin:10mm 0}.box{border:1px solid #dfe2ed;border-radius:3mm;padding:5mm}.box span{display:block;font-size:8px;color:#717996;text-transform:uppercase}.box b{display:block;margin:1mm 0;font-size:12px}table{width:100%;border-collapse:collapse;font-size:9px}th,td{text-align:left;padding:3mm 2mm;border-bottom:1px solid #e7e9f0}th{color:#6f7690;font-size:8px}.totals{width:80mm;margin-left:auto;margin-top:8mm}.totals div{display:flex;justify-content:space-between;padding:2.4mm 0;border-bottom:1px solid #e7e9f0}.totals .grand{font-size:16px;font-weight:700;color:#ec0419}.note{margin-top:10mm;border-left:3px solid #293369;padding-left:5mm;font-size:10px;line-height:1.5}.valid{position:absolute;left:18mm;right:18mm;bottom:15mm;background:#fff1f3;border:1px solid #f3c4ca;border-radius:3mm;padding:4mm;display:flex;justify-content:space-between;color:#9f1321}.valid strong{color:#ec0419}.foot{position:absolute;right:18mm;bottom:7mm;font-size:8px;color:#858ba1}
  </style></head><body><div class="sheet">
- <div class="head"><img src="./logo.svg"><div><h1>Offerte</h1><p>Offertenummer: <b>${esc(v.number)}</b></p><p>Datum: ${new Date().toLocaleDateString("nl-NL")}</p></div></div>
+ <div class="head"><img src="${logoUrl}"><div><h1>Offerte</h1><p>Offertenummer: <b>${esc(v.number)}</b></p><p>Datum: ${new Date().toLocaleDateString("nl-NL")}</p></div></div>
  <div class="cols"><div class="box"><span>Aan</span><b>${esc(p.company_name||"")}</b><div>${esc(p.contact_name||"")}</div><div>${esc(p.company_address||"")}</div><div>${esc(p.postal_code||"")} ${esc(p.city||"")} · ${esc(p.country||"")}</div></div><div class="box"><span>KvK</span><b>${esc(p.kvk_number||"—")}</b><span>BTW</span><b>${esc(p.btw_number||"—")}</b><span>E-mail</span><b>${esc(p.email||"—")}</b></div></div>
  <table><thead><tr><th>#</th><th>Product</th><th>Type</th><th>Aantal</th><th>Prijs</th><th>Totaal</th></tr></thead><tbody>${rows}</tbody></table>
  <div class="totals"><div><span>Subtotaal</span><b>${euro(quoteBase(q))}</b></div><div><span>Korting${v.percent?" ("+v.percent+"%)":""}</span><b>− ${euro(discount)}</b></div><div><span>Verzendkosten</span><b>${euro(v.shipping)}</b></div><div class="grand"><span>Totaal</span><b>${euro(final)}</b></div></div>
@@ -192,27 +234,39 @@ document.getElementById("printOfferBtn").onclick=()=>{
 async function generateOfferPdfFile(){
  if(!activeQuote)return null;
  const v=currentOfferValues();
- const holder=document.createElement("div");
- holder.className="pdf-offer-holder";
- holder.innerHTML=offerPrintHtml().match(/<body>([\s\S]*?)<\/body>/i)?.[1]||"";
- holder.style.position="fixed";
- holder.style.left="-100000px";
- holder.style.top="0";
- holder.style.width="210mm";
- holder.style.background="#fff";
- document.body.appendChild(holder);
+ const iframe=document.createElement("iframe");
+ iframe.setAttribute("aria-hidden","true");
+ iframe.style.position="fixed";
+ iframe.style.left="0";
+ iframe.style.top="0";
+ iframe.style.width="794px";
+ iframe.style.height="1123px";
+ iframe.style.opacity="0.001";
+ iframe.style.pointerEvents="none";
+ iframe.style.zIndex="-9999";
+ document.body.appendChild(iframe);
  const filename=(v.number||"Emigro-Offerte")+".pdf";
  try{
+   const doc=iframe.contentDocument;
+   doc.open();doc.write(offerPrintHtml());doc.close();
+   await new Promise(resolve=>setTimeout(resolve,500));
+   if(doc.fonts?.ready) await doc.fonts.ready;
+   const imgs=[...doc.images];
+   await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=r})));
+   const sheet=doc.querySelector(".sheet");
+   if(!sheet)throw new Error("Teklif sayfası oluşturulamadı");
    const blob=await html2pdf().set({
      margin:0,
      filename,
      image:{type:"jpeg",quality:0.98},
-     html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff"},
-     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}
-   }).from(holder).outputPdf("blob");
+     html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",logging:false},
+     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+     pagebreak:{mode:["avoid-all","css","legacy"]}
+   }).from(sheet).outputPdf("blob");
+   if(!blob||blob.size<1000)throw new Error("PDF içeriği boş oluştu");
    return new File([blob],filename,{type:"application/pdf"});
  } finally {
-   holder.remove();
+   iframe.remove();
  }
 }
 
@@ -256,6 +310,9 @@ document.querySelectorAll("[data-admin-tab]").forEach(b=>b.onclick=()=>{
 document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{memberFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));renderMembers()});
 document.querySelectorAll("[data-qfilter]").forEach(b=>b.onclick=()=>{quoteFilter=b.dataset.qfilter;document.querySelectorAll("[data-qfilter]").forEach(x=>x.classList.toggle("active",x===b));renderQuotes()});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>document.getElementById(b.dataset.close).classList.add("hidden"));
+function closeOfferModal(){document.getElementById("offerModal").classList.add("hidden");activeQuote=null}
+document.getElementById("closeOfferBtn").onclick=closeOfferModal;
+document.getElementById("offerModal").addEventListener("click",e=>{if(e.target.id==="offerModal")closeOfferModal()});
 document.getElementById("refreshBtn").onclick=loadAll;
 document.getElementById("adminLoginForm").onsubmit=async e=>{
  e.preventDefault();
