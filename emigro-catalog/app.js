@@ -345,14 +345,26 @@ function openProduct(id){
 window.openProduct=openProduct;
 function renderMedia(){
  const media=document.getElementById("mainMedia");
- const visual=(idx)=>{
-   if(idx===0)return bottle(selected,true);
+ const options=[{label:"Ürün",idx:0,show:true},{label:"Koli",idx:1,show:selected.caseAvailable},{label:"Palet",idx:2,show:selected.palletAvailable}].filter(x=>x.show);
+ if(!options.some(x=>x.idx===selectedImage))selectedImage=options[0]?.idx??0;
+
+ const visual=(idx,thumb=false)=>{
+   if(idx===0){
+     if(selected.image1)return `<img class="${thumb?"thumb-product-image":"detail-product-image"}" src="${selected.image1}" alt="${selected.brand} ${selected.name}">`;
+     return bottle(selected,!thumb);
+   }
    const url=idx===1?selected.image2:selected.image3;
-   if(url)return `<img class="detail-real-image" src="${url}" alt="${idx===1?"Koli":"Palet"}">`;
-   return idx===1?`<div class="case-visual">CASE<small>${selected.caseQty} PCS</small></div>`:`<div class="pallet-visual"><b>PALLET</b><small>${selected.palletCases} CASES</small></div>`;
+   if(url)return `<img class="${thumb?"thumb-product-image":"detail-product-image"}" src="${url}" alt="${idx===1?"Koli":"Palet"}">`;
+   return idx===1
+    ?`<div class="${thumb?"thumb-pack-visual":"detail-pack-visual"} case-pack"><b>KOLİ</b><small>${selected.caseQty} ADET</small></div>`
+    :`<div class="${thumb?"thumb-pack-visual":"detail-pack-visual"} pallet-pack"><b>PALET</b><small>${selected.palletCases} KOLİ</small></div>`;
  };
- media.innerHTML=visual(selectedImage);
- document.getElementById("thumbs").innerHTML=[["Ürün",0,visual(0)],["Koli",1,visual(1)],["Palet",2,visual(2)]].map(([n,i,v])=>`<button class="thumb ${selectedImage==i?"active":""}" onclick="selectedImage=${i};renderMedia()">${v}<span>${n}</span></button>`).join("");
+ media.innerHTML=`<div class="detail-media-frame">${visual(selectedImage,false)}</div>`;
+ document.getElementById("thumbs").innerHTML=options.map(o=>`
+  <button class="thumb ${selectedImage===o.idx?"active":""}" onclick="selectedImage=${o.idx};renderMedia()">
+    <div class="thumb-media-frame">${visual(o.idx,true)}</div>
+    <span>${o.label}</span>
+  </button>`).join("");
 }
 window.renderMedia=renderMedia;
 function renderDetailCommerce(){
