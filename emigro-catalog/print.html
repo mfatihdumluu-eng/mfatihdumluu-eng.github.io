@@ -8,30 +8,71 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./print.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<div class="toolbar"><a href="./index.html">← Kataloğa dön</a><div><strong>EMIGRO PDF CATALOGUE</strong><span>A4 · 9 ürün/sayfa · yalnızca ana ürün görseli</span></div><button onclick="window.print()">PDF olarak kaydet</button></div>
+<div class="toolbar"><a href="./index.html">← Kataloğa dön</a><div><strong>EMIGRO PDF CATALOGUE</strong><span>Yalnızca onaylı B2B üyeler · A4 · 9 ürün/sayfa</span></div><button id="printBtn">PDF olarak kaydet</button></div>
+<div class="print-loading" id="loading">Üyelik ve fiyat bilgileri kontrol ediliyor…</div>
 <main id="pages"></main>
 <script>
+const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
+const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const VALIDITY={from:"01-10-2026",to:"30-10-2026"};
+const LOGIN_URL="https://mfatihdumluu-eng.github.io/emigro-catalog/?auth=1&source=print-catalog";
 const palette=["#293369","#3b4a89","#5663a3","#ec0419","#f03748","#b60618","#68729d","#8890b1","#a61b2b"];
 const cats=[["Soft Drinks",palette[0],"Australia","🥤"],["Juices",palette[1],"Turkey","🍎"],["Sauces",palette[3],"Belgium","🥣"],["Snacks",palette[4],"Netherlands","🍿"],["Frozen",palette[2],"Netherlands","❄️"],["Grocery",palette[5],"Turkey","🧺"],["Dairy",palette[6],"Germany","🥛"],["Sweets",palette[8],"Turkey","🍬"],["Non-Food",palette[7],"Netherlands","✨"]];
 const names=["Original","Classic","Premium","Gold","Family","Select","Fresh","Royal","Extra","Natural","Special","Max","Traditional","Deluxe","Daily","Pro","Mini","XL","Pure","Signature","Choice","Plus","Top"];
-const products=cats.flatMap((c,ci)=>Array.from({length:23},(_,i)=>{const id=ci*23+i+1,palletOnly=i%7===0,caseOnly=!palletOnly&&i%6===0;const casePrice=palletOnly?null:+(14.5+ci*1.35+(i%9)*.85).toFixed(2),palletCases=48+((i+ci)%5)*6,caseQty=[6,12,18,24][(i+ci)%4],palletPrice=caseOnly?null:+(((casePrice??20.5)*palletCases*.965).toFixed(2));const beverage=ci===0||ci===1;const statiegeld=beverage?(i%3===0?0:(i%2===0?0.15:0.25)):null;return{id,brand:["Emigro","Manna","Golden","Anatolia","EuroTaste"][(i+ci)%5],name:`${names[i%names.length]} ${c[0].replace("Soft Drinks","Drink").replace("Non-Food","Care")}`,category:c[0],origin:c[2],ean:`87${String(10000000000+id*731).slice(-11)}`,net:["250 ml","330 ml","375 ml","500 ml","750 g","1 kg"][(i+ci)%6],caseQty,palletCases,casePrice,palletPrice,tone:c[1],hero:i===0,heroLayout:ci%2===0?"editorial":"grid4",beverage,statiegeld};}));
-const euro=n=>n==null?"—":new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(n);
+const products=cats.flatMap((c,ci)=>Array.from({length:23},(_,i)=>{
+ const id=ci*23+i+1,palletOnly=i%7===0,caseOnly=!palletOnly&&i%6===0,beverage=ci===0||ci===1;
+ return {id,sku:`EM-${String(ci+1).padStart(2,"0")}-${String(i+1).padStart(3,"0")}`,brand:["Emigro","Manna","Golden","Anatolia","EuroTaste"][(i+ci)%5],name:`${names[i%names.length]} ${c[0].replace("Soft Drinks","Drink").replace("Non-Food","Care")}`,category:c[0],origin:c[2],ean:`87${String(10000000000+id*731).slice(-11)}`,net:["250 ml","330 ml","375 ml","500 ml","750 g","1 kg"][(i+ci)%6],caseQty:[6,12,18,24][(i+ci)%4],palletCases:48+((i+ci)%5)*6,caseAvailable:!palletOnly,palletAvailable:!caseOnly,tone:c[1],hero:i===0,heroLayout:ci%2===0?"editorial":"grid4",beverage,statiegeld:beverage?(i%3===0?0:(i%2===0?0.15:0.25)):null};
+}));
+const euro=n=>n==null?"—":new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n));
 const deposit=p=>!p.beverage?"":(p.statiegeld>0?`Statiegeld ${euro(p.statiegeld)}`:"Geen statiegeld");
 const bottle=(p,cls="")=>`<div class="product-image ${cls}" style="--tone:${p.tone}"><div class="cap"></div><div class="body"><div class="label">PREMIUM<br>SELECTION</div></div></div>`;
 const chunks=(arr,n)=>Array.from({length:Math.ceil(arr.length/n)},(_,i)=>arr.slice(i*n,i*n+n));
 const validity=()=>`<div class="validity"><span>FİYATLARIN GEÇERLİLİK DÖNEMİ</span><strong>${VALIDITY.from} — ${VALIDITY.to}</strong></div>`;
-let pageNo=1;
-let html=`<section class="page cover"><img class="cover-logo" src="./logo.svg" alt="Emigro Cash & Carry"><div class="cover-copy"><span>2026 / 2027</span><h1>Wholesale<br>Product Catalogue</h1><p>9 categories · 200+ products · case & pallet pricing</p>${validity()}</div><div class="footline">ONLINE · MOBILE · PRINT</div></section>`;pageNo++;
-html+=`<section class="page toc"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="smallcap">CONTENTS</div><h2>9 categories</h2><div class="toc-list">${cats.map((c,i)=>`<div><span>${String(i+1).padStart(2,"0")}</span><strong>${c[3]} ${c[0]}</strong><em>23 products</em></div>`).join("")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
-cats.forEach((c,ci)=>{const list=products.filter(p=>p.category===c[0]),hero=list[0];
-html+=`<section class="page category-page" style="--cat:${c[1]}"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="cat-band">CATEGORY ${String(ci+1).padStart(2,"0")}</div><div class="category-copy"><div class="smallcap">NEW SECTION</div><h2>${c[3]} ${c[0]}</h2><p>23 products · ${c[2]}</p><div class="rule"></div><b>CASE · PALLET · B2B</b></div><div class="category-bottles">${bottle(hero)}${bottle(list[1])}${bottle(list[2])}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
-if(hero.heroLayout==="grid4"){html+=`<section class="page hero-grid-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="smallcap">HERO SELECTION · ${c[0]}</div><h2>Featured four</h2><div class="hero4">${list.slice(0,4).map(p=>`<article>${bottle(p,"hero4-img")}<div><small>${p.brand}</small><h3>${p.name}</h3><p>${p.net} · ${p.origin}</p>${p.beverage?`<p class="deposit-print">${deposit(p)}</p>`:""}<strong>${p.casePrice!=null?euro(p.casePrice):euro(p.palletPrice)}</strong></div></article>`).join("")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;}
-else{html+=`<section class="page hero-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="hero-copy"><div class="smallcap">HERO PRODUCT · ${c[0]}</div><h2>${hero.brand}<br>${hero.name}</h2><p>${hero.origin} · ${hero.net}</p>${hero.beverage?`<p class="deposit-print">${deposit(hero)}</p>`:""}<div class="hero-prices"><div><span>CASE</span><strong>${euro(hero.casePrice)}</strong></div><div><span>PALLET</span><strong>${euro(hero.palletPrice)}</strong></div></div></div><div class="hero-image">${bottle(hero,"hero-img")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;}
-chunks(list,9).forEach((group,gi)=>{html+=`<section class="page grid-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="grid-head"><div><div class="smallcap">${c[3]} ${c[0]}</div><h3>${c[0]} selection</h3></div><span class="num" style="background:${c[1]}">${String(ci+1).padStart(2,"0")}</span></div><div class="grid">${group.map(p=>`<article class="card"><div class="pic">${bottle(p,"card-img")}</div><small>${p.brand}</small><h4>${p.name}</h4><p>${p.net} · ${p.caseQty}/case · ${p.palletCases} cases/pallet</p>${p.beverage?`<p class="deposit-print">${deposit(p)}</p>`:""}<p class="ean">EAN ${p.ean}</p><div class="prices">${p.casePrice!=null?`<div><span>CASE</span><strong>${euro(p.casePrice)}</strong></div>`:""}${p.palletPrice!=null?`<div><span>PALLET</span><strong>${euro(p.palletPrice)}</strong></div>`:""}</div></article>`).join("")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;});});
-document.getElementById("pages").innerHTML=html;
+let priceMap={};
+
+async function authorize(){
+ const {data:{session}}=await sb.auth.getSession();
+ if(!session){location.replace("./index.html?auth=required&next=print&source=pdf");return false}
+ const {data:profile}=await sb.from("emigro_catalog_profiles").select("status").eq("id",session.user.id).single();
+ if(profile?.status!=="approved"){location.replace("./index.html?auth=required&next=print&source=pdf");return false}
+ const {data:prices,error}=await sb.from("emigro_catalog_prices").select("sku,case_price,pallet_price,valid_from,valid_to");
+ if(error){document.getElementById("loading").textContent="Fiyatlar yüklenemedi.";return false}
+ priceMap=Object.fromEntries((prices||[]).map(r=>[r.sku,r]));
+ return true;
+}
+function price(p,type){return type==="case"?priceMap[p.sku]?.case_price:priceMap[p.sku]?.pallet_price}
+function build(){
+ let pageNo=1;
+ let html=`<section class="page cover"><img class="cover-logo" src="./logo.svg" alt="Emigro Cash & Carry"><div class="cover-copy"><span>2026 / 2027</span><h1>Wholesale<br>Product Catalogue</h1><p>9 categories · 200+ products · approved B2B pricing</p>${validity()}<div class="qr-wrap"><div id="qrCode"></div><div><b>Scan voor actuele prijzen</b><small>Giriş yap / Üye ol</small></div></div></div><div class="footline">ONLINE · MOBILE · PRINT</div></section>`;pageNo++;
+ html+=`<section class="page toc"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="smallcap">CONTENTS</div><h2>9 categories</h2><div class="toc-list">${cats.map((c,i)=>`<div><span>${String(i+1).padStart(2,"0")}</span><strong>${c[3]} ${c[0]}</strong><em>23 products</em></div>`).join("")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
+ cats.forEach((c,ci)=>{const list=products.filter(p=>p.category===c[0]),hero=list[0];
+  html+=`<section class="page category-page" style="--cat:${c[1]}"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="cat-band">CATEGORY ${String(ci+1).padStart(2,"0")}</div><div class="category-copy"><div class="smallcap">NEW SECTION</div><h2>${c[3]} ${c[0]}</h2><p>23 products · ${c[2]}</p><div class="rule"></div><b>CASE · PALLET · B2B</b></div><div class="category-bottles">${bottle(hero)}${bottle(list[1])}${bottle(list[2])}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
+  if(hero.heroLayout==="grid4"){
+   html+=`<section class="page hero-grid-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="smallcap">HERO SELECTION · ${c[0]}</div><h2>Featured four</h2><div class="hero4">${list.slice(0,4).map(p=>`<article>${bottle(p,"hero4-img")}<div><small>${p.brand}</small><h3>${p.name}</h3><p>${p.net} · ${p.origin}</p>${p.beverage?`<p class="deposit-print">${deposit(p)}</p>`:""}<strong>${p.caseAvailable?euro(price(p,"case")):euro(price(p,"pallet"))}</strong></div></article>`).join("")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
+  }else{
+   html+=`<section class="page hero-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="hero-copy"><div class="smallcap">HERO PRODUCT · ${c[0]}</div><h2>${hero.brand}<br>${hero.name}</h2><p>${hero.origin} · ${hero.net}</p>${hero.beverage?`<p class="deposit-print">${deposit(hero)}</p>`:""}<div class="hero-prices">${hero.caseAvailable?`<div><span>CASE</span><strong>${euro(price(hero,"case"))}</strong></div>`:""}${hero.palletAvailable?`<div><span>PALLET</span><strong>${euro(price(hero,"pallet"))}</strong></div>`:""}</div></div><div class="hero-image">${bottle(hero,"hero-img")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
+  }
+  chunks(list,9).forEach(group=>{
+   html+=`<section class="page grid-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="grid-head"><div><div class="smallcap">${c[3]} ${c[0]}</div><h3>${c[0]} selection</h3></div><span class="num" style="background:${c[1]}">${String(ci+1).padStart(2,"0")}</span></div><div class="grid">${group.map(p=>`<article class="card"><div class="pic">${bottle(p,"card-img")}</div><small>${p.brand}</small><h4>${p.name}</h4><p>${p.net} · ${p.caseQty}/case · ${p.palletCases} cases/pallet</p>${p.beverage?`<p class="deposit-print">${deposit(p)}</p>`:""}<p class="ean">EAN ${p.ean}</p><div class="prices">${p.caseAvailable?`<div><span>CASE</span><strong>${euro(price(p,"case"))}</strong></div>`:""}${p.palletAvailable?`<div><span>PALLET</span><strong>${euro(price(p,"pallet"))}</strong></div>`:""}</div></article>`).join("")}</div>${validity()}<div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
+  });
+ });
+ html+=`<section class="page qr-page"><img class="page-logo" src="./logo.svg" alt="Emigro"><div class="qr-final"><div id="qrCodeFinal"></div><div><div class="smallcap">DIGITAL CATALOGUE</div><h2>Actuele prijzen online</h2><p>Scan de QR-code om in te loggen of een B2B-account aan te vragen.</p><strong>${VALIDITY.from} — ${VALIDITY.to}</strong></div></div><div class="page-no">${String(pageNo++).padStart(2,"0")}</div></section>`;
+ document.getElementById("pages").innerHTML=html;
+ document.getElementById("loading").classList.add("hidden");
+ new QRCode(document.getElementById("qrCode"),{text:LOGIN_URL,width:100,height:100,colorDark:"#293369",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+ new QRCode(document.getElementById("qrCodeFinal"),{text:LOGIN_URL,width:190,height:190,colorDark:"#293369",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+}
+(async()=>{
+ if(!(await authorize()))return;
+ build();
+ document.getElementById("printBtn").onclick=()=>window.print();
+ if(new URLSearchParams(location.search).get("autoprint")==="1")setTimeout(()=>window.print(),900);
+})();
 </script>
 </body>
 </html>
