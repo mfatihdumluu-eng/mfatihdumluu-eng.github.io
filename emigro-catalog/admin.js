@@ -3,7 +3,7 @@ const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-admin-auth",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let profiles=[],quotes=[],memberFilter="all",quoteFilter="all",activeQuote=null,profileMap={};
 let adminProducts=[],orders=[],orderFilter="all";
-let importRows=[],importImageFiles=new Map(),existingProducts=new Map(),defaultImageUrls={kutu:null,palet:null};
+let importRows=[],importImageFiles=new Map(),existingProducts=new Map(),defaultImageUrls={kutu:null,palet:null},imageQualityWarnings=new Map();
 
 const euro=n=>new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n||0));
 const esc=(v="")=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
@@ -34,7 +34,7 @@ async function guard(){
 }
 
 async function loadAll(){
- await Promise.all([loadProfiles(),loadQuotes(),loadAdminProducts(),loadOrders()]);
+ await Promise.all([loadProfiles(),loadQuotes(),loadAdminProducts(),loadOrders(),loadActivePricePeriod()]);
 }
 async function loadProfiles(){
  const {data,error}=await sb.from("emigro_catalog_profiles").select("*").order("created_at",{ascending:false});
@@ -500,6 +500,7 @@ function renderImportRows(){
       <div class="import-card-status">
         <b>${errors.length?"Eksik bilgi":"Hazır"}</b>
         <span>${errors.length?errors.join(" · "):"Sisteme eklenebilir"}</span>
+        ${imageQualityWarnings.get(bc.toLowerCase())?`<span class="image-warning">⚠ ${esc(imageQualityWarnings.get(bc.toLowerCase()))}</span>`:""}
       </div>
     </div>
 
@@ -603,12 +604,22 @@ document.getElementById("productExcelInput").onchange=async e=>{
  try{await parseProductExcel(file)}catch(err){alert("Excel okunamadı: "+(err?.message||err))}
 };
 document.getElementById("productImagesInput").onchange=async e=>{
- importImageFiles.clear();
- [...(e.target.files||[])].forEach(file=>importImageFiles.set(fileBase(file.name),file));
+ importImageFiles.clear();imageQualityWarnings.clear();
+ const files=[...(e.target.files||[])];
+ for(const file of files){
+   const base=fileBase(file.name);importImageFiles.set(base,file);
+   if(file.type.startsWith("image/")){
+     try{
+       const bmp=await createImageBitmap(file);
+       if(bmp.width<600||bmp.height<600)imageQualityWarnings.set(base,`Görsel düşük çözünürlükte (${bmp.width}×${bmp.height}px). En az 600×600 önerilir.`);
+       bmp.close?.();
+     }catch{}
+   }
+ }
  renderImportRows();
 };
 document.getElementById("clearProductImport").onclick=()=>{
- importRows=[];importImageFiles.clear();
+ importRows=[];importImageFiles.clear();imageQualityWarnings.clear();
  document.getElementById("productExcelInput").value="";
  document.getElementById("productImagesInput").value="";
  renderImportRows();
@@ -676,6 +687,38 @@ async function resolveDefaultImage(kind){
  }
  return defaultImageUrls[kind]||null;
 }
+
+
+document.getElementById("downloadImportErrors").onclick=()=>{
+ const rows=importRows.map((r,i)=>({
+  satir:i+2,barkod:r.barcode||"",urun_adi:r.product_name||"",hatalar:rowErrors(r,i).join(" | "),
+  gorsel_uyarisi:imageQualityWarnings.get(cleanBarcode(r.barcode).toLowerCase())||""
+ })).filter(x=>x.hatalar||x.gorsel_uyarisi);
+ if(!rows.length){alert("Hata veya görsel uyarısı bulunmuyor.");return}
+ const ws=XLSX.utils.json_to_sheet(rows);
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Hatalar");
+ XLSX.writeFile(wb,"emigro-urun-yukleme-hata-raporu.xlsx");
+};
+
+async function loadActivePricePeriod(){
+ const {data,error}=await sb.from("emigro_catalog_price_periods").select("*").eq("is_active",true).order("created_at",{ascending:false}).limit(1).maybeSingle();
+ const label=document.getElementById("activePricePeriod");if(!label)return;
+ if(error||!data){label.textContent="Aktif dönem bulunamadı.";return}
+ label.textContent=`Aktif: ${data.name} · ${new Date(data.valid_from).toLocaleDateString("nl-NL")} — ${new Date(data.valid_to).toLocaleDateString("nl-NL")}`;
+ document.getElementById("pricePeriodName").value=data.name||"";
+ document.getElementById("pricePeriodFrom").value=data.valid_from||"";
+ document.getElementById("pricePeriodTo").value=data.valid_to||"";
+}
+document.getElementById("savePricePeriod").onclick=async()=>{
+ const name=document.getElementById("pricePeriodName").value.trim();
+ const from=document.getElementById("pricePeriodFrom").value;
+ const to=document.getElementById("pricePeriodTo").value;
+ if(!from||!to){alert("Başlangıç ve bitiş tarihini girin.");return}
+ if(!confirm("Yeni fiyat dönemi aktif edilecek. Bundan sonra kaydedilen/yüklenen ürün fiyatları bu döneme bağlanacak. Devam edilsin mi?"))return;
+ const {error}=await sb.rpc("emigro_catalog_admin_set_price_period",{p_name:name,p_valid_from:from,p_valid_to:to});
+ if(error){alert("Fiyat dönemi kaydedilemedi: "+error.message);return}
+ await loadActivePricePeriod();alert("Yeni fiyat dönemi aktif edildi.");
+};
 
 document.getElementById("saveValidProducts").onclick=async()=>{
  const valid=importRows.map((r,i)=>({r,i,errors:rowErrors(r,i)})).filter(x=>!x.errors.length);
