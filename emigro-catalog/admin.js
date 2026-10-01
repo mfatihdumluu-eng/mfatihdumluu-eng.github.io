@@ -366,6 +366,7 @@ const PRODUCT_HEADERS=[
  {key:"barcode",label:"barkod"},
  {key:"brand",label:"marka"},
  {key:"category",label:"kategori"},
+ {key:"sale_type",label:"satis_tipi"},
  {key:"unit_price",label:"birim_fiyat"},
  {key:"net_value",label:"net_deger"},
  {key:"net_unit",label:"net_birim"},
@@ -373,9 +374,13 @@ const PRODUCT_HEADERS=[
  {key:"cases_per_pallet",label:"palet_ici_koli_adedi"},
  {key:"origin",label:"mensei"},
  {key:"statiegeld",label:"statiegeld"},
+ {key:"statiegeld_scope",label:"statiegeld_tipi"},
  {key:"is_featured",label:"one_cikan"}
 ];
-const REQUIRED_PRODUCT_KEYS=["product_name","barcode","brand","category","unit_price","net_value","net_unit","units_per_case","cases_per_pallet","origin","statiegeld"];
+const SITE_CATEGORIES=["Soft Drinks","Juices","Sauces","Snacks","Frozen","Grocery","Dairy","Sweets","Non-Food"];
+const SALE_TYPES=["case","pallet","both"];
+const STATIEGELD_SCOPES=["none","case","pallet","both"];
+const REQUIRED_PRODUCT_KEYS=["product_name","barcode","brand","category","sale_type","unit_price","net_value","net_unit","units_per_case","cases_per_pallet","origin","statiegeld","statiegeld_scope"];
 
 function normalizeHeader(v){
  return String(v??"").trim().toLowerCase()
@@ -408,6 +413,8 @@ function rowErrors(row,index){
  if(!cleanBarcode(row.barcode))e.push("Barkod");
  if(!String(row.brand||"").trim())e.push("Marka");
  if(!String(row.category||"").trim())e.push("Kategori");
+ else if(!SITE_CATEGORIES.includes(String(row.category)))e.push("Geçersiz kategori");
+ if(!SALE_TYPES.includes(String(row.sale_type||"")))e.push("Satış tipi");
  if(!(Number(row.unit_price)>0))e.push("Tek birim fiyatı");
  if(!(Number(row.net_value)>0))e.push("Net gramaj/değer");
  if(!String(row.net_unit||"").trim())e.push("Net birim");
@@ -415,6 +422,9 @@ function rowErrors(row,index){
  if(!(Number.isInteger(Number(row.cases_per_pallet))&&Number(row.cases_per_pallet)>0))e.push("Palet içi koli adedi");
  if(!String(row.origin||"").trim())e.push("Menşei");
  if(!(Number(row.statiegeld)>=0))e.push("Statiegeld (yoksa 0)");
+ if(!STATIEGELD_SCOPES.includes(String(row.statiegeld_scope||"")))e.push("Statiegeld tipi");
+ if(String(row.statiegeld_scope||"")==="none" && Number(row.statiegeld)!==0)e.push("Statiegeld yoksa tutar 0 olmalı");
+ if(String(row.statiegeld_scope||"")!=="none" && !(Number(row.statiegeld)>0))e.push("Statiegeld tipi seçiliyse tutar > 0 olmalı");
  const barcode=cleanBarcode(row.barcode).toLowerCase();
  const hasMain=!!importImageFiles.get(barcode)||!!existingProducts.get(cleanBarcode(row.barcode))?.image_1;
  if(!hasMain)e.push("Ana ürün görseli ("+cleanBarcode(row.barcode)+".jpg/png)");
@@ -468,7 +478,8 @@ function renderImportRows(){
       <label>Ürün adı<input value="${escAttr(r.product_name)}" oninput="updateImportField(${i},'product_name',this.value)"></label>
       <label>Barkod<input value="${escAttr(bc)}" oninput="updateImportField(${i},'barcode',this.value)"></label>
       <label>Marka<input value="${escAttr(r.brand)}" oninput="updateImportField(${i},'brand',this.value)"></label>
-      <label>Kategori<input value="${escAttr(r.category)}" oninput="updateImportField(${i},'category',this.value)"></label>
+      <label>Kategori<select onchange="updateImportField(${i},'category',this.value)">${SITE_CATEGORIES.map(x=>`<option value="${x}" ${r.category===x?"selected":""}>${x}</option>`).join("")}</select></label>
+      <label>Satış tipi<select onchange="updateImportField(${i},'sale_type',this.value)"><option value="both" ${r.sale_type==="both"?"selected":""}>Koli + Palet</option><option value="case" ${r.sale_type==="case"?"selected":""}>Sadece Koli</option><option value="pallet" ${r.sale_type==="pallet"?"selected":""}>Sadece Palet</option></select></label>
       <label>Tek birim fiyatı (€)<input type="number" min="0.0001" step="0.0001" value="${r.unit_price??""}" oninput="updateImportField(${i},'unit_price',this.value)"><small>Müşteriye gösterilmez</small></label>
       <label>Net değer<input type="number" min="0.001" step="0.001" value="${r.net_value??""}" oninput="updateImportField(${i},'net_value',this.value)"></label>
       <label>Net birim<input value="${escAttr(r.net_unit)}" placeholder="g / kg / ml / l" oninput="updateImportField(${i},'net_unit',this.value)"></label>
@@ -476,9 +487,16 @@ function renderImportRows(){
       <label>Palet içi koli adedi<input type="number" min="1" step="1" value="${r.cases_per_pallet??""}" oninput="updateImportField(${i},'cases_per_pallet',this.value)"></label>
       <label>Menşei<input value="${escAttr(r.origin)}" oninput="updateImportField(${i},'origin',this.value)"></label>
       <label>Statiegeld (€)<input type="number" min="0" step="0.01" value="${r.statiegeld??0}" oninput="updateImportField(${i},'statiegeld',this.value)"><small>Yoksa 0</small></label>
+      <label>Statiegeld tipi<select onchange="updateImportField(${i},'statiegeld_scope',this.value)"><option value="none" ${r.statiegeld_scope==="none"?"selected":""}>Yok</option><option value="both" ${r.statiegeld_scope==="both"?"selected":""}>Koli + Palet</option><option value="case" ${r.statiegeld_scope==="case"?"selected":""}>Sadece Koli</option><option value="pallet" ${r.statiegeld_scope==="pallet"?"selected":""}>Sadece Palet</option></select></label>
       <label class="import-check"><input type="checkbox" ${r.is_featured?"checked":""} onchange="updateImportField(${i},'is_featured',this.checked)"><span>Öne çıkan ürün</span></label>
     </div>
-    <div class="import-price-preview"><span>Koli fiyatı <b>${euro(casePrice)}</b></span><span>Palet fiyatı <b>${euro(palletPrice)}</b></span><small>Tek ürün fiyatı katalogda gösterilmez.</small></div>
+    <div class="import-price-preview">
+      ${r.sale_type!=="pallet"?`<span>Koli fiyatı <b>${euro(casePrice)}</b></span>`:""}
+      ${r.sale_type!=="case"?`<span>Palet fiyatı <b>${euro(palletPrice)}</b></span>`:""}
+      <span>Satış: <b>${r.sale_type==="case"?"Sadece Koli":r.sale_type==="pallet"?"Sadece Palet":"Koli + Palet"}</b></span>
+      <span>Statiegeld: <b>${r.statiegeld_scope==="none"?"Yok":r.statiegeld_scope==="case"?"Sadece Koli":r.statiegeld_scope==="pallet"?"Sadece Palet":"Koli + Palet"}</b></span>
+      <small>Tek ürün fiyatı katalogda gösterilmez.</small>
+    </div>
    </article>`;
  }).join("");
  renderImportSummary();
@@ -531,6 +549,7 @@ async function parseProductExcel(file){
    barcode:cleanBarcode(n.barkod),
    brand:String(n.marka||"").trim(),
    category:String(n.kategori||"").trim(),
+   sale_type:String(n.satis_tipi||"").trim().toLowerCase(),
    unit_price:toNumber(n.birim_fiyat),
    net_value:toNumber(n.net_deger),
    net_unit:String(n.net_birim||"").trim(),
@@ -538,6 +557,7 @@ async function parseProductExcel(file){
    cases_per_pallet:toInt(n.palet_ici_koli_adedi),
    origin:String(n.mensei||"").trim(),
    statiegeld:toNumber(n.statiegeld),
+   statiegeld_scope:String(n.statiegeld_tipi||"").trim().toLowerCase(),
    is_featured:toBool(n.one_cikan)
  }));
  await loadExistingProductMap();
@@ -566,6 +586,7 @@ document.getElementById("downloadProductTemplate").onclick=()=>{
   barkod:"111232132131",
   marka:"Örnek Marka",
   kategori:"Grocery",
+  satis_tipi:"both",
   birim_fiyat:1.25,
   net_deger:500,
   net_birim:"g",
@@ -573,22 +594,26 @@ document.getElementById("downloadProductTemplate").onclick=()=>{
   palet_ici_koli_adedi:48,
   mensei:"Netherlands",
   statiegeld:0,
+  statiegeld_tipi:"none",
   one_cikan:"hayir"
  }];
  const ws=XLSX.utils.json_to_sheet(rows,{header:PRODUCT_HEADERS.map(h=>h.label)});
- ws["!cols"]=[24,18,20,18,14,12,12,14,22,18,12,14].map(w=>({wch:w}));
+ ws["!cols"]=[24,18,20,18,14,14,12,12,12,14,22,18,12,16,14].map(w=>({wch:w}));
  const info=XLSX.utils.aoa_to_sheet([
   ["EMIGRO TOPLU ÜRÜN YÜKLEME ŞABLONU"],
-  ["Zorunlu sütunlar","urun_adi, barkod, marka, kategori, birim_fiyat, net_deger, net_birim, koli_ici_adet, palet_ici_koli_adedi, mensei, statiegeld"],
+  ["Zorunlu sütunlar","urun_adi, barkod, marka, kategori, satis_tipi, birim_fiyat, net_deger, net_birim, koli_ici_adet, palet_ici_koli_adedi, mensei, statiegeld, statiegeld_tipi"],
   ["Barkod","Metin olarak girin. Ana görsel dosya adı barkod ile aynı olmalı."],
   ["Görsel 1","111232132131.jpg / png"],
   ["Görsel 2","111232132131-2.jpg / png; yoksa kutu görseli kullanılır"],
   ["Görsel 3","111232132131-3.jpg / png; yoksa palet görseli kullanılır"],
   ["Varsayılan görseller","kutu.jpg ve palet.jpg"],
+  ["Kategori","Yalnızca: Soft Drinks, Juices, Sauces, Snacks, Frozen, Grocery, Dairy, Sweets, Non-Food"],
+  ["Satış tipi","case = sadece koli, pallet = sadece palet, both = koli + palet"],
   ["Birim fiyat","Tek ürün fiyatıdır; sadece arka planda koli/palet hesabı için kullanılır, müşteriye gösterilmez."],
   ["Koli fiyatı","birim_fiyat × koli_ici_adet"],
   ["Palet fiyatı","birim_fiyat × koli_ici_adet × palet_ici_koli_adedi"],
   ["Statiegeld","Yoksa mutlaka 0 yazın."],
+  ["Statiegeld tipi","none = yok, case = sadece koli, pallet = sadece palet, both = koli + palet"],
   ["one_cikan","evet/hayir"]
  ]);
  const wb=XLSX.utils.book_new();
@@ -652,6 +677,8 @@ document.getElementById("saveValidProducts").onclick=async()=>{
         p_cases_per_pallet:Number(r.cases_per_pallet),
         p_origin:r.origin,
         p_statiegeld:Number(r.statiegeld||0),
+        p_sale_type:r.sale_type,
+        p_statiegeld_scope:r.statiegeld_scope,
         p_image_1:image1,
         p_image_2:image2,
         p_image_3:image3,
