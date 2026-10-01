@@ -46,6 +46,10 @@
   </div>
 
   <section id="membersPanel">
+    <div class="admin-invite-strip">
+      <div><div class="eyebrow">DAVET</div><h2>Yeni B2B müşteri davet et</h2><p>E-posta veya telefondan davet bağlantısını paylaşın. Bağlantı ile gelen başvuruda kimin davet ettiği otomatik görünür.</p></div>
+      <button class="btn" id="openAdminInvite">Davet gönder</button>
+    </div>
     <div class="admin-stats" id="adminStats"></div>
     <div class="admin-filter"><button data-filter="all" class="active">Tümü</button><button data-filter="pending">Bekleyen</button><button data-filter="approved">Onaylı</button><button data-filter="rejected">Reddedilen</button><button data-filter="suspended">Askıda</button></div>
     <section class="admin-list" id="adminList"><div class="admin-loading">Üyelikler yükleniyor…</div></section>
@@ -113,6 +117,25 @@
     <div class="admin-list" id="orderList"><div class="admin-loading">Siparişler yükleniyor…</div></div>
   </section>
 </main>
+
+<div class="modal-backdrop hidden" id="adminInviteModal">
+  <div class="modal small-modal invite-modal">
+    <button class="close" data-close="adminInviteModal">×</button>
+    <div class="eyebrow">EMIGRO B2B DAVET</div>
+    <h2>Yeni müşteri daveti</h2>
+    <p>Emigro Cash & Carry olarak zakelijke müşterilerimize özel bu platform üzerinden özel teklifler ve hızlı sipariş imkânı ile size hizmet vermekten mutluluk duyarız.</p>
+    <div class="invite-link-box"><span>Davet bağlantısı</span><strong id="adminInviteLink"></strong><small id="adminInviteCode"></small></div>
+    <label class="invite-recipient-label">E-posta adresleri
+      <textarea id="adminInviteEmails" rows="4" placeholder="ornek@firma.nl&#10;satin-alma@firma.nl"></textarea>
+      <small>Birden fazla adresi satır, virgül veya noktalı virgül ile ayırabilirsiniz.</small>
+    </label>
+    <div class="invite-actions">
+      <button class="btn" id="adminInviteEmail">E-posta ile gönder</button>
+      <button class="ghost" id="adminInviteShare">Telefondan paylaş</button>
+      <button class="ghost" id="adminInviteCopy">Bağlantıyı kopyala</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-backdrop hidden" id="offerModal">
   <div class="modal offer-modal">
