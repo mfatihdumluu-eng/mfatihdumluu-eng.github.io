@@ -231,67 +231,103 @@ document.getElementById("printOfferBtn").onclick=()=>{
  if(!activeQuote)return;
  const w=window.open("","_blank");w.document.write(offerPrintHtml());w.document.close();setTimeout(()=>w.print(),350);
 };
+function buildPdfOfferNode(){
+ const q=activeQuote,v=currentOfferValues(),p=profileMap[q.user_id]||{};
+ const discount=quoteDiscount(q,v.percent,v.amount),final=quoteGrand(q,v.percent,v.amount,v.shipping);
+ const rows=(q.items||[]).map((i,idx)=>`
+   <tr>
+     <td style="padding:10px 8px;border-bottom:1px solid #e2e5ee;font-size:11px">${idx+1}</td>
+     <td style="padding:10px 8px;border-bottom:1px solid #e2e5ee"><b style="font-size:12px">${esc(i.name)}</b><br><span style="font-size:10px;color:#68708b">${esc(i.sku)}</span></td>
+     <td style="padding:10px 8px;border-bottom:1px solid #e2e5ee;font-size:11px">${i.mode==="case"?"Koli":"Palet"}</td>
+     <td style="padding:10px 8px;border-bottom:1px solid #e2e5ee;font-size:11px">${i.qty}</td>
+     <td style="padding:10px 8px;border-bottom:1px solid #e2e5ee;font-size:11px;text-align:right">${euro(i.unit_price)}</td>
+     <td style="padding:10px 8px;border-bottom:1px solid #e2e5ee;font-size:11px;text-align:right;font-weight:700">${euro(Number(i.unit_price||0)*Number(i.qty||0))}</td>
+   </tr>`).join("");
+
+ const node=document.createElement("div");
+ node.style.cssText="width:794px;min-height:1123px;background:#fff;color:#293369;font-family:Roboto,Arial,sans-serif;box-sizing:border-box;padding:64px 72px;position:relative";
+ node.innerHTML=`
+   <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #293369;padding-bottom:26px">
+     <img src="${new URL("./logo.svg",location.href).href}" style="width:220px;height:78px;object-fit:contain;object-position:left top" alt="Emigro">
+     <div style="text-align:right">
+       <div style="font-size:32px;font-weight:700;color:#ec0419;line-height:1">Offerte</div>
+       <div style="margin-top:8px;font-size:12px">Offertenummer: <b>${esc(v.number||"—")}</b></div>
+       <div style="margin-top:4px;font-size:12px">Datum: ${new Date().toLocaleDateString("nl-NL")}</div>
+     </div>
+   </div>
+
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:34px">
+     <div style="border:1px solid #dfe3ed;border-radius:14px;padding:20px">
+       <div style="font-size:9px;color:#68708b;text-transform:uppercase;letter-spacing:.08em">Aan</div>
+       <div style="font-size:15px;font-weight:700;margin-top:5px">${esc(p.company_name||"")}</div>
+       <div style="font-size:12px;line-height:1.6;margin-top:6px">${esc(p.contact_name||"")}<br>${esc(p.company_address||"")}<br>${esc(p.postal_code||"")} ${esc(p.city||"")} · ${esc(p.country||"")}</div>
+     </div>
+     <div style="border:1px solid #dfe3ed;border-radius:14px;padding:20px">
+       <div style="font-size:9px;color:#68708b;text-transform:uppercase">KvK</div><div style="font-size:12px;font-weight:700;margin:4px 0 10px">${esc(p.kvk_number||"—")}</div>
+       <div style="font-size:9px;color:#68708b;text-transform:uppercase">BTW</div><div style="font-size:12px;font-weight:700;margin:4px 0 10px">${esc(p.btw_number||"—")}</div>
+       <div style="font-size:9px;color:#68708b;text-transform:uppercase">E-mail</div><div style="font-size:12px;font-weight:700;margin-top:4px">${esc(p.email||"—")}</div>
+     </div>
+   </div>
+
+   <table style="width:100%;border-collapse:collapse;margin-top:36px">
+     <thead>
+       <tr style="color:#5f6780">
+         <th style="text-align:left;padding:8px;font-size:10px">#</th>
+         <th style="text-align:left;padding:8px;font-size:10px">Product</th>
+         <th style="text-align:left;padding:8px;font-size:10px">Type</th>
+         <th style="text-align:left;padding:8px;font-size:10px">Aantal</th>
+         <th style="text-align:right;padding:8px;font-size:10px">Prijs</th>
+         <th style="text-align:right;padding:8px;font-size:10px">Totaal</th>
+       </tr>
+     </thead>
+     <tbody>${rows}</tbody>
+   </table>
+
+   <div style="width:330px;margin-left:auto;margin-top:34px">
+     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e5ee;font-size:13px"><span>Subtotaal</span><b>${euro(quoteBase(q))}</b></div>
+     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e5ee;font-size:13px"><span>Korting${v.percent?" ("+v.percent+"%)":""}</span><b>− ${euro(discount)}</b></div>
+     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e2e5ee;font-size:13px"><span>Verzendkosten</span><b>${euro(v.shipping)}</b></div>
+     <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #e2e5ee;font-size:17px;color:#ec0419"><span style="font-weight:700">Totaal</span><b>${euro(final)}</b></div>
+   </div>
+
+   ${v.note?`<div style="margin-top:28px;border-left:4px solid #293369;background:#f7f8fc;padding:14px 16px;font-size:11px;line-height:1.6"><b>Opmerking</b><br>${esc(v.note)}</div>`:""}
+
+   <div style="position:absolute;left:72px;right:72px;bottom:70px;background:#fff1f3;border:1px solid #f1bcc4;border-radius:14px;padding:15px 18px;display:flex;justify-content:space-between;align-items:center;color:#a01928">
+     <span style="font-size:12px">Deze offerte is geldig t/m</span>
+     <strong style="font-size:16px;color:#ec0419">${v.validTo?new Date(v.validTo).toLocaleDateString("nl-NL"):"—"}</strong>
+   </div>
+   <div style="position:absolute;right:72px;bottom:38px;font-size:9px;color:#858ca0">Emigro Cash & Carry · B2B offerte</div>
+ `;
+ return node;
+}
+
 async function generateOfferPdfFile(){
  if(!activeQuote)return null;
  const v=currentOfferValues();
- const parsed=new DOMParser().parseFromString(offerPrintHtml(),"text/html");
- const sheet=parsed.querySelector(".sheet");
- const styleText=[...parsed.querySelectorAll("style")].map(s=>s.textContent||"").join("\n");
- if(!sheet)throw new Error("Teklif sayfası oluşturulamadı");
-
  const stage=document.createElement("div");
- stage.setAttribute("aria-hidden","true");
- stage.style.position="fixed";
- stage.style.left="0";
- stage.style.top="0";
- stage.style.width="210mm";
- stage.style.minHeight="297mm";
- stage.style.background="#ffffff";
- stage.style.zIndex="-9999";
- stage.style.pointerEvents="none";
- stage.style.overflow="hidden";
-
- const scopedStyle=document.createElement("style");
- scopedStyle.textContent=styleText;
- document.head.appendChild(scopedStyle);
- stage.innerHTML=sheet.outerHTML;
+ stage.style.cssText="position:fixed;left:0;top:0;width:794px;height:1123px;z-index:-9999;pointer-events:none;background:#fff";
+ const node=buildPdfOfferNode();
+ stage.appendChild(node);
  document.body.appendChild(stage);
-
- const rendered=stage.querySelector(".sheet");
  const filename=(v.number||"Emigro-Offerte")+".pdf";
  try{
-   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+   await new Promise(resolve=>setTimeout(resolve,300));
    if(document.fonts?.ready)await document.fonts.ready;
-   const imgs=[...rendered.querySelectorAll("img")];
+   const imgs=[...node.querySelectorAll("img")];
    await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=r})));
-
    const blob=await html2pdf().set({
      margin:0,
      filename,
      image:{type:"jpeg",quality:1},
-     html2canvas:{
-       scale:2,
-       useCORS:true,
-       allowTaint:false,
-       backgroundColor:"#ffffff",
-       logging:false,
-       scrollX:0,
-       scrollY:0,
-       windowWidth:Math.ceil(rendered.getBoundingClientRect().width),
-       windowHeight:Math.ceil(rendered.getBoundingClientRect().height)
-     },
-     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-     pagebreak:{mode:["css","legacy"]}
-   }).from(rendered).outputPdf("blob");
-
+     html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",logging:false},
+     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}
+   }).from(node).outputPdf("blob");
    if(!blob||blob.size<5000)throw new Error("PDF içeriği boş veya eksik oluştu");
    return new File([blob],filename,{type:"application/pdf"});
  } finally {
    stage.remove();
-   scopedStyle.remove();
  }
 }
-
 document.getElementById("mailOfferBtn").onclick=async()=>{
  if(!activeQuote)return;
  const btn=document.getElementById("mailOfferBtn");
