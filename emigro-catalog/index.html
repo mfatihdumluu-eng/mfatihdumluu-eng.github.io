@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Emigro Digital Catalogue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#"><span class="logo">E</span><span>EMIGRO CATALOGUE</span></a>
+  <nav><a href="#products">Ürünler</a><a href="#featured">Öne çıkan</a><a href="./print.html">PDF katalog</a></nav>
+  <div class="top-actions"><button class="ghost" id="priceInfoBtn">Fiyat bilgisi</button><a class="btn" href="./print.html">PDF katalog</a></div>
+</header>
+
+<main>
+<section class="hero" id="home">
+  <div class="hero-copy">
+    <div class="eyebrow">B2B PRODUCT CATALOGUE · 9 KATEGORİ · 200+ ÜRÜN</div>
+    <h1>Web, mobil ve baskı.<br>Tek katalog.</h1>
+    <p>Telefonda hızlı ürün bulma, bilgisayarda detaylı inceleme ve A4 çıktıda gerçek katalog düzeni. Koli ve palet fiyatını seçin, ürünleri kıyaslayın ve favorilerinizi saklayın.</p>
+    <div class="hero-actions"><a class="btn" href="#products">Ürünleri incele</a><a class="ghost" href="./print.html">PDF kataloğu aç</a></div>
+    <div class="stats"><div><strong>207+</strong><span>ürün</span></div><div><strong>9</strong><span>kategori</span></div><div><strong>3</strong><span>ürün kıyaslama</span></div></div>
+  </div>
+  <div class="hero-product-cluster" id="heroCluster"></div>
+</section>
+
+<section class="notice"><b>Fiyat tipi ürüne göre değişebilir.</b><span>Hem koli hem palet fiyatı olan üründe seçim yapınca fiyat değişir. Tek fiyat tipi varsa açıkça belirtilir.</span></section>
+
+<section class="catalog" id="products">
+  <div id="categoryBanner"></div>
+  <div class="catalog-head">
+    <div><div class="eyebrow">PRODUCT OVERVIEW</div><h2>Ürün kataloğu</h2><p id="resultCount"></p></div>
+    <div class="controls"><input id="search" placeholder="Ürün, marka, barkod veya SKU ara"><select id="sort"><option value="name">İsme göre</option><option value="low">Fiyat: düşükten</option><option value="high">Fiyat: yüksekten</option></select></div>
+  </div>
+  <div class="category-row" id="categories"></div>
+  <div class="product-grid" id="productGrid"></div>
+  <div class="loadmore-wrap"><button class="ghost" id="loadMore">24 ürün daha göster</button></div>
+</section>
+
+<section id="featured" class="featured-section">
+  <div class="section-title"><div class="eyebrow">FEATURED PRODUCTS</div><h2>Öne çıkan ürünler</h2><p>Panelden işaretlenecek ürünler burada ayrı bir vitrin olarak gösterilir.</p></div>
+  <div class="featured-grid" id="featuredGrid"></div>
+</section>
+</main>
+
+<div class="compare-bar hidden" id="compareBar"><div><b id="compareCount">0/3 ürün seçildi</b><span>Aynı kategoride olmak zorunda değil.</span></div><div id="compareChips"></div><button class="btn" id="compareOpen">Yan yana kıyasla</button></div>
+
+<div class="modal-backdrop hidden" id="productModal">
+  <div class="modal product-modal">
+    <button class="close" data-close="productModal">×</button>
+    <div class="modal-title-row"><div><h2 id="modalTitle"></h2><p id="modalSub"></p></div><div class="web-actions"><button class="ghost" id="favoriteBtn">♡ Favorilere ekle</button><button class="ghost" id="shareBtn">↗ Paylaş</button></div></div>
+    <div class="detail-layout">
+      <div><button class="main-media" id="mainMedia"></button><div class="thumbs" id="thumbs"></div></div>
+      <div>
+        <div class="facts-grid" id="factsGrid"></div>
+        <div id="detailPriceArea"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="compareModal"><div class="modal compare-modal"><button class="close" data-close="compareModal">×</button><h2>Ürün kıyaslama</h2><p id="compareDesc"></p><div class="compare-grid" id="compareGrid"></div></div></div>
+<div class="modal-backdrop hidden" id="compareWarn"><div class="modal small-modal"><button class="close" data-close="compareWarn">×</button><h2>Fiyat türleri aynı değil</h2><p>Doğru bir fiyat kıyaslaması için ürünlerin hepsini koli veya palet görünümüne getirin.</p><div id="warnRows"></div><div class="warn-actions" id="warnActions"></div></div></div>
+<div class="modal-backdrop hidden" id="priceInfo"><div class="modal small-modal"><button class="close" data-close="priceInfo">×</button><h2>Fiyatları doğru görüntülemek için</h2><div class="info-list"><div><b>Koli fiyatı</b><span>Bir koli için geçerli fiyat.</span></div><div><b>Palet fiyatı</b><span>Bir tam palet için geçerli fiyat.</span></div><div><b>Kıyaslama</b><span>2 veya 3 ürünü yan yana kıyaslayabilirsiniz.</span></div></div></div></div>
+
+<script src="./app.js"></script>
+</body>
+</html>
