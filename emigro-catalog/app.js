@@ -82,8 +82,7 @@ function card(p,index){
  ${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${p.id},'case')">Koli</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${p.id},'pallet')">Palet</button></div>`:`<div class="single-type">ⓘ ${p.casePrice!=null?"Sadece koli fiyatı":"Sadece palet fiyatı"}</div>`}
  <div class="pricebox"><div><span>${mode==="case"?"Koli fiyatı":"Palet fiyatı"}</span><strong>${euro(currentPrice(p))}</strong></div><small>${mode==="case"?p.caseQty+" adet / koli":p.palletCases+" koli / palet"}</small></div>
  <div class="price-valid-mini">Geçerli: ${VALIDITY.from} / ${VALIDITY.to}</div>
- <div class="card-actions"><button class="ghost" onclick="openProduct(${p.id})">Detay</button><button class="ghost" ${compare.length>=3&&!compare.includes(p.id)?"disabled":""} onclick="toggleCompare(${p.id})">${compare.includes(p.id)?"Seçildi":"Kıyasla"}</button></div>
- ${quoteButton(p)}</div></article>`;
+ <div class="card-actions"><button class="ghost" onclick="openProduct(${p.id})">Detay</button><button class="ghost" ${compare.length>=3&&!compare.includes(p.id)?"disabled":""} onclick="toggleCompare(${p.id})">${compare.includes(p.id)?"Seçildi":"Kıyasla"}</button></div></div></article>`;
 }
 function setMode(id,mode){priceMode[id]=mode;renderProducts();if(selected?.id===id){renderDetailCommerce();renderDetailQuoteButton()}renderQuoteCart()}
 function renderProducts(){
