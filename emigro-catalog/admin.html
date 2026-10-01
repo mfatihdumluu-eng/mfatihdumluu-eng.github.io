@@ -41,6 +41,8 @@
     <button class="active" data-admin-tab="members">Üyelikler</button>
     <button data-admin-tab="quotes">Teklif talepleri <span id="newQuoteBadge"></span></button>
     <button data-admin-tab="products">Toplu ürün girişi</button>
+    <button data-admin-tab="productManager">Ürün yönetimi</button>
+    <button data-admin-tab="orders">Siparişler</button>
   </div>
 
   <section id="membersPanel">
@@ -83,6 +85,24 @@
     </div>
     <div class="product-import-list" id="productImportList"><div class="admin-loading">Excel yüklendiğinde ürün kartları burada oluşacak.</div></div>
   </section>
+
+  <section id="productManagerPanel" class="hidden">
+    <div class="product-import-head">
+      <div><div class="eyebrow">ÜRÜN YÖNETİMİ</div><h2>Ürünler</h2><p>Ürünleri tek tek düzenleyin, minimum/maksimum talep sınırlarını yönetin ve fiyat geçmişini görüntüleyin.</p></div>
+      <input id="adminProductSearch" class="admin-product-search" placeholder="Ürün, barkod, marka ara">
+    </div>
+    <div class="admin-list" id="adminProductList"><div class="admin-loading">Ürünler yükleniyor…</div></div>
+  </section>
+
+  <section id="ordersPanel" class="hidden">
+    <div class="product-import-head">
+      <div><div class="eyebrow">SİPARİŞLER</div><h2>Sipariş yönetimi</h2><p>Kabul edilen tekliflerden oluşan siparişleri hazırlık, sevkiyat ve tamamlanma durumuna göre yönetin.</p></div>
+    </div>
+    <div class="admin-filter">
+      <button data-ofilter="all" class="active">Tümü</button><button data-ofilter="new">Yeni</button><button data-ofilter="preparing">Hazırlanıyor</button><button data-ofilter="ready">Hazır</button><button data-ofilter="shipped">Sevk edildi</button><button data-ofilter="completed">Tamamlandı</button>
+    </div>
+    <div class="admin-list" id="orderList"><div class="admin-loading">Siparişler yükleniyor…</div></div>
+  </section>
 </main>
 
 <div class="modal-backdrop hidden" id="offerModal">
@@ -107,6 +127,7 @@
         <button class="btn offer-publish-btn" id="publishOfferBtn">Müşteriye teklif olarak yayınla</button>
         <button class="ghost" id="printOfferBtn">Teklifi yazdır / PDF</button>
         <button class="ghost" id="mailOfferBtn">PDF ile e-posta gönder</button>
+        <button class="ghost" id="whatsappOfferBtn">WhatsApp ile paylaş</button>
       </div>
     </div>
   </div>
