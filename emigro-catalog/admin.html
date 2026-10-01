@@ -56,7 +56,7 @@
 
 <div class="modal-backdrop hidden" id="offerModal">
   <div class="modal offer-modal">
-    <button class="close" data-close="offerModal">×</button>
+    <button class="close" id="closeOfferBtn" type="button" aria-label="Teklifi kapat">×</button>
     <div class="offer-editor-head"><div><div class="eyebrow">KURUMSAL TEKLİF</div><h2>Teklif hazırla</h2><p id="offerCustomerLine"></p></div><img src="./logo.svg" alt="Emigro"></div>
     <div class="offer-editor-grid">
       <div>
@@ -72,7 +72,8 @@
         <label>Teklif geçerlilik tarihi<input type="date" id="offerValidTo"></label>
         <label>Teklif notu<textarea id="adminNote" rows="5" placeholder="Teslimat, ödeme, stok veya diğer şartlar..."></textarea></label>
         <div class="offer-totals" id="offerTotals"></div>
-        <button class="btn" id="saveOfferBtn">Teklifi kaydet</button>
+        <button class="btn" id="saveOfferBtn">Taslağı kaydet</button>
+        <button class="btn offer-publish-btn" id="publishOfferBtn">Müşteriye teklif olarak yayınla</button>
         <button class="ghost" id="printOfferBtn">Teklifi yazdır / PDF</button>
         <button class="ghost" id="mailOfferBtn">PDF ile e-posta gönder</button>
       </div>
