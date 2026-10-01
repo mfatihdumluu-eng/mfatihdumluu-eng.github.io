@@ -36,6 +36,11 @@
   <div class="category-square-grid" id="categorySquares"></div>
 </section>
 
+<section id="featured" class="featured-section">
+  <div class="section-title"><div class="eyebrow">FEATURED PRODUCTS</div><h2>Öne çıkan ürünler</h2><p>Farklı kategorilerden seçilmiş ürünler tek vitrinde gösterilir.</p></div>
+  <div class="featured-grid" id="featuredGrid"></div>
+</section>
+
 <section class="catalog" id="products">
   <div id="categoryBanner"></div>
   <div class="catalog-head">
@@ -83,19 +88,28 @@
     <div class="modal-title-row"><div><div class="eyebrow">TEKLİF TALEBİ</div><h2>Seçtiğiniz ürünler</h2><p>Koli/palet tercihi ve adetlerinizi kontrol edip formu gönderin.</p></div></div>
     <div class="quote-layout">
       <div class="quote-lines" id="quoteLines"></div>
+      <div class="member-gate hidden" id="memberGate">
+        <div class="member-gate-icon">🔒</div>
+        <h3>Teklif talebi yalnızca onaylı üyeler içindir</h3>
+        <p>Teklif gönderebilmek için hesabınızın giriş yapmış ve üyeliğinizin onaylanmış olması gerekir.</p>
+        <button class="btn" type="button" id="memberLoginBtn">Üye girişi / üyelik</button>
+      </div>
       <form class="quote-form" id="quoteForm" action="https://formsubmit.co/info@emigro.nl" method="POST">
+        <div class="quote-validity-alert"><span>FİYAT GEÇERLİLİK DÖNEMİ</span><strong>01-10-2026 — 30-10-2026</strong><p>Teklif talebiniz bu katalog dönemindeki fiyatlar üzerinden hazırlanır. Tarih dışındaki taleplerde fiyatlar yeniden teyit edilir.</p></div>
         <input type="hidden" name="_subject" value="Emigro Digital Catalog - Yeni Teklif Talebi">
         <input type="hidden" name="_captcha" value="false">
         <input type="hidden" name="_template" value="table">
         <input type="hidden" name="Urunler" id="quoteSummaryField">
         <input type="hidden" name="Fiyat Gecerlilik Donemi" value="01-10-2026 / 30-10-2026">
-        <label>Ad soyad<input name="Ad Soyad" required></label>
-        <label>Firma adı<input name="Firma" required></label>
-        <label>E-posta<input type="email" name="E-posta" required></label>
-        <label>Telefon<input name="Telefon"></label>
+        <input type="hidden" name="Uye No" id="memberNumber">
+        <label>Ad soyad<input id="memberName" name="Ad Soyad" required readonly></label>
+        <label>Firma adı<input id="memberCompany" name="Firma" required readonly></label>
+        <label>E-posta<input id="memberEmail" type="email" name="E-posta" required readonly></label>
+        <label>Telefon<input id="memberPhone" name="Telefon" readonly></label>
         <label>Not<textarea name="Not" rows="4" placeholder="Teslimat, miktar veya diğer notlar..."></textarea></label>
+        <label class="validity-check"><input type="checkbox" id="validityConfirm" required> <span>Fiyatların yalnızca <b>01-10-2026 — 30-10-2026</b> tarihleri arasında geçerli olduğunu gördüm ve kabul ediyorum.</span></label>
         <div class="form-total"><span>Tahmini toplam</span><strong id="formQuoteTotal">€0,00</strong></div>
-        <button class="btn" type="submit">Teklif talebini gönder</button>
+        <button class="btn" id="quoteSubmitBtn" type="submit">Teklif talebini gönder</button>
         <small>Talep info@emigro.nl adresine iletilir. İlk kullanımda FormSubmit e-posta doğrulaması isteyebilir.</small>
       </form>
     </div>
