@@ -540,7 +540,8 @@ window.updateImportField=(idx,key,value)=>{
 };
 
 async function loadExistingProductMap(){
- const {data}=await sb.from("emigro_catalog_products").select("barcode,image_1,image_2,image_3");
+ const {data,error}=await sb.rpc("emigro_catalog_admin_products");
+ if(error){console.warn(error);existingProducts=new Map();return}
  existingProducts=new Map((data||[]).map(p=>[String(p.barcode),p]));
 }
 async function loadDefaultImages(){
@@ -737,7 +738,7 @@ document.getElementById("saveValidProducts").onclick=async()=>{
 
 async function loadAdminProducts(){
  const [{data:prods,error:pErr},{data:units,error:uErr}]=await Promise.all([
-   sb.from("emigro_catalog_products").select("*").order("updated_at",{ascending:false}),
+   sb.rpc("emigro_catalog_admin_products"),
    sb.from("emigro_catalog_unit_prices").select("product_id,unit_price")
  ]);
  if(pErr||uErr){console.warn(pErr||uErr);return}
