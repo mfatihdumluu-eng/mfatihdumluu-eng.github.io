@@ -9,6 +9,25 @@ const euro=n=>new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).f
 const esc=(v="")=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const memberStatus=s=>({pending:"Onay bekliyor",approved:"Onaylı",rejected:"Reddedildi",suspended:"Askıya alındı"}[s]||s);
 const quoteStatus=s=>({new:"Yeni",reviewing:"İnceleniyor",offered:"Teklif verildi",accepted:"Kabul edildi",declined:"Reddedildi",closed:"Kapalı"}[s]||s);
+function notify(message,type="info"){
+ const stack=document.getElementById("toastStack");
+ if(!stack){console.log(message);return}
+ const el=document.createElement("div");
+ el.className="app-toast "+type;
+ el.textContent=String(message||"");
+ stack.appendChild(el);
+ requestAnimationFrame(()=>el.classList.add("show"));
+ setTimeout(()=>{el.classList.remove("show");setTimeout(()=>el.remove(),180)},3200);
+}
+function syncNetworkState(){
+ const banner=document.getElementById("networkBanner");
+ if(!banner)return;
+ banner.classList.toggle("hidden",navigator.onLine);
+}
+window.addEventListener("online",()=>{syncNetworkState();notify("İnternet bağlantısı geri geldi.","success")});
+window.addEventListener("offline",syncNetworkState);
+syncNetworkState();
+
 
 async function guard(){
  const {data:{session}}=await sb.auth.getSession();
@@ -78,18 +97,18 @@ async function setStatus(id,status,btn){
  const {error}=await sb.rpc("emigro_catalog_admin_set_status",{target_user:id,new_status:status});
  if(error){
    if(btn){btn.disabled=false;btn.textContent=original}
-   alert("Durum güncellenemedi: "+error.message);
+   notify("Durum güncellenemedi: "+error.message);
    return;
  }
  const {data:check,error:checkError}=await sb.from("emigro_catalog_profiles").select("status").eq("id",id).single();
  if(checkError||check?.status!==status){
    if(btn){btn.disabled=false;btn.textContent=original}
-   alert("Durum kaydedildi ancak ekran doğrulaması başarısız oldu. Sayfayı yenileyin.");
+   notify("Durum kaydedildi ancak ekran doğrulaması başarısız oldu. Sayfayı yenileyin.");
    return;
  }
  await loadProfiles();
  const labels={approved:"Üyelik onaylandı.",pending:"Üyelik beklemeye alındı.",rejected:"Üyelik reddedildi.",suspended:"Üyelik askıya alındı."};
- alert(labels[status]||"Durum güncellendi.");
+ notify(labels[status]||"Durum güncellendi.");
 }
 window.setStatus=setStatus;
 
@@ -97,9 +116,9 @@ async function saveCustomerPricing(id){
  const discount=Number(document.getElementById("memberDiscount-"+id)?.value||0);
  const level=document.getElementById("memberPriceLevel-"+id)?.value?.trim()||"standard";
  const {error}=await sb.rpc("emigro_catalog_admin_set_customer_pricing",{target_user:id,p_discount:discount,p_price_level:level});
- if(error){alert("Müşteri fiyat ayarı kaydedilemedi: "+error.message);return}
+ if(error){notify("Müşteri fiyat ayarı kaydedilemedi: "+error.message);return}
  await loadProfiles();
- alert("Müşteri fiyat ayarı kaydedildi.");
+ notify("Müşteri fiyat ayarı kaydedildi.");
 }
 window.saveCustomerPricing=saveCustomerPricing;
 
@@ -209,7 +228,7 @@ function updateOfferPreview(){
 
 async function saveOffer(forceStatus=null){
  if(!activeQuote)return false;
- if(!(activeQuote.items||[]).length){alert("Teklifte en az bir ürün olmalı.");return false}
+ if(!(activeQuote.items||[]).length){notify("Teklifte en az bir ürün olmalı.");return false}
  const v=currentOfferValues();
  const status=forceStatus||v.status;
  recalcActiveQuoteBase();
@@ -225,7 +244,7 @@ async function saveOffer(forceStatus=null){
   p_items:activeQuote.items,
   p_estimated_total:activeQuote.estimated_total
  });
- if(error){alert("Teklif kaydedilemedi: "+error.message);return false}
+ if(error){notify("Teklif kaydedilemedi: "+error.message);return false}
  await loadQuotes();
  activeQuote=quotes.find(q=>q.id===activeQuote.id);
  document.getElementById("offerStatus").value=activeQuote.status;
@@ -233,10 +252,10 @@ async function saveOffer(forceStatus=null){
  updateOfferPreview();
  return true;
 }
-document.getElementById("saveOfferBtn").onclick=async()=>{if(await saveOffer())alert("Taslak kaydedildi.")};
+document.getElementById("saveOfferBtn").onclick=async()=>{if(await saveOffer())notify("Taslak kaydedildi.")};
 document.getElementById("publishOfferBtn").onclick=async()=>{
  document.getElementById("offerStatus").value="offered";
- if(await saveOffer("offered"))alert("Teklif müşteriye yayınlandı. Müşteri hesabındaki Tekliflerim bölümünde görebilir.");
+ if(await saveOffer("offered"))notify("Teklif müşteriye yayınlandı. Müşteri hesabındaki Tekliflerim bölümünde görebilir.");
 };
 
 function offerPrintHtml(){
@@ -379,7 +398,7 @@ document.getElementById("mailOfferBtn").onclick=async()=>{
        body:JSON.stringify({to:p.email,subject:`Emigro offerte ${v.number}`,body:mailText,filename:file.name,pdf_base64:pdfBase64})
      });
      const result=await res.json().catch(()=>({}));
-     if(res.ok&&result.ok){sentAutomatically=true;alert("Teklif PDF olarak müşteriye e-posta ile gönderildi.");}
+     if(res.ok&&result.ok){sentAutomatically=true;notify("Teklif PDF olarak müşteriye e-posta ile gönderildi.");}
    }catch{}
    if(sentAutomatically)return;
 
@@ -400,7 +419,7 @@ document.getElementById("mailOfferBtn").onclick=async()=>{
      location.href=`mailto:${p.email||""}?subject=${subject}&body=${body}`;
    }
  }catch(err){
-   alert("PDF hazırlanamadı: "+(err?.message||err));
+   notify("PDF hazırlanamadı: "+(err?.message||err));
  }finally{
    btn.disabled=false;btn.textContent="PDF ile e-posta gönder";
  }
@@ -593,7 +612,7 @@ async function parseProductExcel(file){
  const wb=XLSX.read(buf,{type:"array"});
  const ws=wb.Sheets[wb.SheetNames[0]];
  const raw=XLSX.utils.sheet_to_json(ws,{defval:"",raw:false});
- if(!raw.length){alert("Excel dosyasında ürün satırı bulunamadı.");return}
+ if(!raw.length){notify("Excel dosyasında ürün satırı bulunamadı.");return}
 
  const normalizedRows=raw.map(obj=>{
    const n={};Object.entries(obj).forEach(([k,v])=>n[normalizeHeader(k)]=v);
@@ -603,7 +622,7 @@ async function parseProductExcel(file){
  const first=normalizedRows[0]||{};
  const missingColumns=labels.filter(h=>!(h in first));
  if(missingColumns.length){
-   alert("Excel şablonunda eksik sütun var: "+missingColumns.join(", ")+"\nÖnce 'Excel şablonunu indir' dosyasını kullanın.");
+   notify("Excel şablonunda eksik sütun var: "+missingColumns.join(", ")+"\nÖnce 'Excel şablonunu indir' dosyasını kullanın.");
    return;
  }
 
@@ -631,7 +650,7 @@ async function parseProductExcel(file){
 
 document.getElementById("productExcelInput").onchange=async e=>{
  const file=e.target.files?.[0];if(!file)return;
- try{await parseProductExcel(file)}catch(err){alert("Excel okunamadı: "+(err?.message||err))}
+ try{await parseProductExcel(file)}catch(err){notify("Excel okunamadı: "+(err?.message||err))}
 };
 document.getElementById("productImagesInput").onchange=async e=>{
  importImageFiles.clear();imageQualityWarnings.clear();
@@ -724,7 +743,7 @@ document.getElementById("downloadImportErrors").onclick=()=>{
   satir:i+2,barkod:r.barcode||"",urun_adi:r.product_name||"",hatalar:rowErrors(r,i).join(" | "),
   gorsel_uyarisi:imageQualityWarnings.get(cleanBarcode(r.barcode).toLowerCase())||""
  })).filter(x=>x.hatalar||x.gorsel_uyarisi);
- if(!rows.length){alert("Hata veya görsel uyarısı bulunmuyor.");return}
+ if(!rows.length){notify("Hata veya görsel uyarısı bulunmuyor.");return}
  const ws=XLSX.utils.json_to_sheet(rows);
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Hatalar");
  XLSX.writeFile(wb,"emigro-urun-yukleme-hata-raporu.xlsx");
@@ -743,17 +762,17 @@ document.getElementById("savePricePeriod").onclick=async()=>{
  const name=document.getElementById("pricePeriodName").value.trim();
  const from=document.getElementById("pricePeriodFrom").value;
  const to=document.getElementById("pricePeriodTo").value;
- if(!from||!to){alert("Başlangıç ve bitiş tarihini girin.");return}
+ if(!from||!to){notify("Başlangıç ve bitiş tarihini girin.");return}
  if(!confirm("Yeni fiyat dönemi aktif edilecek. Bundan sonra kaydedilen/yüklenen ürün fiyatları bu döneme bağlanacak. Devam edilsin mi?"))return;
  const {error}=await sb.rpc("emigro_catalog_admin_set_price_period",{p_name:name,p_valid_from:from,p_valid_to:to});
- if(error){alert("Fiyat dönemi kaydedilemedi: "+error.message);return}
- await loadActivePricePeriod();alert("Yeni fiyat dönemi aktif edildi.");
+ if(error){notify("Fiyat dönemi kaydedilemedi: "+error.message);return}
+ await loadActivePricePeriod();notify("Yeni fiyat dönemi aktif edildi.");
 };
 
 document.getElementById("saveValidProducts").onclick=async()=>{
  const valid=importRows.map((r,i)=>({r,i,errors:rowErrors(r,i)})).filter(x=>!x.errors.length);
  const invalid=importRows.length-valid.length;
- if(!valid.length){alert("Sisteme eklenebilecek eksiksiz ürün yok. Kırmızı kartlardaki alanları tamamlayın.");return}
+ if(!valid.length){notify("Sisteme eklenebilecek eksiksiz ürün yok. Kırmızı kartlardaki alanları tamamlayın.");return}
  if(!confirm(valid.length+" ürün sisteme eklenecek/güncellenecek."+ (invalid?" "+invalid+" eksik ürün eklenmeyecek.":"") +" Devam edilsin mi?"))return;
 
  const btn=document.getElementById("saveValidProducts");
@@ -802,7 +821,7 @@ document.getElementById("saveValidProducts").onclick=async()=>{
    }
    await loadExistingProductMap();
    renderImportRows();
-   alert(ok+" ürün başarıyla sisteme eklendi/güncellendi."+ (failed.length?"\n\nHatalar:\n"+failed.slice(0,10).join("\n"):""));
+   notify(ok+" ürün başarıyla sisteme eklendi/güncellendi."+ (failed.length?"\n\nHatalar:\n"+failed.slice(0,10).join("\n"):""));
  }finally{
    btn.disabled=false;btn.textContent="Geçerli ürünleri sisteme ekle";
  }
@@ -861,13 +880,13 @@ async function saveAdminProduct(id){
   p_min_order_qty:Number(get("pm-min")||1),p_max_order_qty:String(maxRaw||"").trim()===""?null:Number(maxRaw),
   p_image_1:p.image_1,p_image_2:p.image_2,p_image_3:p.image_3,p_is_featured:!!p.is_featured
  });
- if(error){alert("Ürün kaydedilemedi: "+error.message);return}
- await loadAdminProducts();alert("Ürün güncellendi.");
+ if(error){notify("Ürün kaydedilemedi: "+error.message);return}
+ await loadAdminProducts();notify("Ürün güncellendi.");
 }
 window.saveAdminProduct=saveAdminProduct;
 async function toggleAdminProduct(id,active){
  const {error}=await sb.rpc("emigro_catalog_admin_set_product_active",{p_product_id:id,p_active:active});
- if(error){alert("Ürün durumu değiştirilemedi: "+error.message);return}
+ if(error){notify("Ürün durumu değiştirilemedi: "+error.message);return}
  await loadAdminProducts();
 }
 window.toggleAdminProduct=toggleAdminProduct;
@@ -906,15 +925,29 @@ function renderOrders(){
  }).join(""):'<div class="admin-loading">Sipariş bulunamadı.</div>';
 }
 async function saveOrder(id){
+ const status=document.getElementById("order-status-"+id).value;
+ const tracking=document.getElementById("order-track-"+id).value.trim();
+ const trackingUrl=document.getElementById("order-trackurl-"+id).value.trim();
+ if(status==="shipped"&&!tracking){
+   notify("Siparişi 'Sevk edildi' yapmak için kargo takip numarası girin.","error");
+   document.getElementById("order-track-"+id).focus();
+   return;
+ }
+ if(trackingUrl&&!/^https?:\/\//i.test(trackingUrl)){
+   notify("Takip linki http:// veya https:// ile başlamalı.","error");
+   document.getElementById("order-trackurl-"+id).focus();
+   return;
+ }
  const {error}=await sb.rpc("emigro_catalog_admin_update_order",{
-  p_order_id:id,p_status:document.getElementById("order-status-"+id).value,
+  p_order_id:id,p_status:status,
   p_confirmed_delivery_date:document.getElementById("order-date-"+id).value||null,
   p_admin_note:document.getElementById("order-note-"+id).value||"",
-  p_tracking_number:document.getElementById("order-track-"+id).value||"",
-  p_tracking_url:document.getElementById("order-trackurl-"+id).value||""
+  p_tracking_number:tracking,
+  p_tracking_url:trackingUrl
  });
- if(error){alert("Sipariş güncellenemedi: "+error.message);return}
+ if(error){notify("Sipariş güncellenemedi: "+error.message);return}
  await loadOrders();
+ notify("Sipariş bilgileri güncellendi.","success");
 }
 window.saveOrder=saveOrder;
 
@@ -956,7 +989,7 @@ ${link}
 Emigro Cash & Carry`;
 }
 function openAdminInvitePanel(){
- if(!adminProfile?.referral_code){alert("Davet kodu oluşturulamadı. Sayfayı yenileyin.");return}
+ if(!adminProfile?.referral_code){notify("Davet kodu oluşturulamadı. Sayfayı yenileyin.");return}
  const link=new URL("./?ref="+encodeURIComponent(adminProfile.referral_code),location.href).href;
  document.getElementById("adminInviteLink").textContent=link;
  document.getElementById("adminInviteCode").textContent="Davet kodu: "+adminProfile.referral_code;
@@ -965,7 +998,7 @@ function openAdminInvitePanel(){
 document.getElementById("openAdminInvite").onclick=openAdminInvitePanel;
 document.getElementById("adminInviteCopy").onclick=async()=>{
  const link=document.getElementById("adminInviteLink").textContent;
- try{await navigator.clipboard.writeText(link);alert("Davet bağlantısı kopyalandı.");}
+ try{await navigator.clipboard.writeText(link);notify("Davet bağlantısı kopyalandı.");}
  catch{prompt("Davet bağlantısını kopyalayın:",link)}
 };
 document.getElementById("adminInviteEmail").onclick=()=>{
@@ -982,7 +1015,7 @@ document.getElementById("adminInviteShare").onclick=async()=>{
  if(navigator.share){
    try{await navigator.share({title:"Emigro Cash & Carry B2B daveti",text,url:link});return}catch{}
  }
- try{await navigator.clipboard.writeText(text);alert("Davet metni kopyalandı. WhatsApp, SMS veya e-posta üzerinden toplu olarak paylaşabilirsiniz.");}
+ try{await navigator.clipboard.writeText(text);notify("Davet metni kopyalandı. WhatsApp, SMS veya e-posta üzerinden toplu olarak paylaşabilirsiniz.");}
  catch{prompt("Davet metnini kopyalayın:",text)}
 };
 
