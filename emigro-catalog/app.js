@@ -637,6 +637,33 @@ document.getElementById("sort").onchange=e=>{sort=e.target.value;if((sort==="low
 document.getElementById("loadMore").onclick=()=>{shown+=24;renderProducts()};
 
 function renderAll(){renderBanner();renderCategories();renderProducts();renderCompareBar();renderQuoteCart()}
+function setMobileNavActive(name){
+ document.querySelectorAll("[data-mobile-nav]").forEach(b=>b.classList.toggle("active",b.dataset.mobileNav===name));
+}
+function scrollMobileTarget(id,name){
+ const el=document.getElementById(id);if(!el)return;
+ setMobileNavActive(name);
+ el.scrollIntoView({behavior:"smooth",block:"start"});
+}
+document.querySelectorAll("[data-mobile-nav]").forEach(btn=>btn.onclick=()=>{
+ const action=btn.dataset.mobileNav;
+ if(action==="home"){scrollMobileTarget("home","home");return}
+ if(action==="categories"){scrollMobileTarget("categoryBrowser","categories");return}
+ if(action==="products"){scrollMobileTarget("products","products");return}
+ if(action==="quotes"){
+   setMobileNavActive("quotes");
+   if(!session){openAuth("Tekliflerinizi görmek için müşteri hesabınızla giriş yapın.");return}
+   openMyQuotes();return;
+ }
+ if(action==="account"){
+   setMobileNavActive("account");
+   if(!session){openAuth("Müşteri hesabınızı açmak için giriş yapın.");return}
+   const dash=document.getElementById("customerDashboard");
+   dash.classList.remove("hidden");loadCustomerDashboard();
+   dash.scrollIntoView({behavior:"smooth",block:"start"});
+ }
+});
+
 async function bootstrapCatalog(){
  await loadLiveCatalog();
  renderHero();renderCategorySquares();renderFeatured();renderAll();
