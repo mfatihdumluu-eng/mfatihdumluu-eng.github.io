@@ -87,3 +87,5 @@ h1,h2,h3,h4,.hero h1,.catalog h2,.featured-section h2,.modal h2,.card-body h3,.p
 @media(max-width:980px){.offer-editor-grid{grid-template-columns:1fr}.offer-editor-head img{width:140px}}@media(max-width:600px){.brand{min-width:0}.brand-fallback{display:none}.offer-editor-head{flex-direction:column}.offer-preview-customer{grid-template-columns:1fr}.quote-admin-head{flex-direction:column}.quote-admin-head>div:last-child{align-items:flex-start}}
 
 .kvk-field{display:grid;grid-template-columns:1fr auto;gap:7px}.kvk-field .ghost{border-radius:10px;white-space:nowrap}.kvk-status{font-size:9px;color:var(--muted);font-weight:400;line-height:1.4}.kvk-status.success{color:#2d6d48}.kvk-status.error{color:#a91e2f}
+
+.optional-label{font-size:9px;color:var(--muted);font-weight:400}
