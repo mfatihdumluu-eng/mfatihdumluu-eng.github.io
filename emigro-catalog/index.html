@@ -8,12 +8,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <header class="topbar">
   <a class="brand" href="#home"><img src="./logo.svg" alt="Emigro Cash & Carry"></a>
-  <nav><a href="#categoryBrowser">Ürünler</a><a href="#featured">Öne çıkan</a><a href="./print.html">PDF katalog</a></nav>
-  <div class="top-actions"><button class="ghost" id="priceInfoBtn">Fiyat bilgisi</button><a class="btn" href="./print.html">PDF katalog</a></div>
+  <nav><a href="#categoryBrowser">Ürünler</a><a href="#featured">Öne çıkan</a><button class="nav-link-btn" onclick="requestPdf()">PDF katalog</button></nav>
+  <div class="top-actions">
+    <button class="ghost" id="priceInfoBtn">Fiyat bilgisi</button>
+    <button class="ghost" id="accountBtn">Giriş / Üyelik</button>
+    <button class="btn" onclick="requestPdf()">PDF katalog</button>
+  </div>
 </header>
 
 <main>
@@ -21,23 +26,23 @@
   <div class="hero-copy">
     <div class="eyebrow">B2B PRODUCT CATALOGUE · 9 KATEGORİ · 200+ ÜRÜN</div>
     <h1>Web, mobil ve baskı.<br>Tek katalog.</h1>
-    <p>Telefonda hızlı ürün bulma, bilgisayarda detaylı inceleme ve A4 çıktıda gerçek katalog düzeni. Koli ve palet fiyatını seçin, ürünleri kıyaslayın ve teklif listenizi oluşturun.</p>
-    <div class="hero-actions"><a class="btn" href="#categoryBrowser">Ürünleri incele</a><a class="ghost" href="./print.html">PDF kataloğu aç</a></div>
-    <div class="stats"><div><strong>207+</strong><span>ürün</span></div><div><strong>9</strong><span>kategori</span></div><div><strong>3</strong><span>ürün kıyaslama</span></div></div>
+    <p>Ürünleri herkes inceleyebilir. Fiyatları görmek, PDF kataloğu indirmek ve teklif istemek için Emigro tarafından onaylanmış B2B üyelik gerekir.</p>
+    <div class="hero-actions"><a class="btn" href="#categoryBrowser">Ürünleri incele</a><button class="ghost" onclick="requestPdf()">PDF kataloğu aç</button></div>
+    <div class="stats"><div><strong>207+</strong><span>ürün</span></div><div><strong>9</strong><span>kategori</span></div><div><strong>Onaylı</strong><span>B2B üyelik</span></div></div>
   </div>
   <div class="hero-product-cluster" id="heroCluster"></div>
 </section>
 
-<section class="notice"><b>Fiyat tipi ürüne göre değişebilir.</b><span>Hem koli hem palet fiyatı olan üründe seçim yapınca fiyat değişir. İçeceklerde statiegeld bilgisi ayrıca gösterilir.</span></section>
-<section class="validity-banner"><div><span>FİYAT GEÇERLİLİK DÖNEMİ</span><strong>01-10-2026 — 30-10-2026</strong></div><p>Bu katalogdaki fiyatlar yalnızca belirtilen tarih aralığında geçerlidir. Stok ve ticari koşullar değişebilir.</p></section>
+<section class="notice"><b>Üyelik kontrollü fiyatlandırma.</b><span>Fiyatlar yalnızca giriş yapmış ve Emigro tarafından onaylanmış üyeler tarafından görülebilir. İçeceklerde statiegeld bilgisi herkese açık gösterilir.</span></section>
+<section class="validity-banner"><div><span>FİYAT GEÇERLİLİK DÖNEMİ</span><strong>01-10-2026 — 30-10-2026</strong></div><p>Onaylı üyelere gösterilen katalog fiyatları yalnızca belirtilen tarih aralığında geçerlidir. Stok ve ticari koşullar değişebilir.</p></section>
 
 <section class="category-browser" id="categoryBrowser">
-  <div class="section-title"><div class="eyebrow">KATEGORİLER</div><h2>Ürün kategorisini seçin</h2><p>Bir kategoriye tıklayın; o kategori ürünleri açılır.</p></div>
+  <div class="section-title"><div class="eyebrow">KATEGORİLER</div><h2>Ürün kategorisini seçin</h2><p>Bir kategoriye tıklayın; o kategorinin ürünleri açılır.</p></div>
   <div class="category-square-grid" id="categorySquares"></div>
 </section>
 
 <section id="featured" class="featured-section">
-  <div class="section-title"><div class="eyebrow">FEATURED PRODUCTS</div><h2>Öne çıkan ürünler</h2><p>Farklı kategorilerden seçilmiş ürünler tek vitrinde gösterilir.</p></div>
+  <div class="section-title"><div class="eyebrow">FEATURED PRODUCTS</div><h2>Öne çıkan ürünler</h2><p>Farklı kategorilerden seçilmiş ürünler tek vitrinde.</p></div>
   <div class="featured-grid" id="featuredGrid"></div>
 </section>
 
@@ -51,11 +56,6 @@
   <div class="product-grid" id="productGrid"></div>
   <div class="loadmore-wrap"><button class="ghost" id="loadMore">24 ürün daha göster</button></div>
 </section>
-
-<section id="featured" class="featured-section">
-  <div class="section-title"><div class="eyebrow">FEATURED PRODUCTS</div><h2>Öne çıkan ürünler</h2><p>Panelden işaretlenecek ürünler burada ayrı bir vitrin olarak gösterilir.</p></div>
-  <div class="featured-grid" id="featuredGrid"></div>
-</section>
 </main>
 
 <div class="quote-cart hidden" id="quoteCart">
@@ -65,6 +65,44 @@
 </div>
 
 <div class="compare-bar hidden" id="compareBar"><div><b id="compareCount">0/3 ürün seçildi</b><span>Aynı kategoride olmak zorunda değil.</span></div><div id="compareChips"></div><button class="btn" id="compareOpen">Yan yana kıyasla</button></div>
+
+<div class="modal-backdrop hidden" id="authModal">
+  <div class="modal auth-modal">
+    <button class="close" data-close="authModal">×</button>
+    <div class="auth-brand"><img src="./logo.svg" alt="Emigro"><div><div class="eyebrow">EMIGRO B2B</div><h2 id="authTitle">Giriş yap veya üye ol</h2><p id="authReason">Fiyatları görmek ve teklif istemek için onaylı üyelik gerekir.</p></div></div>
+    <div class="auth-tabs"><button class="active" id="loginTab">Giriş yap</button><button id="registerTab">Üye ol</button></div>
+    <form id="loginForm" class="auth-form">
+      <label>E-posta<input type="email" id="loginEmail" required autocomplete="email"></label>
+      <label>Şifre<input type="password" id="loginPassword" required autocomplete="current-password"></label>
+      <button class="btn" type="submit">Giriş yap</button>
+      <div class="auth-message" id="loginMessage"></div>
+    </form>
+    <form id="registerForm" class="auth-form hidden">
+      <div class="form-grid two">
+        <label>Firma adı<input id="regCompany" required></label>
+        <label>Firma yetkilisi<input id="regContact" required></label>
+        <label>Yetkilinin görevi<input id="regRole" placeholder="Eigenaar / Inkoper / Manager" required></label>
+        <label>Telefon<input id="regPhone" required></label>
+        <label>Firma adresi<input id="regAddress" required></label>
+        <label>Posta kodu<input id="regPostal" required></label>
+        <label>Şehir<input id="regCity" required></label>
+        <label>Ülke<input id="regCountry" value="Nederland" required></label>
+        <label>KvK numarası<input id="regKvk" required></label>
+        <label>BTW / VAT numarası<input id="regBtw" required></label>
+        <label>E-posta<input type="email" id="regEmail" required autocomplete="email"></label>
+        <label>Şifre<input type="password" id="regPassword" minlength="8" required autocomplete="new-password"></label>
+      </div>
+      <label class="validity-check"><input type="checkbox" id="regPrivacy" required><span>Firma bilgilerimin Emigro B2B üyelik değerlendirmesi için işlenmesini ve algemene voorwaarden / privacy koşullarını kabul ediyorum.</span></label>
+      <button class="btn" type="submit">Üyelik başvurusu gönder</button>
+      <div class="auth-message" id="registerMessage"></div>
+    </form>
+    <div class="account-panel hidden" id="accountPanel">
+      <div class="account-status" id="accountStatus"></div>
+      <div class="account-facts" id="accountFacts"></div>
+      <div class="account-actions"><button class="ghost hidden" id="adminPanelBtn">Admin paneli</button><button class="ghost" id="logoutBtn">Çıkış yap</button></div>
+    </div>
+  </div>
+</div>
 
 <div class="modal-backdrop hidden" id="productModal">
   <div class="modal product-modal">
@@ -88,12 +126,6 @@
     <div class="modal-title-row"><div><div class="eyebrow">TEKLİF TALEBİ</div><h2>Seçtiğiniz ürünler</h2><p>Koli/palet tercihi ve adetlerinizi kontrol edip formu gönderin.</p></div></div>
     <div class="quote-layout">
       <div class="quote-lines" id="quoteLines"></div>
-      <div class="member-gate hidden" id="memberGate">
-        <div class="member-gate-icon">🔒</div>
-        <h3>Teklif talebi yalnızca onaylı üyeler içindir</h3>
-        <p>Teklif gönderebilmek için hesabınızın giriş yapmış ve üyeliğinizin onaylanmış olması gerekir.</p>
-        <button class="btn" type="button" id="memberLoginBtn">Üye girişi / üyelik</button>
-      </div>
       <form class="quote-form" id="quoteForm" action="https://formsubmit.co/info@emigro.nl" method="POST">
         <div class="quote-validity-alert"><span>FİYAT GEÇERLİLİK DÖNEMİ</span><strong>01-10-2026 — 30-10-2026</strong><p>Teklif talebiniz bu katalog dönemindeki fiyatlar üzerinden hazırlanır. Tarih dışındaki taleplerde fiyatlar yeniden teyit edilir.</p></div>
         <input type="hidden" name="_subject" value="Emigro Digital Catalog - Yeni Teklif Talebi">
@@ -106,11 +138,11 @@
         <label>Firma adı<input id="memberCompany" name="Firma" required readonly></label>
         <label>E-posta<input id="memberEmail" type="email" name="E-posta" required readonly></label>
         <label>Telefon<input id="memberPhone" name="Telefon" readonly></label>
-        <label>Not<textarea name="Not" rows="4" placeholder="Teslimat, miktar veya diğer notlar..."></textarea></label>
-        <label class="validity-check"><input type="checkbox" id="validityConfirm" required> <span>Fiyatların yalnızca <b>01-10-2026 — 30-10-2026</b> tarihleri arasında geçerli olduğunu gördüm ve kabul ediyorum.</span></label>
+        <label>Not<textarea name="Not" id="quoteNote" rows="4" placeholder="Teslimat, miktar veya diğer notlar..."></textarea></label>
+        <label class="validity-check"><input type="checkbox" id="validityConfirm" required><span>Fiyatların yalnızca <b>01-10-2026 — 30-10-2026</b> tarihleri arasında geçerli olduğunu gördüm ve kabul ediyorum.</span></label>
         <div class="form-total"><span>Tahmini toplam</span><strong id="formQuoteTotal">€0,00</strong></div>
         <button class="btn" id="quoteSubmitBtn" type="submit">Teklif talebini gönder</button>
-        <small>Talep info@emigro.nl adresine iletilir. İlk kullanımda FormSubmit e-posta doğrulaması isteyebilir.</small>
+        <small>Talep Emigro'ya iletilir ve üyelik bilgilerinizle eşleştirilir.</small>
       </form>
     </div>
   </div>
@@ -118,7 +150,7 @@
 
 <div class="modal-backdrop hidden" id="compareModal"><div class="modal compare-modal"><button class="close" data-close="compareModal">×</button><h2>Ürün kıyaslama</h2><p id="compareDesc"></p><div class="compare-grid" id="compareGrid"></div></div></div>
 <div class="modal-backdrop hidden" id="compareWarn"><div class="modal small-modal"><button class="close" data-close="compareWarn">×</button><h2>Fiyat türleri aynı değil</h2><p>Doğru bir fiyat kıyaslaması için ürünlerin hepsini koli veya palet görünümüne getirin.</p><div id="warnRows"></div><div class="warn-actions" id="warnActions"></div></div></div>
-<div class="modal-backdrop hidden" id="priceInfo"><div class="modal small-modal"><button class="close" data-close="priceInfo">×</button><h2>Fiyatları doğru görüntülemek için</h2><div class="info-list"><div><b>Koli fiyatı</b><span>Bir koli için geçerli fiyat.</span></div><div><b>Palet fiyatı</b><span>Bir tam palet için geçerli fiyat.</span></div><div><b>Statiegeld</b><span>İçeceklerde depozito olup olmadığı ürün üzerinde ayrıca gösterilir.</span></div><div><b>Kıyaslama</b><span>2 veya 3 ürünü yan yana kıyaslayabilirsiniz.</span></div></div></div></div>
+<div class="modal-backdrop hidden" id="priceInfo"><div class="modal small-modal"><button class="close" data-close="priceInfo">×</button><h2>Fiyat ve üyelik bilgisi</h2><div class="info-list"><div><b>Fiyatlar</b><span>Yalnızca Emigro tarafından onaylanmış ve giriş yapmış B2B üyeler görebilir.</span></div><div><b>PDF katalog</b><span>Yalnızca onaylı üyeler indirebilir. Giriş yoksa önce üyelik ekranı açılır.</span></div><div><b>Statiegeld</b><span>İçeceklerde depozito olup olmadığı herkese açık gösterilir.</span></div><div><b>Teklif</b><span>Yalnızca onaylı üyeler teklif listesi oluşturup gönderebilir.</span></div></div></div></div>
 
 <script src="./app.js"></script>
 </body>
