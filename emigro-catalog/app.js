@@ -1,6 +1,6 @@
 const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-customer-auth",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const BRAND={navy:"#293369",red:"#ec0419"};
 const VALIDITY={from:"01-10-2026",to:"30-10-2026"};
 const palette=["#293369","#3b4a89","#5663a3","#ec0419","#f03748","#b60618","#68729d","#8890b1","#a61b2b"];
@@ -103,7 +103,7 @@ function renderAccountPanel(){
  status.innerHTML=`<strong>${label}</strong><span>${approved()?"Fiyat, PDF katalog ve teklif özellikleri açık.":"Emigro onayından sonra fiyat, PDF ve teklif özellikleri açılır."}</span>`;
  facts.innerHTML=profile?`<div><span>Firma</span><b>${profile.company_name||"—"}</b></div><div><span>Yetkili</span><b>${profile.contact_name||"—"}</b></div><div><span>KvK</span><b>${profile.kvk_number||"—"}</b></div><div><span>BTW</span><b>${profile.btw_number||"—"}</b></div>`:"";
  const corporateAdminCandidate=!demoMode&&(session?.user?.email||"").toLowerCase().endsWith("@emigro.nl");
- document.getElementById("adminPanelBtn").classList.toggle("hidden",!(isAdmin()||corporateAdminCandidate));
+ document.getElementById("adminPanelBtn").classList.add("hidden");
 }
 function switchAuthTab(tab){
  const login=tab==="login";
@@ -133,7 +133,13 @@ document.getElementById("loginForm").onsubmit=async e=>{
  e.preventDefault();const box=document.getElementById("loginMessage");box.textContent="Giriş yapılıyor...";
  const {data,error}=await sb.auth.signInWithPassword({email:document.getElementById("loginEmail").value.trim(),password:document.getElementById("loginPassword").value});
  if(error){box.textContent=error.message;return}
- session=data.session;await loadProfile();renderAuthButton();renderAll();
+ session=data.session;await loadProfile();
+ if(profile?.role==="admin"){
+   await sb.auth.signOut();session=null;profile=null;priceMap={};
+   box.innerHTML='Bu hesap admin hesabıdır. <a href="./admin.html">Admin giriş ekranına git</a>.';
+   renderAuthButton();renderAll();return;
+ }
+ renderAuthButton();renderAll();
  if(profile?.status==="pending"){box.textContent="Üyeliğiniz Emigro onayını bekliyor.";renderAccountPanel();document.getElementById("loginForm").classList.add("hidden");document.querySelector(".auth-tabs").classList.add("hidden");document.getElementById("accountPanel").classList.remove("hidden");return}
  if(!approved()){box.textContent="Bu üyelik henüz fiyat erişimine açık değil.";return}
  closeModal("authModal");await finishPendingAction();
