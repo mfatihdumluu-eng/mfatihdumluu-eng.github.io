@@ -2,7 +2,7 @@ const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-customer-auth",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const BRAND={navy:"#293369",red:"#ec0419"};
-const VALIDITY={from:"01-10-2026",to:"30-10-2026"};
+let VALIDITY={from:"01-10-2026",to:"30-10-2026"};
 const palette=["#293369","#3b4a89","#5663a3","#ec0419","#f03748","#b60618","#68729d","#8890b1","#a61b2b"];
 let cats=[
  ["Soft Drinks",palette[0],"Australia","🥤"],["Juices",palette[1],"Turkey","🍎"],["Sauces",palette[3],"Belgium","🥣"],
@@ -65,6 +65,17 @@ const bottle=(p,large=false)=>p.image1
  ? `<img class="real-product-image ${large?"large":""}" src="${p.image1}" alt="${p.brand} ${p.name}">`
  : `<div class="bottle ${large?"large":""}" style="background:linear-gradient(155deg,${p.tone},#1c234a)"><div class="cap"></div><div class="label">PREMIUM<br>SELECTION</div></div>`;
 
+async function loadActiveValidity(){
+ const {data,error}=await sb.from("emigro_catalog_price_periods").select("name,valid_from,valid_to").eq("is_active",true).order("created_at",{ascending:false}).limit(1).maybeSingle();
+ if(error||!data)return;
+ const fmt=s=>new Date(s+"T12:00:00").toLocaleDateString("nl-NL");
+ VALIDITY={from:fmt(data.valid_from),to:fmt(data.valid_to),rawFrom:data.valid_from,rawTo:data.valid_to,name:data.name};
+ const text=VALIDITY.from+" — "+VALIDITY.to;
+ const global=document.getElementById("globalValidity");if(global)global.textContent=text;
+ const quoteStrong=document.getElementById("quoteValidityStrong");if(quoteStrong)quoteStrong.textContent=text;
+ const hidden=document.getElementById("quoteValidityHidden");if(hidden)hidden.value=VALIDITY.from+" / "+VALIDITY.to;
+ const confirm=document.getElementById("quoteValidityConfirmText");if(confirm)confirm.innerHTML='Fiyatların yalnızca <b>'+text+'</b> tarihleri arasında geçerli olduğunu gördüm ve kabul ediyorum.';
+}
 async function loadLiveCatalog(){
  const {data,error}=await sb.from("emigro_catalog_products_public").select("*").order("category").order("product_name");
  if(error||!data?.length)return;
@@ -899,7 +910,7 @@ document.querySelectorAll("[data-mobile-nav]").forEach(btn=>btn.onclick=()=>{
 });
 
 async function bootstrapCatalog(){
- await loadLiveCatalog();
+ await Promise.all([loadActiveValidity(),loadLiveCatalog()]);
  renderHero();renderCategorySquares();renderFeatured();renderAll();
  await syncAuth();
  const sku=new URLSearchParams(location.search).get("product");if(sku){const p=products.find(x=>x.sku===sku);if(p)openProduct(p.id)}
