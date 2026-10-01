@@ -966,6 +966,24 @@ async function handleReferralLanding(){
  switchAuthTab("register");
 }
 
+function setupKeyboardAwareMobileDock(){
+ const vv=window.visualViewport;
+ let baseHeight=vv?.height||window.innerHeight;
+ const editable=el=>el&&["INPUT","TEXTAREA","SELECT"].includes(el.tagName);
+ const sync=()=>{
+   const current=vv?.height||window.innerHeight;
+   const focused=editable(document.activeElement);
+   const keyboardLikely=focused && current < baseHeight-120;
+   document.body.classList.toggle("keyboard-open",keyboardLikely);
+   if(!focused && current>baseHeight-40)baseHeight=Math.max(baseHeight,current);
+ };
+ document.addEventListener("focusin",e=>{if(editable(e.target))setTimeout(sync,60)});
+ document.addEventListener("focusout",()=>setTimeout(sync,180));
+ vv?.addEventListener("resize",sync);
+ window.addEventListener("orientationchange",()=>setTimeout(()=>{baseHeight=vv?.height||window.innerHeight;sync()},350));
+}
+setupKeyboardAwareMobileDock();
+
 async function bootstrapCatalog(){
  await Promise.all([loadActiveValidity(),loadLiveCatalog()]);
  renderHero();renderCategorySquares();renderFeatured();renderAll();
