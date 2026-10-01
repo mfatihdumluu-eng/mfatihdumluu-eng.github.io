@@ -374,3 +374,20 @@ img,svg,video,canvas{max-width:100%}
   /* keep floating bars above the app footer */
   .quote-cart,.compare-bar{bottom:calc(88px + env(safe-area-inset-bottom))!important}
 }
+
+/* Force mobile app bar visible above iOS/Safari chrome */
+@media(max-width:640px){
+  nav.mobile-app-nav{
+    display:grid!important;
+    position:fixed!important;
+    left:10px!important;
+    right:10px!important;
+    bottom:calc(14px + env(safe-area-inset-bottom))!important;
+    z-index:9999!important;
+    visibility:visible!important;
+    opacity:1!important;
+  }
+  header.topbar nav{display:none!important}
+  .topbar .top-actions{display:none!important}
+  body{padding-bottom:calc(96px + env(safe-area-inset-bottom))!important}
+}
