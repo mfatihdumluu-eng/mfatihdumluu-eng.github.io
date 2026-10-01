@@ -87,6 +87,7 @@ function openAuth(reason="Fiyatları görmek ve teklif istemek için onaylı üy
  if(session) renderAccountPanel();
  openModal("authModal");
 }
+window.openAuth=openAuth;
 function renderAccountPanel(){
  const status=document.getElementById("accountStatus"),facts=document.getElementById("accountFacts");
  const label={pending:"Onay bekliyor",approved:"Onaylandı",rejected:"Reddedildi",suspended:"Askıya alındı"}[profile?.status]||"Profil yükleniyor";
