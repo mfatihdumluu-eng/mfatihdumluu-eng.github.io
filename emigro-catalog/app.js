@@ -93,7 +93,8 @@ function renderAccountPanel(){
  status.className="account-status "+(profile?.status||"pending");
  status.innerHTML=`<strong>${label}</strong><span>${approved()?"Fiyat, PDF katalog ve teklif özellikleri açık.":"Emigro onayından sonra fiyat, PDF ve teklif özellikleri açılır."}</span>`;
  facts.innerHTML=profile?`<div><span>Firma</span><b>${profile.company_name||"—"}</b></div><div><span>Yetkili</span><b>${profile.contact_name||"—"}</b></div><div><span>KvK</span><b>${profile.kvk_number||"—"}</b></div><div><span>BTW</span><b>${profile.btw_number||"—"}</b></div>`:"";
- document.getElementById("adminPanelBtn").classList.toggle("hidden",!isAdmin());
+ const corporateAdminCandidate=(session?.user?.email||"").toLowerCase().endsWith("@emigro.nl");
+ document.getElementById("adminPanelBtn").classList.toggle("hidden",!(isAdmin()||corporateAdminCandidate));
 }
 function switchAuthTab(tab){
  const login=tab==="login";
