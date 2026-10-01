@@ -80,9 +80,21 @@ async function syncAuth(){
 }
 function renderAuthButton(){
  const btn=document.getElementById("accountBtn");
- if(demoMode){btn.textContent="Emigro Demo B.V.";return}
- if(!session){btn.textContent="Giriş / Üyelik";return}
+ const nav=document.getElementById("customerDashboardNav");
+ const dash=document.getElementById("customerDashboard");
+ if(demoMode){
+   btn.textContent="Emigro Demo B.V.";
+   nav?.classList.remove("hidden");dash?.classList.remove("hidden");
+   return;
+ }
+ if(!session){
+   btn.textContent="Giriş / Üyelik";
+   nav?.classList.add("hidden");dash?.classList.add("hidden");
+   return;
+ }
  btn.textContent=profile?.company_name||session.user.email||"Hesabım";
+ nav?.classList.remove("hidden");dash?.classList.remove("hidden");
+ loadCustomerDashboard();
 }
 function openAuth(reason="Fiyatları görmek ve teklif istemek için onaylı üyelik gerekir.",action=null){
  pendingAction=action;
@@ -392,12 +404,82 @@ async function openMyQuotes(){
  }).join("");
 }
 window.openMyQuotes=openMyQuotes;
+
+let customerDashboardTab="quotes";
+async function loadCustomerDashboard(){
+ if(!session||!document.getElementById("customerDashboard"))return;
+ const root=document.getElementById("customerDashboardList");
+ root.innerHTML='<div class="admin-loading">Hesap verileri yükleniyor…</div>';
+ const {data,error}=await sb.from("emigro_catalog_quotes").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false});
+ if(error){root.innerHTML='<div class="admin-loading">Veriler yüklenemedi: '+error.message+'</div>';return}
+ const list=data||[];
+ const counts={
+  all:list.length,
+  pending:list.filter(q=>["new","reviewing"].includes(q.status)).length,
+  offered:list.filter(q=>q.status==="offered").length,
+  accepted:list.filter(q=>q.status==="accepted").length,
+  rejected:list.filter(q=>q.status==="declined").length
+ };
+ document.getElementById("customerDashboardStats").innerHTML=[
+  ["Toplam teklif",counts.all],
+  ["İncelenen",counts.pending],
+  ["Cevaplanan",counts.offered],
+  ["Kabul",counts.accepted],
+  ["Red",counts.rejected]
+ ].map(([l,n])=>`<div><span>${l}</span><strong>${n}</strong></div>`).join("");
+
+ let filtered=list;
+ if(customerDashboardTab==="orders")filtered=list.filter(q=>q.status==="accepted");
+ if(customerDashboardTab==="accepted")filtered=list.filter(q=>q.status==="accepted");
+ if(customerDashboardTab==="rejected")filtered=list.filter(q=>q.status==="declined");
+
+ if(!filtered.length){
+   const empty=customerDashboardTab==="orders"?"Henüz kabul edilmiş siparişiniz yok.":"Bu bölümde henüz kayıt yok.";
+   root.innerHTML=`<div class="my-quotes-empty"><b>${empty}</b><span>Yeni hareketler burada otomatik görünecek.</span></div>`;
+   return;
+ }
+ root.innerHTML=filtered.map(q=>{
+   const t=calcCustomerQuote(q);
+   const ready=["offered","accepted","declined"].includes(q.status);
+   const items=(q.items||[]).map(i=>`<div class="customer-dash-item"><div><b>${i.name}</b><small>${i.sku} · ${i.mode==="case"?"Koli":"Palet"} · ${i.qty} adet</small></div><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>`).join("");
+   return `<article class="customer-dash-card ${q.status}">
+    <div class="customer-dash-card-head">
+      <div><span class="my-quote-status ${q.status}">${customerQuoteStatus(q.status)}</span><h3>${q.offer_number?"Teklif "+q.offer_number:"Teklif talebi"}</h3><small>${new Date(q.created_at).toLocaleString("nl-NL")}</small></div>
+      <strong>${ready?euro(t.total):euro(t.base)}</strong>
+    </div>
+    <div class="customer-dash-items">${items}</div>
+    ${ready?`<div class="customer-dash-summary">
+      <div><span>Subtotaal</span><b>${euro(t.base)}</b></div>
+      <div><span>Korting</span><b>− ${euro(t.discount)}</b></div>
+      <div><span>Verzendkosten</span><b>${euro(t.shipping)}</b></div>
+      <div class="grand"><span>Totaal</span><b>${euro(t.total)}</b></div>
+    </div>`:""}
+    ${q.admin_note?`<div class="my-quote-note"><b>Emigro notu</b><span>${q.admin_note}</span></div>`:""}
+    ${q.offer_valid_to?`<div class="my-quote-valid"><span>Teklif geçerlilik tarihi</span><strong>${new Date(q.offer_valid_to).toLocaleDateString("nl-NL")}</strong></div>`:""}
+    ${q.status==="offered"?`<div class="customer-offer-actions"><button class="btn" onclick="decideCustomerQuote('${q.id}','accepted')">Teklifi kabul et</button><button class="ghost reject-offer" onclick="decideCustomerQuote('${q.id}','declined')">Teklifi reddet</button></div>`:""}
+    ${q.status==="accepted"?'<div class="customer-decision accepted">✓ Kabul edildi · Siparişlerim bölümünde görünüyor.</div>':""}
+    ${q.status==="declined"?'<div class="customer-decision declined">Reddedildi</div>':""}
+   </article>`;
+ }).join("");
+}
+
+document.getElementById("customerDashboardNav").onclick=()=>{
+ document.getElementById("customerDashboard").scrollIntoView({behavior:"smooth",block:"start"});
+};
+document.getElementById("refreshCustomerDashboard").onclick=loadCustomerDashboard;
+document.querySelectorAll("[data-customer-tab]").forEach(b=>b.onclick=()=>{
+ customerDashboardTab=b.dataset.customerTab;
+ document.querySelectorAll("[data-customer-tab]").forEach(x=>x.classList.toggle("active",x===b));
+ loadCustomerDashboard();
+});
+
 async function decideCustomerQuote(id,decision){
  const label=decision==="accepted"?"kabul etmek":"reddetmek";
  if(!confirm("Bu teklifi "+label+" istediğinize emin misiniz?"))return;
  const {error}=await sb.rpc("emigro_catalog_customer_decide_quote",{quote_id:id,p_decision:decision});
  if(error){alert("İşlem tamamlanamadı: "+error.message);return}
  await openMyQuotes();
+ await loadCustomerDashboard();
 }
 window.decideCustomerQuote=decideCustomerQuote;
 function openQuote(){
