@@ -67,18 +67,32 @@ function renderMembers(){
     <button class="ghost" onclick="saveCustomerPricing('${p.id}')">Fiyat ayarını kaydet</button>
   </div>
   <div class="member-actions">
-   <button class="approve" onclick="setStatus('${p.id}','approved')">Onayla</button>
-   <button onclick="setStatus('${p.id}','pending')">Beklemeye al</button>
-   <button class="reject" onclick="setStatus('${p.id}','rejected')">Reddet</button>
-   <button class="suspend" onclick="setStatus('${p.id}','suspended')">Askıya al</button>
+   <button class="approve" ${p.status==="approved"?"disabled":""} onclick="setStatus('${p.id}','approved',this)">${p.status==="approved"?"Onaylandı":"Onayla"}</button>
+   <button ${p.status==="pending"?"disabled":""} onclick="setStatus('${p.id}','pending',this)">Beklemeye al</button>
+   <button class="reject" ${p.status==="rejected"?"disabled":""} onclick="setStatus('${p.id}','rejected',this)">Reddet</button>
+   <button class="suspend" ${p.status==="suspended"?"disabled":""} onclick="setStatus('${p.id}','suspended',this)">Askıya al</button>
   </div>
  </article>`).join(""):'<div class="admin-loading">Bu durumda üye bulunmuyor.</div>';
 }
 
-async function setStatus(id,status){
+async function setStatus(id,status,btn){
+ const original=btn?.textContent||"";
+ if(btn){btn.disabled=true;btn.textContent="Kaydediliyor…"}
  const {error}=await sb.rpc("emigro_catalog_admin_set_status",{target_user:id,new_status:status});
- if(error){alert("Durum güncellenemedi: "+error.message);return}
+ if(error){
+   if(btn){btn.disabled=false;btn.textContent=original}
+   alert("Durum güncellenemedi: "+error.message);
+   return;
+ }
+ const {data:check,error:checkError}=await sb.from("emigro_catalog_profiles").select("status").eq("id",id).single();
+ if(checkError||check?.status!==status){
+   if(btn){btn.disabled=false;btn.textContent=original}
+   alert("Durum kaydedildi ancak ekran doğrulaması başarısız oldu. Sayfayı yenileyin.");
+   return;
+ }
  await loadProfiles();
+ const labels={approved:"Üyelik onaylandı.",pending:"Üyelik beklemeye alındı.",rejected:"Üyelik reddedildi.",suspended:"Üyelik askıya alındı."};
+ alert(labels[status]||"Durum güncellendi.");
 }
 window.setStatus=setStatus;
 
@@ -910,18 +924,30 @@ window.saveOrder=saveOrder;
 document.getElementById("adminProductSearch").oninput=renderAdminProducts;
 document.querySelectorAll("[data-ofilter]").forEach(b=>b.onclick=()=>{orderFilter=b.dataset.ofilter;document.querySelectorAll("[data-ofilter]").forEach(x=>x.classList.toggle("active",x===b));renderOrders()});
 
-document.querySelectorAll("[data-admin-tab]").forEach(b=>b.onclick=async()=>{
+const ADMIN_TAB_ORDER=["members","quotes","products","productManager","orders"];
+function arrangeAdminTabs(activeTab){
+ const nav=document.querySelector(".admin-main-tabs");if(!nav)return;
+ const buttons=new Map([...nav.querySelectorAll("[data-admin-tab]")].map(b=>[b.dataset.adminTab,b]));
+ const idx=ADMIN_TAB_ORDER.indexOf(activeTab);
+ if(idx<0)return;
+ const ordered=[-2,-1,0,1,2].map(offset=>ADMIN_TAB_ORDER[(idx+offset+ADMIN_TAB_ORDER.length)%ADMIN_TAB_ORDER.length]);
+ ordered.forEach(key=>{const b=buttons.get(key);if(b)nav.appendChild(b)});
+}
+async function activateAdminTab(b){
  const tab=b.dataset.adminTab;
  document.getElementById("membersPanel").classList.toggle("hidden",tab!=="members");
  document.getElementById("quotesPanel").classList.toggle("hidden",tab!=="quotes");
  document.getElementById("productsPanel").classList.toggle("hidden",tab!=="products");
  document.getElementById("productManagerPanel").classList.toggle("hidden",tab!=="productManager");
  document.getElementById("ordersPanel").classList.toggle("hidden",tab!=="orders");
- document.querySelectorAll("[data-admin-tab]").forEach(x=>x.classList.toggle("active",x===b));
+ document.querySelectorAll("[data-admin-tab]").forEach(x=>x.classList.toggle("active",x.dataset.adminTab===tab));
+ if(matchMedia("(max-width:700px)").matches)arrangeAdminTabs(tab);
  if(tab==="products"){await loadDefaultImages();await loadExistingProductMap();renderImportRows()}
  if(tab==="productManager"){await loadAdminProducts()}
  if(tab==="orders"){await loadOrders()}
-});
+}
+document.querySelectorAll("[data-admin-tab]").forEach(b=>b.onclick=()=>activateAdminTab(b));
+if(matchMedia("(max-width:700px)").matches)arrangeAdminTabs("members");
 document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{memberFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));renderMembers()});
 document.querySelectorAll("[data-qfilter]").forEach(b=>b.onclick=()=>{quoteFilter=b.dataset.qfilter;document.querySelectorAll("[data-qfilter]").forEach(x=>x.classList.toggle("active",x===b));renderQuotes()});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>document.getElementById(b.dataset.close).classList.add("hidden"));
