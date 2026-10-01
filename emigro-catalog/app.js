@@ -80,19 +80,23 @@ async function syncAuth(){
 }
 function renderAuthButton(){
  const btn=document.getElementById("accountBtn");
+ const accountQuick=document.getElementById("customerAccountBtn");
  const nav=document.getElementById("customerDashboardNav");
  const dash=document.getElementById("customerDashboard");
  if(demoMode){
    btn.textContent="Emigro Demo B.V.";
+   accountQuick?.classList.remove("hidden");
    nav?.classList.remove("hidden");dash?.classList.remove("hidden");
    return;
  }
  if(!session){
    btn.textContent="Giriş / Üyelik";
+   accountQuick?.classList.add("hidden");
    nav?.classList.add("hidden");dash?.classList.add("hidden");
    return;
  }
  btn.textContent=profile?.company_name||session.user.email||"Hesabım";
+ accountQuick?.classList.remove("hidden");
  nav?.classList.remove("hidden");dash?.classList.remove("hidden");
  loadCustomerDashboard();
 }
@@ -139,6 +143,9 @@ window.requestPdf=requestPdf;
 document.getElementById("loginTab").onclick=()=>switchAuthTab("login");
 document.getElementById("registerTab").onclick=()=>switchAuthTab("register");
 document.getElementById("accountBtn").onclick=()=>openAuth();
+document.getElementById("customerAccountBtn").onclick=()=>{
+ document.getElementById("customerDashboard").scrollIntoView({behavior:"smooth",block:"start"});
+};
 document.getElementById("adminPanelBtn").onclick=()=>location.href="./admin.html";
 document.getElementById("myQuotesBtn").onclick=()=>openMyQuotes();
 document.getElementById("logoutBtn").onclick=async()=>{if(!demoMode)await sb.auth.signOut();demoMode=false;session=null;profile=null;priceMap={};quoteItems=[];persistQuote();closeModal("authModal");renderAuthButton();renderAll()};
