@@ -103,7 +103,16 @@ async function loadLiveCatalog(){
  const statEls=document.querySelectorAll(".stats strong");
  if(statEls[0])statEls[0].textContent=products.length+"+";
 }
-function openModal(id){document.getElementById(id).classList.remove("hidden")}
+function openModal(id){
+ const wrap=document.getElementById(id);
+ if(!wrap)return;
+ wrap.classList.remove("hidden");
+ const modal=wrap.querySelector(".modal");
+ if(modal){
+   modal.scrollTop=0;
+   requestAnimationFrame(()=>{modal.scrollTop=0});
+ }
+}
 function closeModal(id){document.getElementById(id).classList.add("hidden");if(id==="productModal")history.replaceState(null,"",location.pathname)}
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
 
