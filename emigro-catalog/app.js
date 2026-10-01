@@ -24,6 +24,11 @@ const products=cats.flatMap((c,ci)=>Array.from({length:23},(_,i)=>{
 }));
 const euro=n=>n==null?"Prijs op aanvraag":new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(n);
 let active="All",shown=24,sort="name",query="",selected=null,selectedImage=0,compare=[],priceMode={},favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]"),quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
+const getLoggedInMember=()=>{
+ try{
+   return window.EMIGRO_MEMBER || JSON.parse(localStorage.getItem("emigro-auth-member")||"null");
+ }catch{return null}
+};
 
 const bottle=(p,large=false)=>`<div class="bottle ${large?"large":""}" style="background:linear-gradient(155deg,${p.tone},#1c234a)"><div class="cap"></div><div class="label">PREMIUM<br>SELECTION</div></div>`;
 const catMeta=name=>cats.find(c=>c[0]===name);
@@ -91,7 +96,7 @@ function renderProducts(){
  document.getElementById("loadMore").style.display=shown<list.length?"inline-block":"none";
 }
 function renderFeatured(){
- const list=products.filter(p=>p.featured).slice(0,8);
+ const list=cats.map(c=>products.find(p=>p.category===c[0]&&p.featured)).filter(Boolean);
  document.getElementById("featuredGrid").innerHTML=list.map(p=>`<article class="featured-card" onclick="openProduct(${p.id})">${bottle(p)}<div class="brandline">${p.category}</div><h3>${p.brand}<br>${p.name}</h3><div class="meta">${p.origin} · ${p.net}</div>${p.beverage?`<div class="deposit-line">${depositText(p)}</div>`:""}</article>`).join("");
 }
 function renderAll(){renderBanner();renderCategories();renderProducts();renderCompareBar();renderQuoteCart()}
@@ -136,8 +141,22 @@ function renderQuoteCart(){
  document.getElementById("quoteCount").textContent=quoteItems.length+" ürün";
  document.getElementById("quoteTotal").textContent=euro(quoteTotal());
 }
+function populateMemberQuote(){
+ const member=getLoggedInMember();
+ const gate=document.getElementById("memberGate"),form=document.getElementById("quoteForm");
+ const approved=!!(member&&member.approved===true);
+ gate.classList.toggle("hidden",approved);
+ form.classList.toggle("hidden",!approved);
+ if(!approved)return false;
+ document.getElementById("memberName").value=member.name||"";
+ document.getElementById("memberCompany").value=member.company||"";
+ document.getElementById("memberEmail").value=member.email||"";
+ document.getElementById("memberPhone").value=member.phone||"";
+ document.getElementById("memberNumber").value=member.memberNumber||member.id||"";
+ return true;
+}
 function openQuote(){
- renderQuoteLines();document.getElementById("quoteModal").classList.remove("hidden");
+ renderQuoteLines();populateMemberQuote();document.getElementById("quoteModal").classList.remove("hidden");
 }
 function renderQuoteLines(){
  const root=document.getElementById("quoteLines");
@@ -182,5 +201,10 @@ document.getElementById("shareBtn").onclick=shareProduct;
 document.getElementById("mainMedia").onclick=()=>{selectedImage=(selectedImage+1)%3;renderMedia()};
 document.getElementById("detailQuoteBtn").onclick=()=>selected&&addQuote(selected.id);
 document.getElementById("openQuote").onclick=openQuote;
+document.getElementById("memberLoginBtn").onclick=()=>{
+ const event=new CustomEvent("emigro:request-login");
+ window.dispatchEvent(event);
+ alert("Teklif talebi için onaylı B2B üyelikle giriş yapmanız gerekir. Üyelik/login sistemi bağlandığında bu ekran giriş sayfasına yönlenecek.");
+};
 renderHero();renderCategorySquares();renderFeatured();renderAll();
 const sku=new URLSearchParams(location.search).get("product");if(sku){const p=products.find(x=>x.sku===sku);if(p)openProduct(p.id)}
