@@ -31,11 +31,18 @@ const euro=n=>n==null?"—":new Intl.NumberFormat("nl-NL",{style:"currency",curr
 let active="All",shown=24,sort="name",query="",selected=null,selectedImage=0,compare=[],priceMode={};
 let favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]");
 let quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
-let session=null,profile=null,priceMap={},pendingAction=null,kvkVerified=false,verifiedKvkData=null;
+let session=null,profile=null,priceMap={},pendingAction=null,kvkVerified=false,verifiedKvkData=null,demoMode=false;
 
-const approved=()=>profile?.status==="approved";
+const approved=()=>demoMode||profile?.status==="approved";
 const isAdmin=()=>profile?.role==="admin";
+const demoPriceFor=(p,mode)=>{
+ const ci=Math.floor((p.id-1)/23),i=(p.id-1)%23;
+ const casePrice=p.caseAvailable?Number((14.5+ci*1.35+(i%9)*.85).toFixed(2)):null;
+ const palletPrice=p.palletAvailable?Number(((casePrice??20.5)*p.palletCases*.965).toFixed(2)):null;
+ return mode==="case"?casePrice:palletPrice;
+};
 const priceFor=(p,mode)=>{
+ if(demoMode)return demoPriceFor(p,mode);
  const row=priceMap[p.sku];
  return mode==="case"?row?.case_price:row?.pallet_price;
 };
@@ -73,6 +80,7 @@ async function syncAuth(){
 }
 function renderAuthButton(){
  const btn=document.getElementById("accountBtn");
+ if(demoMode){btn.textContent="Emigro Demo B.V.";return}
  if(!session){btn.textContent="Giriş / Üyelik";return}
  btn.textContent=profile?.company_name||session.user.email||"Hesabım";
 }
@@ -80,21 +88,21 @@ function openAuth(reason="Fiyatları görmek ve teklif istemek için onaylı üy
  pendingAction=action;
  document.getElementById("authReason").textContent=reason;
  document.getElementById("authTitle").textContent=session?"Hesabım":"Giriş yap veya üye ol";
- document.getElementById("loginForm").classList.toggle("hidden",!!session);
+ document.getElementById("loginForm").classList.toggle("hidden",!!session||demoMode);
  document.getElementById("registerForm").classList.add("hidden");
- document.querySelector(".auth-tabs").classList.toggle("hidden",!!session);
- document.getElementById("accountPanel").classList.toggle("hidden",!session);
- if(session) renderAccountPanel();
+ document.querySelector(".auth-tabs").classList.toggle("hidden",!!session||demoMode);
+ document.getElementById("accountPanel").classList.toggle("hidden",!(session||demoMode));
+ if(session||demoMode) renderAccountPanel();
  openModal("authModal");
 }
 window.openAuth=openAuth;
 function renderAccountPanel(){
  const status=document.getElementById("accountStatus"),facts=document.getElementById("accountFacts");
- const label={pending:"Onay bekliyor",approved:"Onaylandı",rejected:"Reddedildi",suspended:"Askıya alındı"}[profile?.status]||"Profil yükleniyor";
+ const label=demoMode?"Demo kullanıcı":({pending:"Onay bekliyor",approved:"Onaylandı",rejected:"Reddedildi",suspended:"Askıya alındı"}[profile?.status]||"Profil yükleniyor");
  status.className="account-status "+(profile?.status||"pending");
  status.innerHTML=`<strong>${label}</strong><span>${approved()?"Fiyat, PDF katalog ve teklif özellikleri açık.":"Emigro onayından sonra fiyat, PDF ve teklif özellikleri açılır."}</span>`;
  facts.innerHTML=profile?`<div><span>Firma</span><b>${profile.company_name||"—"}</b></div><div><span>Yetkili</span><b>${profile.contact_name||"—"}</b></div><div><span>KvK</span><b>${profile.kvk_number||"—"}</b></div><div><span>BTW</span><b>${profile.btw_number||"—"}</b></div>`:"";
- const corporateAdminCandidate=(session?.user?.email||"").toLowerCase().endsWith("@emigro.nl");
+ const corporateAdminCandidate=!demoMode&&(session?.user?.email||"").toLowerCase().endsWith("@emigro.nl");
  document.getElementById("adminPanelBtn").classList.toggle("hidden",!(isAdmin()||corporateAdminCandidate));
 }
 function switchAuthTab(tab){
@@ -112,7 +120,7 @@ async function finishPendingAction(){
 }
 async function requestPdf(){
  if(!approved()){openAuth("PDF kataloğunu indirmek için Emigro tarafından onaylanmış üyeliğinizle giriş yapın.","pdf");return}
- location.href="./print.html?autoprint=1";
+ location.href=demoMode?"./print.html?demo=1&autoprint=1":"./print.html?autoprint=1";
 }
 window.requestPdf=requestPdf;
 
@@ -120,7 +128,7 @@ document.getElementById("loginTab").onclick=()=>switchAuthTab("login");
 document.getElementById("registerTab").onclick=()=>switchAuthTab("register");
 document.getElementById("accountBtn").onclick=()=>openAuth();
 document.getElementById("adminPanelBtn").onclick=()=>location.href="./admin.html";
-document.getElementById("logoutBtn").onclick=async()=>{await sb.auth.signOut();session=null;profile=null;priceMap={};quoteItems=[];persistQuote();closeModal("authModal");renderAuthButton();renderAll()};
+document.getElementById("logoutBtn").onclick=async()=>{if(!demoMode)await sb.auth.signOut();demoMode=false;session=null;profile=null;priceMap={};quoteItems=[];persistQuote();closeModal("authModal");renderAuthButton();renderAll()};
 document.getElementById("loginForm").onsubmit=async e=>{
  e.preventDefault();const box=document.getElementById("loginMessage");box.textContent="Giriş yapılıyor...";
  const {data,error}=await sb.auth.signInWithPassword({email:document.getElementById("loginEmail").value.trim(),password:document.getElementById("loginPassword").value});
@@ -155,6 +163,13 @@ async function verifyKvk(){
 }
 document.getElementById("verifyKvkBtn").onclick=verifyKvk;
 document.getElementById("regKvk").addEventListener("input",()=>{kvkVerified=false;verifiedKvkData=null;document.getElementById("kvkStatus").textContent="KVK numarası değişti; yeniden doğrulayın.";document.getElementById("kvkStatus").className="kvk-status"});
+const demoBtn=document.getElementById("demoLoginBtn");
+if(new URLSearchParams(location.search).get("demo")==="1")demoBtn.classList.remove("hidden");
+demoBtn.onclick=()=>{
+ demoMode=true;
+ profile={status:"approved",role:"member",company_name:"Emigro Demo B.V.",contact_name:"Demo Gebruiker",email:"demo@emigro.local",phone:"010-0000000",kvk_number:"12345678",btw_number:"NL000000000B01"};
+ closeModal("authModal");renderAuthButton();renderAll();
+};
 document.getElementById("registerForm").onsubmit=async e=>{
  e.preventDefault();const box=document.getElementById("registerMessage");
  if(!kvkVerified){box.textContent="Üyelik başvurusu için KVK numarasını önce resmi KVK kaydından doğrulamanız gerekir.";return}
