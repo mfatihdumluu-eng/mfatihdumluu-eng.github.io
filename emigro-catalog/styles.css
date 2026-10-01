@@ -155,3 +155,11 @@ h1,h2,h3,h4,.hero h1,.catalog h2,.featured-section h2,.modal h2,.card-body h3,.p
 .import-fields{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}.import-fields label{display:grid;gap:5px;font-size:9px;font-weight:700;color:#59617c}.import-fields input{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:9px;padding:9px 10px;background:#fff;color:#293369;font:500 11px 'Roboto',sans-serif}.import-fields label>small{font-size:8px;color:#8a90a4;font-weight:400}.import-check{display:flex!important;align-items:center;gap:8px!important;border:1px solid var(--line);border-radius:9px;padding:9px;background:#f8f9fc}.import-check input{width:auto!important}.import-check span{font-size:10px}
 .import-price-preview{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}.import-price-preview span{font-size:10px;color:#59617c}.import-price-preview b{color:#293369}.import-price-preview small{margin-left:auto;font-size:8px;color:#ec0419;font-weight:700}
 @media(max-width:1000px){.product-import-rules{grid-template-columns:1fr}.import-fields{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.product-import-head{flex-direction:column}.product-import-upload-grid,.product-import-summary{grid-template-columns:1fr 1fr}.import-product-top{flex-direction:column}.import-card-status{text-align:left}.import-fields{grid-template-columns:1fr}.import-images{width:100%;overflow:auto}.product-import-actions{flex-direction:column}}@media(max-width:460px){.product-import-upload-grid,.product-import-summary{grid-template-columns:1fr}}
+
+.real-product-image{display:block;width:118px;height:168px;object-fit:contain;margin:auto;filter:drop-shadow(0 12px 16px rgba(41,51,105,.12))}
+.real-product-image.large{width:min(330px,88%);height:390px}
+.detail-real-image{display:block;width:min(420px,92%);height:420px;object-fit:contain;margin:auto;background:#fff}
+.thumb .real-product-image,.thumb .detail-real-image{width:62px!important;height:58px!important;object-fit:contain;margin:auto}
+.card-media .real-product-image{width:130px;height:180px}
+.hero-tile .real-product-image,.mini-hero .real-product-image{width:110px;height:150px}
+@media(max-width:600px){.real-product-image.large,.detail-real-image{height:300px}}
