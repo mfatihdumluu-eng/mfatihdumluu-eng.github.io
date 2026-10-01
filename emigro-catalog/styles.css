@@ -758,3 +758,106 @@ img,svg,video,canvas{max-width:100%}
 @media(max-width:1100px){.advanced-controls{grid-template-columns:1fr 1fr 1fr}.search-with-scan{grid-column:1/-1}.admin-product-fields{grid-template-columns:repeat(3,1fr)}.price-period-admin{grid-template-columns:1fr 1fr 1fr}.price-period-admin>div{grid-column:1/-1}}
 @media(max-width:700px){.advanced-controls{grid-template-columns:1fr!important}.search-with-scan{grid-column:auto}.member-pricing{grid-template-columns:1fr}.price-period-admin{grid-template-columns:1fr}.price-period-admin>*{grid-column:auto!important}.admin-product-card{grid-template-columns:1fr}.admin-product-media{height:150px}.admin-product-fields{grid-template-columns:1fr}.order-admin-controls{grid-template-columns:1fr}.customer-favorites-grid{grid-template-columns:1fr 1fr}.address-manager{grid-template-columns:1fr}.order-delivery-edit{grid-template-columns:1fr}.notification-card{flex-direction:column}}
 @media(max-width:430px){.customer-favorites-grid{grid-template-columns:1fr}}
+
+/* Admin mobile app dock + order filter fit */
+.admin-tab-icon{display:none}
+.admin-tab-icon svg{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.shipping-track{margin:10px 0;padding:12px;border:1px solid #dfe4f2;border-radius:12px;background:#f7f9ff;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.shipping-track span{font-size:9px;color:var(--muted);text-transform:uppercase}.shipping-track strong{color:#293369}.shipping-track .btn{margin-left:auto;text-decoration:none}
+@media(max-width:700px){
+  body:has(#adminShell:not(.hidden)){padding-bottom:calc(100px + env(safe-area-inset-bottom))!important}
+  #adminShell{padding-bottom:24px!important}
+  .admin-main-tabs{
+    position:fixed!important;
+    left:14px!important;
+    right:14px!important;
+    bottom:calc(12px + env(safe-area-inset-bottom))!important;
+    z-index:10050!important;
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    gap:0!important;
+    width:auto!important;
+    max-width:none!important;
+    overflow:visible!important;
+    padding:8px 9px!important;
+    min-height:68px!important;
+    border:1px solid rgba(41,51,105,.10)!important;
+    border-radius:24px!important;
+    background:rgba(255,255,255,.97)!important;
+    box-shadow:0 16px 38px rgba(24,32,68,.22)!important;
+    backdrop-filter:blur(18px)!important;
+    -webkit-backdrop-filter:blur(18px)!important;
+  }
+  .admin-main-tabs button{
+    position:relative!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    min-width:0!important;
+    height:52px!important;
+    padding:0!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:16px!important;
+    background:transparent!important;
+    color:#737b94!important;
+    overflow:visible!important;
+  }
+  .admin-tab-label{display:none!important}
+  .admin-tab-icon{
+    width:46px!important;
+    height:46px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border-radius:50%!important;
+    background:transparent!important;
+    color:inherit!important;
+  }
+  .admin-tab-icon svg{width:28px!important;height:28px!important}
+  .admin-main-tabs button.active .admin-tab-icon{background:#edf1fb!important;color:#293369!important}
+  .admin-main-tabs button[data-admin-tab="productManager"] .admin-tab-icon{
+    width:66px!important;height:66px!important;
+    border:5px solid #fff!important;
+    background:linear-gradient(180deg,#ec2637 0%,#ec0419 100%)!important;
+    color:#fff!important;
+    box-shadow:0 10px 24px rgba(236,4,25,.28)!important;
+    transform:translateY(-17px)!important;
+  }
+  .admin-main-tabs button[data-admin-tab="productManager"].active .admin-tab-icon{
+    background:linear-gradient(180deg,#34438e 0%,#293369 100%)!important;
+    box-shadow:0 10px 24px rgba(41,51,105,.30)!important;
+  }
+  #newQuoteBadge{
+    position:absolute!important;
+    right:7px!important;
+    top:2px!important;
+    min-width:18px!important;height:18px!important;
+    border-radius:999px!important;
+    background:#ec0419!important;color:#fff!important;
+    font-size:8px!important;display:grid!important;place-items:center!important;
+  }
+  #ordersPanel .admin-filter,
+  #quotesPanel .admin-filter,
+  #membersPanel .admin-filter{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:7px!important;
+    overflow:visible!important;
+    width:100%!important;
+  }
+  #ordersPanel .admin-filter button,
+  #quotesPanel .admin-filter button,
+  #membersPanel .admin-filter button{
+    min-width:0!important;
+    width:100%!important;
+    white-space:normal!important;
+    line-height:1.05!important;
+    padding:10px 6px!important;
+    font-size:10px!important;
+  }
+  .order-admin-controls{grid-template-columns:1fr!important}
+  .order-admin-controls input,.order-admin-controls select{width:100%!important;font-size:16px!important}
+  .shipping-track{align-items:flex-start;flex-direction:column}.shipping-track .btn{margin-left:0;width:100%;text-align:center}
+  .admin-hero{margin-bottom:12px!important}
+}
