@@ -128,6 +128,7 @@ document.getElementById("loginTab").onclick=()=>switchAuthTab("login");
 document.getElementById("registerTab").onclick=()=>switchAuthTab("register");
 document.getElementById("accountBtn").onclick=()=>openAuth();
 document.getElementById("adminPanelBtn").onclick=()=>location.href="./admin.html";
+document.getElementById("myQuotesBtn").onclick=()=>openMyQuotes();
 document.getElementById("logoutBtn").onclick=async()=>{if(!demoMode)await sb.auth.signOut();demoMode=false;session=null;profile=null;priceMap={};quoteItems=[];persistQuote();closeModal("authModal");renderAuthButton();renderAll()};
 document.getElementById("loginForm").onsubmit=async e=>{
  e.preventDefault();const box=document.getElementById("loginMessage");box.textContent="Giriş yapılıyor...";
@@ -336,6 +337,42 @@ function populateMemberQuote(){
  document.getElementById("memberPhone").value=profile.phone||"";
  document.getElementById("memberNumber").value=profile.id||"";
 }
+function customerQuoteStatus(s){return {new:"Talep alındı",reviewing:"İnceleniyor",offered:"Teklif hazır",accepted:"Kabul edildi",declined:"Reddedildi",closed:"Kapalı"}[s]||s}
+function calcCustomerQuote(q){
+ const base=Number(q.estimated_total||0);
+ const pct=base*(Number(q.discount_percent||0)/100);
+ const discount=Math.min(base,pct+Number(q.discount_amount||0));
+ const shipping=Number(q.shipping_fee||0);
+ return {base,discount,shipping,total:Math.max(0,base-discount+shipping)};
+}
+async function openMyQuotes(){
+ if(!session){openAuth("Tekliflerinizi görmek için müşteri hesabınızla giriş yapın.");return}
+ openModal("myQuotesModal");
+ const root=document.getElementById("myQuotesList");
+ root.innerHTML='<div class="admin-loading">Teklifler yükleniyor…</div>';
+ const {data,error}=await sb.from("emigro_catalog_quotes").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false});
+ if(error){root.innerHTML='<div class="admin-loading">Teklifler yüklenemedi: '+error.message+'</div>';return}
+ const list=data||[];
+ if(!list.length){root.innerHTML='<div class="my-quotes-empty"><b>Henüz teklif talebiniz yok.</b><span>Ürünlerden teklif istediğinizde talepleriniz burada görünür.</span></div>';return}
+ root.innerHTML=list.map(q=>{
+   const t=calcCustomerQuote(q);
+   const ready=q.status==="offered"||q.status==="accepted";
+   const items=(q.items||[]).map(i=>`<div class="my-quote-item"><div><b>${i.name}</b><small>${i.sku} · ${i.mode==="case"?"Koli":"Palet"} · ${i.qty} adet</small></div><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>`).join("");
+   return `<article class="my-quote-card ${ready?"ready":""}">
+     <div class="my-quote-head"><div><span class="my-quote-status ${q.status}">${customerQuoteStatus(q.status)}</span><h3>${q.offer_number?"Teklif "+q.offer_number:"Teklif talebi"}</h3><small>${new Date(q.created_at).toLocaleString("nl-NL")}</small></div><strong>${ready?euro(t.total):euro(t.base)}</strong></div>
+     <div class="my-quote-items">${items}</div>
+     ${ready?`<div class="my-quote-summary">
+       <div><span>Subtotaal</span><b>${euro(t.base)}</b></div>
+       <div><span>Korting${Number(q.discount_percent||0)?' ('+Number(q.discount_percent)+'%)':''}</span><b>− ${euro(t.discount)}</b></div>
+       <div><span>Verzendkosten</span><b>${euro(t.shipping)}</b></div>
+       <div class="grand"><span>Totaal</span><b>${euro(t.total)}</b></div>
+     </div>`:`<div class="my-quote-wait">Emigro teklifinizi hazırlıyor. Hazır olduğunda burada toplam, korting, kargo ve geçerlilik tarihi görünecek.</div>`}
+     ${q.admin_note?`<div class="my-quote-note"><b>Emigro notu</b><span>${q.admin_note}</span></div>`:""}
+     ${q.offer_valid_to?`<div class="my-quote-valid"><span>Teklif geçerlilik tarihi</span><strong>${new Date(q.offer_valid_to).toLocaleDateString("nl-NL")}</strong></div>`:""}
+   </article>`;
+ }).join("");
+}
+window.openMyQuotes=openMyQuotes;
 function openQuote(){
  if(!approved()){openAuth("Teklif talebi yalnızca Emigro tarafından onaylanmış B2B üyeler içindir.","quote");return}
  renderQuoteLines();populateMemberQuote();openModal("quoteModal");
