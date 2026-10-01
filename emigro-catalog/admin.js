@@ -63,11 +63,6 @@ function renderMembers(){
    <div><span>KvK</span><b>${esc(p.kvk_number)}</b></div><div><span>BTW</span><b>${esc(p.btw_number)}</b></div><div><span>Rol</span><b>${esc(p.role)}</b></div>
   </div>
   ${p.referred_by?`<div class="member-referral"><span>DAVET BİLGİSİ</span><b>${esc((profileMap[p.referred_by]?.role==="admin"?"Emigro Cash & Carry":profileMap[p.referred_by]?.company_name)||"Davet eden kullanıcı")}</b><small>${esc(profileMap[p.referred_by]?.contact_name||profileMap[p.referred_by]?.email||"")} · Kod: ${esc(p.referred_by_code||"—")}</small></div>`:""}
-  <div class="member-pricing">
-    <label>Müşteri indirimi (%)<input type="number" min="0" max="100" step="0.01" id="memberDiscount-${p.id}" value="${Number(p.customer_discount_percent||0)}"></label>
-    <label>Fiyat seviyesi<input id="memberPriceLevel-${p.id}" value="${esc(p.price_level||"standard")}"></label>
-    <button class="ghost" onclick="saveCustomerPricing('${p.id}')">Fiyat ayarını kaydet</button>
-  </div>
   <div class="member-actions">
    <button class="approve" ${p.status==="approved"?"disabled":""} onclick="setStatus('${p.id}','approved',this)">${p.status==="approved"?"Onaylandı":"Onayla"}</button>
    <button ${p.status==="pending"?"disabled":""} onclick="setStatus('${p.id}','pending',this)">Beklemeye al</button>
