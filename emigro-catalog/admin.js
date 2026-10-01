@@ -924,15 +924,6 @@ window.saveOrder=saveOrder;
 document.getElementById("adminProductSearch").oninput=renderAdminProducts;
 document.querySelectorAll("[data-ofilter]").forEach(b=>b.onclick=()=>{orderFilter=b.dataset.ofilter;document.querySelectorAll("[data-ofilter]").forEach(x=>x.classList.toggle("active",x===b));renderOrders()});
 
-const ADMIN_TAB_ORDER=["members","quotes","products","productManager","orders"];
-function arrangeAdminTabs(activeTab){
- const nav=document.querySelector(".admin-main-tabs");if(!nav)return;
- const buttons=new Map([...nav.querySelectorAll("[data-admin-tab]")].map(b=>[b.dataset.adminTab,b]));
- const idx=ADMIN_TAB_ORDER.indexOf(activeTab);
- if(idx<0)return;
- const ordered=[-2,-1,0,1,2].map(offset=>ADMIN_TAB_ORDER[(idx+offset+ADMIN_TAB_ORDER.length)%ADMIN_TAB_ORDER.length]);
- ordered.forEach(key=>{const b=buttons.get(key);if(b)nav.appendChild(b)});
-}
 async function activateAdminTab(b){
  const tab=b.dataset.adminTab;
  document.getElementById("membersPanel").classList.toggle("hidden",tab!=="members");
@@ -941,13 +932,11 @@ async function activateAdminTab(b){
  document.getElementById("productManagerPanel").classList.toggle("hidden",tab!=="productManager");
  document.getElementById("ordersPanel").classList.toggle("hidden",tab!=="orders");
  document.querySelectorAll("[data-admin-tab]").forEach(x=>x.classList.toggle("active",x.dataset.adminTab===tab));
- if(matchMedia("(max-width:700px)").matches)arrangeAdminTabs(tab);
  if(tab==="products"){await loadDefaultImages();await loadExistingProductMap();renderImportRows()}
  if(tab==="productManager"){await loadAdminProducts()}
  if(tab==="orders"){await loadOrders()}
 }
 document.querySelectorAll("[data-admin-tab]").forEach(b=>b.onclick=()=>activateAdminTab(b));
-if(matchMedia("(max-width:700px)").matches)arrangeAdminTabs("members");
 document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{memberFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));renderMembers()});
 document.querySelectorAll("[data-qfilter]").forEach(b=>b.onclick=()=>{quoteFilter=b.dataset.qfilter;document.querySelectorAll("[data-qfilter]").forEach(x=>x.classList.toggle("active",x===b));renderQuotes()});
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>document.getElementById(b.dataset.close).classList.add("hidden"));
