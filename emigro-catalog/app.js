@@ -54,7 +54,7 @@ let active="All",shown=24,sort="name",query="",originFilter="",saleFilter="",dep
 let favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]");
 let quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
 let session=null,profile=null,priceMap={},pendingAction=null,kvkVerified=false,verifiedKvkData=null,demoMode=false;
-let customerOrders=[],customerAddresses=[],customerNotifications=[],customerQuotes=[];
+let customerOrders=[],customerAddresses=[],customerNotifications=[],customerQuotes=[],liveCatalogLoaded=false;
 const REFERRAL_CODE=(new URLSearchParams(location.search).get("ref")||"").trim().toUpperCase();
 let referralLandingHandled=false;
 
@@ -99,7 +99,8 @@ async function loadActiveValidity(){
 }
 async function loadLiveCatalog(){
  const {data,error}=await sb.from("emigro_catalog_products_public").select("*").order("category").order("product_name");
- if(error||!data?.length)return;
+ if(error||!data?.length){liveCatalogLoaded=false;return;}
+ liveCatalogLoaded=true;
 
  const oldMeta=new Map(cats.map(c=>[c[0].toLowerCase(),c]));
  const unique=[...new Set(data.map(x=>x.category).filter(Boolean))];
@@ -139,6 +140,8 @@ async function loadLiveCatalog(){
     minQty:Number(r.min_order_qty||1)
    };
  });
+ quoteItems=quoteItems.filter(item=>products.some(p=>String(p.id)===String(item.id)));
+ persistQuote();
  const statEls=document.querySelectorAll(".stats strong");
  if(statEls[0])statEls[0].textContent=products.length+"+";
  const originSelect=document.getElementById("originFilter");
@@ -849,14 +852,33 @@ document.getElementById("quoteForm").onsubmit=async e=>{
  if(!approved()){closeModal("quoteModal");openAuth("Teklif göndermek için onaylı üyelik gerekir.","quote");return}
  if(!document.getElementById("validityConfirm").checked)return;
  const btn=document.getElementById("quoteSubmitBtn");btn.disabled=true;btn.textContent="Gönderiliyor...";
- const payload=quoteItems.map(item=>({product_id:item.id,mode:item.mode,qty:Number(item.qty)}));
- const {data,error}=await sb.rpc("emigro_catalog_submit_quote",{p_items:payload,p_note:document.getElementById("quoteNote").value||""});
+ const note=document.getElementById("quoteNote").value||"";
+ let payload,submitRpc;
+ if(liveCatalogLoaded){
+   payload=quoteItems.map(item=>({product_id:item.id,mode:item.mode,qty:Number(item.qty)}));
+   submitRpc="emigro_catalog_submit_quote";
+ }else{
+   payload=quoteItems.map(item=>{
+     const p=products.find(x=>String(x.id)===String(item.id));
+     return {
+       demo_id:Number(item.id),
+       sku:p?.sku||"",
+       name:[p?.brand,p?.name].filter(Boolean).join(" "),
+       mode:item.mode,
+       qty:Number(item.qty),
+       unit_price:Number(quoteLinePrice(item)||0)
+     };
+   });
+   submitRpc="emigro_catalog_submit_demo_quote";
+ }
+ const {data,error}=await sb.rpc(submitRpc,{p_items:payload,p_note:note});
  if(error){
    btn.disabled=false;btn.textContent="Teklif talebini gönder";
    const msg=String(error.message||"");
    if(msg.includes("exceeds allowed limit"))notify("Bu ürün için talep edilen miktar izin verilen sınırın üzerinde. Adedi düşürüp tekrar deneyin.");
    else if(msg.includes("minimum quantity"))notify("Bir veya daha fazla üründe minimum sipariş adedinin altında miktar girdiniz.");
-   else notify("Teklif kaydedilemedi: "+msg);
+   else if(msg.includes("invalid input syntax for type uuid"))notify("Teklif listenizde eski bir test ürünü kaldı. Liste temizlendi; ürünü yeniden ekleyip tekrar deneyin.","error");
+   else notify("Teklif kaydedilemedi: "+msg,"error");
    return
  }
  quoteItems=[];persistQuote();renderQuoteCart();renderProducts();
