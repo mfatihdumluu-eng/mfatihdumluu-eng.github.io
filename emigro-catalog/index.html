@@ -26,8 +26,8 @@
 <section class="hero" id="home">
   <div class="hero-copy">
     <div class="eyebrow">B2B PRODUCT CATALOGUE · 9 KATEGORİ · 200+ ÜRÜN</div>
-    <h1>Web, mobil ve baskı.<br>Tek katalog.</h1>
-    <p>Ürünleri herkes inceleyebilir. Fiyatları görmek, PDF kataloğu indirmek ve teklif istemek için Emigro tarafından onaylanmış B2B üyelik gerekir.</p>
+    <h1>Emigro Cash & Carry<br>Your B2B wholesale partner.</h1>
+    <p>Ürünleri, kategorileri ve güncel B2B tekliflerini tek yerden yönetin. Onaylı müşteriler koli/palet fiyatlarını görür, teklif oluşturur ve kabul edilen siparişlerini hesaplarından takip eder.</p>
     <div class="hero-actions"><a class="btn" href="#categoryBrowser">Ürünleri incele</a><button class="ghost" onclick="requestPdf()">PDF kataloğu aç</button></div>
     <div class="stats"><div><strong>207+</strong><span>ürün</span></div><div><strong>9</strong><span>kategori</span></div><div><strong>Onaylı</strong><span>B2B üyelik</span></div></div>
   </div>
@@ -55,6 +55,9 @@
     <button data-customer-tab="orders">Siparişlerim</button>
     <button data-customer-tab="accepted">Kabul edilen</button>
     <button data-customer-tab="rejected">Reddedilen</button>
+    <button data-customer-tab="favorites">Favoriler</button>
+    <button data-customer-tab="addresses">Adreslerim</button>
+    <button data-customer-tab="notifications">Bildirimler</button>
   </div>
   <div class="customer-dashboard-list" id="customerDashboardList"><div class="admin-loading">Hesap verileri yükleniyor…</div></div>
 </section>
@@ -73,7 +76,13 @@
   <div id="categoryBanner"></div>
   <div class="catalog-head">
     <div><div class="eyebrow">PRODUCT OVERVIEW</div><h2>Ürün kataloğu</h2><p id="resultCount"></p></div>
-    <div class="controls"><input id="search" placeholder="Ürün, marka, barkod veya SKU ara"><select id="sort"><option value="name">İsme göre</option><option value="low">Fiyat: düşükten</option><option value="high">Fiyat: yüksekten</option></select></div>
+    <div class="controls advanced-controls">
+      <div class="search-with-scan"><input id="search" placeholder="Ürün, marka, barkod veya SKU ara"><button class="ghost" id="scanBarcodeBtn" type="button" aria-label="Barkod tara">⌁ Tara</button></div>
+      <select id="sort"><option value="name">İsme göre</option><option value="low">Fiyat: düşükten</option><option value="high">Fiyat: yüksekten</option></select>
+      <select id="originFilter"><option value="">Tüm menşeiler</option></select>
+      <select id="saleFilter"><option value="">Koli / Palet</option><option value="case">Sadece koli</option><option value="pallet">Sadece palet</option><option value="both">Koli + palet</option></select>
+      <select id="depositFilter"><option value="">Statiegeld</option><option value="yes">Statiegeld var</option><option value="no">Statiegeld yok</option></select>
+    </div>
   </div>
   <div class="category-row" id="categories"></div>
   <div class="product-grid" id="productGrid"></div>
