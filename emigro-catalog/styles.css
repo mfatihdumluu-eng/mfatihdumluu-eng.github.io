@@ -1147,3 +1147,20 @@ img,svg,video,canvas{max-width:100%}
   .invite-actions .btn,.invite-actions .ghost{width:100%}
   .invite-stat-grid{grid-template-columns:1fr}
 }
+
+/* Hide fixed app docks while the mobile keyboard is open */
+@media(max-width:700px){
+  .mobile-app-nav,.admin-main-tabs{
+    transition:opacity .16s ease,transform .16s ease,visibility .16s ease!important;
+  }
+  body.keyboard-open .mobile-app-nav,
+  body.keyboard-open .admin-main-tabs{
+    opacity:0!important;
+    visibility:hidden!important;
+    pointer-events:none!important;
+    transform:translateY(28px)!important;
+  }
+  body.keyboard-open .admin-main-tabs{
+    transform:translate(-50%,28px)!important;
+  }
+}
