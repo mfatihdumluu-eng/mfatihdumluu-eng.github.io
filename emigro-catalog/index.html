@@ -13,7 +13,7 @@
 <body>
 <header class="topbar">
   <a class="brand" href="#home"><img src="./logo.svg" alt="Emigro Cash & Carry"><span class="brand-fallback"><b>emigro</b><small>Cash & Carry</small></span></a>
-  <nav><a href="#categoryBrowser">Ürünler</a><a href="#featured">Öne çıkan</a><button class="nav-link-btn" onclick="requestPdf()">PDF katalog</button></nav>
+  <nav><a href="#categoryBrowser">Ürünler</a><a href="#featured">Öne çıkan</a><button class="nav-link-btn hidden" id="customerDashboardNav">Müşteri Hesabı</button><button class="nav-link-btn" onclick="requestPdf()">PDF katalog</button></nav>
   <div class="top-actions">
     <button class="ghost" id="priceInfoBtn">Fiyat bilgisi</button>
     <button class="ghost" id="accountBtn">Giriş / Üyelik</button>
@@ -35,6 +35,25 @@
 
 <section class="notice"><b>Üyelik kontrollü fiyatlandırma.</b><span>Fiyatlar yalnızca giriş yapmış ve Emigro tarafından onaylanmış üyeler tarafından görülebilir. İçeceklerde statiegeld bilgisi herkese açık gösterilir.</span></section>
 <section class="validity-banner"><div><span>FİYAT GEÇERLİLİK DÖNEMİ</span><strong>01-10-2026 — 30-10-2026</strong></div><p>Onaylı üyelere gösterilen katalog fiyatları yalnızca belirtilen tarih aralığında geçerlidir. Stok ve ticari koşullar değişebilir.</p></section>
+
+<section class="customer-dashboard hidden" id="customerDashboard">
+  <div class="customer-dashboard-head">
+    <div>
+      <div class="eyebrow">MÜŞTERİ HESABI</div>
+      <h2>Tekliflerim & Siparişlerim</h2>
+      <p>Gönderdiğiniz talepleri, size sunulan teklifleri ve kabul ettiğiniz siparişleri tek ekranda takip edin.</p>
+    </div>
+    <button class="ghost" id="refreshCustomerDashboard">Yenile</button>
+  </div>
+  <div class="customer-dashboard-stats" id="customerDashboardStats"></div>
+  <div class="customer-dashboard-tabs">
+    <button class="active" data-customer-tab="quotes">Tekliflerim</button>
+    <button data-customer-tab="orders">Siparişlerim</button>
+    <button data-customer-tab="accepted">Kabul edilen</button>
+    <button data-customer-tab="rejected">Reddedilen</button>
+  </div>
+  <div class="customer-dashboard-list" id="customerDashboardList"><div class="admin-loading">Hesap verileri yükleniyor…</div></div>
+</section>
 
 <section class="category-browser" id="categoryBrowser">
   <div class="section-title"><div class="eyebrow">KATEGORİLER</div><h2>Ürün kategorisini seçin</h2><p>Bir kategoriye tıklayın; o kategorinin ürünleri açılır.</p></div>
