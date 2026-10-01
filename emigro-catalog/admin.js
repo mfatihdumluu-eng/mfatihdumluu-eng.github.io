@@ -2,6 +2,7 @@ const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-admin-auth",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let profiles=[],quotes=[],memberFilter="all",quoteFilter="all",activeQuote=null,profileMap={};
+let importRows=[],importImageFiles=new Map(),existingProducts=new Map(),defaultImageUrls={kutu:null,palet:null};
 
 const euro=n=>new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n||0));
 const esc=(v="")=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
@@ -359,11 +360,322 @@ document.getElementById("mailOfferBtn").onclick=async()=>{
  }
 };
 
-document.querySelectorAll("[data-admin-tab]").forEach(b=>b.onclick=()=>{
- const quotesTab=b.dataset.adminTab==="quotes";
- document.getElementById("membersPanel").classList.toggle("hidden",quotesTab);
- document.getElementById("quotesPanel").classList.toggle("hidden",!quotesTab);
+
+const PRODUCT_HEADERS=[
+ {key:"product_name",label:"urun_adi"},
+ {key:"barcode",label:"barkod"},
+ {key:"brand",label:"marka"},
+ {key:"category",label:"kategori"},
+ {key:"unit_price",label:"birim_fiyat"},
+ {key:"net_value",label:"net_deger"},
+ {key:"net_unit",label:"net_birim"},
+ {key:"units_per_case",label:"koli_ici_adet"},
+ {key:"cases_per_pallet",label:"palet_ici_koli_adedi"},
+ {key:"origin",label:"mensei"},
+ {key:"statiegeld",label:"statiegeld"},
+ {key:"is_featured",label:"one_cikan"}
+];
+const REQUIRED_PRODUCT_KEYS=["product_name","barcode","brand","category","unit_price","net_value","net_unit","units_per_case","cases_per_pallet","origin","statiegeld"];
+
+function normalizeHeader(v){
+ return String(v??"").trim().toLowerCase()
+  .replace(/[ıİ]/g,"i").replace(/[şŞ]/g,"s").replace(/[ğĞ]/g,"g")
+  .replace(/[üÜ]/g,"u").replace(/[öÖ]/g,"o").replace(/[çÇ]/g,"c")
+  .replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+}
+function toNumber(v){
+ if(typeof v==="number")return Number.isFinite(v)?v:null;
+ const s=String(v??"").trim().replace(/\s/g,"").replace(",",".");
+ if(!s)return null;
+ const n=Number(s);return Number.isFinite(n)?n:null;
+}
+function toInt(v){const n=toNumber(v);return Number.isInteger(n)?n:null}
+function toBool(v){
+ const s=String(v??"").trim().toLowerCase();
+ return ["1","true","ja","yes","evet","x"].includes(s);
+}
+function cleanBarcode(v){
+ return String(v??"").trim().replace(/\.0$/,"").replace(/\s+/g,"");
+}
+function fileBase(name){
+ return String(name||"").replace(/\.[^.]+$/,"").toLowerCase();
+}
+function escAttr(v=""){return esc(v).replace(/"/g,"&quot;")}
+
+function rowErrors(row,index){
+ const e=[];
+ if(!String(row.product_name||"").trim())e.push("Ürün adı");
+ if(!cleanBarcode(row.barcode))e.push("Barkod");
+ if(!String(row.brand||"").trim())e.push("Marka");
+ if(!String(row.category||"").trim())e.push("Kategori");
+ if(!(Number(row.unit_price)>0))e.push("Tek birim fiyatı");
+ if(!(Number(row.net_value)>0))e.push("Net gramaj/değer");
+ if(!String(row.net_unit||"").trim())e.push("Net birim");
+ if(!(Number.isInteger(Number(row.units_per_case))&&Number(row.units_per_case)>0))e.push("Koli içi adet");
+ if(!(Number.isInteger(Number(row.cases_per_pallet))&&Number(row.cases_per_pallet)>0))e.push("Palet içi koli adedi");
+ if(!String(row.origin||"").trim())e.push("Menşei");
+ if(!(Number(row.statiegeld)>=0))e.push("Statiegeld (yoksa 0)");
+ const barcode=cleanBarcode(row.barcode).toLowerCase();
+ const hasMain=!!importImageFiles.get(barcode)||!!existingProducts.get(cleanBarcode(row.barcode))?.image_1;
+ if(!hasMain)e.push("Ana ürün görseli ("+cleanBarcode(row.barcode)+".jpg/png)");
+ return e;
+}
+function importStats(){
+ const valid=importRows.filter((r,i)=>rowErrors(r,i).length===0).length;
+ return {total:importRows.length,valid,invalid:importRows.length-valid};
+}
+function renderImportSummary(){
+ const root=document.getElementById("productImportSummary");
+ const s=importStats();
+ if(!s.total){root.innerHTML="";document.getElementById("productImportActions").classList.add("hidden");return}
+ root.innerHTML=`
+  <div><span>Toplam</span><strong>${s.total}</strong></div>
+  <div class="ok"><span>Hazır</span><strong>${s.valid}</strong></div>
+  <div class="bad"><span>Eksik</span><strong>${s.invalid}</strong></div>
+  <div><span>Eşleşen görsel</span><strong>${[...importImageFiles.keys()].filter(k=>!["kutu","palet"].includes(k)).length}</strong></div>`;
+ document.getElementById("productImportActions").classList.remove("hidden");
+}
+function previewUrlFor(base,existingUrl=null){
+ const f=importImageFiles.get(String(base||"").toLowerCase());
+ return f?URL.createObjectURL(f):existingUrl;
+}
+function renderImportRows(){
+ const root=document.getElementById("productImportList");
+ if(!importRows.length){root.innerHTML='<div class="admin-loading">Excel yüklendiğinde ürün kartları burada oluşacak.</div>';renderImportSummary();return}
+ root.innerHTML=importRows.map((r,i)=>{
+   const errors=rowErrors(r,i);
+   const bc=cleanBarcode(r.barcode);
+   const ex=existingProducts.get(bc)||{};
+   const img1=previewUrlFor(bc,ex.image_1);
+   const img2=previewUrlFor(bc+"-2",ex.image_2)||previewUrlFor("kutu",defaultImageUrls.kutu);
+   const img3=previewUrlFor(bc+"-3",ex.image_3)||previewUrlFor("palet",defaultImageUrls.palet);
+   const casePrice=(Number(r.unit_price)||0)*(Number(r.units_per_case)||0);
+   const palletPrice=casePrice*(Number(r.cases_per_pallet)||0);
+   return `<article class="import-product-card ${errors.length?"invalid":"valid"}">
+    <div class="import-product-top">
+      <div class="import-images">
+        <div>${img1?'<img src="'+escAttr(img1)+'">':'<span>ANA<br>RESİM YOK</span>'}<small>${esc(bc||"barkod")}</small></div>
+        <div>${img2?'<img src="'+escAttr(img2)+'">':'<span>KUTU<br>YOK</span>'}<small>${esc(bc?bc+"-2":"-2")}</small></div>
+        <div>${img3?'<img src="'+escAttr(img3)+'">':'<span>PALET<br>YOK</span>'}<small>${esc(bc?bc+"-3":"-3")}</small></div>
+      </div>
+      <div class="import-card-status">
+        <b>${errors.length?"Eksik bilgi":"Hazır"}</b>
+        <span>${errors.length?errors.join(" · "):"Sisteme eklenebilir"}</span>
+      </div>
+    </div>
+
+    <div class="import-fields">
+      <label>Ürün adı<input value="${escAttr(r.product_name)}" oninput="updateImportField(${i},'product_name',this.value)"></label>
+      <label>Barkod<input value="${escAttr(bc)}" oninput="updateImportField(${i},'barcode',this.value)"></label>
+      <label>Marka<input value="${escAttr(r.brand)}" oninput="updateImportField(${i},'brand',this.value)"></label>
+      <label>Kategori<input value="${escAttr(r.category)}" oninput="updateImportField(${i},'category',this.value)"></label>
+      <label>Tek birim fiyatı (€)<input type="number" min="0.0001" step="0.0001" value="${r.unit_price??""}" oninput="updateImportField(${i},'unit_price',this.value)"><small>Müşteriye gösterilmez</small></label>
+      <label>Net değer<input type="number" min="0.001" step="0.001" value="${r.net_value??""}" oninput="updateImportField(${i},'net_value',this.value)"></label>
+      <label>Net birim<input value="${escAttr(r.net_unit)}" placeholder="g / kg / ml / l" oninput="updateImportField(${i},'net_unit',this.value)"></label>
+      <label>Koli içi adet<input type="number" min="1" step="1" value="${r.units_per_case??""}" oninput="updateImportField(${i},'units_per_case',this.value)"></label>
+      <label>Palet içi koli adedi<input type="number" min="1" step="1" value="${r.cases_per_pallet??""}" oninput="updateImportField(${i},'cases_per_pallet',this.value)"></label>
+      <label>Menşei<input value="${escAttr(r.origin)}" oninput="updateImportField(${i},'origin',this.value)"></label>
+      <label>Statiegeld (€)<input type="number" min="0" step="0.01" value="${r.statiegeld??0}" oninput="updateImportField(${i},'statiegeld',this.value)"><small>Yoksa 0</small></label>
+      <label class="import-check"><input type="checkbox" ${r.is_featured?"checked":""} onchange="updateImportField(${i},'is_featured',this.checked)"><span>Öne çıkan ürün</span></label>
+    </div>
+    <div class="import-price-preview"><span>Koli fiyatı <b>${euro(casePrice)}</b></span><span>Palet fiyatı <b>${euro(palletPrice)}</b></span><small>Tek ürün fiyatı katalogda gösterilmez.</small></div>
+   </article>`;
+ }).join("");
+ renderImportSummary();
+}
+window.updateImportField=(idx,key,value)=>{
+ const numeric=["unit_price","net_value","statiegeld"].includes(key);
+ const integer=["units_per_case","cases_per_pallet"].includes(key);
+ importRows[idx][key]=numeric?toNumber(value):integer?toInt(value):value;
+ renderImportRows();
+};
+
+async function loadExistingProductMap(){
+ const {data}=await sb.from("emigro_catalog_products").select("barcode,image_1,image_2,image_3");
+ existingProducts=new Map((data||[]).map(p=>[String(p.barcode),p]));
+}
+async function loadDefaultImages(){
+ try{
+  const {data}=await sb.storage.from("emigro-product-images").list("defaults",{limit:100});
+  for(const x of data||[]){
+   const base=fileBase(x.name);
+   if(base==="kutu"||base==="palet"){
+     const {data:urlData}=sb.storage.from("emigro-product-images").getPublicUrl("defaults/"+x.name);
+     defaultImageUrls[base]=urlData.publicUrl;
+   }
+  }
+ }catch{}
+}
+
+async function parseProductExcel(file){
+ const buf=await file.arrayBuffer();
+ const wb=XLSX.read(buf,{type:"array"});
+ const ws=wb.Sheets[wb.SheetNames[0]];
+ const raw=XLSX.utils.sheet_to_json(ws,{defval:"",raw:false});
+ if(!raw.length){alert("Excel dosyasında ürün satırı bulunamadı.");return}
+
+ const normalizedRows=raw.map(obj=>{
+   const n={};Object.entries(obj).forEach(([k,v])=>n[normalizeHeader(k)]=v);
+   return n;
+ });
+ const labels=PRODUCT_HEADERS.map(h=>h.label);
+ const first=normalizedRows[0]||{};
+ const missingColumns=labels.filter(h=>!(h in first));
+ if(missingColumns.length){
+   alert("Excel şablonunda eksik sütun var: "+missingColumns.join(", ")+"\nÖnce 'Excel şablonunu indir' dosyasını kullanın.");
+   return;
+ }
+
+ importRows=normalizedRows.map(n=>({
+   product_name:String(n.urun_adi||"").trim(),
+   barcode:cleanBarcode(n.barkod),
+   brand:String(n.marka||"").trim(),
+   category:String(n.kategori||"").trim(),
+   unit_price:toNumber(n.birim_fiyat),
+   net_value:toNumber(n.net_deger),
+   net_unit:String(n.net_birim||"").trim(),
+   units_per_case:toInt(n.koli_ici_adet),
+   cases_per_pallet:toInt(n.palet_ici_koli_adedi),
+   origin:String(n.mensei||"").trim(),
+   statiegeld:toNumber(n.statiegeld),
+   is_featured:toBool(n.one_cikan)
+ }));
+ await loadExistingProductMap();
+ renderImportRows();
+}
+
+document.getElementById("productExcelInput").onchange=async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{await parseProductExcel(file)}catch(err){alert("Excel okunamadı: "+(err?.message||err))}
+};
+document.getElementById("productImagesInput").onchange=async e=>{
+ importImageFiles.clear();
+ [...(e.target.files||[])].forEach(file=>importImageFiles.set(fileBase(file.name),file));
+ renderImportRows();
+};
+document.getElementById("clearProductImport").onclick=()=>{
+ importRows=[];importImageFiles.clear();
+ document.getElementById("productExcelInput").value="";
+ document.getElementById("productImagesInput").value="";
+ renderImportRows();
+};
+
+document.getElementById("downloadProductTemplate").onclick=()=>{
+ const rows=[{
+  urun_adi:"Örnek Ürün",
+  barkod:"111232132131",
+  marka:"Örnek Marka",
+  kategori:"Grocery",
+  birim_fiyat:1.25,
+  net_deger:500,
+  net_birim:"g",
+  koli_ici_adet:12,
+  palet_ici_koli_adedi:48,
+  mensei:"Netherlands",
+  statiegeld:0,
+  one_cikan:"hayir"
+ }];
+ const ws=XLSX.utils.json_to_sheet(rows,{header:PRODUCT_HEADERS.map(h=>h.label)});
+ ws["!cols"]=[24,18,20,18,14,12,12,14,22,18,12,14].map(w=>({wch:w}));
+ const info=XLSX.utils.aoa_to_sheet([
+  ["EMIGRO TOPLU ÜRÜN YÜKLEME ŞABLONU"],
+  ["Zorunlu sütunlar","urun_adi, barkod, marka, kategori, birim_fiyat, net_deger, net_birim, koli_ici_adet, palet_ici_koli_adedi, mensei, statiegeld"],
+  ["Barkod","Metin olarak girin. Ana görsel dosya adı barkod ile aynı olmalı."],
+  ["Görsel 1","111232132131.jpg / png"],
+  ["Görsel 2","111232132131-2.jpg / png; yoksa kutu görseli kullanılır"],
+  ["Görsel 3","111232132131-3.jpg / png; yoksa palet görseli kullanılır"],
+  ["Varsayılan görseller","kutu.jpg ve palet.jpg"],
+  ["Birim fiyat","Tek ürün fiyatıdır; sadece arka planda koli/palet hesabı için kullanılır, müşteriye gösterilmez."],
+  ["Koli fiyatı","birim_fiyat × koli_ici_adet"],
+  ["Palet fiyatı","birim_fiyat × koli_ici_adet × palet_ici_koli_adedi"],
+  ["Statiegeld","Yoksa mutlaka 0 yazın."],
+  ["one_cikan","evet/hayir"]
+ ]);
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,"Urunler");
+ XLSX.utils.book_append_sheet(wb,info,"Aciklama");
+ XLSX.writeFile(wb,"emigro-toplu-urun-sablonu.xlsx");
+};
+
+async function uploadImportImage(file,pathBase){
+ if(!file)return null;
+ const ext=(file.name.split(".").pop()||"jpg").toLowerCase();
+ const path=pathBase+"."+ext;
+ const {error}=await sb.storage.from("emigro-product-images").upload(path,file,{upsert:true,contentType:file.type||undefined});
+ if(error)throw error;
+ const {data}=sb.storage.from("emigro-product-images").getPublicUrl(path);
+ return data.publicUrl;
+}
+async function resolveDefaultImage(kind){
+ const file=importImageFiles.get(kind);
+ if(file){
+   const url=await uploadImportImage(file,"defaults/"+kind);
+   defaultImageUrls[kind]=url;return url;
+ }
+ return defaultImageUrls[kind]||null;
+}
+
+document.getElementById("saveValidProducts").onclick=async()=>{
+ const valid=importRows.map((r,i)=>({r,i,errors:rowErrors(r,i)})).filter(x=>!x.errors.length);
+ const invalid=importRows.length-valid.length;
+ if(!valid.length){alert("Sisteme eklenebilecek eksiksiz ürün yok. Kırmızı kartlardaki alanları tamamlayın.");return}
+ if(!confirm(valid.length+" ürün sisteme eklenecek/güncellenecek."+ (invalid?" "+invalid+" eksik ürün eklenmeyecek.":"") +" Devam edilsin mi?"))return;
+
+ const btn=document.getElementById("saveValidProducts");
+ btn.disabled=true;btn.textContent="Ürünler yükleniyor…";
+ let ok=0,failed=[];
+ try{
+   const defaultKutu=await resolveDefaultImage("kutu");
+   const defaultPalet=await resolveDefaultImage("palet");
+
+   for(const {r,i} of valid){
+     try{
+       const bc=cleanBarcode(r.barcode);
+       const ex=existingProducts.get(bc)||{};
+       const mainFile=importImageFiles.get(bc.toLowerCase());
+       const secondFile=importImageFiles.get((bc+"-2").toLowerCase());
+       const thirdFile=importImageFiles.get((bc+"-3").toLowerCase());
+
+       const image1=mainFile?await uploadImportImage(mainFile,"products/"+bc):ex.image_1||null;
+       const image2=secondFile?await uploadImportImage(secondFile,"products/"+bc+"-2"):(ex.image_2||defaultKutu||null);
+       const image3=thirdFile?await uploadImportImage(thirdFile,"products/"+bc+"-3"):(ex.image_3||defaultPalet||null);
+
+       const {error}=await sb.rpc("emigro_catalog_admin_upsert_product",{
+        p_barcode:bc,
+        p_product_name:r.product_name,
+        p_brand:r.brand,
+        p_category:r.category,
+        p_unit_price:Number(r.unit_price),
+        p_net_value:Number(r.net_value),
+        p_net_unit:r.net_unit,
+        p_units_per_case:Number(r.units_per_case),
+        p_cases_per_pallet:Number(r.cases_per_pallet),
+        p_origin:r.origin,
+        p_statiegeld:Number(r.statiegeld||0),
+        p_image_1:image1,
+        p_image_2:image2,
+        p_image_3:image3,
+        p_is_featured:!!r.is_featured
+       });
+       if(error)throw error;
+       ok++;
+     }catch(err){failed.push("Satır "+(i+2)+": "+(err?.message||err))}
+   }
+   await loadExistingProductMap();
+   renderImportRows();
+   alert(ok+" ürün başarıyla sisteme eklendi/güncellendi."+ (failed.length?"\n\nHatalar:\n"+failed.slice(0,10).join("\n"):""));
+ }finally{
+   btn.disabled=false;btn.textContent="Geçerli ürünleri sisteme ekle";
+ }
+};
+
+document.querySelectorAll("[data-admin-tab]").forEach(b=>b.onclick=async()=>{
+ const tab=b.dataset.adminTab;
+ document.getElementById("membersPanel").classList.toggle("hidden",tab!=="members");
+ document.getElementById("quotesPanel").classList.toggle("hidden",tab!=="quotes");
+ document.getElementById("productsPanel").classList.toggle("hidden",tab!=="products");
  document.querySelectorAll("[data-admin-tab]").forEach(x=>x.classList.toggle("active",x===b));
+ if(tab==="products"){await loadDefaultImages();await loadExistingProductMap();renderImportRows()}
 });
 document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{memberFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));renderMembers()});
 document.querySelectorAll("[data-qfilter]").forEach(b=>b.onclick=()=>{quoteFilter=b.dataset.qfilter;document.querySelectorAll("[data-qfilter]").forEach(x=>x.classList.toggle("active",x===b));renderQuotes()});
