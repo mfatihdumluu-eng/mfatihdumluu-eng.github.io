@@ -901,38 +901,65 @@ window.showPriceHistory=showPriceHistory;
 
 const orderStatusLabel=s=>({new:"Yeni",preparing:"Hazırlanıyor",ready:"Hazır",shipped:"Sevk edildi",completed:"Tamamlandı",cancelled:"İptal"}[s]||s);
 async function loadOrders(){
+ try{await sb.rpc("emigro_catalog_admin_sync_completed_orders")}catch{}
  const {data,error}=await sb.from("emigro_catalog_orders").select("*").order("created_at",{ascending:false});
  if(error){console.warn(error);return}
  orders=data||[];renderOrders();
 }
 function renderOrders(){
  const root=document.getElementById("orderList");if(!root)return;
- const list=orderFilter==="all"?orders:orders.filter(o=>o.status===orderFilter);
- root.innerHTML=list.length?list.map(o=>{
+ const filtered=orderFilter==="all"?orders:orders.filter(o=>o.status===orderFilter);
+ const active=filtered.filter(o=>!["completed","cancelled"].includes(o.status));
+ const finished=filtered.filter(o=>["completed","cancelled"].includes(o.status));
+
+ const renderOrder=o=>{
   const p=profileMap[o.user_id]||{};
-  return `<article class="quote-admin-card">
+  const isFinished=["completed","cancelled"].includes(o.status);
+  const shippingInfo=o.tracking_number
+    ? `<div class="admin-shipping-summary"><span>Kargo takip</span><strong>${esc(o.tracking_number)}</strong>${o.shipped_at?`<small>Kargoya verildi: ${new Date(o.shipped_at).toLocaleString("nl-NL")}</small>`:""}</div>`
+    : o.status==="shipped"
+      ? `<div class="admin-shipping-summary shipped"><span>Durum</span><strong>Gönderildi</strong>${o.shipped_at?`<small>${new Date(o.shipped_at).toLocaleString("nl-NL")}</small>`:""}</div>`
+      : "";
+
+  return `<article class="quote-admin-card order-admin-card ${isFinished?"is-finished":""}">
     <div class="quote-admin-head"><div><span class="quote-status ${o.status}">${orderStatusLabel(o.status)}</span><h3>${esc(o.order_number||"Sipariş")}</h3><p>${esc(p.company_name||"")} · ${esc(p.contact_name||"")}</p></div><div><small>${new Date(o.created_at).toLocaleString("nl-NL")}</small><strong>${euro(o.total)}</strong></div></div>
-    <div class="quote-admin-meta"><span>${(o.items||[]).length} ürün</span><span>Talep teslim: ${o.requested_delivery_date?new Date(o.requested_delivery_date).toLocaleDateString("nl-NL"):"—"}</span><span>Onaylı teslim: ${o.confirmed_delivery_date?new Date(o.confirmed_delivery_date).toLocaleDateString("nl-NL"):"—"}</span></div>
+    <div class="quote-admin-meta">
+      <span>${(o.items||[]).length} ürün</span>
+      <span>Talep teslim: ${o.requested_delivery_date?new Date(o.requested_delivery_date+"T12:00:00").toLocaleDateString("nl-NL"):"—"}</span>
+      <span>Onaylı teslim: ${o.confirmed_delivery_date?new Date(o.confirmed_delivery_date+"T12:00:00").toLocaleDateString("nl-NL"):"—"}</span>
+      ${o.completed_at?`<span>Tamamlandı: ${new Date(o.completed_at).toLocaleString("nl-NL")}</span>`:""}
+    </div>
+    ${shippingInfo}
     <div class="order-admin-controls">
-      <select id="order-status-${o.id}"><option value="new" ${o.status==="new"?"selected":""}>Yeni</option><option value="preparing" ${o.status==="preparing"?"selected":""}>Hazırlanıyor</option><option value="ready" ${o.status==="ready"?"selected":""}>Hazır</option><option value="shipped" ${o.status==="shipped"?"selected":""}>Sevk edildi</option><option value="completed" ${o.status==="completed"?"selected":""}>Tamamlandı</option><option value="cancelled" ${o.status==="cancelled"?"selected":""}>İptal</option></select>
-      <input id="order-date-${o.id}" type="date" value="${o.confirmed_delivery_date||""}">
-      <input id="order-note-${o.id}" placeholder="Admin notu" value="${escAttr(o.admin_note||"")}">
-      <input id="order-track-${o.id}" placeholder="Kargo takip numarası" value="${escAttr(o.tracking_number||"")}">
-      <input id="order-trackurl-${o.id}" placeholder="Takip linki (opsiyonel)" value="${escAttr(o.tracking_url||"")}">
-      <button class="btn" onclick="saveOrder('${o.id}')">Siparişi güncelle</button>
+      <select id="order-status-${o.id}" ${isFinished?"disabled":""}><option value="new" ${o.status==="new"?"selected":""}>Yeni</option><option value="preparing" ${o.status==="preparing"?"selected":""}>Hazırlanıyor</option><option value="ready" ${o.status==="ready"?"selected":""}>Hazır</option><option value="shipped" ${o.status==="shipped"?"selected":""}>Sevk edildi</option><option value="completed" ${o.status==="completed"?"selected":""}>Tamamlandı</option><option value="cancelled" ${o.status==="cancelled"?"selected":""}>İptal</option></select>
+      <input id="order-date-${o.id}" type="date" value="${o.confirmed_delivery_date||""}" ${isFinished?"disabled":""}>
+      <input id="order-note-${o.id}" placeholder="Admin notu" value="${escAttr(o.admin_note||"")}" ${isFinished?"disabled":""}>
+      <input id="order-track-${o.id}" placeholder="Kargo takip numarası (opsiyonel)" value="${escAttr(o.tracking_number||"")}" ${isFinished?"disabled":""}>
+      <input id="order-trackurl-${o.id}" placeholder="Takip linki (opsiyonel)" value="${escAttr(o.tracking_url||"")}" ${isFinished?"disabled":""}>
+      ${!isFinished?`<div class="order-admin-action-row"><button class="btn" onclick="saveOrder('${o.id}')">Siparişi güncelle</button>${o.status!=="shipped"?`<button class="ghost ship-now-btn" onclick="markOrderShipped('${o.id}')">Gönderildi</button>`:""}</div>`:'<div class="finished-order-note">Bu sipariş biten siparişlere taşındı.</div>'}
     </div>
   </article>`;
- }).join(""):'<div class="admin-loading">Sipariş bulunamadı.</div>';
-}
-async function saveOrder(id){
- const status=document.getElementById("order-status-"+id).value;
- const tracking=document.getElementById("order-track-"+id).value.trim();
- const trackingUrl=document.getElementById("order-trackurl-"+id).value.trim();
- if(status==="shipped"&&!tracking){
-   notify("Siparişi 'Sevk edildi' yapmak için kargo takip numarası girin.","error");
-   document.getElementById("order-track-"+id).focus();
+ };
+
+ if(!filtered.length){root.innerHTML='<div class="admin-loading">Sipariş bulunamadı.</div>';return}
+ if(orderFilter!=="all"){
+   root.innerHTML=filtered.map(renderOrder).join("");
    return;
  }
+ root.innerHTML=`
+   <section class="admin-order-group">
+     <div class="admin-order-group-head"><div><span>AKTİF SİPARİŞLER</span><strong>${active.length}</strong></div><small>Hazırlık, sevkiyat ve teslimat sürecindekiler.</small></div>
+     <div class="admin-order-group-list">${active.length?active.map(renderOrder).join(""):'<div class="admin-loading">Aktif sipariş yok.</div>'}</div>
+   </section>
+   <section class="admin-order-group finished-orders">
+     <div class="admin-order-group-head"><div><span>BİTEN / ESKİ SİPARİŞLER</span><strong>${finished.length}</strong></div><small>Teslim alınan, teslim tarihi geçen veya iptal edilen siparişler.</small></div>
+     <div class="admin-order-group-list">${finished.length?finished.map(renderOrder).join(""):'<div class="admin-loading">Henüz biten sipariş yok.</div>'}</div>
+   </section>`;
+}
+async function saveOrder(id,forcedStatus=null){
+ const status=forcedStatus||document.getElementById("order-status-"+id).value;
+ const tracking=document.getElementById("order-track-"+id).value.trim();
+ const trackingUrl=document.getElementById("order-trackurl-"+id).value.trim();
  if(trackingUrl&&!/^https?:\/\//i.test(trackingUrl)){
    notify("Takip linki http:// veya https:// ile başlamalı.","error");
    document.getElementById("order-trackurl-"+id).focus();
@@ -945,11 +972,17 @@ async function saveOrder(id){
   p_tracking_number:tracking,
   p_tracking_url:trackingUrl
  });
- if(error){notify("Sipariş güncellenemedi: "+error.message);return}
+ if(error){notify("Sipariş güncellenemedi: "+error.message,"error");return}
  await loadOrders();
- notify("Sipariş bilgileri güncellendi.","success");
+ notify(status==="shipped"?"Sipariş gönderildi olarak işaretlendi.":"Sipariş bilgileri güncellendi.","success");
 }
 window.saveOrder=saveOrder;
+async function markOrderShipped(id){
+ const select=document.getElementById("order-status-"+id);
+ if(select)select.value="shipped";
+ await saveOrder(id,"shipped");
+}
+window.markOrderShipped=markOrderShipped;
 
 document.getElementById("adminProductSearch").oninput=renderAdminProducts;
 document.querySelectorAll("[data-ofilter]").forEach(b=>b.onclick=()=>{orderFilter=b.dataset.ofilter;document.querySelectorAll("[data-ofilter]").forEach(x=>x.classList.toggle("active",x===b));renderOrders()});
