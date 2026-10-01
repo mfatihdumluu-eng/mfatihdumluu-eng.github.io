@@ -8,3 +8,17 @@
 .grid-head{height:18mm;display:flex;justify-content:space-between;align-items:end;margin-bottom:5mm}.grid-head h3{font:600 27px var(--serif);margin:2px 0}.num{width:10mm;height:10mm;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:7px;font-weight:700}.grid{height:229mm;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:4mm 5mm}.card{border-top:1px solid var(--line);padding-top:3mm;min-width:0;overflow:hidden}.pic{height:37mm;background:#f5f6f1;border-radius:2mm;display:grid;place-items:center;margin-bottom:2mm;overflow:visible}.card-img{width:18mm;height:37mm}.card-img .cap{width:6mm;height:5mm}.card-img .body{height:34mm;border-radius:5mm 5mm 4mm 4mm}.card-img .label{font-size:4.6px;padding:3mm .5mm}.card>small{font-size:6px;color:var(--muted);text-transform:uppercase}.card h4{font:600 12px/1.05 var(--serif);margin:1mm 0}.card p{font-size:5.8px;color:var(--muted);line-height:1.3;margin:1mm 0}.ean{margin-top:.8mm!important}.prices{display:flex;gap:4mm;margin-top:2mm;padding-top:1.5mm;border-top:1px solid var(--line)}.prices span{display:block;font-size:5px;color:var(--muted)}.prices strong{font-size:8px}
 @media(max-width:900px){.page{transform:scale(.72);transform-origin:top center;margin-bottom:-80mm}.toolbar{padding:0 14px}}@media(max-width:560px){.page{transform:scale(.48);margin-bottom:-155mm}.toolbar>div{display:none}}
 @media print{@page{size:A4 portrait;margin:0}body{background:#fff}.toolbar{display:none!important}.page{margin:0!important;box-shadow:none!important;transform:none!important;page-break-after:always;break-after:page}.page:last-child{page-break-after:auto;break-after:auto}}
+
+/* Emigro brand + validity period */
+:root{--ink:#293369;--muted:#6e748d;--line:#e0e3ed;--paper:#fff;--green:#293369}
+body{background:#e5e6ec;color:var(--ink)}
+.toolbar{background:#fff}.toolbar button,.toolbar a{color:#293369}
+.cover{background:linear-gradient(145deg,#293369,#1f2857)}.cover-logo{position:absolute;left:15mm;top:15mm;width:82mm;height:auto;background:white;border-radius:3mm;padding:3mm}.page-logo{position:absolute;right:10mm;top:8mm;width:35mm;height:auto;opacity:.95}
+.cover-copy{bottom:42mm}.cover h1{color:#fff}.footline{color:#dfe1ec}
+.smallcap{color:#ec0419}.cat-band{background:var(--cat)}
+.validity{position:absolute;left:12mm;right:12mm;bottom:9mm;border:1px solid #f3c5ca;background:#fff3f4;color:#9f1321;border-radius:3mm;padding:2.7mm 3.2mm;display:flex;align-items:center;justify-content:space-between;gap:6mm}
+.validity span{font-size:5.4px;font-weight:700;letter-spacing:.12em}.validity strong{font-size:8px;color:#ec0419}
+.cover .validity{position:static;margin-top:9mm;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);color:#fff}.cover .validity strong{color:#fff}
+.deposit-print{color:#ec0419!important;font-weight:700!important}
+.page-no{bottom:3.8mm}
+.grid{height:216mm}.hero4{margin-bottom:12mm}.hero-page,.hero-grid-page,.category-page,.toc{padding-bottom:24mm}
