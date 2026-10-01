@@ -29,6 +29,8 @@ const demoProducts=cats.flatMap((c,ci)=>Array.from({length:23},(_,i)=>{
 }));
 let products=[...demoProducts];
 const euro=n=>n==null?"—":new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n));
+const esc=(v="")=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const jsId=id=>JSON.stringify(id);
 let active="All",shown=24,sort="name",query="",selected=null,selectedImage=0,compare=[],priceMode={};
 let favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]");
 let quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
@@ -350,12 +352,15 @@ function setMode(id,mode){priceMode[id]=mode;renderProducts();if(selected?.id===
 window.setMode=setMode;
 
 function openProduct(id){
- selected=products.find(p=>p.id===id);selectedImage=0;
+ selected=products.find(p=>String(p.id)===String(id));
+ if(!selected){console.warn("Ürün bulunamadı:",id);return}
+ selectedImage=0;
  document.getElementById("modalTitle").textContent=selected.brand+" "+selected.name;
  document.getElementById("modalSub").textContent=selected.origin+" · "+selected.category;
  document.getElementById("factsGrid").innerHTML=[["SKU",selected.sku],["Barkod",selected.ean],["Net",selected.net],["Koli içi",selected.caseQty],["Palet içi",selected.palletCases],["Menşei",selected.origin]].map(([a,b])=>`<div><span>${a}</span><strong>${b}</strong></div>`).join("");
  document.getElementById("depositDetail").innerHTML=(selected.beverage||selected.statiegeld>0)?`<div class="deposit-detail ${selected.statiegeld>0?"yes":"no"}"><b>${selected.statiegeld>0?"Statiegeld aanwezig":"Geen statiegeld"}</b><span>${selected.statiegeld>0?euro(selected.statiegeld)+" · "+(selected.statiegeldScope==="case"?"yalnız koli":selected.statiegeldScope==="pallet"?"yalnız palet":"koli + palet"):"Dit product heeft geen statiegeld"}</span></div>`:"";
- renderMedia();renderDetailCommerce();renderFav();renderDetailQuoteButton();renderAlternativeProducts();openModal("productModal");
+ renderMedia();renderDetailCommerce();renderFav();renderDetailQuoteButton();openModal("productModal");
+ try{renderAlternativeProducts()}catch(err){console.warn("Alternatif ürünler yüklenemedi",err)}
  history.replaceState(null,"",`?product=${encodeURIComponent(selected.sku)}`);
 }
 window.openProduct=openProduct;
