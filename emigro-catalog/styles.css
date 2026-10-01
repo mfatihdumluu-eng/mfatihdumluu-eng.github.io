@@ -1556,7 +1556,6 @@ img,svg,video,canvas{max-width:100%}
     margin-top:10px!important;
   }
 
-  body.screen-home .quote-cart,
   body.screen-categories .quote-cart,
   body.screen-dashboard .quote-cart{
     display:none!important;
