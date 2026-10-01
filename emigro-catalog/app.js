@@ -31,11 +31,30 @@ let products=[...demoProducts];
 const euro=n=>n==null?"—":new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n));
 const esc=(v="")=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const jsId=id=>JSON.stringify(id);
+function notify(message,type="info"){
+ const stack=document.getElementById("toastStack");
+ if(!stack){console.log(message);return}
+ const el=document.createElement("div");
+ el.className="app-toast "+type;
+ el.textContent=String(message||"");
+ stack.appendChild(el);
+ requestAnimationFrame(()=>el.classList.add("show"));
+ setTimeout(()=>{el.classList.remove("show");setTimeout(()=>el.remove(),180)},3200);
+}
+function syncNetworkState(){
+ const banner=document.getElementById("networkBanner");
+ if(!banner)return;
+ banner.classList.toggle("hidden",navigator.onLine);
+}
+window.addEventListener("online",()=>{syncNetworkState();notify("İnternet bağlantısı geri geldi.","success")});
+window.addEventListener("offline",syncNetworkState);
+syncNetworkState();
+
 let active="All",shown=24,sort="name",query="",originFilter="",saleFilter="",depositFilter="",selected=null,selectedImage=0,priceMode={};
 let favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]");
 let quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
 let session=null,profile=null,priceMap={},pendingAction=null,kvkVerified=false,verifiedKvkData=null,demoMode=false;
-let customerOrders=[],customerAddresses=[],customerNotifications=[];
+let customerOrders=[],customerAddresses=[],customerNotifications=[],customerQuotes=[];
 const REFERRAL_CODE=(new URLSearchParams(location.search).get("ref")||"").trim().toUpperCase();
 let referralLandingHandled=false;
 
@@ -593,6 +612,7 @@ async function loadCustomerDashboard(){
  if(qRes.error||oRes.error||aRes.error||nRes.error){root.innerHTML='<div class="admin-loading">Veriler yüklenemedi.</div>';return}
 
  const quotes=qRes.data||[];
+ customerQuotes=quotes;
  customerOrders=oRes.data||[];
  customerAddresses=aRes.data||[];
  customerNotifications=nRes.data||[];
@@ -684,7 +704,7 @@ async function loadCustomerDashboard(){
        <div class="customer-dash-card-head"><div><span class="my-quote-status ${o.status}">${customerOrderStatus(o.status)}</span><h3>${esc(o.order_number||"Sipariş")}</h3><small>${new Date(o.created_at).toLocaleString("nl-NL")}</small></div><strong>${euro(o.total)}</strong></div>
        <div class="customer-dash-items">${items}</div>
        <div class="order-customer-meta"><span>İstenen teslim: <b>${o.requested_delivery_date?new Date(o.requested_delivery_date).toLocaleDateString("nl-NL"):"—"}</b></span><span>Onaylanan teslim: <b>${o.confirmed_delivery_date?new Date(o.confirmed_delivery_date).toLocaleDateString("nl-NL"):"—"}</b></span></div>
-       ${o.status==="shipped"&&o.tracking_number?`<div class="shipping-track"><span>Kargo takip numarası</span><strong>${esc(o.tracking_number)}</strong>${o.tracking_url?`<a class="btn" href="${esc(o.tracking_url)}" target="_blank" rel="noopener">Kargoyu takip et</a>`:""}</div>`:""}
+       ${o.status==="shipped"&&o.tracking_number?`<div class="shipping-track"><span>Kargo takip numarası</span><strong>${esc(o.tracking_number)}</strong>${/^https?:\/\//i.test(o.tracking_url||"")?`<a class="btn" href="${esc(o.tracking_url)}" target="_blank" rel="noopener">Kargoyu takip et</a>`:""}</div>`:""}
        ${["new","preparing"].includes(o.status)?`<div class="order-delivery-edit"><select id="order-address-${o.id}"><option value="">Teslimat adresi seçin</option>${addressOptions}</select><input id="order-request-date-${o.id}" type="date" value="${o.requested_delivery_date||""}"><button class="ghost" onclick="saveCustomerOrderDelivery('${o.id}')">Teslimat bilgisini kaydet</button></div>`:""}
        <div class="customer-offer-actions"><button class="btn" onclick="repeatOrder('${o.id}')">Bu siparişi tekrar oluştur</button></div>
       </article>`;
@@ -704,14 +724,17 @@ async function loadCustomerDashboard(){
    const t=calcCustomerQuote(q);
    const ready=["offered","accepted","declined"].includes(q.status);
    const items=(q.items||[]).map(i=>`<div class="customer-dash-item"><div><b>${esc(i.name)}</b><small>${esc(i.sku)} · ${i.mode==="case"?"Koli":"Palet"} · ${i.qty} adet</small></div><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>`).join("");
-   const expirySoon=q.status==="offered"&&q.offer_valid_to&&((new Date(q.offer_valid_to)-new Date())/(1000*60*60*24)<=2);
+   const expiryDate=q.offer_valid_to?new Date(q.offer_valid_to+"T23:59:59"):null;
+   const expired=q.status==="offered"&&expiryDate&&expiryDate<new Date();
+   const expirySoon=q.status==="offered"&&!expired&&expiryDate&&((expiryDate-new Date())/(1000*60*60*24)<=2);
    return `<article class="customer-dash-card ${q.status}">
     <div class="customer-dash-card-head"><div><span class="my-quote-status ${q.status}">${customerQuoteStatus(q.status)}</span><h3>${q.offer_number?"Teklif "+esc(q.offer_number):"Teklif talebi"}</h3><small>${new Date(q.created_at).toLocaleString("nl-NL")}</small></div><strong>${ready?euro(t.total):euro(t.base)}</strong></div>
     <div class="customer-dash-items">${items}</div>
     ${ready?`<div class="customer-dash-summary"><div><span>Subtotaal</span><b>${euro(t.base)}</b></div><div><span>Korting</span><b>− ${euro(t.discount)}</b></div><div><span>Verzendkosten</span><b>${euro(t.shipping)}</b></div><div class="grand"><span>Totaal</span><b>${euro(t.total)}</b></div></div>`:""}
     ${q.admin_note?`<div class="my-quote-note"><b>Emigro notu</b><span>${esc(q.admin_note)}</span></div>`:""}
-    ${q.offer_valid_to?`<div class="my-quote-valid ${expirySoon?"expiry-soon":""}"><span>Teklif geçerlilik tarihi</span><strong>${new Date(q.offer_valid_to).toLocaleDateString("nl-NL")}</strong></div>`:""}
-    ${q.status==="offered"?`<div class="customer-offer-actions"><button class="btn" onclick="decideCustomerQuote('${q.id}','accepted')">Teklifi kabul et</button><button class="ghost reject-offer" onclick="decideCustomerQuote('${q.id}','declined')">Teklifi reddet</button></div>`:""}
+    ${q.offer_valid_to?`<div class="my-quote-valid ${expired?"expired-offer":expirySoon?"expiry-soon":""}"><span>Teklif geçerlilik tarihi</span><strong>${new Date(q.offer_valid_to).toLocaleDateString("nl-NL")}</strong>${expired?"<small>Süresi doldu</small>":""}</div>`:""}
+    ${q.status==="offered"&&!expired?`<div class="customer-offer-actions"><button class="btn" onclick="decideCustomerQuote('${q.id}','accepted')">Teklifi kabul et</button><button class="ghost reject-offer" onclick="decideCustomerQuote('${q.id}','declined')">Teklifi reddet</button></div>`:""}
+    ${expired?'<div class="customer-decision declined">Bu teklifin süresi doldu. Yeni teklif talebi oluşturabilirsiniz.</div>':""}
     ${q.status==="accepted"?'<div class="customer-decision accepted">✓ Kabul edildi · Siparişlerim bölümünde görünüyor.</div>':""}
     ${q.status==="declined"?'<div class="customer-decision declined">Reddedildi</div>':""}
    </article>`;
@@ -730,13 +753,13 @@ async function addAddress(e){
   user_id:session.user.id,label:document.getElementById("addrLabel").value.trim(),address:document.getElementById("addrAddress").value.trim(),
   postal_code:document.getElementById("addrPostal").value.trim(),city:document.getElementById("addrCity").value.trim(),country:document.getElementById("addrCountry").value.trim(),is_default:isDefault
  });
- if(error){alert("Adres kaydedilemedi: "+error.message);return}
+ if(error){notify("Adres kaydedilemedi: "+error.message);return}
  await loadCustomerDashboard();
 }
 async function deleteAddress(id){
  if(!confirm("Bu adres silinsin mi?"))return;
  const {error}=await sb.from("emigro_catalog_addresses").delete().eq("id",id);
- if(error){alert("Adres silinemedi: "+error.message);return}
+ if(error){notify("Adres silinemedi: "+error.message);return}
  await loadCustomerDashboard();
 }
 window.deleteAddress=deleteAddress;
@@ -751,7 +774,7 @@ async function saveCustomerOrderDelivery(id){
  const addressId=document.getElementById("order-address-"+id).value||null;
  const date=document.getElementById("order-request-date-"+id).value||null;
  const {error}=await sb.rpc("emigro_catalog_customer_update_order_delivery",{p_order_id:id,p_address_id:addressId,p_requested_date:date,p_customer_note:""});
- if(error){alert("Teslimat bilgisi kaydedilemedi: "+error.message);return}
+ if(error){notify("Teslimat bilgisi kaydedilemedi: "+error.message);return}
  await loadCustomerDashboard();
 }
 window.saveCustomerOrderDelivery=saveCustomerOrderDelivery;
@@ -765,7 +788,7 @@ function repeatOrder(id){
    const mode=item.mode==="pallet"&&p.palletAvailable?"pallet":p.caseAvailable?"case":"pallet";
    next.push({id:p.id,mode,qty:Math.max(Number(p.minQty||1),Number(item.qty||1))});
  }
- if(!next.length){alert("Bu siparişteki ürünler artık katalogda bulunmuyor.");return}
+ if(!next.length){notify("Bu siparişteki ürünler artık katalogda bulunmuyor.");return}
  quoteItems=next;persistQuote();renderQuoteCart();renderProducts();openQuote();
 }
 window.repeatOrder=repeatOrder;
@@ -789,10 +812,15 @@ document.querySelectorAll("[data-customer-tab]").forEach(b=>b.onclick=()=>{
 });
 
 async function decideCustomerQuote(id,decision){
+ const q=customerQuotes.find(x=>x.id===id);
+ if(decision==="accepted"&&q?.offer_valid_to&&new Date(q.offer_valid_to+"T23:59:59")<new Date()){
+   notify("Bu teklifin geçerlilik süresi dolmuş. Yeni teklif talebi oluşturun.","error");
+   return;
+ }
  const label=decision==="accepted"?"kabul etmek":"reddetmek";
  if(!confirm("Bu teklifi "+label+" istediğinize emin misiniz?"))return;
  const {error}=await sb.rpc("emigro_catalog_customer_decide_quote",{quote_id:id,p_decision:decision});
- if(error){alert("İşlem tamamlanamadı: "+error.message);return}
+ if(error){notify("İşlem tamamlanamadı: "+error.message);return}
  await openMyQuotes();
  await loadCustomerDashboard();
 }
@@ -826,9 +854,9 @@ document.getElementById("quoteForm").onsubmit=async e=>{
  if(error){
    btn.disabled=false;btn.textContent="Teklif talebini gönder";
    const msg=String(error.message||"");
-   if(msg.includes("exceeds allowed limit"))alert("Bu ürün için talep edilen miktar izin verilen sınırın üzerinde. Adedi düşürüp tekrar deneyin.");
-   else if(msg.includes("minimum quantity"))alert("Bir veya daha fazla üründe minimum sipariş adedinin altında miktar girdiniz.");
-   else alert("Teklif kaydedilemedi: "+msg);
+   if(msg.includes("exceeds allowed limit"))notify("Bu ürün için talep edilen miktar izin verilen sınırın üzerinde. Adedi düşürüp tekrar deneyin.");
+   else if(msg.includes("minimum quantity"))notify("Bir veya daha fazla üründe minimum sipariş adedinin altında miktar girdiniz.");
+   else notify("Teklif kaydedilemedi: "+msg);
    return
  }
  quoteItems=[];persistQuote();renderQuoteCart();renderProducts();
@@ -836,7 +864,7 @@ document.getElementById("quoteForm").onsubmit=async e=>{
  document.getElementById("validityConfirm").checked=false;
  btn.disabled=false;btn.textContent="Teklif talebini gönder";
  closeModal("quoteModal");
- alert("Teklif talebiniz başarıyla Emigro'ya gönderildi. Talep no: "+String(data).slice(0,8).toUpperCase()+". Emigro teklifinizi admin panelinden hazırlayacak.");
+ notify("Teklif talebiniz başarıyla Emigro'ya gönderildi. Talep no: "+String(data).slice(0,8).toUpperCase()+". Emigro teklifinizi admin panelinden hazırlayacak.");
 };
 
 async function scanBarcode(){
@@ -932,7 +960,7 @@ ${link}
 }
 async function copyCustomerInvite(){
  const link=document.getElementById("customerInviteLink")?.textContent||"";
- try{await navigator.clipboard.writeText(link);alert("Davet bağlantısı kopyalandı.");}
+ try{await navigator.clipboard.writeText(link);notify("Davet bağlantısı kopyalandı.");}
  catch{prompt("Davet bağlantısını kopyalayın:",link)}
 }
 async function shareCustomerInvite(){
@@ -941,7 +969,7 @@ async function shareCustomerInvite(){
  if(navigator.share){
    try{await navigator.share({title:"Emigro Cash & Carry B2B daveti",text,url:link});return}catch{}
  }
- try{await navigator.clipboard.writeText(text);alert("Davet metni kopyalandı. WhatsApp, SMS veya başka bir uygulamada paylaşabilirsiniz.");}
+ try{await navigator.clipboard.writeText(text);notify("Davet metni kopyalandı. WhatsApp, SMS veya başka bir uygulamada paylaşabilirsiniz.");}
  catch{prompt("Davet metnini kopyalayın:",text)}
 }
 function emailCustomerInvite(){
