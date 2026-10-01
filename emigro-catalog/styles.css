@@ -929,3 +929,27 @@ img,svg,video,canvas{max-width:100%}
     font-size:13px!important;
   }
 }
+
+/* Active admin tab is always the raised red center action */
+@media(max-width:700px){
+  .admin-main-tabs button .admin-tab-icon{
+    width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;
+    border:0!important;transform:none!important;background:transparent!important;color:#737b94!important;
+    box-shadow:none!important;
+  }
+  .admin-main-tabs button .admin-tab-icon svg{width:29px!important;height:29px!important;stroke-width:1.9!important}
+  .admin-main-tabs button.active .admin-tab-icon{
+    width:68px!important;height:68px!important;min-width:68px!important;min-height:68px!important;
+    border:5px solid #fff!important;border-radius:50%!important;
+    background:linear-gradient(180deg,#ec2637 0%,#ec0419 100%)!important;
+    color:#fff!important;
+    box-shadow:0 10px 24px rgba(236,4,25,.30)!important;
+    transform:translateY(-17px)!important;
+  }
+  .admin-main-tabs button.active .admin-tab-icon svg{width:34px!important;height:34px!important;stroke-width:2!important}
+  .admin-main-tabs button[data-admin-tab="productManager"]:not(.active) .admin-tab-icon{
+    width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;
+    border:0!important;transform:none!important;background:transparent!important;color:#737b94!important;box-shadow:none!important;
+  }
+  .member-actions button:disabled{opacity:.48!important;cursor:default!important}
+}
