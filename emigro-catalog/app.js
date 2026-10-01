@@ -216,6 +216,8 @@ function renderAuthButton(){
 }
 function openAuth(reason="Fiyatları görmek ve teklif istemek için onaylı üyelik gerekir.",action=null){
  pendingAction=action;
+ const productModal=document.getElementById("productModal");
+ if(productModal&&!productModal.classList.contains("hidden"))closeModal("productModal");
  document.getElementById("authReason").textContent=reason;
  document.getElementById("authTitle").textContent=session?"Hesabım":"Giriş yap veya üye ol";
  document.getElementById("loginForm").classList.toggle("hidden",!!session||demoMode);
