@@ -234,39 +234,61 @@ document.getElementById("printOfferBtn").onclick=()=>{
 async function generateOfferPdfFile(){
  if(!activeQuote)return null;
  const v=currentOfferValues();
- const iframe=document.createElement("iframe");
- iframe.setAttribute("aria-hidden","true");
- iframe.style.position="fixed";
- iframe.style.left="0";
- iframe.style.top="0";
- iframe.style.width="794px";
- iframe.style.height="1123px";
- iframe.style.opacity="0.001";
- iframe.style.pointerEvents="none";
- iframe.style.zIndex="-9999";
- document.body.appendChild(iframe);
+ const parsed=new DOMParser().parseFromString(offerPrintHtml(),"text/html");
+ const sheet=parsed.querySelector(".sheet");
+ const styleText=[...parsed.querySelectorAll("style")].map(s=>s.textContent||"").join("\n");
+ if(!sheet)throw new Error("Teklif sayfası oluşturulamadı");
+
+ const stage=document.createElement("div");
+ stage.setAttribute("aria-hidden","true");
+ stage.style.position="fixed";
+ stage.style.left="0";
+ stage.style.top="0";
+ stage.style.width="210mm";
+ stage.style.minHeight="297mm";
+ stage.style.background="#ffffff";
+ stage.style.zIndex="-9999";
+ stage.style.pointerEvents="none";
+ stage.style.overflow="hidden";
+
+ const scopedStyle=document.createElement("style");
+ scopedStyle.textContent=styleText;
+ document.head.appendChild(scopedStyle);
+ stage.innerHTML=sheet.outerHTML;
+ document.body.appendChild(stage);
+
+ const rendered=stage.querySelector(".sheet");
  const filename=(v.number||"Emigro-Offerte")+".pdf";
  try{
-   const doc=iframe.contentDocument;
-   doc.open();doc.write(offerPrintHtml());doc.close();
-   await new Promise(resolve=>setTimeout(resolve,500));
-   if(doc.fonts?.ready) await doc.fonts.ready;
-   const imgs=[...doc.images];
+   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+   if(document.fonts?.ready)await document.fonts.ready;
+   const imgs=[...rendered.querySelectorAll("img")];
    await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=img.onerror=r})));
-   const sheet=doc.querySelector(".sheet");
-   if(!sheet)throw new Error("Teklif sayfası oluşturulamadı");
+
    const blob=await html2pdf().set({
      margin:0,
      filename,
-     image:{type:"jpeg",quality:0.98},
-     html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",logging:false},
+     image:{type:"jpeg",quality:1},
+     html2canvas:{
+       scale:2,
+       useCORS:true,
+       allowTaint:false,
+       backgroundColor:"#ffffff",
+       logging:false,
+       scrollX:0,
+       scrollY:0,
+       windowWidth:Math.ceil(rendered.getBoundingClientRect().width),
+       windowHeight:Math.ceil(rendered.getBoundingClientRect().height)
+     },
      jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-     pagebreak:{mode:["avoid-all","css","legacy"]}
-   }).from(sheet).outputPdf("blob");
-   if(!blob||blob.size<1000)throw new Error("PDF içeriği boş oluştu");
+     pagebreak:{mode:["css","legacy"]}
+   }).from(rendered).outputPdf("blob");
+
+   if(!blob||blob.size<5000)throw new Error("PDF içeriği boş veya eksik oluştu");
    return new File([blob],filename,{type:"application/pdf"});
  } finally {
-   iframe.remove();
+   stage.remove();
+   scopedStyle.remove();
  }
 }
 
