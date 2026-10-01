@@ -31,7 +31,7 @@ let products=[...demoProducts];
 const euro=n=>n==null?"—":new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n));
 const esc=(v="")=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const jsId=id=>JSON.stringify(id);
-let active="All",shown=24,sort="name",query="",selected=null,selectedImage=0,compare=[],priceMode={};
+let active="All",shown=24,sort="name",query="",originFilter="",saleFilter="",depositFilter="",selected=null,selectedImage=0,compare=[],priceMode={};
 let favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]");
 let quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
 let session=null,profile=null,priceMap={},pendingAction=null,kvkVerified=false,verifiedKvkData=null,demoMode=false;
@@ -47,7 +47,10 @@ const demoPriceFor=(p,mode)=>{
 const priceFor=(p,mode)=>{
  if(demoMode)return demoPriceFor(p,mode);
  const row=priceMap[p.sku];
- return mode==="case"?row?.case_price:row?.pallet_price;
+ const base=mode==="case"?row?.case_price:row?.pallet_price;
+ if(base==null)return base;
+ const discount=Number(profile?.customer_discount_percent||0);
+ return Number((Number(base)*(1-discount/100)).toFixed(2));
 };
 const modeFor=p=>priceMode[p.id]||(p.caseAvailable?"case":"pallet");
 const currentPrice=p=>priceFor(p,modeFor(p));
@@ -62,7 +65,7 @@ const bottle=(p,large=false)=>p.image1
  : `<div class="bottle ${large?"large":""}" style="background:linear-gradient(155deg,${p.tone},#1c234a)"><div class="cap"></div><div class="label">PREMIUM<br>SELECTION</div></div>`;
 
 async function loadLiveCatalog(){
- const {data,error}=await sb.from("emigro_catalog_products").select("*").eq("is_active",true).order("category").order("product_name");
+ const {data,error}=await sb.from("emigro_catalog_products_public").select("*").order("category").order("product_name");
  if(error||!data?.length)return;
 
  const oldMeta=new Map(cats.map(c=>[c[0].toLowerCase(),c]));
@@ -99,11 +102,17 @@ async function loadLiveCatalog(){
     statiegeldScope:r.statiegeld_scope||"none",
     image1:r.image_1||null,
     image2:r.image_2||null,
-    image3:r.image_3||null
+    image3:r.image_3||null,
+    minQty:Number(r.min_order_qty||1)
    };
  });
  const statEls=document.querySelectorAll(".stats strong");
  if(statEls[0])statEls[0].textContent=products.length+"+";
+ const originSelect=document.getElementById("originFilter");
+ if(originSelect){
+   const origins=[...new Set(products.map(p=>p.origin).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+   originSelect.innerHTML='<option value="">Tüm menşeiler</option>'+origins.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join("");
+ }
 }
 function openModal(id){
  const wrap=document.getElementById(id);
@@ -296,7 +305,7 @@ document.getElementById("registerForm").onsubmit=async e=>{
 function renderHero(){
  const heroes=products.filter(p=>p.hero).slice(0,4),root=document.getElementById("heroCluster");
  root.innerHTML=heroes[0].heroLayout==="editorial"
- ?`<div class="hero-tile editorial" onclick="openProduct(${heroes[0].id})"><div><div class="eyebrow">HERO PRODUCT</div><h3>${heroes[0].brand}<br>${heroes[0].name}</h3><small>${heroes[0].category} · ${heroes[0].origin}</small></div><div style="display:grid;place-items:center">${bottle(heroes[0],true)}</div></div>`
+ ?`<div class="hero-tile editorial" onclick="openProduct(${jsId(heroes[0].id)})"><div><div class="eyebrow">HERO PRODUCT</div><h3>${heroes[0].brand}<br>${heroes[0].name}</h3><small>${heroes[0].category} · ${heroes[0].origin}</small></div><div style="display:grid;place-items:center">${bottle(heroes[0],true)}</div></div>`
  :heroes.map(p=>`<div class="hero-tile" onclick="openProduct(${jsId(p.id)})">${bottle(p)}<small>${p.name}</small></div>`).join("");
 }
 function renderCategorySquares(){
@@ -309,7 +318,16 @@ function renderCategories(){
 function setCategory(c){active=c;shown=24;renderAll();document.getElementById("products").scrollIntoView({behavior:"smooth",block:"start"})}
 window.setCategory=setCategory;
 function filtered(){
- let list=products.filter(p=>(active==="All"||p.category===active)&&(`${p.brand} ${p.name} ${p.category} ${p.origin} ${p.ean} ${p.sku}`).toLowerCase().includes(query.toLowerCase()));
+ let list=products.filter(p=>{
+   if(active!=="All"&&p.category!==active)return false;
+   if(originFilter&&p.origin!==originFilter)return false;
+   if(saleFilter==="case"&&!(p.caseAvailable&&!p.palletAvailable))return false;
+   if(saleFilter==="pallet"&&!(p.palletAvailable&&!p.caseAvailable))return false;
+   if(saleFilter==="both"&&!(p.caseAvailable&&p.palletAvailable))return false;
+   if(depositFilter==="yes"&&!(Number(p.statiegeld||0)>0))return false;
+   if(depositFilter==="no"&&Number(p.statiegeld||0)>0)return false;
+   return (`${p.brand} ${p.name} ${p.category} ${p.origin} ${p.ean} ${p.sku}`).toLowerCase().includes(query.toLowerCase());
+ });
  if(sort==="low"&&approved())list.sort((a,b)=>(priceFor(a,"case")??priceFor(a,"pallet")??99999)-(priceFor(b,"case")??priceFor(b,"pallet")??99999));
  else if(sort==="high"&&approved())list.sort((a,b)=>(priceFor(b,"case")??priceFor(b,"pallet")??0)-(priceFor(a,"case")??priceFor(a,"pallet")??0));
  else list.sort((a,b)=>(a.brand+" "+a.name).localeCompare(b.brand+" "+b.name));
@@ -322,7 +340,7 @@ function renderBanner(){
 }
 function heroBlock(index){
  const hp=products.filter(p=>p.hero),p=hp[Math.floor(index/12-1)%hp.length];if(!p)return"";
- if(p.heroLayout==="grid4"){const four=products.filter(x=>x.category===p.category).slice(0,4);return `<section class="inline-hero grid4">${four.map(x=>`<div class="mini-hero" onclick="openProduct(${x.id})">${bottle(x)}<h4>${x.name}</h4><small>${x.brand}</small></div>`).join("")}</section>`}
+ if(p.heroLayout==="grid4"){const four=products.filter(x=>x.category===p.category).slice(0,4);return `<section class="inline-hero grid4">${four.map(x=>`<div class="mini-hero" onclick="openProduct(${jsId(x.id)})">${bottle(x)}<h4>${x.name}</h4><small>${x.brand}</small></div>`).join("")}</section>`}
  return `<section class="inline-hero"><div><div class="eyebrow">HERO PRODUCT · ${p.category}</div><h2 style="font:600 42px/.96 var(--serif);margin:8px 0">${p.brand}<br>${p.name}</h2><p>${p.origin} · ${p.net}</p><button class="ghost" onclick="openProduct(${jsId(p.id)})">Ürünü aç</button></div><div style="display:grid;place-items:center">${bottle(p,true)}</div></section>`;
 }
 function lockedPrice(){
@@ -440,7 +458,7 @@ function renderDetailQuoteButton(){
  }
  const mode=modeFor(selected);
  const existing=quoteItems.find(x=>x.id===selected.id&&x.mode===mode);
- const qty=existing?.qty||1;
+ const qty=existing?.qty||selected.minQty||1;
  controls.innerHTML=`
    <div class="detail-quote-box">
      <div class="detail-quote-field">
@@ -450,7 +468,7 @@ function renderDetailQuoteButton(){
          ${selected.palletAvailable?`<button type="button" class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(selected.id)},'pallet')">Palet</button>`:""}
        </div>
      </div>
-     <label class="detail-quote-field"><span>Adet</span><input id="detailQuoteQty" type="number" min="1" step="1" value="${qty}" oninput="updateDetailQuoteTotal(this.value)"></label>
+     <label class="detail-quote-field"><span>Adet</span><input id="detailQuoteQty" type="number" min="${selected.minQty||1}" step="1" value="${qty}" oninput="updateDetailQuoteTotal(this.value)"><small>Minimum: ${selected.minQty||1}</small></label>
      <div class="detail-quote-summary">
        <span>Birim fiyat</span><small id="detailQuoteUnit">${euro(currentPrice(selected))} / ${mode==="case"?"koli":"palet"}</small>
        <span id="detailQuoteTotalLabel">${qty} ${mode==="case"?"koli":"palet"} toplamı</span>
@@ -483,7 +501,7 @@ function addQuote(id,requestedQty=null){
  const p=products.find(x=>x.id===id);
  if(!approved()){pendingAction="quote";openAuth("Teklif isteyebilmek için Emigro tarafından onaylanmış üyeliğinizle giriş yapın.","quote");return}
  const mode=modeFor(p);
- const qty=Math.max(1,parseInt(requestedQty||"1",10));
+ const qty=Math.max(Number(p.minQty||1),parseInt(requestedQty||String(p.minQty||1),10));
  const existing=quoteItems.find(x=>x.id===id&&x.mode===mode);
  if(existing)existing.qty=qty;else quoteItems.push({id,mode,qty});
  persistQuote();renderProducts();renderQuoteCart();if(selected?.id===id)renderDetailQuoteButton();
@@ -634,11 +652,11 @@ function openQuote(){
  renderQuoteLines();populateMemberQuote();openModal("quoteModal");
 }
 function renderQuoteLines(){
- document.getElementById("quoteLines").innerHTML=quoteItems.map((item,idx)=>{const p=products.find(x=>x.id===item.id),price=quoteLinePrice(item);return `<div class="quote-line"><div class="quote-thumb">${bottle(p)}</div><div><b>${p.brand} ${p.name}</b><span>${item.mode==="case"?"Koli":"Palet"} · ${euro(price)}</span>${p.beverage?`<small>${depositText(p)}</small>`:""}</div><label>Adet<input type="number" min="1" value="${item.qty}" onchange="updateQuoteQty(${idx},this.value)"></label><strong>${euro(price*item.qty)}</strong><button onclick="removeQuote(${idx})">×</button></div>`}).join("");
+ document.getElementById("quoteLines").innerHTML=quoteItems.map((item,idx)=>{const p=products.find(x=>x.id===item.id),price=quoteLinePrice(item);return `<div class="quote-line"><div class="quote-thumb">${bottle(p)}</div><div><b>${p.brand} ${p.name}</b><span>${item.mode==="case"?"Koli":"Palet"} · ${euro(price)}</span>${p.beverage?`<small>${depositText(p)}</small>`:""}</div><label>Adet<input type="number" min="${p.minQty||1}" value="${item.qty}" onchange="updateQuoteQty(${idx},this.value)"></label><strong>${euro(price*item.qty)}</strong><button onclick="removeQuote(${idx})">×</button></div>`}).join("");
  document.getElementById("formQuoteTotal").textContent=euro(quoteTotal());
  document.getElementById("quoteSummaryField").value=quoteItems.map(item=>{const p=products.find(x=>x.id===item.id);return `${p.sku} | ${p.brand} ${p.name} | ${item.mode==="case"?"Koli":"Palet"} | Adet: ${item.qty} | ${euro(quoteLinePrice(item))}${p.beverage?" | "+depositText(p):""}`}).join("\n");
 }
-function updateQuoteQty(idx,val){quoteItems[idx].qty=Math.max(1,parseInt(val||"1",10));persistQuote();renderQuoteLines();renderQuoteCart()}
+function updateQuoteQty(idx,val){const p=products.find(x=>x.id===quoteItems[idx].id);quoteItems[idx].qty=Math.max(Number(p?.minQty||1),parseInt(val||String(p?.minQty||1),10));persistQuote();renderQuoteLines();renderQuoteCart()}
 function removeQuote(idx){quoteItems.splice(idx,1);persistQuote();renderQuoteLines();renderQuoteCart();renderProducts();if(!quoteItems.length)closeModal("quoteModal")}
 window.updateQuoteQty=updateQuoteQty;window.removeQuote=removeQuote;
 document.getElementById("detailQuoteBtn").onclick=()=>{
@@ -653,15 +671,22 @@ document.getElementById("quoteForm").onsubmit=async e=>{
  if(!approved()){closeModal("quoteModal");openAuth("Teklif göndermek için onaylı üyelik gerekir.","quote");return}
  if(!document.getElementById("validityConfirm").checked)return;
  const btn=document.getElementById("quoteSubmitBtn");btn.disabled=true;btn.textContent="Gönderiliyor...";
- const payload=quoteItems.map(item=>{const p=products.find(x=>x.id===item.id);return {sku:p.sku,name:p.brand+" "+p.name,mode:item.mode,qty:item.qty,unit_price:quoteLinePrice(item)}});
- const {data,error}=await sb.from("emigro_catalog_quotes").insert({user_id:session.user.id,items:payload,estimated_total:quoteTotal(),valid_from:"2026-10-01",valid_to:"2026-10-30",note:document.getElementById("quoteNote").value||"",status:"new"}).select("id").single();
- if(error){btn.disabled=false;btn.textContent="Teklif talebini gönder";alert("Teklif kaydedilemedi: "+error.message);return}
+ const payload=quoteItems.map(item=>({product_id:item.id,mode:item.mode,qty:Number(item.qty)}));
+ const {data,error}=await sb.rpc("emigro_catalog_submit_quote",{p_items:payload,p_note:document.getElementById("quoteNote").value||""});
+ if(error){
+   btn.disabled=false;btn.textContent="Teklif talebini gönder";
+   const msg=String(error.message||"");
+   if(msg.includes("exceeds allowed limit"))alert("Bu ürün için talep edilen miktar izin verilen sınırın üzerinde. Adedi düşürüp tekrar deneyin.");
+   else if(msg.includes("minimum quantity"))alert("Bir veya daha fazla üründe minimum sipariş adedinin altında miktar girdiniz.");
+   else alert("Teklif kaydedilemedi: "+msg);
+   return
+ }
  quoteItems=[];persistQuote();renderQuoteCart();renderProducts();
  document.getElementById("quoteNote").value="";
  document.getElementById("validityConfirm").checked=false;
  btn.disabled=false;btn.textContent="Teklif talebini gönder";
  closeModal("quoteModal");
- alert("Teklif talebiniz başarıyla Emigro'ya gönderildi. Talep no: "+data.id.slice(0,8).toUpperCase()+". Emigro teklifinizi admin panelinden hazırlayacak.");
+ alert("Teklif talebiniz başarıyla Emigro'ya gönderildi. Talep no: "+String(data).slice(0,8).toUpperCase()+". Emigro teklifinizi admin panelinden hazırlayacak.");
 };
 
 function toggleCompare(id){compare=compare.includes(id)?compare.filter(x=>x!==id):compare.length<3?[...compare,id]:compare;renderAll()}
@@ -690,10 +715,45 @@ function renderCompare(list){
  document.getElementById("compareGrid").innerHTML=list.map(p=>`<article class="compare-col"><div class="visual">${bottle(p)}</div><div class="brandline">${p.category}</div><h3>${p.brand}<br>${p.name}</h3><div class="compare-price"><span>${mode==="case"?"Koli fiyatı":"Palet fiyatı"}</span><strong>${euro(priceFor(p,mode))}</strong></div><dl><div><dt>Menşei</dt><dd>${p.origin}</dd></div><div><dt>Net</dt><dd>${p.net}</dd></div><div><dt>Koli içi</dt><dd>${p.caseQty}</dd></div><div><dt>Palet içi</dt><dd>${p.palletCases}</dd></div><div><dt>EAN</dt><dd>${p.ean}</dd></div>${p.beverage?`<div><dt>Statiegeld</dt><dd>${p.statiegeld>0?euro(p.statiegeld):"Yok"}</dd></div>`:""}</dl></article>`).join("");
  openModal("compareModal");
 }
+async function scanBarcode(){
+ const search=document.getElementById("search");
+ if(!("BarcodeDetector" in window)||!navigator.mediaDevices?.getUserMedia){
+   const code=prompt("Barkodu yazın veya yapıştırın:");
+   if(code!=null){query=code.trim();search.value=query;shown=24;renderProducts()}
+   return;
+ }
+ let stream=null,wrap=null;
+ try{
+   const detector=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]});
+   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}});
+   wrap=document.createElement("div");wrap.className="barcode-scanner-overlay";
+   wrap.innerHTML='<div class="barcode-scanner-card"><video playsinline autoplay></video><div class="barcode-frame"></div><button class="ghost" type="button">Kapat</button><small>Barkodu çerçevenin içine getirin</small></div>';
+   document.body.appendChild(wrap);
+   const video=wrap.querySelector("video");video.srcObject=stream;await video.play();
+   let stopped=false;
+   const close=()=>{stopped=true;stream?.getTracks().forEach(t=>t.stop());wrap?.remove()};
+   wrap.querySelector("button").onclick=close;
+   while(!stopped){
+     const codes=await detector.detect(video);
+     if(codes?.length){
+       query=codes[0].rawValue||"";search.value=query;shown=24;renderProducts();close();break;
+     }
+     await new Promise(r=>setTimeout(r,250));
+   }
+ }catch(err){
+   stream?.getTracks().forEach(t=>t.stop());wrap?.remove();
+   const code=prompt("Kamera ile barkod okunamadı. Barkodu yazın:");
+   if(code!=null){query=code.trim();search.value=query;shown=24;renderProducts()}
+ }
+}
 document.getElementById("compareOpen").onclick=openCompare;
 document.getElementById("priceInfoBtn").onclick=()=>openModal("priceInfo");
 document.getElementById("search").oninput=e=>{query=e.target.value;shown=24;renderProducts()};
 document.getElementById("sort").onchange=e=>{sort=e.target.value;if((sort==="low"||sort==="high")&&!approved()){sort="name";e.target.value="name";openAuth("Fiyata göre sıralama yalnızca onaylı üyeler için kullanılabilir.")}renderProducts()};
+document.getElementById("originFilter").onchange=e=>{originFilter=e.target.value;shown=24;renderProducts()};
+document.getElementById("saleFilter").onchange=e=>{saleFilter=e.target.value;shown=24;renderProducts()};
+document.getElementById("depositFilter").onchange=e=>{depositFilter=e.target.value;shown=24;renderProducts()};
+document.getElementById("scanBarcodeBtn").onclick=scanBarcode;
 document.getElementById("loadMore").onclick=()=>{shown+=24;renderProducts()};
 
 function renderAll(){renderBanner();renderCategories();renderProducts();renderCompareBar();renderQuoteCart()}
