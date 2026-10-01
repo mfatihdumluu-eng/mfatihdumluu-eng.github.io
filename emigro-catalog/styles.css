@@ -1164,3 +1164,42 @@ img,svg,video,canvas{max-width:100%}
     transform:translate(-50%,28px)!important;
   }
 }
+
+/* Customer account section buttons: match admin filter button sizing */
+@media(max-width:700px){
+  .customer-dashboard-tabs{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+    overflow:visible!important;
+    width:100%!important;
+    padding:0!important;
+    margin:0 0 16px!important;
+  }
+  .customer-dashboard-tabs button{
+    width:100%!important;
+    min-width:0!important;
+    min-height:58px!important;
+    padding:14px 10px!important;
+    border-radius:18px!important;
+    font-size:14px!important;
+    font-weight:700!important;
+    line-height:1.15!important;
+    white-space:normal!important;
+    text-align:center!important;
+    background:#fff!important;
+    color:#293369!important;
+    border:1px solid var(--line)!important;
+  }
+  .customer-dashboard-tabs button.active{
+    background:#293369!important;
+    color:#fff!important;
+    border-color:#293369!important;
+  }
+}
+@media(max-width:390px){
+  .customer-dashboard-tabs button{
+    min-height:56px!important;
+    font-size:13px!important;
+  }
+}
