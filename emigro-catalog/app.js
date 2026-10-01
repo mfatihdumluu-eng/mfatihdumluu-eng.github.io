@@ -479,6 +479,11 @@ document.getElementById("customerDashboardNav").onclick=()=>{
  dash.scrollIntoView({behavior:"smooth",block:"start"});
 };
 document.getElementById("refreshCustomerDashboard").onclick=loadCustomerDashboard;
+document.getElementById("closeCustomerDashboard").onclick=()=>{
+ const dash=document.getElementById("customerDashboard");
+ dash.classList.add("hidden");
+ window.scrollTo({top:0,behavior:"smooth"});
+};
 document.querySelectorAll("[data-customer-tab]").forEach(b=>b.onclick=()=>{
  customerDashboardTab=b.dataset.customerTab;
  document.querySelectorAll("[data-customer-tab]").forEach(x=>x.classList.toggle("active",x===b));
