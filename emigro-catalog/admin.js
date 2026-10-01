@@ -2,6 +2,7 @@ const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-admin-auth",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let profiles=[],quotes=[],memberFilter="all",quoteFilter="all",activeQuote=null,profileMap={};
+let adminProducts=[],orders=[],orderFilter="all";
 let importRows=[],importImageFiles=new Map(),existingProducts=new Map(),defaultImageUrls={kutu:null,palet:null};
 
 const euro=n=>new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n||0));
@@ -33,7 +34,7 @@ async function guard(){
 }
 
 async function loadAll(){
- await Promise.all([loadProfiles(),loadQuotes()]);
+ await Promise.all([loadProfiles(),loadQuotes(),loadAdminProducts(),loadOrders()]);
 }
 async function loadProfiles(){
  const {data,error}=await sb.from("emigro_catalog_profiles").select("*").order("created_at",{ascending:false});
@@ -60,6 +61,11 @@ function renderMembers(){
    <div><span>Adres</span><b>${esc(p.company_address)} · ${esc(p.postal_code)} ${esc(p.city)} · ${esc(p.country)}</b></div>
    <div><span>KvK</span><b>${esc(p.kvk_number)}</b></div><div><span>BTW</span><b>${esc(p.btw_number)}</b></div><div><span>Rol</span><b>${esc(p.role)}</b></div>
   </div>
+  <div class="member-pricing">
+    <label>Müşteri indirimi (%)<input type="number" min="0" max="100" step="0.01" id="memberDiscount-${p.id}" value="${Number(p.customer_discount_percent||0)}"></label>
+    <label>Fiyat seviyesi<input id="memberPriceLevel-${p.id}" value="${esc(p.price_level||"standard")}"></label>
+    <button class="ghost" onclick="saveCustomerPricing('${p.id}')">Fiyat ayarını kaydet</button>
+  </div>
   <div class="member-actions">
    <button class="approve" onclick="setStatus('${p.id}','approved')">Onayla</button>
    <button onclick="setStatus('${p.id}','pending')">Beklemeye al</button>
@@ -75,6 +81,16 @@ async function setStatus(id,status){
  await loadProfiles();
 }
 window.setStatus=setStatus;
+
+async function saveCustomerPricing(id){
+ const discount=Number(document.getElementById("memberDiscount-"+id)?.value||0);
+ const level=document.getElementById("memberPriceLevel-"+id)?.value?.trim()||"standard";
+ const {error}=await sb.rpc("emigro_catalog_admin_set_customer_pricing",{target_user:id,p_discount:discount,p_price_level:level});
+ if(error){alert("Müşteri fiyat ayarı kaydedilemedi: "+error.message);return}
+ await loadProfiles();
+ alert("Müşteri fiyat ayarı kaydedildi.");
+}
+window.saveCustomerPricing=saveCustomerPricing;
 
 function quoteBase(q){return Number(q.estimated_total||0)}
 function quoteDiscount(q,percent,amount){
@@ -372,6 +388,8 @@ const PRODUCT_HEADERS=[
  {key:"net_unit",label:"net_birim"},
  {key:"units_per_case",label:"koli_ici_adet"},
  {key:"cases_per_pallet",label:"palet_ici_koli_adedi"},
+ {key:"min_order_qty",label:"min_siparis_adedi"},
+ {key:"max_order_qty",label:"max_siparis_adedi"},
  {key:"origin",label:"mensei"},
  {key:"statiegeld",label:"statiegeld"},
  {key:"statiegeld_scope",label:"statiegeld_tipi"},
@@ -420,6 +438,8 @@ function rowErrors(row,index){
  if(!String(row.net_unit||"").trim())e.push("Net birim");
  if(!(Number.isInteger(Number(row.units_per_case))&&Number(row.units_per_case)>0))e.push("Koli içi adet");
  if(!(Number.isInteger(Number(row.cases_per_pallet))&&Number(row.cases_per_pallet)>0))e.push("Palet içi koli adedi");
+ if(!(Number.isInteger(Number(row.min_order_qty))&&Number(row.min_order_qty)>0))e.push("Minimum sipariş adedi");
+ if(row.max_order_qty!==null&&row.max_order_qty!==""&&!(Number.isInteger(Number(row.max_order_qty))&&Number(row.max_order_qty)>=Number(row.min_order_qty||1)))e.push("Maksimum sipariş adedi");
  if(!String(row.origin||"").trim())e.push("Menşei");
  if(!(Number(row.statiegeld)>=0))e.push("Statiegeld (yoksa 0)");
  if(!STATIEGELD_SCOPES.includes(String(row.statiegeld_scope||"")))e.push("Statiegeld tipi");
@@ -485,6 +505,8 @@ function renderImportRows(){
       <label>Net birim<input value="${escAttr(r.net_unit)}" placeholder="g / kg / ml / l" oninput="updateImportField(${i},'net_unit',this.value)"></label>
       <label>Koli içi adet<input type="number" min="1" step="1" value="${r.units_per_case??""}" oninput="updateImportField(${i},'units_per_case',this.value)"></label>
       <label>Palet içi koli adedi<input type="number" min="1" step="1" value="${r.cases_per_pallet??""}" oninput="updateImportField(${i},'cases_per_pallet',this.value)"></label>
+      <label>Minimum sipariş adedi<input type="number" min="1" step="1" value="${r.min_order_qty??1}" oninput="updateImportField(${i},'min_order_qty',this.value)"></label>
+      <label>Maksimum sipariş adedi<input type="number" min="1" step="1" value="${r.max_order_qty??""}" oninput="updateImportField(${i},'max_order_qty',this.value)"><small>Müşteri tarafında gösterilmez</small></label>
       <label>Menşei<input value="${escAttr(r.origin)}" oninput="updateImportField(${i},'origin',this.value)"></label>
       <label>Statiegeld (€)<input type="number" min="0" step="0.01" value="${r.statiegeld??0}" oninput="updateImportField(${i},'statiegeld',this.value)"><small>Yoksa 0</small></label>
       <label>Statiegeld tipi<select onchange="updateImportField(${i},'statiegeld_scope',this.value)"><option value="none" ${r.statiegeld_scope==="none"?"selected":""}>Yok</option><option value="both" ${r.statiegeld_scope==="both"?"selected":""}>Koli + Palet</option><option value="case" ${r.statiegeld_scope==="case"?"selected":""}>Sadece Koli</option><option value="pallet" ${r.statiegeld_scope==="pallet"?"selected":""}>Sadece Palet</option></select></label>
@@ -503,8 +525,8 @@ function renderImportRows(){
 }
 window.updateImportField=(idx,key,value)=>{
  const numeric=["unit_price","net_value","statiegeld"].includes(key);
- const integer=["units_per_case","cases_per_pallet"].includes(key);
- importRows[idx][key]=numeric?toNumber(value):integer?toInt(value):value;
+ const integer=["units_per_case","cases_per_pallet","min_order_qty","max_order_qty"].includes(key);
+ importRows[idx][key]=numeric?toNumber(value):integer?(String(value).trim()===""?null:toInt(value)):value;
  renderImportRows();
 };
 
@@ -555,6 +577,8 @@ async function parseProductExcel(file){
    net_unit:String(n.net_birim||"").trim(),
    units_per_case:toInt(n.koli_ici_adet),
    cases_per_pallet:toInt(n.palet_ici_koli_adedi),
+   min_order_qty:toInt(n.min_siparis_adedi)||1,
+   max_order_qty:String(n.max_siparis_adedi||"").trim()===""?null:toInt(n.max_siparis_adedi),
    origin:String(n.mensei||"").trim(),
    statiegeld:toNumber(n.statiegeld),
    statiegeld_scope:String(n.statiegeld_tipi||"").trim().toLowerCase(),
@@ -592,6 +616,8 @@ document.getElementById("downloadProductTemplate").onclick=()=>{
   net_birim:"g",
   koli_ici_adet:12,
   palet_ici_koli_adedi:48,
+  min_siparis_adedi:1,
+  max_siparis_adedi:"",
   mensei:"Netherlands",
   statiegeld:0,
   statiegeld_tipi:"none",
@@ -601,7 +627,7 @@ document.getElementById("downloadProductTemplate").onclick=()=>{
  ws["!cols"]=[24,18,20,18,14,14,12,12,12,14,22,18,12,16,14].map(w=>({wch:w}));
  const info=XLSX.utils.aoa_to_sheet([
   ["EMIGRO TOPLU ÜRÜN YÜKLEME ŞABLONU"],
-  ["Zorunlu sütunlar","urun_adi, barkod, marka, kategori, satis_tipi, birim_fiyat, net_deger, net_birim, koli_ici_adet, palet_ici_koli_adedi, mensei, statiegeld, statiegeld_tipi"],
+  ["Zorunlu sütunlar","urun_adi, barkod, marka, kategori, satis_tipi, birim_fiyat, net_deger, net_birim, koli_ici_adet, palet_ici_koli_adedi, min_siparis_adedi, max_siparis_adedi, mensei, statiegeld, statiegeld_tipi"],
   ["Barkod","Metin olarak girin. Ana görsel dosya adı barkod ile aynı olmalı."],
   ["Görsel 1","111232132131.jpg / png"],
   ["Görsel 2","111232132131-2.jpg / png; yoksa kutu görseli kullanılır"],
@@ -610,6 +636,7 @@ document.getElementById("downloadProductTemplate").onclick=()=>{
   ["Kategori","Yalnızca: Soft Drinks, Juices, Sauces, Snacks, Frozen, Grocery, Dairy, Sweets, Non-Food"],
   ["Satış tipi","case = sadece koli, pallet = sadece palet, both = koli + palet"],
   ["Birim fiyat","Tek ürün fiyatıdır; sadece arka planda koli/palet hesabı için kullanılır, müşteriye gösterilmez."],
+  ["Minimum / maksimum","min_siparis_adedi zorunlu; max_siparis_adedi boş bırakılabilir. Maksimum sınır müşteri ekranında gösterilmez."],
   ["Koli fiyatı","birim_fiyat × koli_ici_adet"],
   ["Palet fiyatı","birim_fiyat × koli_ici_adet × palet_ici_koli_adedi"],
   ["Statiegeld","Yoksa mutlaka 0 yazın."],
@@ -679,6 +706,8 @@ document.getElementById("saveValidProducts").onclick=async()=>{
         p_statiegeld:Number(r.statiegeld||0),
         p_sale_type:r.sale_type,
         p_statiegeld_scope:r.statiegeld_scope,
+        p_min_order_qty:Number(r.min_order_qty||1),
+        p_max_order_qty:r.max_order_qty==null?null:Number(r.max_order_qty),
         p_image_1:image1,
         p_image_2:image2,
         p_image_3:image3,
