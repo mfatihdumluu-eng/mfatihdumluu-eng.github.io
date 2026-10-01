@@ -933,6 +933,11 @@ function renderOrders(){
     <div class="order-admin-controls">
       <select id="order-status-${o.id}" ${isFinished?"disabled":""}><option value="new" ${o.status==="new"?"selected":""}>Yeni</option><option value="preparing" ${o.status==="preparing"?"selected":""}>Hazırlanıyor</option><option value="ready" ${o.status==="ready"?"selected":""}>Hazır</option><option value="shipped" ${o.status==="shipped"?"selected":""}>Sevk edildi</option><option value="completed" ${o.status==="completed"?"selected":""}>Tamamlandı</option><option value="cancelled" ${o.status==="cancelled"?"selected":""}>İptal</option></select>
       <input id="order-date-${o.id}" type="date" value="${o.confirmed_delivery_date||""}" ${isFinished?"disabled":""}>
+      <select id="order-delivery-method-${o.id}" ${isFinished?"disabled":""} onchange="syncOrderDeliveryFields('${o.id}')">
+        <option value="">Teslim şekli seçin</option>
+        <option value="carrier" ${o.delivery_method==="carrier"?"selected":""}>Kargo firması</option>
+        <option value="emigro_vehicle" ${o.delivery_method==="emigro_vehicle"?"selected":""}>Emigro Cash & Carry aracı</option>
+      </select>
       <input id="order-note-${o.id}" placeholder="Admin notu" value="${escAttr(o.admin_note||"")}" ${isFinished?"disabled":""}>
       <input id="order-track-${o.id}" placeholder="Kargo takip numarası (opsiyonel)" value="${escAttr(o.tracking_number||"")}" ${isFinished?"disabled":""}>
       <input id="order-trackurl-${o.id}" placeholder="Takip linki (opsiyonel)" value="${escAttr(o.tracking_url||"")}" ${isFinished?"disabled":""}>
@@ -955,11 +960,29 @@ function renderOrders(){
      <div class="admin-order-group-head"><div><span>BİTEN / ESKİ SİPARİŞLER</span><strong>${finished.length}</strong></div><small>Teslim alınan, teslim tarihi geçen veya iptal edilen siparişler.</small></div>
      <div class="admin-order-group-list">${finished.length?finished.map(renderOrder).join(""):'<div class="admin-loading">Henüz biten sipariş yok.</div>'}</div>
    </section>`;
+ setTimeout(()=>filtered.forEach(o=>syncOrderDeliveryFields(o.id)),0);
 }
+function syncOrderDeliveryFields(id){
+ const method=document.getElementById("order-delivery-method-"+id)?.value||"";
+ const track=document.getElementById("order-track-"+id);
+ const url=document.getElementById("order-trackurl-"+id);
+ const carrier=method==="carrier";
+ if(track){track.classList.toggle("hidden",!carrier);if(!carrier)track.value=""}
+ if(url){url.classList.toggle("hidden",!carrier);if(!carrier)url.value=""}
+}
+window.syncOrderDeliveryFields=syncOrderDeliveryFields;
+
 async function saveOrder(id,forcedStatus=null){
- const status=forcedStatus||document.getElementById("order-status-"+id).value;
+ const currentStatus=document.getElementById("order-status-"+id).value;
+ const status=forcedStatus||(currentStatus==="new"?"preparing":currentStatus);
+ const method=document.getElementById("order-delivery-method-"+id)?.value||null;
  const tracking=document.getElementById("order-track-"+id).value.trim();
  const trackingUrl=document.getElementById("order-trackurl-"+id).value.trim();
+ if(forcedStatus==="shipped"&&!method){
+   notify("Yola çıkarmadan önce teslim şeklini seçin.","error");
+   document.getElementById("order-delivery-method-"+id)?.focus();
+   return;
+ }
  if(trackingUrl&&!/^https?:\/\//i.test(trackingUrl)){
    notify("Takip linki http:// veya https:// ile başlamalı.","error");
    document.getElementById("order-trackurl-"+id).focus();
@@ -970,11 +993,12 @@ async function saveOrder(id,forcedStatus=null){
   p_confirmed_delivery_date:document.getElementById("order-date-"+id).value||null,
   p_admin_note:document.getElementById("order-note-"+id).value||"",
   p_tracking_number:tracking,
-  p_tracking_url:trackingUrl
+  p_tracking_url:trackingUrl,
+  p_delivery_method:method
  });
  if(error){notify("Sipariş güncellenemedi: "+error.message,"error");return}
  await loadOrders();
- notify(status==="shipped"?"Sipariş gönderildi olarak işaretlendi.":"Sipariş bilgileri güncellendi.","success");
+ notify(status==="shipped"?"Sipariş yola çıktı olarak işaretlendi.":status==="preparing"?"Sipariş hazırlanıyor durumuna geçti.":"Sipariş bilgileri güncellendi.","success");
 }
 window.saveOrder=saveOrder;
 async function markOrderShipped(id){
