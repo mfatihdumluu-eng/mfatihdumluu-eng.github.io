@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-label="Emigro Cash & Carry">
+<rect width="1200" height="360" fill="white"/>
+<g transform="translate(12 18)">
+  <circle cx="150" cy="150" r="118" fill="none" stroke="#ec0419" stroke-width="28" stroke-linecap="round" stroke-dasharray="580 170" transform="rotate(-24 150 150)"/>
+  <path d="M95 135c18-58 96-78 143-36 38 34 19 95-32 117-30 13-69 13-103 7l-4-31c25 4 57 4 81-5 20-8 33-22 31-37-3-18-23-26-43-22-24 5-37 22-42 43l-31-4z" fill="#293369"/>
+  <path d="M89 176h160v30H89z" fill="#293369" transform="rotate(-6 169 191)"/>
+</g>
+<g fill="#293369">
+  <text x="330" y="177" font-family="Arial, Helvetica, sans-serif" font-size="168" font-style="italic" font-weight="700" letter-spacing="-10">emigro</text>
+  <text x="360" y="292" font-family="Brush Script MT, Segoe Script, cursive" font-size="102" font-style="italic" font-weight="700">Cash &amp; Carry</text>
+</g>
+<g transform="translate(760 18) skewX(-10)">
+  <rect x="0" y="0" width="38" height="38" fill="#ec0419"/>
+  <rect x="30" y="-18" width="38" height="38" fill="#293369"/>
+</g>
+</svg>
