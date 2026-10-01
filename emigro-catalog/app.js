@@ -356,7 +356,7 @@ async function openMyQuotes(){
  if(!list.length){root.innerHTML='<div class="my-quotes-empty"><b>Henüz teklif talebiniz yok.</b><span>Ürünlerden teklif istediğinizde talepleriniz burada görünür.</span></div>';return}
  root.innerHTML=list.map(q=>{
    const t=calcCustomerQuote(q);
-   const ready=q.status==="offered"||q.status==="accepted";
+   const ready=["offered","accepted","declined"].includes(q.status);
    const items=(q.items||[]).map(i=>`<div class="my-quote-item"><div><b>${i.name}</b><small>${i.sku} · ${i.mode==="case"?"Koli":"Palet"} · ${i.qty} adet</small></div><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>`).join("");
    return `<article class="my-quote-card ${ready?"ready":""}">
      <div class="my-quote-head"><div><span class="my-quote-status ${q.status}">${customerQuoteStatus(q.status)}</span><h3>${q.offer_number?"Teklif "+q.offer_number:"Teklif talebi"}</h3><small>${new Date(q.created_at).toLocaleString("nl-NL")}</small></div><strong>${ready?euro(t.total):euro(t.base)}</strong></div>
@@ -369,10 +369,21 @@ async function openMyQuotes(){
      </div>`:`<div class="my-quote-wait">Emigro teklifinizi hazırlıyor. Hazır olduğunda burada toplam, korting, kargo ve geçerlilik tarihi görünecek.</div>`}
      ${q.admin_note?`<div class="my-quote-note"><b>Emigro notu</b><span>${q.admin_note}</span></div>`:""}
      ${q.offer_valid_to?`<div class="my-quote-valid"><span>Teklif geçerlilik tarihi</span><strong>${new Date(q.offer_valid_to).toLocaleDateString("nl-NL")}</strong></div>`:""}
+     ${q.status==="offered"?`<div class="customer-offer-actions"><button class="btn" onclick="decideCustomerQuote('${q.id}','accepted')">Teklifi kabul et</button><button class="ghost reject-offer" onclick="decideCustomerQuote('${q.id}','declined')">Teklifi reddet</button></div>`:""}
+     ${q.status==="accepted"?'<div class="customer-decision accepted">✓ Bu teklifi kabul ettiniz.</div>':""}
+     ${q.status==="declined"?'<div class="customer-decision declined">Bu teklifi reddettiniz.</div>':""}
    </article>`;
  }).join("");
 }
 window.openMyQuotes=openMyQuotes;
+async function decideCustomerQuote(id,decision){
+ const label=decision==="accepted"?"kabul etmek":"reddetmek";
+ if(!confirm("Bu teklifi "+label+" istediğinize emin misiniz?"))return;
+ const {error}=await sb.rpc("emigro_catalog_customer_decide_quote",{quote_id:id,p_decision:decision});
+ if(error){alert("İşlem tamamlanamadı: "+error.message);return}
+ await openMyQuotes();
+}
+window.decideCustomerQuote=decideCustomerQuote;
 function openQuote(){
  if(!approved()){openAuth("Teklif talebi yalnızca Emigro tarafından onaylanmış B2B üyeler içindir.","quote");return}
  renderQuoteLines();populateMemberQuote();openModal("quoteModal");
