@@ -87,7 +87,7 @@
         <label>Posta kodu<input id="regPostal" required></label>
         <label>Şehir<input id="regCity" required></label>
         <label>Ülke<input id="regCountry" value="Nederland" required></label>
-        <label>KvK numarası<input id="regKvk" required></label>
+        <label>KvK numarası<div class="kvk-field"><input id="regKvk" inputmode="numeric" maxlength="8" placeholder="12345678" required><button class="ghost" type="button" id="verifyKvkBtn">KVK doğrula</button></div><span class="kvk-status" id="kvkStatus">KVK numarası resmi KVK kaydından doğrulanmalıdır.</span></label>
         <label>BTW / VAT numarası<input id="regBtw" required></label>
         <label>E-posta<input type="email" id="regEmail" required autocomplete="email"></label>
         <label>Şifre<input type="password" id="regPassword" minlength="8" required autocomplete="new-password"></label>
