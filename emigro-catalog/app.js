@@ -361,9 +361,14 @@ document.getElementById("quoteForm").onsubmit=async e=>{
  if(!document.getElementById("validityConfirm").checked)return;
  const btn=document.getElementById("quoteSubmitBtn");btn.disabled=true;btn.textContent="Gönderiliyor...";
  const payload=quoteItems.map(item=>{const p=products.find(x=>x.id===item.id);return {sku:p.sku,name:p.brand+" "+p.name,mode:item.mode,qty:item.qty,unit_price:quoteLinePrice(item)}});
- const {error}=await sb.from("emigro_catalog_quotes").insert({user_id:session.user.id,items:payload,estimated_total:quoteTotal(),valid_from:"2026-10-01",valid_to:"2026-10-30",note:document.getElementById("quoteNote").value||""});
+ const {data,error}=await sb.from("emigro_catalog_quotes").insert({user_id:session.user.id,items:payload,estimated_total:quoteTotal(),valid_from:"2026-10-01",valid_to:"2026-10-30",note:document.getElementById("quoteNote").value||"",status:"new"}).select("id").single();
  if(error){btn.disabled=false;btn.textContent="Teklif talebini gönder";alert("Teklif kaydedilemedi: "+error.message);return}
- HTMLFormElement.prototype.submit.call(e.target);
+ quoteItems=[];persistQuote();renderQuoteCart();renderProducts();
+ document.getElementById("quoteNote").value="";
+ document.getElementById("validityConfirm").checked=false;
+ btn.disabled=false;btn.textContent="Teklif talebini gönder";
+ closeModal("quoteModal");
+ alert("Teklif talebiniz başarıyla Emigro'ya gönderildi. Talep no: "+data.id.slice(0,8).toUpperCase()+". Emigro teklifinizi admin panelinden hazırlayacak.");
 };
 
 function toggleCompare(id){compare=compare.includes(id)?compare.filter(x=>x!==id):compare.length<3?[...compare,id]:compare;renderAll()}
