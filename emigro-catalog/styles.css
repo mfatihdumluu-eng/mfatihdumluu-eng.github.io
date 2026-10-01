@@ -124,3 +124,6 @@ h1,h2,h3,h4,.hero h1,.catalog h2,.featured-section h2,.modal h2,.card-body h3,.p
 #closeOfferBtn{z-index:20}
 .customer-offer-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}.customer-offer-actions .reject-offer{color:#a61b2b;border-color:#efc7cc}.customer-decision{margin-top:12px;border-radius:12px;padding:11px 13px;font-size:10px;font-weight:700}.customer-decision.accepted{background:#e8f5ee;color:#286443}.customer-decision.declined{background:#fdebed;color:#941a29}
 @media(max-width:700px){.offer-product-line{grid-template-columns:26px 1fr}.offer-product-line>strong,.offer-product-line>.remove-offer-item{grid-column:2}.customer-offer-actions{flex-direction:column}.customer-offer-actions .btn,.customer-offer-actions .ghost{width:100%}}
+
+.detail-quote-summary small{font-size:10px;color:var(--muted);font-weight:600}
+.detail-quote-summary #detailQuoteTotalLabel{margin-top:6px}
