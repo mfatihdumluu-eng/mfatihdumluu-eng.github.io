@@ -35,6 +35,7 @@ let active="All",shown=24,sort="name",query="",originFilter="",saleFilter="",dep
 let favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]");
 let quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
 let session=null,profile=null,priceMap={},pendingAction=null,kvkVerified=false,verifiedKvkData=null,demoMode=false;
+let customerOrders=[],customerAddresses=[],customerNotifications=[];
 
 const approved=()=>demoMode||profile?.status==="approved";
 const isAdmin=()=>profile?.role==="admin";
@@ -567,58 +568,163 @@ async function loadCustomerDashboard(){
  if(!session||!document.getElementById("customerDashboard"))return;
  const root=document.getElementById("customerDashboardList");
  root.innerHTML='<div class="admin-loading">Hesap verileri yükleniyor…</div>';
- const {data,error}=await sb.from("emigro_catalog_quotes").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false});
- if(error){root.innerHTML='<div class="admin-loading">Veriler yüklenemedi: '+error.message+'</div>';return}
- const list=data||[];
+
+ const [qRes,oRes,aRes,nRes]=await Promise.all([
+  sb.from("emigro_catalog_quotes").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false}),
+  sb.from("emigro_catalog_orders").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false}),
+  sb.from("emigro_catalog_addresses").select("*").eq("user_id",session.user.id).order("is_default",{ascending:false}).order("created_at",{ascending:false}),
+  sb.from("emigro_catalog_notifications").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false}).limit(50)
+ ]);
+ if(qRes.error||oRes.error||aRes.error||nRes.error){root.innerHTML='<div class="admin-loading">Veriler yüklenemedi.</div>';return}
+
+ const quotes=qRes.data||[];
+ customerOrders=oRes.data||[];
+ customerAddresses=aRes.data||[];
+ customerNotifications=nRes.data||[];
+
  const counts={
-  all:list.length,
-  pending:list.filter(q=>["new","reviewing"].includes(q.status)).length,
-  offered:list.filter(q=>q.status==="offered").length,
-  accepted:list.filter(q=>q.status==="accepted").length,
-  rejected:list.filter(q=>q.status==="declined").length
+  all:quotes.length,
+  pending:quotes.filter(q=>["new","reviewing"].includes(q.status)).length,
+  offered:quotes.filter(q=>q.status==="offered").length,
+  accepted:quotes.filter(q=>q.status==="accepted").length,
+  rejected:quotes.filter(q=>q.status==="declined").length,
+  unread:customerNotifications.filter(n=>!n.is_read).length
  };
  document.getElementById("customerDashboardStats").innerHTML=[
-  ["Toplam teklif",counts.all],
-  ["İncelenen",counts.pending],
-  ["Cevaplanan",counts.offered],
-  ["Kabul",counts.accepted],
-  ["Red",counts.rejected]
+  ["Toplam teklif",counts.all],["İncelenen",counts.pending],["Cevaplanan",counts.offered],["Sipariş",customerOrders.length],["Bildirim",counts.unread]
  ].map(([l,n])=>`<div><span>${l}</span><strong>${n}</strong></div>`).join("");
 
- let filtered=list;
- if(customerDashboardTab==="orders")filtered=list.filter(q=>q.status==="accepted");
- if(customerDashboardTab==="accepted")filtered=list.filter(q=>q.status==="accepted");
- if(customerDashboardTab==="rejected")filtered=list.filter(q=>q.status==="declined");
+ if(customerDashboardTab==="favorites"){
+   const favs=products.filter(p=>favorites.includes(p.id));
+   root.innerHTML=favs.length?'<div class="customer-favorites-grid">'+favs.map(p=>`
+    <article class="customer-favorite-card">
+      <button class="customer-favorite-media" onclick="openProduct(${jsId(p.id)})">${bottle(p)}</button>
+      <div><span>${esc(p.category)}</span><b>${esc(p.brand)} ${esc(p.name)}</b><small>Barkod: ${esc(p.ean)}</small></div>
+      <button class="btn" onclick="openProduct(${jsId(p.id)})">Ürünü aç</button>
+    </article>`).join("")+'</div>':'<div class="my-quotes-empty"><b>Favoriniz yok.</b><span>Ürün detayından favorilere ekleyebilirsiniz.</span></div>';
+   return;
+ }
+
+ if(customerDashboardTab==="addresses"){
+   root.innerHTML=`
+    <div class="address-manager">
+      <div class="address-list">${customerAddresses.length?customerAddresses.map(a=>`
+       <article class="address-card"><div><span>${a.is_default?"Varsayılan adres":"Teslimat adresi"}</span><h3>${esc(a.label)}</h3><p>${esc(a.address)}<br>${esc(a.postal_code)} ${esc(a.city)} · ${esc(a.country)}</p></div><button class="ghost" onclick="deleteAddress('${a.id}')">Sil</button></article>`).join(""):'<div class="my-quotes-empty"><b>Kayıtlı adres yok.</b></div>'}</div>
+      <form class="address-form" id="addressForm">
+       <h3>Yeni teslimat adresi</h3>
+       <input id="addrLabel" placeholder="Adres adı: Depo / Şube / Merkez" required>
+       <input id="addrAddress" placeholder="Adres" required>
+       <div class="two-col"><input id="addrPostal" placeholder="Posta kodu" required><input id="addrCity" placeholder="Şehir" required></div>
+       <input id="addrCountry" value="Nederland" required>
+       <label class="validity-check"><input type="checkbox" id="addrDefault"><span>Varsayılan teslimat adresi</span></label>
+       <button class="btn" type="submit">Adresi kaydet</button>
+      </form>
+    </div>`;
+   document.getElementById("addressForm").onsubmit=addAddress;
+   return;
+ }
+
+ if(customerDashboardTab==="notifications"){
+   root.innerHTML=customerNotifications.length?customerNotifications.map(n=>`
+    <article class="notification-card ${n.is_read?"read":"unread"}">
+      <div><span>${new Date(n.created_at).toLocaleString("nl-NL")}</span><h3>${esc(n.title)}</h3><p>${esc(n.body)}</p></div>
+      ${n.is_read?"":`<button class="ghost" onclick="markNotificationRead('${n.id}')">Okundu</button>`}
+    </article>`).join(""):'<div class="my-quotes-empty"><b>Yeni bildiriminiz yok.</b></div>';
+   return;
+ }
+
+ if(customerDashboardTab==="orders"){
+   root.innerHTML=customerOrders.length?customerOrders.map(o=>{
+     const items=(o.items||[]).map(i=>`<div class="customer-dash-item"><div><b>${esc(i.name)}</b><small>${esc(i.sku)} · ${i.mode==="case"?"Koli":"Palet"} · ${i.qty} adet</small></div><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>`).join("");
+     const addressOptions=customerAddresses.map(a=>`<option value="${a.id}" ${o.delivery_address_id===a.id?"selected":""}>${esc(a.label)} · ${esc(a.city)}</option>`).join("");
+     return `<article class="customer-dash-card order-card ${o.status}">
+       <div class="customer-dash-card-head"><div><span class="my-quote-status ${o.status}">${customerOrderStatus(o.status)}</span><h3>${esc(o.order_number||"Sipariş")}</h3><small>${new Date(o.created_at).toLocaleString("nl-NL")}</small></div><strong>${euro(o.total)}</strong></div>
+       <div class="customer-dash-items">${items}</div>
+       <div class="order-customer-meta"><span>İstenen teslim: <b>${o.requested_delivery_date?new Date(o.requested_delivery_date).toLocaleDateString("nl-NL"):"—"}</b></span><span>Onaylanan teslim: <b>${o.confirmed_delivery_date?new Date(o.confirmed_delivery_date).toLocaleDateString("nl-NL"):"—"}</b></span></div>
+       ${["new","preparing"].includes(o.status)?`<div class="order-delivery-edit"><select id="order-address-${o.id}"><option value="">Teslimat adresi seçin</option>${addressOptions}</select><input id="order-request-date-${o.id}" type="date" value="${o.requested_delivery_date||""}"><button class="ghost" onclick="saveCustomerOrderDelivery('${o.id}')">Teslimat bilgisini kaydet</button></div>`:""}
+       <div class="customer-offer-actions"><button class="btn" onclick="repeatOrder('${o.id}')">Bu siparişi tekrar oluştur</button></div>
+      </article>`;
+   }).join(""):'<div class="my-quotes-empty"><b>Henüz siparişiniz yok.</b><span>Kabul ettiğiniz teklifler burada siparişe dönüşür.</span></div>';
+   return;
+ }
+
+ let filtered=quotes;
+ if(customerDashboardTab==="accepted")filtered=quotes.filter(q=>q.status==="accepted");
+ if(customerDashboardTab==="rejected")filtered=quotes.filter(q=>q.status==="declined");
 
  if(!filtered.length){
-   const empty=customerDashboardTab==="orders"?"Henüz kabul edilmiş siparişiniz yok.":"Bu bölümde henüz kayıt yok.";
-   root.innerHTML=`<div class="my-quotes-empty"><b>${empty}</b><span>Yeni hareketler burada otomatik görünecek.</span></div>`;
+   root.innerHTML='<div class="my-quotes-empty"><b>Bu bölümde henüz kayıt yok.</b><span>Yeni hareketler burada otomatik görünecek.</span></div>';
    return;
  }
  root.innerHTML=filtered.map(q=>{
    const t=calcCustomerQuote(q);
    const ready=["offered","accepted","declined"].includes(q.status);
-   const items=(q.items||[]).map(i=>`<div class="customer-dash-item"><div><b>${i.name}</b><small>${i.sku} · ${i.mode==="case"?"Koli":"Palet"} · ${i.qty} adet</small></div><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>`).join("");
+   const items=(q.items||[]).map(i=>`<div class="customer-dash-item"><div><b>${esc(i.name)}</b><small>${esc(i.sku)} · ${i.mode==="case"?"Koli":"Palet"} · ${i.qty} adet</small></div><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>`).join("");
+   const expirySoon=q.status==="offered"&&q.offer_valid_to&&((new Date(q.offer_valid_to)-new Date())/(1000*60*60*24)<=2);
    return `<article class="customer-dash-card ${q.status}">
-    <div class="customer-dash-card-head">
-      <div><span class="my-quote-status ${q.status}">${customerQuoteStatus(q.status)}</span><h3>${q.offer_number?"Teklif "+q.offer_number:"Teklif talebi"}</h3><small>${new Date(q.created_at).toLocaleString("nl-NL")}</small></div>
-      <strong>${ready?euro(t.total):euro(t.base)}</strong>
-    </div>
+    <div class="customer-dash-card-head"><div><span class="my-quote-status ${q.status}">${customerQuoteStatus(q.status)}</span><h3>${q.offer_number?"Teklif "+esc(q.offer_number):"Teklif talebi"}</h3><small>${new Date(q.created_at).toLocaleString("nl-NL")}</small></div><strong>${ready?euro(t.total):euro(t.base)}</strong></div>
     <div class="customer-dash-items">${items}</div>
-    ${ready?`<div class="customer-dash-summary">
-      <div><span>Subtotaal</span><b>${euro(t.base)}</b></div>
-      <div><span>Korting</span><b>− ${euro(t.discount)}</b></div>
-      <div><span>Verzendkosten</span><b>${euro(t.shipping)}</b></div>
-      <div class="grand"><span>Totaal</span><b>${euro(t.total)}</b></div>
-    </div>`:""}
-    ${q.admin_note?`<div class="my-quote-note"><b>Emigro notu</b><span>${q.admin_note}</span></div>`:""}
-    ${q.offer_valid_to?`<div class="my-quote-valid"><span>Teklif geçerlilik tarihi</span><strong>${new Date(q.offer_valid_to).toLocaleDateString("nl-NL")}</strong></div>`:""}
+    ${ready?`<div class="customer-dash-summary"><div><span>Subtotaal</span><b>${euro(t.base)}</b></div><div><span>Korting</span><b>− ${euro(t.discount)}</b></div><div><span>Verzendkosten</span><b>${euro(t.shipping)}</b></div><div class="grand"><span>Totaal</span><b>${euro(t.total)}</b></div></div>`:""}
+    ${q.admin_note?`<div class="my-quote-note"><b>Emigro notu</b><span>${esc(q.admin_note)}</span></div>`:""}
+    ${q.offer_valid_to?`<div class="my-quote-valid ${expirySoon?"expiry-soon":""}"><span>Teklif geçerlilik tarihi</span><strong>${new Date(q.offer_valid_to).toLocaleDateString("nl-NL")}</strong></div>`:""}
     ${q.status==="offered"?`<div class="customer-offer-actions"><button class="btn" onclick="decideCustomerQuote('${q.id}','accepted')">Teklifi kabul et</button><button class="ghost reject-offer" onclick="decideCustomerQuote('${q.id}','declined')">Teklifi reddet</button></div>`:""}
     ${q.status==="accepted"?'<div class="customer-decision accepted">✓ Kabul edildi · Siparişlerim bölümünde görünüyor.</div>':""}
     ${q.status==="declined"?'<div class="customer-decision declined">Reddedildi</div>':""}
    </article>`;
  }).join("");
 }
+
+const customerOrderStatus=s=>({new:"Yeni",preparing:"Hazırlanıyor",ready:"Hazır",shipped:"Sevk edildi",completed:"Tamamlandı",cancelled:"İptal"}[s]||s);
+
+async function addAddress(e){
+ e.preventDefault();
+ const isDefault=document.getElementById("addrDefault").checked;
+ if(isDefault&&customerAddresses.length){
+   for(const a of customerAddresses.filter(x=>x.is_default))await sb.from("emigro_catalog_addresses").update({is_default:false}).eq("id",a.id);
+ }
+ const {error}=await sb.from("emigro_catalog_addresses").insert({
+  user_id:session.user.id,label:document.getElementById("addrLabel").value.trim(),address:document.getElementById("addrAddress").value.trim(),
+  postal_code:document.getElementById("addrPostal").value.trim(),city:document.getElementById("addrCity").value.trim(),country:document.getElementById("addrCountry").value.trim(),is_default:isDefault
+ });
+ if(error){alert("Adres kaydedilemedi: "+error.message);return}
+ await loadCustomerDashboard();
+}
+async function deleteAddress(id){
+ if(!confirm("Bu adres silinsin mi?"))return;
+ const {error}=await sb.from("emigro_catalog_addresses").delete().eq("id",id);
+ if(error){alert("Adres silinemedi: "+error.message);return}
+ await loadCustomerDashboard();
+}
+window.deleteAddress=deleteAddress;
+
+async function markNotificationRead(id){
+ await sb.from("emigro_catalog_notifications").update({is_read:true}).eq("id",id);
+ await loadCustomerDashboard();
+}
+window.markNotificationRead=markNotificationRead;
+
+async function saveCustomerOrderDelivery(id){
+ const addressId=document.getElementById("order-address-"+id).value||null;
+ const date=document.getElementById("order-request-date-"+id).value||null;
+ const {error}=await sb.rpc("emigro_catalog_customer_update_order_delivery",{p_order_id:id,p_address_id:addressId,p_requested_date:date,p_customer_note:""});
+ if(error){alert("Teslimat bilgisi kaydedilemedi: "+error.message);return}
+ await loadCustomerDashboard();
+}
+window.saveCustomerOrderDelivery=saveCustomerOrderDelivery;
+
+function repeatOrder(id){
+ const order=customerOrders.find(o=>o.id===id);if(!order)return;
+ const next=[];
+ for(const item of order.items||[]){
+   const p=products.find(x=>String(x.id)===String(item.product_id))||products.find(x=>x.sku===item.sku);
+   if(!p)continue;
+   const mode=item.mode==="pallet"&&p.palletAvailable?"pallet":p.caseAvailable?"case":"pallet";
+   next.push({id:p.id,mode,qty:Math.max(Number(p.minQty||1),Number(item.qty||1))});
+ }
+ if(!next.length){alert("Bu siparişteki ürünler artık katalogda bulunmuyor.");return}
+ quoteItems=next;persistQuote();renderQuoteCart();renderProducts();openQuote();
+}
+window.repeatOrder=repeatOrder;
 
 document.getElementById("customerDashboardNav").onclick=()=>{
  const dash=document.getElementById("customerDashboard");
