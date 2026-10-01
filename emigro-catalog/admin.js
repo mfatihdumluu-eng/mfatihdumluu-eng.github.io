@@ -189,13 +189,62 @@ document.getElementById("printOfferBtn").onclick=()=>{
  if(!activeQuote)return;
  const w=window.open("","_blank");w.document.write(offerPrintHtml());w.document.close();setTimeout(()=>w.print(),350);
 };
-document.getElementById("mailOfferBtn").onclick=()=>{
+async function generateOfferPdfFile(){
+ if(!activeQuote)return null;
+ const v=currentOfferValues();
+ const holder=document.createElement("div");
+ holder.className="pdf-offer-holder";
+ holder.innerHTML=offerPrintHtml().match(/<body>([\s\S]*?)<\/body>/i)?.[1]||"";
+ holder.style.position="fixed";
+ holder.style.left="-100000px";
+ holder.style.top="0";
+ holder.style.width="210mm";
+ holder.style.background="#fff";
+ document.body.appendChild(holder);
+ const filename=(v.number||"Emigro-Offerte")+".pdf";
+ try{
+   const blob=await html2pdf().set({
+     margin:0,
+     filename,
+     image:{type:"jpeg",quality:0.98},
+     html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff"},
+     jsPDF:{unit:"mm",format:"a4",orientation:"portrait"}
+   }).from(holder).outputPdf("blob");
+   return new File([blob],filename,{type:"application/pdf"});
+ } finally {
+   holder.remove();
+ }
+}
+
+document.getElementById("mailOfferBtn").onclick=async()=>{
  if(!activeQuote)return;
+ const btn=document.getElementById("mailOfferBtn");
  const p=profileMap[activeQuote.user_id]||{},v=currentOfferValues();
  const final=quoteGrand(activeQuote,v.percent,v.amount,v.shipping);
- const subject=encodeURIComponent(`Emigro offerte ${v.number}`);
- const body=encodeURIComponent(`Beste ${p.contact_name||""},\n\nHierbij ontvangt u onze offerte ${v.number}.\nTotaal: ${euro(final)}\nVerzendkosten: ${euro(v.shipping)}\nGeldig t/m: ${v.validTo?new Date(v.validTo).toLocaleDateString("nl-NL"):"—"}\n\n${v.note||""}\n\nMet vriendelijke groet,\nEmigro Cash & Carry`);
- location.href=`mailto:${p.email||""}?subject=${subject}&body=${body}`;
+ btn.disabled=true;btn.textContent="PDF hazırlanıyor…";
+ try{
+   const file=await generateOfferPdfFile();
+   const shareData={
+     title:`Emigro offerte ${v.number}`,
+     text:`Beste ${p.contact_name||""},\n\nHierbij ontvangt u onze offerte ${v.number}.\nTotaal: ${euro(final)}\nVerzendkosten: ${euro(v.shipping)}\nGeldig t/m: ${v.validTo?new Date(v.validTo).toLocaleDateString("nl-NL"):"—"}\n\nMet vriendelijke groet,\nEmigro Cash & Carry`,
+     files:[file]
+   };
+   if(navigator.canShare&&navigator.canShare({files:[file]})){
+     await navigator.share(shareData);
+   }else{
+     const url=URL.createObjectURL(file);
+     const a=document.createElement("a");
+     a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),1500);
+     const subject=encodeURIComponent(`Emigro offerte ${v.number}`);
+     const body=encodeURIComponent(`Beste ${p.contact_name||""},\n\nHierbij ontvangt u onze offerte ${v.number}.\nTotaal: ${euro(final)}\nVerzendkosten: ${euro(v.shipping)}\nGeldig t/m: ${v.validTo?new Date(v.validTo).toLocaleDateString("nl-NL"):"—"}\n\nDe PDF-offerte is zojuist gedownload. Voeg deze als bijlage toe aan deze e-mail.\n\nMet vriendelijke groet,\nEmigro Cash & Carry`);
+     location.href=`mailto:${p.email||""}?subject=${subject}&body=${body}`;
+   }
+ }catch(err){
+   alert("PDF hazırlanamadı: "+(err?.message||err));
+ }finally{
+   btn.disabled=false;btn.textContent="PDF ile e-posta gönder";
+ }
 };
 
 document.querySelectorAll("[data-admin-tab]").forEach(b=>b.onclick=()=>{
