@@ -1526,3 +1526,49 @@ img,svg,video,canvas{max-width:100%}
   }
   .invite-stat-grid{grid-template-columns:1fr!important}
 }
+
+/* Mobile app screens: each bottom-menu item shows only its own content */
+@media(max-width:700px){
+  body.screen-home main > .category-browser,
+  body.screen-home main > .catalog,
+  body.screen-home main > .customer-dashboard{
+    display:none!important;
+  }
+
+  body.screen-categories main > section,
+  body.screen-products main > section,
+  body.screen-dashboard main > section{
+    display:none!important;
+  }
+
+  body.screen-categories main > .category-browser{
+    display:block!important;
+    margin-top:12px!important;
+  }
+
+  body.screen-products main > .catalog{
+    display:block!important;
+    margin-top:12px!important;
+  }
+
+  body.screen-dashboard main > .customer-dashboard:not(.hidden){
+    display:block!important;
+    margin-top:10px!important;
+  }
+
+  body.screen-home .quote-cart,
+  body.screen-categories .quote-cart,
+  body.screen-dashboard .quote-cart{
+    display:none!important;
+  }
+
+  body.screen-products .quote-cart:not(.hidden){
+    display:flex!important;
+  }
+
+  body.screen-categories main,
+  body.screen-products main,
+  body.screen-dashboard main{
+    min-height:calc(100dvh - 110px);
+  }
+}
