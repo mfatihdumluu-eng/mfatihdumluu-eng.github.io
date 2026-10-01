@@ -861,3 +861,71 @@ img,svg,video,canvas{max-width:100%}
   .shipping-track{align-items:flex-start;flex-direction:column}.shipping-track .btn{margin-left:0;width:100%;text-align:center}
   .admin-hero{margin-bottom:12px!important}
 }
+
+/* Match admin mobile dock to customer dock proportions */
+@media(max-width:700px){
+  .admin-main-tabs{
+    min-height:72px!important;
+    height:72px!important;
+    padding:9px 10px!important;
+    border-radius:26px!important;
+    grid-template-columns:repeat(5,1fr)!important;
+  }
+  .admin-main-tabs button{
+    height:54px!important;
+    padding:0!important;
+  }
+  .admin-tab-icon{
+    width:50px!important;
+    height:50px!important;
+    min-width:50px!important;
+    min-height:50px!important;
+    border-radius:50%!important;
+  }
+  .admin-tab-icon svg{
+    width:29px!important;
+    height:29px!important;
+    stroke-width:1.9!important;
+  }
+  .admin-main-tabs button:not([data-admin-tab="productManager"]).active .admin-tab-icon{
+    background:#eef1fb!important;
+    color:#293369!important;
+    box-shadow:none!important;
+  }
+  .admin-main-tabs button[data-admin-tab="productManager"] .admin-tab-icon{
+    width:68px!important;
+    height:68px!important;
+    min-width:68px!important;
+    min-height:68px!important;
+    border-radius:50%!important;
+    border:5px solid #fff!important;
+    transform:translateY(-17px)!important;
+    box-shadow:0 10px 24px rgba(236,4,25,.28)!important;
+  }
+  .admin-main-tabs button[data-admin-tab="productManager"] .admin-tab-icon svg{
+    width:34px!important;
+    height:34px!important;
+    stroke-width:2!important;
+  }
+
+  /* Larger order status controls */
+  #ordersPanel .admin-filter{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+    margin-top:12px!important;
+  }
+  #ordersPanel .admin-filter button{
+    min-height:58px!important;
+    padding:14px 10px!important;
+    border-radius:18px!important;
+    font-size:14px!important;
+    font-weight:700!important;
+    line-height:1.15!important;
+  }
+}
+@media(max-width:390px){
+  #ordersPanel .admin-filter button{
+    min-height:56px!important;
+    font-size:13px!important;
+  }
+}
