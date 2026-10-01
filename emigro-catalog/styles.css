@@ -1105,3 +1105,8 @@ img,svg,video,canvas{max-width:100%}
 
 /* Hide empty quote notification badge */
 #newQuoteBadge:empty{display:none!important}
+
+.product-title-link{cursor:pointer;transition:color .16s ease}
+.product-title-link:hover{color:#ec0419}
+.card-media{cursor:pointer}
+.compare-bar,.compare-modal,.compare-grid,.compare-col,.compare-price{display:none!important}
