@@ -854,7 +854,7 @@ async function decideCustomerQuote(id,decision){
  }
  const label=decision==="accepted"?"kabul etmek":"reddetmek";
  if(!confirm("Bu teklifi "+label+" istediğinize emin misiniz?"))return;
- const {error}=await sb.rpc("emigro_catalog_customer_decide_quote",{quote_id:id,p_decision:decision});
+ const {error}=await sb.rpc("emigro_catalog_customer_decide_quote",{p_quote_id:id,p_decision:decision});
  if(error){notify("İşlem tamamlanamadı: "+error.message);return}
  await openMyQuotes();
  if(decision==="accepted"){
