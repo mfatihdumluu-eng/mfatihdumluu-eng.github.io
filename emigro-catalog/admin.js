@@ -2,7 +2,7 @@ const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-admin-auth",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 let profiles=[],quotes=[],memberFilter="all",quoteFilter="all",activeQuote=null,profileMap={};
-let adminProducts=[],orders=[],orderFilter="all";
+let adminProducts=[],orders=[],orderFilter="all",adminProfile=null;
 let importRows=[],importImageFiles=new Map(),existingProducts=new Map(),defaultImageUrls={kutu:null,palet:null},imageQualityWarnings=new Map();
 
 const euro=n=>new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n||0));
@@ -19,6 +19,7 @@ async function guard(){
    return false;
  }
  const {data:me,error}=await sb.from("emigro_catalog_profiles").select("*").eq("id",session.user.id).single();
+ adminProfile=me||null;
  if(error||me?.role!=="admin"){
    await sb.auth.signOut();
    document.getElementById("adminLoginShell").classList.remove("hidden");
@@ -61,6 +62,7 @@ function renderMembers(){
    <div><span>Adres</span><b>${esc(p.company_address)} · ${esc(p.postal_code)} ${esc(p.city)} · ${esc(p.country)}</b></div>
    <div><span>KvK</span><b>${esc(p.kvk_number)}</b></div><div><span>BTW</span><b>${esc(p.btw_number)}</b></div><div><span>Rol</span><b>${esc(p.role)}</b></div>
   </div>
+  ${p.referred_by?`<div class="member-referral"><span>DAVET BİLGİSİ</span><b>${esc((profileMap[p.referred_by]?.role==="admin"?"Emigro Cash & Carry":profileMap[p.referred_by]?.company_name)||"Davet eden kullanıcı")}</b><small>${esc(profileMap[p.referred_by]?.contact_name||profileMap[p.referred_by]?.email||"")} · Kod: ${esc(p.referred_by_code||"—")}</small></div>`:""}
   <div class="member-pricing">
     <label>Müşteri indirimi (%)<input type="number" min="0" max="100" step="0.01" id="memberDiscount-${p.id}" value="${Number(p.customer_discount_percent||0)}"></label>
     <label>Fiyat seviyesi<input id="memberPriceLevel-${p.id}" value="${esc(p.price_level||"standard")}"></label>
@@ -939,6 +941,49 @@ async function activateAdminTab(b){
 document.querySelectorAll("[data-admin-tab]").forEach(b=>b.onclick=()=>activateAdminTab(b));
 document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{memberFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>x.classList.toggle("active",x===b));renderMembers()});
 document.querySelectorAll("[data-qfilter]").forEach(b=>b.onclick=()=>{quoteFilter=b.dataset.qfilter;document.querySelectorAll("[data-qfilter]").forEach(x=>x.classList.toggle("active",x===b));renderQuotes()});
+
+function adminInviteMessage(){
+ const link=document.getElementById("adminInviteLink")?.textContent||"";
+ return `Emigro Cash & Carry olarak zakelijke müşterilerimize özel B2B platformumuza sizi davet ediyoruz.
+
+Bu platform üzerinden size özel tekliflerimizi görebilir, hızlı ve kolay şekilde teklif/sipariş işlemlerinizi gerçekleştirebilirsiniz. Size bu yeni kanal üzerinden hizmet vermekten mutluluk duyarız.
+
+Davet bağlantınız:
+${link}
+
+Emigro Cash & Carry`;
+}
+function openAdminInvitePanel(){
+ if(!adminProfile?.referral_code){alert("Davet kodu oluşturulamadı. Sayfayı yenileyin.");return}
+ const link=new URL("./?ref="+encodeURIComponent(adminProfile.referral_code),location.href).href;
+ document.getElementById("adminInviteLink").textContent=link;
+ document.getElementById("adminInviteCode").textContent="Davet kodu: "+adminProfile.referral_code;
+ document.getElementById("adminInviteModal").classList.remove("hidden");
+}
+document.getElementById("openAdminInvite").onclick=openAdminInvitePanel;
+document.getElementById("adminInviteCopy").onclick=async()=>{
+ const link=document.getElementById("adminInviteLink").textContent;
+ try{await navigator.clipboard.writeText(link);alert("Davet bağlantısı kopyalandı.");}
+ catch{prompt("Davet bağlantısını kopyalayın:",link)}
+};
+document.getElementById("adminInviteEmail").onclick=()=>{
+ const raw=document.getElementById("adminInviteEmails").value||"";
+ const emails=raw.split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);
+ const subject=encodeURIComponent("Emigro Cash & Carry B2B daveti");
+ const body=encodeURIComponent(adminInviteMessage());
+ const bcc=encodeURIComponent(emails.join(","));
+ location.href=`mailto:?bcc=${bcc}&subject=${subject}&body=${body}`;
+};
+document.getElementById("adminInviteShare").onclick=async()=>{
+ const link=document.getElementById("adminInviteLink").textContent;
+ const text=adminInviteMessage();
+ if(navigator.share){
+   try{await navigator.share({title:"Emigro Cash & Carry B2B daveti",text,url:link});return}catch{}
+ }
+ try{await navigator.clipboard.writeText(text);alert("Davet metni kopyalandı. WhatsApp, SMS veya e-posta üzerinden toplu olarak paylaşabilirsiniz.");}
+ catch{prompt("Davet metnini kopyalayın:",text)}
+};
+
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>document.getElementById(b.dataset.close).classList.add("hidden"));
 function closeOfferModal(){document.getElementById("offerModal").classList.add("hidden");activeQuote=null}
 document.getElementById("closeOfferBtn").onclick=closeOfferModal;
