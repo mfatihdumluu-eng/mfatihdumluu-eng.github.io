@@ -89,3 +89,11 @@ h1,h2,h3,h4,.hero h1,.catalog h2,.featured-section h2,.modal h2,.card-body h3,.p
 .kvk-field{display:grid;grid-template-columns:1fr auto;gap:7px}.kvk-field .ghost{border-radius:10px;white-space:nowrap}.kvk-status{font-size:9px;color:var(--muted);font-weight:400;line-height:1.4}.kvk-status.success{color:#2d6d48}.kvk-status.error{color:#a91e2f}
 
 .optional-label{font-size:9px;color:var(--muted);font-weight:400}
+
+/* Dedicated admin login - separate from customer session */
+.admin-login-shell{min-height:100vh;display:grid;place-items:center;padding:28px;background:linear-gradient(135deg,#f4f5fb,#ffffff 60%,#fff0f2)}
+.admin-login-card{width:min(520px,94vw);background:#fff;border:1px solid var(--line);border-radius:24px;padding:32px;box-shadow:0 26px 70px rgba(41,51,105,.14)}
+.admin-login-logo{width:210px;max-height:80px;object-fit:contain;margin-bottom:18px}
+.admin-login-card h1{font:700 38px/1.05 'Roboto',sans-serif;margin:6px 0 10px;color:#293369}
+.admin-login-card>p{margin:0 0 22px;color:var(--muted);line-height:1.6;font-size:12px}
+.admin-back-link{display:inline-flex;margin-top:12px;text-decoration:none}
