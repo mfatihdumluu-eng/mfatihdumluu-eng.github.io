@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emigro B2B Üye Onayları</title>
+<title>Emigro B2B Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
@@ -11,13 +11,59 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<header class="topbar"><a class="brand" href="./index.html"><img src="./logo.svg" alt="Emigro"></a><nav><a href="./index.html">Kataloğa dön</a></nav><div class="top-actions"><button class="ghost" id="refreshBtn">Yenile</button><button class="ghost" id="logoutAdmin">Çıkış</button></div></header>
+<header class="topbar">
+  <a class="brand" href="./index.html"><img src="./logo.svg" alt="Emigro"><span class="brand-fallback"><b>emigro</b><small>Cash & Carry</small></span></a>
+  <nav><a href="./index.html">Kataloğa dön</a></nav>
+  <div class="top-actions"><button class="ghost" id="refreshBtn">Yenile</button><button class="ghost" id="logoutAdmin">Çıkış</button></div>
+</header>
+
 <main class="admin-shell">
-  <section class="admin-hero"><div class="eyebrow">EMIGRO B2B ADMIN</div><h1>Üyelik onayları</h1><p>Yeni B2B başvurularını kontrol edin; onaylayın, reddedin veya askıya alın.</p></section>
-  <div class="admin-stats" id="adminStats"></div>
-  <div class="admin-filter"><button data-filter="all" class="active">Tümü</button><button data-filter="pending">Bekleyen</button><button data-filter="approved">Onaylı</button><button data-filter="rejected">Reddedilen</button><button data-filter="suspended">Askıda</button></div>
-  <section class="admin-list" id="adminList"><div class="admin-loading">Üyelikler yükleniyor…</div></section>
+  <section class="admin-hero"><div class="eyebrow">EMIGRO B2B ADMIN</div><h1>Üyelik & teklif yönetimi</h1><p>Üye onaylarını yönetin, gelen talepleri inceleyin ve kurumsal teklif hazırlayın.</p></section>
+
+  <div class="admin-main-tabs">
+    <button class="active" data-admin-tab="members">Üyelikler</button>
+    <button data-admin-tab="quotes">Teklif talepleri <span id="newQuoteBadge"></span></button>
+  </div>
+
+  <section id="membersPanel">
+    <div class="admin-stats" id="adminStats"></div>
+    <div class="admin-filter"><button data-filter="all" class="active">Tümü</button><button data-filter="pending">Bekleyen</button><button data-filter="approved">Onaylı</button><button data-filter="rejected">Reddedilen</button><button data-filter="suspended">Askıda</button></div>
+    <section class="admin-list" id="adminList"><div class="admin-loading">Üyelikler yükleniyor…</div></section>
+  </section>
+
+  <section id="quotesPanel" class="hidden">
+    <div class="admin-stats quote-stats" id="quoteStats"></div>
+    <div class="admin-filter"><button data-qfilter="all" class="active">Tümü</button><button data-qfilter="new">Yeni</button><button data-qfilter="reviewing">İnceleniyor</button><button data-qfilter="offered">Teklif verildi</button><button data-qfilter="accepted">Kabul</button><button data-qfilter="declined">Reddedildi</button></div>
+    <section class="admin-list" id="quoteList"><div class="admin-loading">Teklif talepleri yükleniyor…</div></section>
+  </section>
 </main>
+
+<div class="modal-backdrop hidden" id="offerModal">
+  <div class="modal offer-modal">
+    <button class="close" data-close="offerModal">×</button>
+    <div class="offer-editor-head"><div><div class="eyebrow">KURUMSAL TEKLİF</div><h2>Teklif hazırla</h2><p id="offerCustomerLine"></p></div><img src="./logo.svg" alt="Emigro"></div>
+    <div class="offer-editor-grid">
+      <div>
+        <div class="offer-products" id="offerProducts"></div>
+        <div class="offer-preview" id="offerPreview"></div>
+      </div>
+      <div class="offer-controls">
+        <label>Teklif numarası<input id="offerNumber"></label>
+        <label>Durum<select id="offerStatus"><option value="reviewing">İnceleniyor</option><option value="offered">Teklif verildi</option><option value="accepted">Kabul edildi</option><option value="declined">Reddedildi</option><option value="closed">Kapalı</option></select></label>
+        <label>Korting (%)<input type="number" id="discountPercent" min="0" max="100" step="0.01" value="0"></label>
+        <label>Ek korting (€)<input type="number" id="discountAmount" min="0" step="0.01" value="0"></label>
+        <label>Kargo ücreti (€)<input type="number" id="shippingFee" min="0" step="0.01" value="0"></label>
+        <label>Teklif geçerlilik tarihi<input type="date" id="offerValidTo"></label>
+        <label>Teklif notu<textarea id="adminNote" rows="5" placeholder="Teslimat, ödeme, stok veya diğer şartlar..."></textarea></label>
+        <div class="offer-totals" id="offerTotals"></div>
+        <button class="btn" id="saveOfferBtn">Teklifi kaydet</button>
+        <button class="ghost" id="printOfferBtn">Teklifi yazdır / PDF</button>
+        <button class="ghost" id="mailOfferBtn">Müşteriye e-posta hazırla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="./admin.js"></script>
 </body>
 </html>
