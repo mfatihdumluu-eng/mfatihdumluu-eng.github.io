@@ -11,13 +11,28 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<header class="topbar">
+<section class="admin-login-shell" id="adminLoginShell">
+  <div class="admin-login-card">
+    <img src="./logo.svg" alt="Emigro" class="admin-login-logo">
+    <div class="eyebrow">EMIGRO ADMIN</div>
+    <h1>Admin girişi</h1>
+    <p>Bu giriş müşteri hesabından ayrıdır. Yalnızca admin rolüne sahip hesaplar panele erişebilir.</p>
+    <form id="adminLoginForm" class="auth-form">
+      <label>E-posta<input type="email" id="adminEmail" required autocomplete="email"></label>
+      <label>Şifre<input type="password" id="adminPassword" required autocomplete="current-password"></label>
+      <button class="btn" type="submit">Admin olarak giriş yap</button>
+      <div class="auth-message" id="adminLoginMessage"></div>
+    </form>
+    <a class="ghost admin-back-link" href="./index.html">← Müşteri kataloğuna dön</a>
+  </div>
+</section>
+<header class="topbar hidden" id="adminTopbar">
   <a class="brand" href="./index.html"><img src="./logo.svg" alt="Emigro"><span class="brand-fallback"><b>emigro</b><small>Cash & Carry</small></span></a>
   <nav><a href="./index.html">Kataloğa dön</a></nav>
   <div class="top-actions"><button class="ghost" id="refreshBtn">Yenile</button><button class="ghost" id="logoutAdmin">Çıkış</button></div>
 </header>
 
-<main class="admin-shell">
+<main class="admin-shell hidden" id="adminShell">
   <section class="admin-hero"><div class="eyebrow">EMIGRO B2B ADMIN</div><h1>Üyelik & teklif yönetimi</h1><p>Üye onaylarını yönetin, gelen talepleri inceleyin ve kurumsal teklif hazırlayın.</p></section>
 
   <div class="admin-main-tabs">
