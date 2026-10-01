@@ -652,6 +652,7 @@ async function loadCustomerDashboard(){
        <div class="customer-dash-card-head"><div><span class="my-quote-status ${o.status}">${customerOrderStatus(o.status)}</span><h3>${esc(o.order_number||"Sipariş")}</h3><small>${new Date(o.created_at).toLocaleString("nl-NL")}</small></div><strong>${euro(o.total)}</strong></div>
        <div class="customer-dash-items">${items}</div>
        <div class="order-customer-meta"><span>İstenen teslim: <b>${o.requested_delivery_date?new Date(o.requested_delivery_date).toLocaleDateString("nl-NL"):"—"}</b></span><span>Onaylanan teslim: <b>${o.confirmed_delivery_date?new Date(o.confirmed_delivery_date).toLocaleDateString("nl-NL"):"—"}</b></span></div>
+       ${o.status==="shipped"&&o.tracking_number?`<div class="shipping-track"><span>Kargo takip numarası</span><strong>${esc(o.tracking_number)}</strong>${o.tracking_url?`<a class="btn" href="${esc(o.tracking_url)}" target="_blank" rel="noopener">Kargoyu takip et</a>`:""}</div>`:""}
        ${["new","preparing"].includes(o.status)?`<div class="order-delivery-edit"><select id="order-address-${o.id}"><option value="">Teslimat adresi seçin</option>${addressOptions}</select><input id="order-request-date-${o.id}" type="date" value="${o.requested_delivery_date||""}"><button class="ghost" onclick="saveCustomerOrderDelivery('${o.id}')">Teslimat bilgisini kaydet</button></div>`:""}
        <div class="customer-offer-actions"><button class="btn" onclick="repeatOrder('${o.id}')">Bu siparişi tekrar oluştur</button></div>
       </article>`;
