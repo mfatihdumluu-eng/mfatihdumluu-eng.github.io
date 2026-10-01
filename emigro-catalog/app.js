@@ -718,7 +718,9 @@ async function loadCustomerDashboard(){
          <span>Kargoya verildi: <b>${shippedText}</b></span>
          ${o.status==="completed"?`<span>Tamamlandı: <b>${completedText}</b></span>`:""}
        </div>
-       ${o.status==="shipped"&&o.tracking_number?`<div class="shipping-track"><span>Kargo takip numarası</span><strong>${esc(o.tracking_number)}</strong>${/^https?:\/\//i.test(o.tracking_url||"")?`<a class="btn" href="${esc(o.tracking_url)}" target="_blank" rel="noopener">Kargoyu takip et</a>`:""}</div>`:""}
+       ${o.status==="preparing"?'<div class="customer-shipping-state preparing"><b>Siparişiniz hazırlanıyor</b></div>':""}
+       ${o.status==="shipped"&&o.delivery_method==="emigro_vehicle"?'<div class="customer-shipping-state emigro"><b>Emigro Cash & Carry aracı siparişinizi getiriyor</b><span>Teslimat Emigro ekibi tarafından yapılacaktır.</span></div>':""}
+       ${o.status==="shipped"&&o.delivery_method==="carrier"?`<div class="customer-shipping-state carrier"><b>Siparişiniz kargoya verildi</b>${o.tracking_number?`<span>Takip no: ${esc(o.tracking_number)}</span>`:""}${/^https?:\/\//i.test(o.tracking_url||"")?`<a class="btn" href="${esc(o.tracking_url)}" target="_blank" rel="noopener">Kargoyu takip et</a>`:""}</div>`:""}
        ${["new","preparing"].includes(o.status)?`<div class="order-delivery-edit"><select id="order-address-${o.id}"><option value="">Teslimat adresi seçin</option>${addressOptions}</select><input id="order-request-date-${o.id}" type="date" value="${o.requested_delivery_date||""}"><button class="ghost" onclick="saveCustomerOrderDelivery('${o.id}')">Teslimat bilgisini kaydet</button></div>`:""}
        <div class="customer-offer-actions">
          ${canConfirm?`<button class="btn delivery-confirm-btn" onclick="confirmOrderDelivered('${o.id}')">Teslim aldım</button>`:""}
