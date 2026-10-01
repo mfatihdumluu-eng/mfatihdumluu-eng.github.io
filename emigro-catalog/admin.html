@@ -37,12 +37,12 @@
 <main class="admin-shell hidden" id="adminShell">
   <section class="admin-hero"><div class="eyebrow">EMIGRO B2B ADMIN</div><h1>Üyelik & teklif yönetimi</h1><p>Üye onaylarını yönetin, gelen talepleri inceleyin ve kurumsal teklif hazırlayın.</p></section>
 
-  <div class="admin-main-tabs">
-    <button class="active" data-admin-tab="members">Üyelikler</button>
-    <button data-admin-tab="quotes">Teklif talepleri <span id="newQuoteBadge"></span></button>
-    <button data-admin-tab="products">Toplu ürün girişi</button>
-    <button data-admin-tab="productManager">Ürün yönetimi</button>
-    <button data-admin-tab="orders">Siparişler</button>
+  <div class="admin-main-tabs" aria-label="Admin menü">
+    <button class="active" data-admin-tab="members"><span class="admin-tab-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3.8 18c1.2-3 3-4.4 5.2-4.4 2.1 0 3.9 1.4 5.1 4.4"></path><path d="M16 6h4M18 4v4"></path></svg></span><span class="admin-tab-label">Üyelikler</span></button>
+    <button data-admin-tab="quotes"><span class="admin-tab-icon"><svg viewBox="0 0 24 24"><path d="M5 6.5h14v11H5z"></path><path d="M8 10h8M8 13.5h5"></path></svg></span><span class="admin-tab-label">Teklifler</span><span id="newQuoteBadge"></span></button>
+    <button data-admin-tab="products"><span class="admin-tab-icon"><svg viewBox="0 0 24 24"><path d="M12 4v11"></path><path d="m8 11 4 4 4-4"></path><path d="M5 19h14"></path></svg></span><span class="admin-tab-label">Toplu giriş</span></button>
+    <button data-admin-tab="productManager"><span class="admin-tab-icon"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"></rect><path d="M8 10h8M8 14h6"></path></svg></span><span class="admin-tab-label">Ürünler</span></button>
+    <button data-admin-tab="orders"><span class="admin-tab-icon"><svg viewBox="0 0 24 24"><path d="M5 7h10v10H5z"></path><path d="M15 10h3l2 3v4h-5z"></path><circle cx="8" cy="18" r="1.5"></circle><circle cx="18" cy="18" r="1.5"></circle></svg></span><span class="admin-tab-label">Siparişler</span></button>
   </div>
 
   <section id="membersPanel">
