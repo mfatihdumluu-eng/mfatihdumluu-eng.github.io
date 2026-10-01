@@ -281,9 +281,28 @@ function renderDetailCommerce(){
 }
 function renderDetailQuoteButton(){
  const b=document.getElementById("detailQuoteBtn");
- if(!approved()){b.textContent="🔒 Teklif için giriş yap";b.classList.remove("added");return}
- const mode=modeFor(selected),inQuote=quoteItems.some(x=>x.id===selected.id&&x.mode===mode);
- b.textContent=inQuote?"✓ Teklif listesinde":"+ Teklif iste";b.classList.toggle("added",inQuote);
+ const controls=document.getElementById("detailQuoteControls");
+ if(!approved()){
+   controls.innerHTML="";
+   b.textContent="🔒 Teklif için giriş yap";b.classList.remove("added");return;
+ }
+ const mode=modeFor(selected);
+ const existing=quoteItems.find(x=>x.id===selected.id&&x.mode===mode);
+ const qty=existing?.qty||1;
+ controls.innerHTML=`
+   <div class="detail-quote-box">
+     <div class="detail-quote-field">
+       <span>Talep türü</span>
+       <div class="detail-quote-type">
+         ${selected.caseAvailable?`<button type="button" class="${mode==="case"?"active":""}" onclick="setMode(${selected.id},'case')">Koli</button>`:""}
+         ${selected.palletAvailable?`<button type="button" class="${mode==="pallet"?"active":""}" onclick="setMode(${selected.id},'pallet')">Palet</button>`:""}
+       </div>
+     </div>
+     <label class="detail-quote-field"><span>Adet</span><input id="detailQuoteQty" type="number" min="1" step="1" value="${qty}"></label>
+     <div class="detail-quote-summary"><span>${mode==="case"?"Koli":"Palet"} fiyatı</span><strong>${euro(currentPrice(selected))}</strong></div>
+   </div>`;
+ b.textContent=existing?"✓ Teklif listesini güncelle":"+ Teklif listesine ekle";
+ b.classList.toggle("added",!!existing);
 }
 function renderFav(){const yes=favorites.includes(selected.id);document.getElementById("favoriteBtn").textContent=yes?"✓ Favoride":"♡ Favorilere ekle"}
 function toggleFavorite(){favorites=favorites.includes(selected.id)?favorites.filter(x=>x!==selected.id):[...favorites,selected.id];localStorage.setItem("emigro-favorites",JSON.stringify(favorites));renderFav()}
@@ -292,11 +311,13 @@ document.getElementById("favoriteBtn").onclick=toggleFavorite;
 document.getElementById("shareBtn").onclick=shareProduct;
 document.getElementById("mainMedia").onclick=()=>{selectedImage=(selectedImage+1)%3;renderMedia()};
 
-function addQuote(id){
+function addQuote(id,requestedQty=null){
  const p=products.find(x=>x.id===id);
  if(!approved()){pendingAction="quote";openAuth("Teklif isteyebilmek için Emigro tarafından onaylanmış üyeliğinizle giriş yapın.","quote");return}
- const mode=modeFor(p),existing=quoteItems.find(x=>x.id===id&&x.mode===mode);
- if(existing)quoteItems=quoteItems.filter(x=>!(x.id===id&&x.mode===mode));else quoteItems.push({id,mode,qty:1});
+ const mode=modeFor(p);
+ const qty=Math.max(1,parseInt(requestedQty||"1",10));
+ const existing=quoteItems.find(x=>x.id===id&&x.mode===mode);
+ if(existing)existing.qty=qty;else quoteItems.push({id,mode,qty});
  persistQuote();renderProducts();renderQuoteCart();if(selected?.id===id)renderDetailQuoteButton();
 }
 window.addQuote=addQuote;
@@ -327,7 +348,12 @@ function renderQuoteLines(){
 function updateQuoteQty(idx,val){quoteItems[idx].qty=Math.max(1,parseInt(val||"1",10));persistQuote();renderQuoteLines();renderQuoteCart()}
 function removeQuote(idx){quoteItems.splice(idx,1);persistQuote();renderQuoteLines();renderQuoteCart();renderProducts();if(!quoteItems.length)closeModal("quoteModal")}
 window.updateQuoteQty=updateQuoteQty;window.removeQuote=removeQuote;
-document.getElementById("detailQuoteBtn").onclick=()=>selected&&addQuote(selected.id);
+document.getElementById("detailQuoteBtn").onclick=()=>{
+ if(!selected)return;
+ if(!approved()){addQuote(selected.id);return}
+ const qty=document.getElementById("detailQuoteQty")?.value||1;
+ addQuote(selected.id,qty);
+};
 document.getElementById("openQuote").onclick=openQuote;
 document.getElementById("quoteForm").onsubmit=async e=>{
  e.preventDefault();
