@@ -887,6 +887,8 @@ function renderOrders(){
       <select id="order-status-${o.id}"><option value="new" ${o.status==="new"?"selected":""}>Yeni</option><option value="preparing" ${o.status==="preparing"?"selected":""}>Hazırlanıyor</option><option value="ready" ${o.status==="ready"?"selected":""}>Hazır</option><option value="shipped" ${o.status==="shipped"?"selected":""}>Sevk edildi</option><option value="completed" ${o.status==="completed"?"selected":""}>Tamamlandı</option><option value="cancelled" ${o.status==="cancelled"?"selected":""}>İptal</option></select>
       <input id="order-date-${o.id}" type="date" value="${o.confirmed_delivery_date||""}">
       <input id="order-note-${o.id}" placeholder="Admin notu" value="${escAttr(o.admin_note||"")}">
+      <input id="order-track-${o.id}" placeholder="Kargo takip numarası" value="${escAttr(o.tracking_number||"")}">
+      <input id="order-trackurl-${o.id}" placeholder="Takip linki (opsiyonel)" value="${escAttr(o.tracking_url||"")}">
       <button class="btn" onclick="saveOrder('${o.id}')">Siparişi güncelle</button>
     </div>
   </article>`;
@@ -896,7 +898,9 @@ async function saveOrder(id){
  const {error}=await sb.rpc("emigro_catalog_admin_update_order",{
   p_order_id:id,p_status:document.getElementById("order-status-"+id).value,
   p_confirmed_delivery_date:document.getElementById("order-date-"+id).value||null,
-  p_admin_note:document.getElementById("order-note-"+id).value||""
+  p_admin_note:document.getElementById("order-note-"+id).value||"",
+  p_tracking_number:document.getElementById("order-track-"+id).value||"",
+  p_tracking_url:document.getElementById("order-trackurl-"+id).value||""
  });
  if(error){alert("Sipariş güncellenemedi: "+error.message);return}
  await loadOrders();
