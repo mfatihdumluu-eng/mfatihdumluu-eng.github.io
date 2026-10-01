@@ -299,12 +299,28 @@ function renderDetailQuoteButton(){
          ${selected.palletAvailable?`<button type="button" class="${mode==="pallet"?"active":""}" onclick="setMode(${selected.id},'pallet')">Palet</button>`:""}
        </div>
      </div>
-     <label class="detail-quote-field"><span>Adet</span><input id="detailQuoteQty" type="number" min="1" step="1" value="${qty}"></label>
-     <div class="detail-quote-summary"><span>${mode==="case"?"Koli":"Palet"} fiyatı</span><strong>${euro(currentPrice(selected))}</strong></div>
+     <label class="detail-quote-field"><span>Adet</span><input id="detailQuoteQty" type="number" min="1" step="1" value="${qty}" oninput="updateDetailQuoteTotal(this.value)"></label>
+     <div class="detail-quote-summary">
+       <span>Birim fiyat</span><small id="detailQuoteUnit">${euro(currentPrice(selected))} / ${mode==="case"?"koli":"palet"}</small>
+       <span id="detailQuoteTotalLabel">${qty} ${mode==="case"?"koli":"palet"} toplamı</span>
+       <strong id="detailQuoteTotal">${euro(currentPrice(selected)*qty)}</strong>
+     </div>
    </div>`;
  b.textContent=existing?"✓ Teklif listesini güncelle":"+ Teklif listesine ekle";
  b.classList.toggle("added",!!existing);
 }
+function updateDetailQuoteTotal(value){
+ if(!selected)return;
+ const qty=Math.max(1,parseInt(value||"1",10));
+ const mode=modeFor(selected);
+ const unit=Number(currentPrice(selected)||0);
+ const total=document.getElementById("detailQuoteTotal");
+ const label=document.getElementById("detailQuoteTotalLabel");
+ if(total)total.textContent=euro(unit*qty);
+ if(label)label.textContent=qty+" "+(mode==="case"?"koli":"palet")+" toplamı";
+}
+window.updateDetailQuoteTotal=updateDetailQuoteTotal;
+
 function renderFav(){const yes=favorites.includes(selected.id);document.getElementById("favoriteBtn").textContent=yes?"✓ Favoride":"♡ Favorilere ekle"}
 function toggleFavorite(){favorites=favorites.includes(selected.id)?favorites.filter(x=>x!==selected.id):[...favorites,selected.id];localStorage.setItem("emigro-favorites",JSON.stringify(favorites));renderFav()}
 async function shareProduct(){const url=`${location.origin}${location.pathname}?product=${selected.sku}`;try{if(navigator.share)await navigator.share({title:selected.brand+" "+selected.name,url});else await navigator.clipboard.writeText(url);document.getElementById("shareBtn").textContent="✓ Kopyalandı";setTimeout(()=>document.getElementById("shareBtn").textContent="↗ Paylaş",1500)}catch{}}
