@@ -140,9 +140,10 @@ function renderQuotes(){
  document.getElementById("quoteList").innerHTML=list.length?list.map(q=>{
    const p=profileMap[q.user_id]||{};
    const final=quoteGrand(q,q.discount_percent,q.discount_amount,q.shipping_fee);
-   return `<article class="quote-admin-card">
+   const specialCount=(q.items||[]).filter(i=>i.special_offer_required).length;
+   return `<article class="quote-admin-card ${specialCount?"has-special-offer":""}">
     <div class="quote-admin-head"><div><span class="quote-status ${q.status}">${quoteStatus(q.status)}</span><h3>${esc(p.company_name||"Bilinmeyen firma")}</h3><p>${esc(p.contact_name||"")} · ${esc(p.email||"")}</p></div><div><small>${new Date(q.created_at).toLocaleString("nl-NL")}</small><strong>${euro(final)}</strong></div></div>
-    <div class="quote-admin-meta"><span>${(q.items||[]).length} ürün</span><span>${esc(p.postal_code||"")} ${esc(p.city||"")}</span><span>Teklif no: ${esc(q.offer_number||"—")}</span><span>Geçerli: ${q.offer_valid_to?new Date(q.offer_valid_to).toLocaleDateString("nl-NL"):"—"}</span></div>
+    <div class="quote-admin-meta"><span>${(q.items||[]).length} ürün</span><span>${esc(p.postal_code||"")} ${esc(p.city||"")}</span><span>Teklif no: ${esc(q.offer_number||"—")}</span><span>Geçerli: ${q.offer_valid_to?new Date(q.offer_valid_to).toLocaleDateString("nl-NL"):"—"}</span>${specialCount?`<span class="special-admin-chip">${specialCount} ürün özel teklif fiyatı bekliyor</span>`:""}</div>
     <button class="btn" onclick="openOffer('${q.id}')">Teklifi aç / cevapla</button>
    </article>`;
  }).join(""):'<div class="admin-loading">Bu durumda teklif bulunmuyor.</div>';
@@ -178,16 +179,63 @@ function renderOfferProducts(){
    root.innerHTML='<div class="admin-loading">Teklifte ürün kalmadı. En az bir ürün bırakın.</div>';
    recalcActiveQuoteBase();updateOfferPreview();return;
  }
- root.innerHTML=items.map((i,idx)=>`
-   <div class="offer-product-line">
+ root.innerHTML=items.map((i,idx)=>{
+   const special=!!i.special_offer_required;
+   const modeLabel=i.mode==="case"?"Koli":"Palet";
+   const threshold=i.special_offer_threshold_qty?Number(i.special_offer_threshold_qty):null;
+   const thresholdMode=i.special_offer_threshold_mode==="pallet"?"palet":"koli";
+   const inputValue=special&&!i.manual_price?"":Number(i.unit_price||0);
+   return `
+   <div class="offer-product-line ${special?"special-required":""}">
      <span>${idx+1}</span>
-     <div><b>${esc(i.name)}</b><small>${esc(i.sku)} · ${i.mode==="case"?"Koli":"Palet"} · Adet: ${i.qty}</small></div>
+     <div class="offer-product-main">
+       <b>${esc(i.name)}</b>
+       <small>${esc(i.sku)} · ${modeLabel} · Adet: ${i.qty}</small>
+       ${special?`<div class="offer-special-required"><b>Özel teklif fiyatı zorunlu</b><span>${threshold||""} ${thresholdMode} eşiğine ulaşıldı.</span></div>`:""}
+     </div>
+     <label class="offer-unit-price-field">
+       <span>Birim fiyat (€)${special?" *":""}</span>
+       <input type="number" min="0.01" step="0.01" id="offer-unit-${idx}" value="${inputValue}" placeholder="${special?"Özel fiyat girin":Number(i.unit_price||0).toFixed(2)}" oninput="updateOfferItemPrice(${idx},this.value)">
+       ${special&&!i.manual_price?`<small>Katalog fiyatı: ${euro(Number(i.base_unit_price||i.unit_price||0))}</small>`:""}
+     </label>
      <strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong>
      <button type="button" class="remove-offer-item" onclick="removeOfferItem(${idx})">Ürünü çıkar</button>
-   </div>
- `).join("");
+   </div>`;
+ }).join("");
  recalcActiveQuoteBase();
 }
+function updateOfferItemPrice(idx,value){
+ const item=activeQuote?.items?.[idx];if(!item)return;
+ const raw=String(value??"").trim();
+ if(raw===""){
+   item.unit_price=Number(item.base_unit_price??item.unit_price??0);
+   item.manual_price=false;
+ }else{
+   const n=Number(raw);
+   if(!(n>0))return;
+   if(item.base_unit_price==null)item.base_unit_price=Number(item.unit_price||n);
+   item.unit_price=Number(n.toFixed(2));
+   item.manual_price=true;
+ }
+ recalcActiveQuoteBase();
+ updateOfferPreview();
+ const total=document.querySelectorAll(".offer-product-line")[idx]?.querySelector(":scope > strong");
+ if(total)total.textContent=euro(Number(item.unit_price||0)*Number(item.qty||0));
+}
+window.updateOfferItemPrice=updateOfferItemPrice;
+
+function validateRequiredSpecialPrices(){
+ const items=activeQuote?.items||[];
+ const idx=items.findIndex(i=>i.special_offer_required&&(!i.manual_price||!(Number(i.unit_price)>0)));
+ if(idx<0)return true;
+ notify("Özel teklif eşiğine ulaşan ürün için birim fiyatı elle girmeniz gerekiyor.","error");
+ const input=document.getElementById("offer-unit-"+idx);
+ input?.focus();
+ input?.classList.add("required-error");
+ setTimeout(()=>input?.classList.remove("required-error"),1800);
+ return false;
+}
+
 function removeOfferItem(idx){
  if(!activeQuote?.items?.[idx])return;
  if(!confirm("Bu ürünü tekliften çıkarmak istiyor musunuz?"))return;
@@ -229,6 +277,7 @@ function updateOfferPreview(){
 async function saveOffer(forceStatus=null){
  if(!activeQuote)return false;
  if(!(activeQuote.items||[]).length){notify("Teklifte en az bir ürün olmalı.");return false}
+ if(!validateRequiredSpecialPrices())return false
  const v=currentOfferValues();
  const status=forceStatus||v.status;
  recalcActiveQuoteBase();
@@ -859,6 +908,8 @@ function renderAdminProducts(){
       <label>Palet içi koli<input id="pm-pallet-${p.id}" type="number" min="1" value="${p.cases_per_pallet}"></label>
       <label>Minimum talep<input id="pm-min-${p.id}" type="number" min="1" value="${p.min_order_qty||1}"></label>
       <label>Maksimum talep<input id="pm-max-${p.id}" type="number" min="1" value="${p.max_order_qty??""}"><small>Müşteri tarafında gösterilmez</small></label>
+      <label>Özel teklif tipi<select id="pm-specialmode-${p.id}"><option value="" ${!p.special_offer_mode?"selected":""}>Yok</option><option value="case" ${p.special_offer_mode==="case"?"selected":""}>Koli</option><option value="pallet" ${p.special_offer_mode==="pallet"?"selected":""}>Palet</option></select><small>Müşteriye gösterilir</small></label>
+      <label>Özel teklif eşiği<input id="pm-specialqty-${p.id}" type="number" min="1" value="${p.special_offer_qty??""}" placeholder="Örn. 20"><small>Bu adede ulaşınca admin özel fiyat girmek zorunda</small></label>
       <label>Menşei<input id="pm-origin-${p.id}" value="${escAttr(p.origin)}"></label>
       <label>Statiegeld (€)<input id="pm-stat-${p.id}" type="number" min="0" step="0.01" value="${p.statiegeld||0}"></label>
       <label>Statiegeld tipi<select id="pm-stscope-${p.id}"><option value="none" ${p.statiegeld_scope==="none"?"selected":""}>Yok</option><option value="both" ${p.statiegeld_scope==="both"?"selected":""}>Koli + Palet</option><option value="case" ${p.statiegeld_scope==="case"?"selected":""}>Sadece Koli</option><option value="pallet" ${p.statiegeld_scope==="pallet"?"selected":""}>Sadece Palet</option></select></label>
@@ -881,6 +932,12 @@ async function saveAdminProduct(id){
   p_image_1:p.image_1,p_image_2:p.image_2,p_image_3:p.image_3,p_is_featured:!!p.is_featured
  });
  if(error){notify("Ürün kaydedilemedi: "+error.message);return}
+ const specialMode=get("pm-specialmode")||null;
+ const specialQtyRaw=get("pm-specialqty");
+ const specialQty=String(specialQtyRaw||"").trim()===""?null:Number(specialQtyRaw);
+ if((specialMode&&!specialQty)||(!specialMode&&specialQty)){notify("Özel teklif için hem tip hem eşik adedi birlikte girilmeli.","error");return}
+ const {error:specialError}=await sb.rpc("emigro_catalog_admin_set_special_offer_rule",{p_product_id:id,p_mode:specialMode,p_qty:specialQty});
+ if(specialError){notify("Özel teklif kuralı kaydedilemedi: "+specialError.message,"error");return}
  await loadAdminProducts();notify("Ürün güncellendi.");
 }
 window.saveAdminProduct=saveAdminProduct;
