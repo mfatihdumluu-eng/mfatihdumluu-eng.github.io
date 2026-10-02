@@ -99,11 +99,29 @@
 
 </main>
 
-<div class="quote-cart hidden bulletin-quote-cart" id="quoteCart">
-  <div class="quote-cart-copy"><b id="quoteCartHeadline">Uw offertelijst</b><span id="quoteCount">0 producten</span><small id="quoteCartHint">Voeg meerdere producten toe en vraag één scherpe prijs aan.</small></div>
-  <div class="quote-total"><small>Indicatie</small><strong id="quoteTotal">Offerte</strong></div>
-  <button class="btn" id="openQuote">Vraag offerte →</button>
-</div>
+<aside class="quote-cart hidden quote-flyout" id="quoteCart" aria-live="polite">
+  <div class="quote-flyout-top">
+    <span class="quote-flyout-icon">€</span>
+    <div>
+      <small>PERSOONLIJKE OFFERTE</small>
+      <b id="quoteCartHeadline">Uw offertelijst</b>
+    </div>
+    <span class="quote-count-badge" id="quoteCount">0</span>
+  </div>
+
+  <div class="quote-flyout-progress">
+    <div class="quote-progress-track"><span id="quoteProgressBar"></span></div>
+    <small id="quoteCartHint">Voeg producten toe voor één scherpe aanvraag.</small>
+  </div>
+
+  <div class="quote-flyout-total">
+    <span>Indicatie</span>
+    <strong id="quoteTotal">Offerte</strong>
+  </div>
+
+  <button class="btn quote-flyout-cta" id="openQuote">Vraag mijn prijs aan →</button>
+  <button class="quote-flyout-link" type="button" onclick="document.getElementById('products')?.scrollIntoView({behavior:'smooth'})">+ Meer producten toevoegen</button>
+</aside>
 
 <div class="modal-backdrop hidden" id="authModal">
   <div class="modal auth-modal">
