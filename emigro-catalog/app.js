@@ -372,10 +372,9 @@ function renderCategorySquares(){
  const root=document.getElementById("categorySquares");if(!root)return;
  root.innerHTML=cats.map(c=>{
    const count=products.filter(p=>p.category===c[0]).length;
-   return `<button class="category-square category-pill-card" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')">
+   return `<button class="category-square email-category-chip" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')">
      <span class="category-square-icon">${c[3]}</span>
-     <span class="category-pill-copy"><strong>${c[0]}</strong><small>${count} producten</small></span>
-     <span class="category-pill-arrow">→</span>
+     <span class="category-pill-copy"><strong>${c[0]}</strong><small>${count}</small></span>
    </button>`;
  }).join("");
 }
@@ -413,14 +412,13 @@ function campaignGroupInfo(label){
 }
 function renderCampaignShowcase(){
  const root=document.getElementById("campaignShowcaseGrid");if(!root)return;
- const labels=["VOLUME DEAL","ACTIE","NIEUW","HORECA"];
+ const labels=["ACTIE","VOLUME DEAL","NIEUW","HORECA"];
  const groups=labels.map(label=>({label,items:products.filter(p=>p.campaignBadge===label)})).filter(g=>g.items.length);
  root.innerHTML=groups.map(g=>{
    const info=campaignGroupInfo(g.label);
-   return `<button class="campaign-filter-card" style="--campaign-tone:${info.tone}" onclick="showCampaign('${g.label.replace(/'/g,"\\'")}')">
+   return `<button class="campaign-filter-card email-filter-card" style="--campaign-tone:${info.tone}" onclick="showCampaign('${g.label.replace(/'/g,"\\'")}')">
      <span class="campaign-filter-icon">${info.icon}</span>
-     <div><b>${info.title}</b><small>${g.items.length} product${g.items.length===1?"":"en"}</small></div>
-     <span class="campaign-filter-arrow">→</span>
+     <div><b>${g.label}</b><small>${g.items.length} product${g.items.length===1?"":"en"}</small></div>
    </button>`;
  }).join("");
 }
@@ -450,25 +448,22 @@ function lockedPrice(){
 }
 function card(p,index){
  const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable,price=currentPrice(p);
- const validLabel=VALIDITY.to||"";
- return `${index>0&&index%24===0?heroBlock(index):""}<article class="card action-card simple-product-card hanos-inspired-card">
-   <button class="card-media simple-card-media" onclick="openProduct(${jsId(p.id)})">
+ return `${index>0&&index%24===0?heroBlock(index):""}<article class="card action-card simple-product-card email-product-card">
+   <button class="card-media simple-card-media email-product-media" onclick="openProduct(${jsId(p.id)})">
      ${p.campaignBadge?`<span class="campaign-badge">${esc(p.campaignBadge)}</span>`:""}
      ${bottle(p)}
    </button>
-   <div class="card-body simple-card-body">
+   <div class="card-body simple-card-body email-product-body">
      <div class="simple-card-brand">${esc(p.brand)}</div>
      <h3 class="product-title-link" onclick="openProduct(${jsId(p.id)})">${esc(p.name)}</h3>
-     ${p.campaignBadge?`<div class="card-validity">Actie geldig t/m ${esc(validLabel)}</div>`:""}
-     <div class="simple-card-meta"><span>${esc(p.net)}</span><span>${p.caseQty} per doos</span>${p.sourceReference?`<span>Art. ${esc(p.sourceReference)}</span>`:""}</div>
-     ${dual?`<div class="price-switch compact-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},'case')">Doos</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},'pallet')">Pallet</button></div>`:""}
-     ${approved()?`<div class="simple-price-row"><div><span>${mode==="case"?"Prijs per doos":"Prijs per pallet"}</span><small>${mode==="case"?p.caseQty+" stuks":p.palletCases+" dozen"}</small></div><strong>${displayPrice(price)}</strong></div>`:lockedPrice()}
-     ${specialOfferRule(p)?`<button class="simple-volume-note" type="button" onclick="event.stopPropagation();openProduct(${jsId(p.id)})">Vanaf ${specialOfferRule(p).qty} ${specialOfferRule(p).mode==="case"?"dozen":"pallets"}: persoonlijke prijs →</button>`:""}
-     <div class="simple-card-actions">
+     <div class="email-pack-line"><span>${esc(p.net)}</span><span>${p.caseQty} / doos</span></div>
+     ${approved()?`<div class="email-price-block"><span>${mode==="case"?"Prijs per doos":"Prijs per pallet"}</span><strong>${displayPrice(price)}</strong></div>`:`<button class="email-price-lock" type="button" onclick="openAuth('Log in om uw zakelijke prijs te bekijken.')"><span>🔒</span><div><b>Prijs na login</b><small>Bekijk uw zakelijke prijs</small></div></button>`}
+     ${specialOfferRule(p)?`<div class="email-volume-strip">Vanaf ${specialOfferRule(p).qty} ${specialOfferRule(p).mode==="case"?"dozen":"pallets"} persoonlijke prijs</div>`:""}
+     ${dual?`<div class="price-switch compact-switch email-pack-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},'case')">Doos</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},'pallet')">Pallet</button></div>`:""}
+     <div class="simple-card-actions email-card-actions">
        <button class="simple-secondary-action" type="button" onclick="event.stopPropagation();openProduct(${jsId(p.id)})">Bekijk</button>
        <button class="simple-primary-action" type="button" onclick="event.stopPropagation();${approved()?`addQuote(${jsId(p.id)})`:`openAuth('Log in om voor dit product een persoonlijke offerte aan te vragen.','quote')`}">Offerte</button>
      </div>
-     ${p.sourceUrl?`<a class="simple-source-link" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Origineel product op Emigro.nl ↗</a>`:""}
    </div>
  </article>`;
 }
@@ -1082,11 +1077,16 @@ function syncOfficialLoginLink(){
  const back=location.href;
  a.href="https://www.emigro.nl/aanmelden?back="+encodeURIComponent(back);
 }
+function updateEmailStickyCta(){
+ const el=document.getElementById("emailStickyCta");if(!el)return;
+ const fromEmail=CAMPAIGN_SOURCE==="email";
+ el.classList.toggle("hidden",!fromEmail||approved());
+}
 function renderCampaignMeta(){
  const title=document.getElementById("campaignTitle");if(title)title.textContent=CAMPAIGN_TITLE;
  const note=document.getElementById("campaignMailNote");if(note)note.classList.toggle("hidden",CAMPAIGN_SOURCE!=="email");
 }
-function renderAll(){syncOfficialLoginLink();renderCampaignMeta();renderCampaignShowcase();renderBanner();renderCategories();renderProducts();renderQuoteCart()}
+function renderAll(){syncOfficialLoginLink();renderCampaignMeta();updateEmailStickyCta();renderCampaignShowcase();renderBanner();renderCategories();renderProducts();renderQuoteCart()}
 function setMobileNavActive(name){
  document.querySelectorAll("[data-mobile-nav]").forEach(b=>b.classList.toggle("active",b.dataset.mobileNav===name));
 }
