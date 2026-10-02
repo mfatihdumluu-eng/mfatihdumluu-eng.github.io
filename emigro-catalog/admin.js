@@ -780,7 +780,7 @@ document.getElementById("downloadProductTemplate").onclick=()=>{
   urun_adi:"Örnek Ürün",
   barkod:"111232132131",
   marka:"Örnek Marka",
-  kategori:"Grocery",
+  kategori:"Zuivel",
   satis_tipi:"both",
   birim_fiyat:1.25,
   net_deger:500,
