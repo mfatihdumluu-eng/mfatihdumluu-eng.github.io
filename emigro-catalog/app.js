@@ -994,11 +994,17 @@ document.getElementById("depositFilter").onchange=e=>{depositFilter=e.target.val
 document.getElementById("scanBarcodeBtn").onclick=scanBarcode;
 document.getElementById("loadMore").onclick=()=>{shown+=24;renderProducts()};
 
+function syncOfficialLoginLink(){
+ const a=document.getElementById("officialEmigroLogin");
+ if(!a)return;
+ const back=location.href;
+ a.href="https://www.emigro.nl/aanmelden?back="+encodeURIComponent(back);
+}
 function renderCampaignMeta(){
  const title=document.getElementById("campaignTitle");if(title)title.textContent=CAMPAIGN_TITLE;
  const note=document.getElementById("campaignMailNote");if(note)note.classList.toggle("hidden",CAMPAIGN_SOURCE!=="email");
 }
-function renderAll(){renderCampaignMeta();renderBanner();renderCategories();renderProducts();renderQuoteCart()}
+function renderAll(){syncOfficialLoginLink();renderCampaignMeta();renderBanner();renderCategories();renderProducts();renderQuoteCart()}
 function setMobileNavActive(name){
  document.querySelectorAll("[data-mobile-nav]").forEach(b=>b.classList.toggle("active",b.dataset.mobileNav===name));
 }
