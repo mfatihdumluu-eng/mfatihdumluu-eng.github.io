@@ -4431,3 +4431,314 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
     display:none!important;
   }
 }
+
+/* High-energy campaign emphasis */
+:root{
+  --campaign-red:#ec0419;
+  --campaign-navy:#293369;
+  --campaign-yellow:#ffd84d;
+  --campaign-cream:#fff8e8;
+}
+
+/* Hero: stronger contrast and promo energy */
+.mail-campaign-hero{
+  position:relative;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 12% 18%,rgba(255,216,77,.34),transparent 24%),
+    radial-gradient(circle at 92% 14%,rgba(236,4,25,.18),transparent 28%),
+    radial-gradient(circle at 82% 88%,rgba(41,51,105,.18),transparent 26%),
+    linear-gradient(135deg,#fffdf7 0%,#ffffff 44%,#fff1f3 100%)!important;
+  border:2px solid rgba(236,4,25,.10)!important;
+}
+.mail-campaign-hero:before{
+  content:"ACTIE";
+  position:absolute;
+  right:-24px;
+  top:-8px;
+  font:900 150px/.9 'Roboto',sans-serif;
+  letter-spacing:-.08em;
+  color:rgba(236,4,25,.045);
+  pointer-events:none;
+}
+.mail-kicker{
+  display:inline-flex;
+  width:max-content;
+  padding:7px 10px;
+  border-radius:8px;
+  background:var(--campaign-red);
+  color:#fff!important;
+  letter-spacing:.11em!important;
+}
+.bulletin-edition{
+  background:var(--campaign-yellow)!important;
+  color:#293369!important;
+  border:1px solid rgba(41,51,105,.08);
+  box-shadow:0 6px 16px rgba(41,51,105,.06);
+}
+.mail-campaign-copy h1{
+  color:var(--campaign-navy)!important;
+  text-shadow:0 2px 0 rgba(255,255,255,.75);
+}
+.mail-campaign-copy h1:after{
+  content:"";
+  display:block;
+  width:90px;
+  height:7px;
+  margin-top:15px;
+  border-radius:999px;
+  background:linear-gradient(90deg,var(--campaign-red),var(--campaign-yellow));
+}
+.mail-primary{
+  background:var(--campaign-red)!important;
+  border-color:var(--campaign-red)!important;
+  box-shadow:0 12px 28px rgba(236,4,25,.24)!important;
+  transform:translateZ(0);
+}
+.mail-primary:hover{
+  transform:translateY(-2px);
+  box-shadow:0 16px 32px rgba(236,4,25,.30)!important;
+}
+.mail-price-cta{
+  border:2px solid #293369!important;
+  background:#fff!important;
+}
+.mail-price-cta:hover{
+  background:#f3f4fa!important;
+}
+
+/* Spotlight products */
+.mail-flyer-product{
+  border:2px solid rgba(236,4,25,.10)!important;
+}
+.mail-flyer-badge{
+  background:linear-gradient(135deg,#ec0419,#ff3142)!important;
+  box-shadow:0 8px 18px rgba(236,4,25,.24)!important;
+}
+.mail-flyer-product-copy strong{
+  display:inline-block;
+  width:max-content;
+  padding:5px 8px;
+  border-radius:8px;
+  background:var(--campaign-yellow);
+  color:#293369!important;
+  font-size:16px!important;
+}
+.mail-flyer-side>button:nth-child(1){
+  background:linear-gradient(145deg,#fff,#fff8e8)!important;
+}
+.mail-flyer-side>button:nth-child(2){
+  background:linear-gradient(145deg,#fff,#f3f4fb)!important;
+}
+.mail-flyer-side>button>span{
+  background:var(--campaign-red)!important;
+}
+
+/* Quick filters: colorful and immediately scannable */
+.mail-quick-strip>button{
+  position:relative;
+  overflow:hidden;
+  background:#fff!important;
+}
+.mail-quick-strip>button:before{
+  content:"";
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:4px;
+  background:var(--campaign-red);
+}
+.mail-quick-strip>button:nth-child(2):before{background:#293369}
+.mail-quick-strip>button:nth-child(3):before{background:#f0b400}
+.mail-quick-strip>button:nth-child(4):before{background:#5663a3}
+.mail-quick-strip>button>span{
+  background:#fff3f4!important;
+  color:#ec0419!important;
+}
+.mail-quick-strip>button:nth-child(2)>span{background:#eef0f8!important;color:#293369!important}
+.mail-quick-strip>button:nth-child(3)>span{background:#fff7d9!important;color:#8d6500!important}
+.mail-quick-strip>button:nth-child(4)>span{background:#eef0f8!important;color:#5663a3!important}
+.mail-quick-strip>button.active{
+  background:linear-gradient(135deg,#293369,#1f2858)!important;
+  border-color:#293369!important;
+}
+.mail-quick-strip>button.active:before{
+  width:7px;
+  background:var(--campaign-yellow)!important;
+}
+
+/* Category strip */
+.mail-category-card{
+  background:linear-gradient(145deg,#fff 0%,color-mix(in srgb,var(--cat) 7%,white) 100%)!important;
+}
+.mail-category-card:hover{
+  transform:translateY(-3px) scale(1.01)!important;
+}
+.mail-category-icon{
+  box-shadow:0 7px 16px color-mix(in srgb,var(--cat) 25%,transparent);
+}
+
+/* Product section headline */
+.catalog{
+  position:relative;
+}
+.catalog:before{
+  content:"";
+  position:absolute;
+  left:-18px;
+  top:0;
+  width:5px;
+  height:88px;
+  border-radius:999px;
+  background:linear-gradient(180deg,#ec0419,#ffd84d);
+}
+.catalog-head h2{
+  color:#293369!important;
+}
+.catalog-head .eyebrow{
+  display:inline-block;
+  padding:5px 8px;
+  border-radius:6px;
+  background:#fff1f3;
+}
+
+/* Product cards: stronger flyer hierarchy */
+.flyer-product-card{
+  position:relative;
+  transition:transform .18s,box-shadow .18s,border-color .18s!important;
+}
+.flyer-product-card:hover{
+  transform:translateY(-5px)!important;
+  border-color:rgba(236,4,25,.22)!important;
+  box-shadow:0 18px 38px rgba(41,51,105,.11)!important;
+}
+.flyer-product-image{
+  background:
+    radial-gradient(circle at 50% 42%,rgba(255,216,77,.10),transparent 34%),
+    linear-gradient(180deg,#fff 0%,#fafbfc 100%)!important;
+}
+.flyer-badge{
+  background:linear-gradient(135deg,#ec0419,#ff3041)!important;
+  box-shadow:0 6px 15px rgba(236,4,25,.24)!important;
+}
+.flyer-validity{
+  display:inline-flex;
+  width:max-content;
+  padding:4px 6px;
+  border-radius:6px;
+  background:#fff1f3;
+  color:#b50012!important;
+}
+.flyer-pack-grid span{
+  border:1px solid #e6e8ef;
+  background:#fff!important;
+}
+.flyer-price{
+  position:relative;
+  margin-top:4px;
+  padding:11px 10px!important;
+  border:0!important;
+  border-radius:11px;
+  background:linear-gradient(135deg,#f7f8fc,#fff)!important;
+}
+.flyer-price strong{
+  font-size:24px!important;
+  color:#ec0419!important;
+}
+.flyer-login-price.strong-lock{
+  background:linear-gradient(135deg,#293369,#1f2858)!important;
+  box-shadow:0 8px 20px rgba(41,51,105,.18)!important;
+}
+.flyer-volume-deal{
+  position:relative;
+  padding-left:12px!important;
+  background:linear-gradient(90deg,#fff4d5,#fff9ec)!important;
+  border-left:4px solid #f0b400!important;
+}
+.flyer-volume-deal:after{
+  content:"VOLUME";
+  position:absolute;
+  right:8px;
+  top:8px;
+  font-size:6px;
+  font-weight:900;
+  letter-spacing:.08em;
+  color:#aa7600;
+  opacity:.6;
+}
+.flyer-pack-switch{
+  background:#eef0f6!important;
+}
+.flyer-pack-switch button.active{
+  background:#293369!important;
+  color:#fff!important;
+}
+.flyer-view{
+  font-weight:800!important;
+}
+.flyer-offer{
+  background:linear-gradient(135deg,#ec0419,#ff3041)!important;
+  box-shadow:0 8px 18px rgba(236,4,25,.20)!important;
+}
+
+/* Quote bar louder */
+.bulletin-quote-cart{
+  background:linear-gradient(135deg,#293369,#1c244d)!important;
+  border:2px solid rgba(255,255,255,.08)!important;
+}
+.bulletin-quote-cart:before{
+  content:"";
+  width:8px;
+  align-self:stretch;
+  border-radius:999px;
+  background:var(--campaign-yellow);
+}
+.bulletin-quote-cart .btn{
+  background:linear-gradient(135deg,#ec0419,#ff3041)!important;
+  box-shadow:0 8px 18px rgba(236,4,25,.22)!important;
+}
+
+/* stronger section rhythm */
+.mail-section-head .eyebrow{
+  color:#ec0419!important;
+}
+.mail-section-head h2{
+  color:#293369!important;
+}
+.mail-section-head:after{
+  content:"";
+  display:block;
+  flex:1;
+  height:1px;
+  margin-left:8px;
+  background:linear-gradient(90deg,#e1e4ec,transparent);
+}
+
+/* Mobile: keep vibrancy without becoming noisy */
+@media(max-width:760px){
+  .mail-campaign-hero:before{
+    font-size:78px;
+    right:-8px;
+    top:16px;
+  }
+  .mail-kicker{
+    font-size:8px!important;
+  }
+  .mail-campaign-copy h1:after{
+    width:64px;height:5px;margin-top:10px;
+  }
+  .mail-quick-strip>button{
+    min-height:66px!important;
+  }
+  .catalog:before{
+    display:none;
+  }
+  .flyer-price{
+    padding:9px 8px!important;
+  }
+  .flyer-price strong{
+    font-size:17px!important;
+  }
+  .flyer-volume-deal:after{
+    display:none;
+  }
+}
