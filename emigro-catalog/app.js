@@ -361,7 +361,7 @@ function renderCategorySquares(){
  document.getElementById("categorySquares").innerHTML=cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-square" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="category-square-icon">${c[3]}</span><strong>${c[0]}</strong><small>${count} ürün</small></button>`}).join("");
 }
 function renderCategories(){
- document.getElementById("categories").innerHTML=`<button class="category-btn ${active==="All"?"active":""}" style="${active==="All"?`background:${BRAND.navy}`:""}" onclick="setCategory('All')"><span class="cat-icon">☰</span>Tümü (${products.length})</button>`+
+ document.getElementById("categories").innerHTML=`<button class="category-btn ${active==="All"?"active":""}" style="${active==="All"?`background:${BRAND.navy}`:""}" onclick="setCategory('All')"><span class="cat-icon">☰</span>Alle (${products.length})</button>`+
  cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-btn ${active===c[0]?"active":""}" ${active===c[0]?`style="background:${c[1]}"`:""} onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="cat-icon">${c[3]}</span>${c[0]} (${count})</button>`}).join("");
 }
 function setCategory(c){active=c;shown=24;renderAll();document.getElementById("products").scrollIntoView({behavior:"smooth",block:"start"})}
@@ -385,7 +385,7 @@ function filtered(){
 function renderBanner(){
  const root=document.getElementById("categoryBanner");if(active==="All"){root.innerHTML="";return}
  const c=cats.find(x=>x[0]===active);
- const count=products.filter(p=>p.category===active).length;root.innerHTML=`<div class="category-banner" style="background:linear-gradient(135deg,${c[1]},${BRAND.navy})"><div><div class="eyebrow" style="color:#fff;opacity:.8">KATEGORİ ${String(cats.indexOf(c)+1).padStart(2,"0")}</div><h2>${c[3]} ${c[0]}</h2><p>${count} ürün · ${c[2]} ağırlıklı seçki</p></div><div class="category-mark">${c[3]}</div></div>`;
+ const count=products.filter(p=>p.category===active).length;root.innerHTML=`<div class="category-banner" style="background:linear-gradient(135deg,${c[1]},${BRAND.navy})"><div><div class="eyebrow" style="color:#fff;opacity:.8">CATEGORIE ${String(cats.indexOf(c)+1).padStart(2,"0")}</div><h2>${c[3]} ${c[0]}</h2><p>${count} producten · selectie uit Emigro.nl</p></div><div class="category-mark">${c[3]}</div></div>`;
 }
 function heroBlock(index){
  const hp=products.filter(p=>p.hero),p=hp[Math.floor(index/12-1)%hp.length];if(!p)return"";
@@ -408,7 +408,7 @@ function card(p,index){
  </div></article>`;
 }
 function renderProducts(){
- const list=filtered();document.getElementById("resultCount").textContent=`${list.length} sonuç · ilk ${Math.min(shown,list.length)} ürün gösteriliyor`;
+ const list=filtered();document.getElementById("resultCount").textContent=`${list.length} producten · ${Math.min(shown,list.length)} zichtbaar`;
  document.getElementById("productGrid").innerHTML=list.slice(0,shown).map(card).join("");
  document.getElementById("loadMore").style.display=shown<list.length?"inline-block":"none";
 }
@@ -504,7 +504,7 @@ function renderDetailQuoteButton(){
  const controls=document.getElementById("detailQuoteControls");
  if(!approved()){
    controls.innerHTML="";
-   b.textContent="🔒 Teklif için giriş yap";b.classList.remove("added");return;
+   b.textContent="🔒 Inloggen voor offerte";b.classList.remove("added");return;
  }
  const mode=modeFor(selected);
  const existing=quoteItems.find(x=>x.id===selected.id&&x.mode===mode);
@@ -526,7 +526,7 @@ function renderDetailQuoteButton(){
        <strong id="detailQuoteTotal">${euro(currentPrice(selected)*qty)}</strong>
      </div>
    </div>`;
- b.textContent=existing?"✓ Teklif listesini güncelle":"+ Teklif listesine ekle";
+ b.textContent=existing?"✓ Offertelijst bijwerken":"+ Aan offertelijst toevoegen";
  b.classList.toggle("added",!!existing);
 }
 function updateDetailQuoteTotal(value){
@@ -566,7 +566,7 @@ function quoteTotal(){return quoteItems.reduce((sum,i)=>sum+quoteLinePrice(i)*i.
 function renderQuoteCart(){
  const bar=document.getElementById("quoteCart");
  if(!approved()||!quoteItems.length){bar.classList.add("hidden");return}
- bar.classList.remove("hidden");document.getElementById("quoteCount").textContent=quoteItems.length+" ürün";document.getElementById("quoteTotal").textContent=euro(quoteTotal());
+ bar.classList.remove("hidden");document.getElementById("quoteCount").textContent=quoteItems.length+" producten";document.getElementById("quoteTotal").textContent=euro(quoteTotal());
 }
 function populateMemberQuote(){
  document.getElementById("memberName").value=profile.contact_name||"";
@@ -875,12 +875,12 @@ async function decideCustomerQuote(id,decision){
  if(error){notify("İşlem tamamlanamadı: "+error.message);return}
  await openMyQuotes();
  if(decision==="accepted"){
-   customerDashboardTab="orders";
-   document.querySelectorAll("[data-customer-tab]").forEach(x=>x.classList.toggle("active",x.dataset.customerTab==="orders"));
+   customerDashboardTab="quotes";
+   document.querySelectorAll("[data-customer-tab]").forEach(x=>x.classList.toggle("active",x.dataset.customerTab==="quotes"));
    document.getElementById("customerDashboard")?.classList.remove("hidden");
    if(matchMedia("(max-width:700px)").matches)setMobileScreen("dashboard");
-   setMobileNavActive("account");
-   notify("Teklif kabul edildi. Siparişiniz Siparişlerim bölümüne eklendi.","success");
+   setMobileNavActive("quotes");
+   notify("Offerte geaccepteerd.","success");
  }
  await loadCustomerDashboard();
 }
