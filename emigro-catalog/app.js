@@ -24,7 +24,9 @@ const demoProducts=cats.flatMap((c,ci)=>Array.from({length:23},(_,i)=>{
    caseQty:[6,12,18,24][(i+ci)%4],palletCases:48+((i+ci)%5)*6,
    caseAvailable:!palletOnly,palletAvailable:!caseOnly,
    tone:c[1],icon:c[3],hero:i===0,featured:i===1||i===7,heroLayout:ci%2===0?"editorial":"grid4",
-   beverage,statiegeld,statiegeldScope:statiegeld>0?"both":"none"
+   beverage,statiegeld,statiegeldScope:statiegeld>0?"both":"none",
+   specialOfferMode:(id%4===0&&!palletOnly)?"case":((id%5===0&&!caseOnly)?"pallet":null),
+   specialOfferQty:(id%4===0&&!palletOnly)?12:((id%5===0&&!caseOnly)?3:null)
  };
 }));
 let products=[...demoProducts];
@@ -76,6 +78,9 @@ const priceFor=(p,mode)=>{
 };
 const modeFor=p=>priceMode[p.id]||(p.caseAvailable?"case":"pallet");
 const currentPrice=p=>priceFor(p,modeFor(p));
+const specialOfferRule=p=>p?.specialOfferMode&&p?.specialOfferQty?{mode:p.specialOfferMode,qty:Number(p.specialOfferQty)}:null;
+const specialOfferText=p=>{const r=specialOfferRule(p);return r?`${r.qty} ${r.mode==="case"?"koli":"palet"} ve üzeri taleplerde bu ürün için özel teklif hazırlanır.`:""};
+const specialOfferReached=(p,mode,qty)=>{const r=specialOfferRule(p);return !!r&&r.mode===mode&&Number(qty)>=r.qty};
 const depositText=p=>{
  if(!p.beverage&&Number(p.statiegeld||0)<=0)return"";
  if(!p.statiegeld||p.statiegeldScope==="none")return"Statiegeld: Nee";
@@ -137,7 +142,9 @@ async function loadLiveCatalog(){
     image1:r.image_1||null,
     image2:r.image_2||null,
     image3:r.image_3||null,
-    minQty:Number(r.min_order_qty||1)
+    minQty:Number(r.min_order_qty||1),
+    specialOfferMode:r.special_offer_mode||null,
+    specialOfferQty:r.special_offer_qty==null?null:Number(r.special_offer_qty)
    };
  });
  quoteItems=quoteItems.filter(item=>products.some(p=>String(p.id)===String(item.id)));
@@ -509,6 +516,7 @@ function renderDetailQuoteButton(){
        </div>
      </div>
      <label class="detail-quote-field"><span>Adet</span><input id="detailQuoteQty" type="number" min="${selected.minQty||1}" step="1" value="${qty}" oninput="updateDetailQuoteTotal(this.value)"><small>Minimum: ${selected.minQty||1}</small></label>
+     ${specialOfferRule(selected)?`<div class="detail-special-offer ${specialOfferReached(selected,mode,qty)?"reached":""}" id="detailSpecialOffer"><b>${specialOfferReached(selected,mode,qty)?"Özel teklif seviyesine ulaştınız":"Özel teklif fırsatı"}</b><span>${specialOfferText(selected)}</span></div>`:""}
      <div class="detail-quote-summary">
        <span>Birim fiyat</span><small id="detailQuoteUnit">${euro(currentPrice(selected))} / ${mode==="case"?"koli":"palet"}</small>
        <span id="detailQuoteTotalLabel">${qty} ${mode==="case"?"koli":"palet"} toplamı</span>
@@ -527,6 +535,8 @@ function updateDetailQuoteTotal(value){
  const label=document.getElementById("detailQuoteTotalLabel");
  if(total)total.textContent=euro(unit*qty);
  if(label)label.textContent=qty+" "+(mode==="case"?"koli":"palet")+" toplamı";
+ const note=document.getElementById("detailSpecialOffer");
+ if(note){const reached=specialOfferReached(selected,mode,qty);note.classList.toggle("reached",reached);note.innerHTML=`<b>${reached?"Özel teklif seviyesine ulaştınız":"Özel teklif fırsatı"}</b><span>${specialOfferText(selected)}</span>`}
 }
 window.updateDetailQuoteTotal=updateDetailQuoteTotal;
 
@@ -877,9 +887,14 @@ function openQuote(){
  renderQuoteLines();populateMemberQuote();openModal("quoteModal");
 }
 function renderQuoteLines(){
- document.getElementById("quoteLines").innerHTML=quoteItems.map((item,idx)=>{const p=products.find(x=>x.id===item.id),price=quoteLinePrice(item);return `<div class="quote-line"><div class="quote-thumb">${bottle(p)}</div><div><b>${p.brand} ${p.name}</b><span>${item.mode==="case"?"Koli":"Palet"} · ${euro(price)}</span>${p.beverage?`<small>${depositText(p)}</small>`:""}</div><label>Adet<input type="number" min="${p.minQty||1}" value="${item.qty}" onchange="updateQuoteQty(${idx},this.value)"></label><strong>${euro(price*item.qty)}</strong><button onclick="removeQuote(${idx})">×</button></div>`}).join("");
+ document.getElementById("quoteLines").innerHTML=quoteItems.map((item,idx)=>{
+   const p=products.find(x=>x.id===item.id),price=quoteLinePrice(item);
+   const special=specialOfferRule(p);
+   const reached=specialOfferReached(p,item.mode,item.qty);
+   return `<div class="quote-line"><div class="quote-thumb">${bottle(p)}</div><div><b>${p.brand} ${p.name}</b><span>${item.mode==="case"?"Koli":"Palet"} · ${euro(price)}</span>${p.beverage?`<small>${depositText(p)}</small>`:""}${special?`<small class="quote-special-note ${reached?"reached":""}">${reached?"Özel teklif uygulanacak · ":""}${specialOfferText(p)}</small>`:""}</div><label>Adet<input type="number" min="${p.minQty||1}" value="${item.qty}" onchange="updateQuoteQty(${idx},this.value)"></label><strong>${euro(price*item.qty)}</strong><button onclick="removeQuote(${idx})">×</button></div>`;
+ }).join("");
  document.getElementById("formQuoteTotal").textContent=euro(quoteTotal());
- document.getElementById("quoteSummaryField").value=quoteItems.map(item=>{const p=products.find(x=>x.id===item.id);return `${p.sku} | ${p.brand} ${p.name} | ${item.mode==="case"?"Koli":"Palet"} | Adet: ${item.qty} | ${euro(quoteLinePrice(item))}${p.beverage?" | "+depositText(p):""}`}).join("\n");
+ document.getElementById("quoteSummaryField").value=quoteItems.map(item=>{const p=products.find(x=>x.id===item.id);return `${p.sku} | ${p.brand} ${p.name} | ${item.mode==="case"?"Koli":"Palet"} | Adet: ${item.qty} | ${euro(quoteLinePrice(item))}${specialOfferReached(p,item.mode,item.qty)?" | ÖZEL TEKLİF":""}${p.beverage?" | "+depositText(p):""}`}).join("\n");
 }
 function updateQuoteQty(idx,val){const p=products.find(x=>x.id===quoteItems[idx].id);quoteItems[idx].qty=Math.max(Number(p?.minQty||1),parseInt(val||String(p?.minQty||1),10));persistQuote();renderQuoteLines();renderQuoteCart()}
 function removeQuote(idx){quoteItems.splice(idx,1);persistQuote();renderQuoteLines();renderQuoteCart();renderProducts();if(!quoteItems.length)closeModal("quoteModal")}
@@ -910,7 +925,10 @@ document.getElementById("quoteForm").onsubmit=async e=>{
        name:[p?.brand,p?.name].filter(Boolean).join(" "),
        mode:item.mode,
        qty:Number(item.qty),
-       unit_price:Number(quoteLinePrice(item)||0)
+       unit_price:Number(quoteLinePrice(item)||0),
+       special_offer_required:specialOfferReached(p,item.mode,item.qty),
+       special_offer_threshold_mode:p?.specialOfferMode||null,
+       special_offer_threshold_qty:p?.specialOfferQty||null
      };
    });
    submitRpc="emigro_catalog_submit_demo_quote";
