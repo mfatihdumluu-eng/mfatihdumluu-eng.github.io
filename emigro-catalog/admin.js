@@ -136,7 +136,12 @@ function renderQuotes(){
  document.getElementById("quoteStats").innerHTML=[["Toplam",counts.all],["Yeni",counts.new],["İnceleniyor",counts.reviewing],["Teklif verildi",counts.offered],["Kabul",counts.accepted]]
  .map(([l,n])=>'<div><span>'+l+'</span><strong>'+n+'</strong></div>').join("");
  document.getElementById("newQuoteBadge").textContent=counts.new?counts.new:"";
- const list=quoteFilter==="all"?quotes:quotes.filter(q=>q.status===quoteFilter);
+ const list=(quoteFilter==="all"?quotes:quotes.filter(q=>q.status===quoteFilter)).slice().sort((a,b)=>{
+   const answered=s=>["offered","accepted","declined","closed"].includes(s)?1:0;
+   const diff=answered(b.status)-answered(a.status);
+   if(diff)return diff;
+   return new Date(b.updated_at||b.created_at)-new Date(a.updated_at||a.created_at);
+ });
  document.getElementById("quoteList").innerHTML=list.length?list.map(q=>{
    const p=profileMap[q.user_id]||{};
    const final=quoteGrand(q,q.discount_percent,q.discount_amount,q.shipping_fee);
@@ -268,6 +273,8 @@ function currentOfferValues(){
 function updateOfferPreview(){
  if(!activeQuote)return;
  const v=currentOfferValues(),p=profileMap[activeQuote.user_id]||{};
+ const freeBtn=document.getElementById("freeShippingBtn");
+ if(freeBtn)freeBtn.classList.toggle("active",Number(v.shipping)===0);
  const discount=quoteDiscount(activeQuote,v.percent,v.amount),final=quoteGrand(activeQuote,v.percent,v.amount,v.shipping);
  document.getElementById("offerTotals").innerHTML=`
   <div><span>Subtotaal</span><strong>${euro(quoteBase(activeQuote))}</strong></div>
@@ -282,6 +289,12 @@ function updateOfferPreview(){
   <div class="offer-preview-valid"><span>Deze offerte is geldig t/m</span><strong>${v.validTo?new Date(v.validTo).toLocaleDateString("nl-NL"):"—"}</strong></div>`;
 }
 ["discountPercent","discountAmount","shippingFee","offerValidTo","offerNumber","adminNote","offerStatus"].forEach(id=>document.getElementById(id).addEventListener("input",updateOfferPreview));
+document.getElementById("freeShippingBtn").onclick=()=>{
+ const fee=document.getElementById("shippingFee");
+ fee.value="0";
+ updateOfferPreview();
+ notify("Ücretsiz teslimat uygulandı.","success");
+};
 
 async function saveOffer(forceStatus=null){
  if(!activeQuote)return false;
