@@ -4970,3 +4970,285 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
     100%{transform:scale(1);opacity:1}
   }
 }
+
+/* Readability pass — larger typography and easier scanning */
+body{
+  font-size:16px!important;
+  line-height:1.45!important;
+}
+.eyebrow,
+.mail-kicker,
+.bulletin-edition,
+.mail-visual-label span,
+.mail-campaign-meta span,
+.flyer-brand,
+.flyer-validity,
+.flyer-price span,
+.flyer-price small,
+.flyer-volume-deal b,
+.flyer-volume-deal span,
+.flyer-login-price b,
+.flyer-login-price small,
+.mail-flyer-product-copy small,
+.mail-flyer-side small,
+.mail-category-card small,
+.mail-quick-strip small,
+.catalog-head .eyebrow,
+.quote-flyout-top small,
+.quote-flyout-progress small,
+.quote-flyout-total span{
+  font-size:12px!important;
+  line-height:1.35!important;
+}
+
+.topbar nav a,
+.topbar .ghost,
+.topbar .btn{
+  font-size:14px!important;
+}
+
+.mail-campaign-copy>p{
+  font-size:18px!important;
+  line-height:1.6!important;
+}
+.mail-campaign-actions .btn,
+.mail-price-cta{
+  font-size:15px!important;
+}
+.mail-price-cta b{
+  font-size:15px!important;
+}
+.mail-price-cta small{
+  font-size:12px!important;
+}
+.mail-campaign-meta strong{
+  font-size:14px!important;
+}
+
+.mail-flyer-product-copy b{
+  font-size:26px!important;
+  line-height:1.18!important;
+}
+.mail-flyer-product-copy strong{
+  font-size:20px!important;
+}
+.mail-flyer-product-copy em{
+  font-size:13px!important;
+}
+.mail-flyer-side b{
+  font-size:13px!important;
+  line-height:1.25!important;
+}
+
+.mail-quick-strip b{
+  font-size:14px!important;
+}
+.mail-quick-strip small{
+  font-size:11px!important;
+}
+.mail-category-card strong{
+  font-size:16px!important;
+}
+.mail-category-card small{
+  font-size:12px!important;
+}
+.mail-section-head h2{
+  font-size:32px!important;
+}
+
+.catalog-head h2{
+  font-size:44px!important;
+  line-height:1.08!important;
+}
+#resultCount{
+  font-size:14px!important;
+  color:#6f778f!important;
+}
+.advanced-controls input,
+.advanced-controls select,
+.search-with-scan .ghost,
+.category-btn{
+  font-size:13px!important;
+}
+
+.flyer-product-copy h3{
+  font-size:19px!important;
+  line-height:1.28!important;
+  min-height:50px!important;
+}
+.flyer-pack-grid span{
+  font-size:12px!important;
+  line-height:1.35!important;
+  padding:8px 9px!important;
+}
+.flyer-price{
+  min-height:72px!important;
+}
+.flyer-price span{
+  font-size:11px!important;
+}
+.flyer-price small{
+  font-size:11px!important;
+}
+.flyer-price strong{
+  font-size:28px!important;
+}
+.flyer-login-price{
+  min-height:72px!important;
+}
+.flyer-login-price b{
+  font-size:13px!important;
+}
+.flyer-login-price small{
+  font-size:11px!important;
+}
+.flyer-volume-deal{
+  padding:10px 11px!important;
+}
+.flyer-volume-deal b{
+  font-size:11px!important;
+}
+.flyer-volume-deal span{
+  font-size:12px!important;
+}
+.flyer-pack-switch button{
+  font-size:12px!important;
+  min-height:38px!important;
+}
+.flyer-actions button{
+  font-size:12px!important;
+  min-height:44px!important;
+}
+
+.quote-flyout{
+  width:360px!important;
+}
+.quote-flyout-top b{
+  font-size:18px!important;
+}
+.quote-count-badge{
+  font-size:14px!important;
+}
+.quote-flyout-progress small{
+  font-size:12px!important;
+  line-height:1.4!important;
+}
+.quote-flyout-total strong{
+  font-size:28px!important;
+}
+.quote-flyout-cta{
+  font-size:14px!important;
+}
+.quote-flyout-link{
+  font-size:11px!important;
+}
+
+.modal,
+.auth-modal{
+  font-size:15px!important;
+}
+.modal h2,
+.auth-modal h2{
+  font-size:30px!important;
+}
+.modal p,
+.auth-modal p,
+.modal label,
+.auth-modal label,
+.info-list,
+.facts-grid{
+  font-size:14px!important;
+}
+.auth-form input,
+.auth-form select,
+.auth-form textarea{
+  font-size:14px!important;
+}
+
+@media(max-width:1100px){
+  .quote-flyout{
+    width:330px!important;
+  }
+  .flyer-product-copy h3{
+    font-size:18px!important;
+  }
+}
+@media(max-width:760px){
+  body{
+    font-size:15px!important;
+  }
+  .mail-campaign-copy>p{
+    font-size:16px!important;
+  }
+  .mail-kicker,
+  .bulletin-edition{
+    font-size:11px!important;
+  }
+  .mail-flyer-product-copy b{
+    font-size:20px!important;
+  }
+  .mail-flyer-product-copy strong{
+    font-size:17px!important;
+  }
+  .mail-quick-strip b{
+    font-size:13px!important;
+  }
+  .mail-quick-strip small{
+    font-size:10px!important;
+  }
+  .mail-category-card strong{
+    font-size:14px!important;
+  }
+  .mail-category-card small{
+    font-size:10px!important;
+  }
+  .catalog-head h2{
+    font-size:32px!important;
+  }
+  .advanced-controls input,
+  .advanced-controls select{
+    font-size:12px!important;
+  }
+  .flyer-product-copy h3{
+    font-size:15px!important;
+    min-height:48px!important;
+  }
+  .flyer-pack-grid span{
+    font-size:10px!important;
+  }
+  .flyer-price span,
+  .flyer-price small{
+    font-size:10px!important;
+  }
+  .flyer-price strong{
+    font-size:21px!important;
+  }
+  .flyer-login-price b{
+    font-size:11px!important;
+  }
+  .flyer-login-price small{
+    font-size:10px!important;
+  }
+  .flyer-volume-deal b{
+    font-size:10px!important;
+  }
+  .flyer-volume-deal span{
+    font-size:10px!important;
+  }
+  .flyer-pack-switch button,
+  .flyer-actions button{
+    font-size:11px!important;
+  }
+  .quote-flyout{
+    width:calc(100vw - 20px)!important;
+  }
+  .quote-flyout-top b{
+    font-size:15px!important;
+  }
+  .quote-flyout-progress small{
+    font-size:11px!important;
+  }
+  .quote-flyout-cta{
+    font-size:12px!important;
+  }
+}
