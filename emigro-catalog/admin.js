@@ -186,28 +186,32 @@ function renderOfferProducts(){
  }
  root.innerHTML=items.map((i,idx)=>{
    const special=!!i.special_offer_required;
+   const missingBase=!(Number(i.base_unit_price??i.unit_price)>0);
+   const priceRequired=special||missingBase;
    const modeLabel=i.mode==="case"?"Koli":"Palet";
    const threshold=i.special_offer_threshold_qty?Number(i.special_offer_threshold_qty):null;
    const thresholdMode=i.special_offer_threshold_mode==="pallet"?"palet":"koli";
    const basePrice=Number(i.base_unit_price??i.unit_price??0);
    const inputValue=i.manual_price?Number(i.unit_price||0):"";
    return `
-   <div class="offer-product-line ${special?"special-required":""}">
+   <div class="offer-product-line ${priceRequired?"special-required":""}">
      <div class="offer-line-index">${idx+1}</div>
      <div class="offer-product-main">
        <div class="offer-product-title-row">
          <b>${esc(i.name)}</b>
-         ${special?'<span class="special-offer-badge">ÖZEL TEKLİF</span>':""}
+         ${special?'<span class="special-offer-badge">ÖZEL TEKLİF</span>':missingBase?'<span class="special-offer-badge">FİYAT GİRİŞİ</span>':""}
        </div>
        <small>${esc(i.sku)} · ${modeLabel} · ${i.qty} adet</small>
        <div class="offer-price-reference"><span>Standart birim fiyat</span><strong>${euro(basePrice)}</strong></div>
        ${special
          ?`<div class="offer-special-required"><b>Yeni fiyat zorunlu</b><span>${threshold||""} ${thresholdMode} özel teklif eşiğine ulaşıldı. Bu ürün yeni fiyat girilmeden yayınlanamaz.</span></div>`
-         :'<div class="offer-optional-price-note"><span>İsterseniz bu ürün için farklı bir teklif fiyatı girebilirsiniz.</span></div>'}
+         :missingBase
+           ?'<div class="offer-special-required"><b>Yeni fiyat zorunlu</b><span>Bu ürün için katalog fiyatı bulunmuyor. Teklif yayınlanmadan önce birim fiyat girin.</span></div>'
+           :'<div class="offer-optional-price-note"><span>İsterseniz bu ürün için farklı bir teklif fiyatı girebilirsiniz.</span></div>'}
      </div>
-     <label class="offer-unit-price-field ${special?"required":""}">
-       <span>${special?"Yeni birim fiyat (€) *":"Yeni birim fiyat (€) · opsiyonel"}</span>
-       <input type="number" min="0.01" step="0.01" id="offer-unit-${idx}" value="${inputValue}" placeholder="${special?"Özel fiyat girin":"Boş bırak = standart fiyat"}" oninput="updateOfferItemPrice(${idx},this.value)">
+     <label class="offer-unit-price-field ${priceRequired?"required":""}">
+       <span>${priceRequired?"Yeni birim fiyat (€) *":"Yeni birim fiyat (€) · opsiyonel"}</span>
+       <input type="number" min="0.01" step="0.01" id="offer-unit-${idx}" value="${inputValue}" placeholder="${priceRequired?"Yeni fiyatı girin":"Boş bırak = standart fiyat"}" oninput="updateOfferItemPrice(${idx},this.value)">
        <small>${i.manual_price?`Uygulanan fiyat: ${euro(Number(i.unit_price||0))}`:`Standart: ${euro(basePrice)}`}</small>
      </label>
      <div class="offer-line-total"><span>Satır toplamı</span><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>
@@ -240,9 +244,9 @@ window.updateOfferItemPrice=updateOfferItemPrice;
 
 function validateRequiredSpecialPrices(){
  const items=activeQuote?.items||[];
- const idx=items.findIndex(i=>i.special_offer_required&&(!i.manual_price||!(Number(i.unit_price)>0)));
+ const idx=items.findIndex(i=>(i.special_offer_required||!(Number(i.base_unit_price??i.unit_price)>0))&&(!i.manual_price||!(Number(i.unit_price)>0)));
  if(idx<0)return true;
- notify("Özel teklif eşiğine ulaşan ürün için yeni birim fiyat girmeniz gerekiyor.","error");
+ notify("Özel teklif veya fiyatı olmayan ürün için yeni birim fiyat girmeniz gerekiyor.","error");
  const input=document.getElementById("offer-unit-"+idx);
  input?.focus();
  input?.classList.add("required-error");
@@ -524,7 +528,7 @@ const PRODUCT_HEADERS=[
  {key:"statiegeld_scope",label:"statiegeld_tipi"},
  {key:"is_featured",label:"one_cikan"}
 ];
-const SITE_CATEGORIES=["Soft Drinks","Juices","Sauces","Snacks","Frozen","Grocery","Dairy","Sweets","Non-Food"];
+const SITE_CATEGORIES=["Zuivel","Drinks","Diepvries","Non-Food"];
 const SALE_TYPES=["case","pallet","both"];
 const STATIEGELD_SCOPES=["none","case","pallet","both"];
 const REQUIRED_PRODUCT_KEYS=["product_name","barcode","brand","category","sale_type","unit_price","net_value","net_unit","units_per_case","cases_per_pallet","origin","statiegeld","statiegeld_scope"];
@@ -745,6 +749,32 @@ document.getElementById("clearProductImport").onclick=()=>{
  renderImportRows();
 };
 
+
+function buildCampaignMailLink(){
+ const title=(document.getElementById("campaignMailTitle")?.value||"Deze week geselecteerd").trim();
+ const base="https://mfatihdumluu-eng.github.io/emigro-catalog/";
+ const url=base+"?src=email&campaign="+encodeURIComponent(title);
+ const box=document.getElementById("campaignMailLink");
+ if(box)box.textContent=url;
+ return url;
+}
+function campaignRecipients(){
+ return (document.getElementById("campaignMailRecipients")?.value||"").split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean);
+}
+document.getElementById("campaignMailTitle")?.addEventListener("input",buildCampaignMailLink);
+document.getElementById("campaignMailCopy")?.addEventListener("click",async()=>{
+ const url=buildCampaignMailLink();
+ try{await navigator.clipboard.writeText(url);notify("Kampanya bağlantısı kopyalandı.","success")}catch{notify("Bağlantı kopyalanamadı.","error")}
+});
+document.getElementById("campaignMailOpen")?.addEventListener("click",()=>{
+ const url=buildCampaignMailLink(),emails=campaignRecipients();
+ const title=(document.getElementById("campaignMailTitle")?.value||"Emigro acties").trim();
+ const subject=encodeURIComponent("Emigro | "+title);
+ const body=encodeURIComponent("Beste klant,\n\nBekijk onze geselecteerde acties en volume deals. Log in met uw Emigro-klantaccount om prijzen te bekijken en vraag voor grotere aantallen direct een persoonlijke offerte aan.\n\n"+url+"\n\nMet vriendelijke groet,\nEmigro");
+ location.href="mailto:"+(emails[0]||"")+"?"+(emails.length>1?"bcc="+encodeURIComponent(emails.slice(1).join(","))+"&":"")+"subject="+subject+"&body="+body;
+});
+buildCampaignMailLink();
+
 document.getElementById("downloadProductTemplate").onclick=()=>{
  const rows=[{
   urun_adi:"Örnek Ürün",
@@ -774,7 +804,7 @@ document.getElementById("downloadProductTemplate").onclick=()=>{
   ["Görsel 2","111232132131-2.jpg / png; yoksa kutu görseli kullanılır"],
   ["Görsel 3","111232132131-3.jpg / png; yoksa palet görseli kullanılır"],
   ["Varsayılan görseller","kutu.jpg ve palet.jpg"],
-  ["Kategori","Yalnızca: Soft Drinks, Juices, Sauces, Snacks, Frozen, Grocery, Dairy, Sweets, Non-Food"],
+  ["Kategori","Yalnızca: Zuivel, Drinks, Diepvries, Non-Food"],
   ["Satış tipi","case = sadece koli, pallet = sadece palet, both = koli + palet"],
   ["Birim fiyat","Tek ürün fiyatıdır; sadece arka planda koli/palet hesabı için kullanılır, müşteriye gösterilmez."],
   ["Minimum / maksimum","min_siparis_adedi zorunlu; max_siparis_adedi boş bırakılabilir. Maksimum sınır müşteri ekranında gösterilmez."],
@@ -922,6 +952,9 @@ function renderAdminProducts(){
       <label>Ürün adı<input id="pm-name-${p.id}" value="${escAttr(p.product_name)}"></label>
       <label>Marka<input id="pm-brand-${p.id}" value="${escAttr(p.brand)}"></label>
       <label>Kategori<select id="pm-cat-${p.id}">${SITE_CATEGORIES.map(x=>'<option value="'+x+'" '+(p.category===x?'selected':'')+'>'+x+'</option>').join("")}</select></label>
+      <label>Emigro ürün linki<input id="pm-sourceurl-${p.id}" value="${escAttr(p.source_url||"")}" placeholder="https://www.emigro.nl/..."><small>Müşteri kartındaki “Bekijk op Emigro.nl” butonu için.</small></label>
+      <label>Emigro referansı<input id="pm-sourceref-${p.id}" value="${escAttr(p.source_reference||p.barcode||"")}" placeholder="Örn. 28584"></label>
+      <label>Kampanya etiketi<select id="pm-badge-${p.id}"><option value="" ${!p.campaign_badge?"selected":""}>Yok</option><option value="ACTIE" ${p.campaign_badge==="ACTIE"?"selected":""}>ACTIE</option><option value="VOLUME DEAL" ${p.campaign_badge==="VOLUME DEAL"?"selected":""}>VOLUME DEAL</option><option value="NIEUW" ${p.campaign_badge==="NIEUW"?"selected":""}>NIEUW</option><option value="HORECA" ${p.campaign_badge==="HORECA"?"selected":""}>HORECA</option></select></label>
       <label>Satış tipi<select id="pm-sale-${p.id}"><option value="both" ${p.sale_type==="both"?"selected":""}>Koli + Palet</option><option value="case" ${p.sale_type==="case"?"selected":""}>Sadece Koli</option><option value="pallet" ${p.sale_type==="pallet"?"selected":""}>Sadece Palet</option></select></label>
       <label>Tek birim fiyatı (€)<input id="pm-unit-${p.id}" type="number" step="0.0001" value="${p.unit_price}"><small>Müşteriye gösterilmez</small></label>
       <label>Net değer<input id="pm-net-${p.id}" type="number" step="0.001" value="${p.net_value}"></label>
@@ -960,6 +993,8 @@ async function saveAdminProduct(id){
  if((specialMode&&!specialQty)||(!specialMode&&specialQty)){notify("Özel teklif için hem tip hem eşik adedi birlikte girilmeli.","error");return}
  const {error:specialError}=await sb.rpc("emigro_catalog_admin_set_special_offer_rule",{p_product_id:id,p_mode:specialMode,p_qty:specialQty});
  if(specialError){notify("Özel teklif kuralı kaydedilemedi: "+specialError.message,"error");return}
+ const {error:sourceError}=await sb.rpc("emigro_catalog_admin_set_product_source",{p_product_id:id,p_source_url:get("pm-sourceurl")||null,p_source_reference:get("pm-sourceref")||null,p_campaign_badge:get("pm-badge")||null});
+ if(sourceError){notify("Emigro kaynak bilgisi kaydedilemedi: "+sourceError.message,"error");return}
  await loadAdminProducts();notify("Ürün güncellendi.");
 }
 window.saveAdminProduct=saveAdminProduct;
