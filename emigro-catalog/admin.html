@@ -98,6 +98,21 @@
       <div><div class="eyebrow">ÜRÜN YÖNETİMİ</div><h2>Ürünler</h2><p>Ürünleri tek tek düzenleyin, minimum/maksimum talep sınırlarını yönetin ve fiyat geçmişini görüntüleyin.</p></div>
       <input id="adminProductSearch" class="admin-product-search" placeholder="Ürün, barkod, marka ara">
     </div>
+    <div class="campaign-mail-admin">
+      <div>
+        <div class="eyebrow">E-POSTA KAMPANYASI</div>
+        <h3>Actie kataloğu bağlantısı</h3>
+        <p>Müşteriye gönderilecek link, kampanya başlığını ve e-posta kaynağını URL'ye ekler. Fiyatlar giriş yapılmadan görünmez.</p>
+      </div>
+      <label>Kampanya başlığı<input id="campaignMailTitle" value="Deze week geselecteerd" placeholder="Örn. Weekend Deals"></label>
+      <label>Alıcı e-postalar<textarea id="campaignMailRecipients" rows="3" placeholder="klant@bedrijf.nl&#10;inkoop@bedrijf.nl"></textarea></label>
+      <div class="campaign-mail-link"><span>Bağlantı</span><strong id="campaignMailLink"></strong></div>
+      <div class="campaign-mail-actions">
+        <button class="btn" type="button" id="campaignMailOpen">E-posta oluştur</button>
+        <button class="ghost" type="button" id="campaignMailCopy">Bağlantıyı kopyala</button>
+      </div>
+    </div>
+
     <div class="price-period-admin">
       <div><div class="eyebrow">FİYAT DÖNEMİ</div><h3>Aktif fiyat geçerlilik dönemi</h3></div>
       <input id="pricePeriodName" placeholder="Örn. Kasım 2026">
