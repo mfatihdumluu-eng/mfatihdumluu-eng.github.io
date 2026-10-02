@@ -15,7 +15,7 @@
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 <header class="topbar">
   <a class="brand" href="#home"><img src="./logo.svg" alt="Emigro"><span class="brand-fallback"><b>emigro</b><small>Acties & Offertes</small></span></a>
-  <nav><a href="#featured">Acties</a><a href="#categoryBrowser">Categorieën</a><a href="#products">Producten</a><button class="nav-link-btn hidden" id="customerDashboardNav">Mijn offertes</button></nav>
+  <nav><a href="#campaignShowcase">Acties</a><a href="#categoryBrowser">Categorieën</a><a href="#products">Producten</a><button class="nav-link-btn hidden" id="customerDashboardNav">Mijn offertes</button></nav>
   <div class="top-actions">
     <button class="ghost" id="priceInfoBtn">Hoe werkt het?</button>
     <button class="ghost" id="accountBtn">Inloggen</button>
@@ -35,13 +35,10 @@
   <div class="hero-product-cluster" id="heroCluster"></div>
 </section>
 
-<section class="notice"><b>Prijzen alleen voor ingelogde Emigro-klanten.</b><span>Productinformatie en originele Emigro-links zijn zichtbaar voor iedereen. Prijzen en persoonlijke offertes worden pas geopend na het inloggen.</span></section>
-<section class="validity-banner"><div><span>ACTIE- / PRIJS-PERIODE</span><strong id="globalValidity">01-10-2026 — 30-10-2026</strong></div><p>Actieprijzen en persoonlijke offertes kunnen aan een geldigheidsperiode, voorraad en afnamevoorwaarden zijn gebonden.</p></section>
-
-<section class="promo-value-strip" aria-label="Waarom deze actiepagina">
-  <div><b>Geselecteerde deals</b><small>Alleen relevante actieproducten.</small></div>
-  <div><b>Zakelijke prijzen</b><small>Zichtbaar na uw login.</small></div>
-  <div><b>Volume nodig?</b><small>Vraag direct uw persoonlijke prijs.</small></div>
+<section class="campaign-info-bar">
+  <div class="campaign-period"><span>ACTIE GELDIG</span><strong id="globalValidity">01-10-2026 — 30-10-2026</strong></div>
+  <div class="campaign-login-message"><span class="campaign-lock">🔒</span><div><b>Prijzen zichtbaar na login</b><small>Bekijk het assortiment zonder account; log in voor uw zakelijke prijzen.</small></div></div>
+  <button class="btn campaign-login-btn" type="button" onclick="openAuth('Log in om uw zakelijke prijzen te bekijken.')">Inloggen</button>
 </section>
 
 <section class="campaign-showcase" id="campaignShowcase">
@@ -71,34 +68,21 @@
   <div class="customer-dashboard-list" id="customerDashboardList"><div class="admin-loading">Offertes worden geladen…</div></div>
 </section>
 
-<section class="category-browser" id="categoryBrowser">
-  <div class="section-title"><div class="eyebrow">SNEL NAAR UW INTERESSE</div><h2>Shop de actie per categorie</h2><p>Kies een hoofdgroep en bekijk alleen de relevante promotieproducten.</p></div>
+<section class="category-browser category-browser-compact" id="categoryBrowser">
+  <div class="section-title compact-title"><div><div class="eyebrow">CATEGORIEËN</div><h2>Waar wilt u kijken?</h2></div><p>Filter de actie op de hoofdgroepen van Emigro.nl.</p></div>
   <div class="category-square-grid" id="categorySquares"></div>
 </section>
 
-<section id="featured" class="featured-section">
-  <div class="section-title"><div class="eyebrow">UITGELICHT</div><h2>Deals om nu te bekijken</h2><p>Een compacte selectie uit deze campagne.</p></div>
-  <div class="featured-grid" id="featuredGrid"></div>
-</section>
 
-<section class="price-teaser">
-  <div>
-    <div class="eyebrow">ALLEEN VOOR EMIGRO-KLANTEN</div>
-    <h2>Benieuwd naar uw zakelijke prijs?</h2>
-    <p>Log in om de prijzen van deze selectie te bekijken. Voor grotere aantallen kunt u vanuit dezelfde productkaart direct een persoonlijke offerte aanvragen.</p>
-  </div>
-  <div class="price-teaser-actions">
-    <button class="btn" type="button" onclick="openAuth('Log in om uw zakelijke prijzen en persoonlijke offertes te bekijken.')">Inloggen voor prijzen</button>
-    <a class="ghost" href="https://www.emigro.nl/" target="_blank" rel="noopener">Bekijk volledig assortiment ↗</a>
-  </div>
-</section>
+
+
 
 <section class="catalog" id="products">
   <div id="categoryBanner"></div>
   <div class="catalog-head">
-    <div><div class="eyebrow">ALLE CAMPAGNEPRODUCTEN</div><h2>Bekijk de volledige selectie</h2><p id="resultCount"></p><div id="campaignActiveFilter"></div></div>
+    <div><div class="eyebrow">ACTIE ASSORTIMENT</div><h2>Alle deals in deze selectie</h2><p id="resultCount"></p><div id="campaignActiveFilter"></div></div>
     <div class="controls advanced-controls">
-      <div class="search-with-scan"><input id="search" placeholder="Zoek product, merk, referentie of EAN"><button class="ghost" id="scanBarcodeBtn" type="button" aria-label="Barkod tara">⌁ Tara</button></div>
+      <div class="search-with-scan"><input id="search" placeholder="Zoek in deze actie..."><button class="ghost" id="scanBarcodeBtn" type="button" aria-label="Barkod tara">⌁ Tara</button></div>
       <select id="sort"><option value="name">Naam</option><option value="low">Prijs: laag naar hoog</option><option value="high">Prijs: hoog naar laag</option></select>
       <select id="originFilter"><option value="">Alle herkomsten</option></select>
       <select id="saleFilter"><option value="">Doos / pallet</option><option value="case">Alleen doos</option><option value="pallet">Alleen pallet</option><option value="both">Doos + pallet</option></select>
