@@ -26,26 +26,30 @@
 <main>
 <section class="mail-campaign-hero" id="home">
   <div class="mail-campaign-copy">
-    <div class="mail-kicker">EMIGRO SELECTIE · ALLEEN VOOR ZAKELIJKE KLANTEN</div>
+    <div class="mail-kicker">EMIGRO ACTIEBULLETIN · ZAKELIJK</div>
+    <div class="bulletin-edition"><span id="campaignEdition">OKTOBER SELECTIE</span><span>•</span><span id="campaignWeek">ACTUELE HIGHLIGHTS</span></div>
     <h1 id="campaignTitle">Deze week geselecteerd</h1>
-    <p>Acties, nieuwe producten en volume deals die de moeite waard zijn. Bekijk de selectie direct; log alleen in wanneer u uw zakelijke prijs wilt zien.</p>
+    <p>Een compacte digitale folder met acties, nieuwe producten en volume deals. Snel scannen, prijzen openen na login en interessante producten direct verzamelen voor één offerte.</p>
     <div class="mail-campaign-actions">
       <a class="btn mail-primary" href="#products">Bekijk de deals</a>
       <button class="mail-price-cta" type="button" onclick="openAuth('Log in om uw zakelijke prijzen te bekijken.')"><span>🔒</span><div><b>Bekijk uw prijs</b><small>Alleen na login</small></div></button>
     </div>
     <div class="mail-campaign-meta">
-      <div><span>Geldig t/m</span><strong id="globalValidity">01-10-2026 — 30-10-2026</strong></div>
-      <div><span>Meer nodig?</span><strong>Vraag een persoonlijke offerte</strong></div>
+      <div><span>Geldig</span><strong id="globalValidity">01-10-2026 — 30-10-2026</strong></div>
+      <div><span>Deze bulletin</span><strong><b id="campaignDealCount">0</b> deals · <b id="campaignVolumeCount">0</b> volume deals</strong></div>
     </div>
   </div>
-  <div class="mail-campaign-visual" id="heroCluster"></div>
+  <div class="mail-campaign-visual-wrap">
+    <div class="mail-visual-label"><span>DEZE WEEK IN DE SPOTLIGHT</span><small>3 geselecteerde producten</small></div>
+    <div class="mail-campaign-visual" id="heroCluster"></div>
+  </div>
 </section>
 
-<section class="mail-quick-strip">
-  <button type="button" onclick="showCampaign('ACTIE')"><span>%</span><div><b>Acties</b><small>Direct bekijken</small></div></button>
-  <button type="button" onclick="showCampaign('VOLUME DEAL')"><span>↗</span><div><b>Volume deals</b><small>Meer afname, persoonlijke prijs</small></div></button>
-  <button type="button" onclick="showCampaign('NIEUW')"><span>+</span><div><b>Nieuw</b><small>Net toegevoegd</small></div></button>
-  <button type="button" onclick="showCampaign('HORECA')"><span>★</span><div><b>Horeca</b><small>Voor foodservice</small></div></button>
+<section class="mail-quick-strip" aria-label="Snelle filters">
+  <button type="button" class="active" data-campaign-pill="" onclick="showCampaign('')"><span>🔥</span><div><b>Alle acties</b><small>Alles in deze bulletin</small></div></button>
+  <button type="button" data-campaign-pill="VOLUME DEAL" onclick="showCampaign('VOLUME DEAL')"><span>📦</span><div><b>Pallet & volume</b><small>Persoonlijke prijs</small></div></button>
+  <button type="button" data-campaign-pill="NIEUW" onclick="showCampaign('NIEUW')"><span>🆕</span><div><b>Nieuw binnen</b><small>Net toegevoegd</small></div></button>
+  <button type="button" data-campaign-pill="HORECA" onclick="showCampaign('HORECA')"><span>☕</span><div><b>Horeca deals</b><small>Foodservice selectie</small></div></button>
 </section>
 
 <section class="mail-category-strip" id="categoryBrowser">
@@ -82,9 +86,9 @@
     <div class="controls advanced-controls">
       <div class="search-with-scan"><input id="search" placeholder="Zoek in deze actie..."><button class="ghost" id="scanBarcodeBtn" type="button" aria-label="Barkod tara">⌁ Tara</button></div>
       <select id="sort"><option value="name">Naam</option><option value="low">Prijs: laag naar hoog</option><option value="high">Prijs: hoog naar laag</option></select>
-      <select id="originFilter"><option value="">Alle herkomsten</option></select>
-      <select id="saleFilter"><option value="">Doos / pallet</option><option value="case">Alleen doos</option><option value="pallet">Alleen pallet</option><option value="both">Doos + pallet</option></select>
-      <select id="depositFilter"><option value="">Statiegeld</option><option value="yes">Met statiegeld</option><option value="no">Zonder statiegeld</option></select>
+      <select id="saleFilter"><option value="">📦 Doos / pallet</option><option value="case">Alleen doos</option><option value="pallet">Alleen pallet</option><option value="both">Doos + pallet</option></select>
+      <select id="originFilter" class="secondary-filter"><option value="">Alle herkomsten</option></select>
+      <select id="depositFilter" class="secondary-filter"><option value="">Statiegeld</option><option value="yes">Met statiegeld</option><option value="no">Zonder statiegeld</option></select>
     </div>
   </div>
   <div class="category-row" id="categories"></div>
@@ -95,10 +99,10 @@
 
 </main>
 
-<div class="quote-cart hidden" id="quoteCart">
-  <div><b>Offertelijst</b><span id="quoteCount">0 producten</span></div>
+<div class="quote-cart hidden bulletin-quote-cart" id="quoteCart">
+  <div class="quote-cart-copy"><b id="quoteCartHeadline">Uw offertelijst</b><span id="quoteCount">0 producten</span><small id="quoteCartHint">Voeg meerdere producten toe en vraag één scherpe prijs aan.</small></div>
   <div class="quote-total"><small>Indicatie</small><strong id="quoteTotal">Offerte</strong></div>
-  <button class="btn" id="openQuote">Offerte aanvragen</button>
+  <button class="btn" id="openQuote">Vraag offerte →</button>
 </div>
 
 <div class="modal-backdrop hidden" id="authModal">
