@@ -3438,3 +3438,594 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .email-sticky-cta small{display:none}
   .email-sticky-cta .btn{min-width:96px}
 }
+
+/* Major email-flyer redesign */
+.mail-campaign-hero{
+  width:min(1440px,94vw);
+  margin:24px auto 0;
+  display:grid;
+  grid-template-columns:minmax(0,1.02fr) minmax(420px,.98fr);
+  gap:34px;
+  align-items:stretch;
+  padding:34px;
+  border-radius:28px;
+  background:
+    radial-gradient(circle at 16% 18%,rgba(236,4,25,.11),transparent 28%),
+    linear-gradient(135deg,#ffffff 0%,#f8f9fd 58%,#f8f0f2 100%);
+  border:1px solid #e5e8f0;
+  box-shadow:0 22px 58px rgba(41,51,105,.09);
+}
+.mail-campaign-copy{
+  padding:18px 6px 18px 10px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.mail-kicker{
+  color:#ec0419;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+.mail-campaign-copy h1{
+  max-width:720px;
+  margin:10px 0 16px;
+  font-size:clamp(52px,6vw,88px);
+  line-height:.92;
+  letter-spacing:-.05em;
+  color:#293369;
+}
+.mail-campaign-copy>p{
+  max-width:650px;
+  margin:0;
+  font-size:14px;
+  line-height:1.65;
+  color:#66708d;
+}
+.mail-campaign-actions{
+  display:flex;
+  gap:10px;
+  margin-top:24px;
+}
+.mail-primary{
+  min-height:48px;
+  border-radius:12px!important;
+  padding:13px 20px!important;
+  background:#ec0419!important;
+  border-color:#ec0419!important;
+  box-shadow:0 10px 24px rgba(236,4,25,.16);
+}
+.mail-price-cta{
+  min-height:48px;
+  padding:8px 14px;
+  border:1px solid #dfe3ec;
+  border-radius:12px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  color:#293369;
+  cursor:pointer;
+}
+.mail-price-cta>span{
+  width:30px;height:30px;border-radius:9px;
+  display:grid;place-items:center;background:#f4f5f9;
+}
+.mail-price-cta b{display:block;font-size:10px}
+.mail-price-cta small{display:block;margin-top:2px;font-size:7px;color:#8b92a6}
+.mail-campaign-meta{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:26px;
+}
+.mail-campaign-meta>div{
+  padding-top:13px;
+  border-top:1px solid #e2e5ec;
+}
+.mail-campaign-meta span{
+  display:block;
+  margin-bottom:3px;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:#8e95a8;
+}
+.mail-campaign-meta strong{
+  font-size:10px;
+  color:#293369;
+}
+
+.mail-campaign-visual{
+  display:grid;
+  grid-template-columns:minmax(0,1.55fr) minmax(150px,.65fr);
+  gap:10px;
+  min-height:460px;
+}
+.mail-flyer-lead,.mail-flyer-product{min-width:0}
+.mail-flyer-product{
+  position:relative;
+  width:100%;
+  height:100%;
+  border:0;
+  border-radius:24px;
+  padding:22px;
+  background:#fff;
+  display:grid;
+  grid-template-rows:minmax(0,1fr) auto;
+  cursor:pointer;
+  box-shadow:0 14px 34px rgba(41,51,105,.08);
+  overflow:hidden;
+}
+.mail-flyer-product:after{
+  content:"";
+  position:absolute;
+  right:-80px;bottom:-100px;
+  width:240px;height:240px;border-radius:50%;
+  background:#ec0419;opacity:.045;
+}
+.mail-flyer-badge{
+  position:absolute;left:16px;top:16px;z-index:2;
+  padding:6px 8px;border-radius:8px;
+  background:#ec0419;color:#fff;
+  font-size:8px;font-weight:900;letter-spacing:.07em;
+}
+.mail-flyer-product-media{
+  min-height:300px;
+  display:grid;
+  place-items:center;
+}
+.mail-flyer-product-copy{
+  position:relative;z-index:1;
+  display:grid;
+  gap:5px;
+  text-align:left;
+}
+.mail-flyer-product-copy small{
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:#8d94a8;
+}
+.mail-flyer-product-copy b{
+  font-size:20px;
+  line-height:1.18;
+  color:#293369;
+}
+.mail-flyer-product-copy strong{
+  margin-top:2px;
+  font-size:15px;
+  color:#ec0419;
+}
+.mail-flyer-product-copy em{
+  margin-top:3px;
+  font-style:normal;
+  font-size:9px;
+  font-weight:800;
+  color:#293369;
+}
+.mail-flyer-side{
+  display:grid;
+  grid-template-rows:1fr 1fr;
+  gap:10px;
+}
+.mail-flyer-side>button{
+  position:relative;
+  overflow:hidden;
+  border:1px solid #e6e8ef;
+  border-radius:18px;
+  background:#fff;
+  padding:12px;
+  display:grid;
+  grid-template-rows:1fr auto;
+  text-align:left;
+  cursor:pointer;
+}
+.mail-flyer-side>button>span{
+  position:absolute;left:10px;top:10px;z-index:2;
+  padding:4px 6px;border-radius:7px;
+  background:#293369;color:#fff;
+  font-size:6px;font-weight:900;letter-spacing:.06em;
+}
+.mail-flyer-side-media{
+  min-height:130px;
+  display:grid;
+  place-items:center;
+}
+.mail-flyer-side small{
+  display:block;
+  font-size:7px;
+  text-transform:uppercase;
+  color:#959bae;
+}
+.mail-flyer-side b{
+  display:block;
+  margin-top:2px;
+  font-size:9px;
+  line-height:1.25;
+  color:#293369;
+}
+
+.mail-quick-strip{
+  width:min(1180px,90vw);
+  margin:16px auto 0;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+}
+.mail-quick-strip>button{
+  min-height:72px;
+  border:1px solid #e4e7ef;
+  border-radius:14px;
+  background:#fff;
+  padding:11px 13px;
+  display:grid;
+  grid-template-columns:34px 1fr;
+  gap:9px;
+  align-items:center;
+  text-align:left;
+  cursor:pointer;
+}
+.mail-quick-strip>button:hover{
+  background:#fafbfe;
+  border-color:#d4d9e6;
+}
+.mail-quick-strip>button>span{
+  width:34px;height:34px;border-radius:10px;
+  background:#f1f3f8;color:#293369;
+  display:grid;place-items:center;
+  font-weight:900;
+}
+.mail-quick-strip b{
+  display:block;
+  font-size:10px;
+  color:#293369;
+}
+.mail-quick-strip small{
+  display:block;
+  margin-top:2px;
+  font-size:7px;
+  color:#858ca0;
+}
+
+.mail-category-strip{
+  width:min(1180px,90vw);
+  margin:34px auto 0;
+}
+.mail-section-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  gap:20px;
+}
+.mail-section-head h2{
+  margin:4px 0 0;
+  font-size:28px;
+  color:#293369;
+}
+.mail-category-strip .category-square-grid{
+  grid-template-columns:repeat(4,1fr)!important;
+  gap:8px!important;
+  margin-top:14px!important;
+}
+.mail-category-card{
+  min-height:66px!important;
+  aspect-ratio:auto!important;
+  padding:10px 12px!important;
+  border-radius:13px!important;
+  background:#fff!important;
+  border:1px solid #e7e9f0!important;
+  display:grid!important;
+  grid-template-columns:34px 1fr 18px!important;
+  gap:8px!important;
+  align-items:center!important;
+  box-shadow:none!important;
+  text-align:left!important;
+}
+.mail-category-card:after{display:none!important}
+.mail-category-icon{
+  width:34px;height:34px;border-radius:10px;
+  display:grid;place-items:center;
+  background:var(--cat);color:#fff;
+  font-size:17px;
+}
+.mail-category-card strong{
+  display:block!important;
+  font:700 12px/1.1 'Roboto',sans-serif!important;
+  color:#293369!important;
+}
+.mail-category-card small{
+  display:block!important;
+  margin-top:2px!important;
+  font-size:7px!important;
+  color:#8d93a6!important;
+}
+.mail-category-arrow{
+  font-size:13px;
+  color:#293369;
+  font-weight:800;
+}
+
+.catalog{
+  width:min(1180px,90vw)!important;
+  margin:38px auto 64px!important;
+}
+.catalog-head{
+  display:block!important;
+}
+.catalog-head>.controls{
+  margin-top:16px;
+}
+.product-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:12px!important;
+}
+.flyer-product-card{
+  border:1px solid #e5e8ef!important;
+  border-radius:17px!important;
+  overflow:hidden!important;
+  box-shadow:none!important;
+  background:#fff!important;
+  transition:.18s!important;
+}
+.flyer-product-card:hover{
+  transform:translateY(-3px)!important;
+  box-shadow:0 14px 28px rgba(41,51,105,.08)!important;
+}
+.flyer-product-image{
+  width:100%;
+  height:220px;
+  border:0;
+  background:#fafbfc;
+  display:grid;
+  place-items:center;
+  position:relative;
+  cursor:pointer;
+}
+.flyer-badge{
+  position:absolute;
+  left:10px;
+  top:10px;
+  z-index:2;
+  padding:5px 7px;
+  border-radius:7px;
+  background:#ec0419;
+  color:#fff;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.05em;
+}
+.flyer-product-copy{
+  padding:13px;
+}
+.flyer-brand{
+  font-size:7px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:#858ca1;
+}
+.flyer-product-copy h3{
+  min-height:41px;
+  margin:4px 0 6px;
+  font:700 14px/1.25 'Roboto',sans-serif;
+  color:#293369;
+  cursor:pointer;
+}
+.flyer-pack{
+  margin-bottom:9px;
+  font-size:8px;
+  color:#8a91a5;
+}
+.flyer-price{
+  min-height:58px;
+  padding:10px 0;
+  border-top:1px solid #eef0f4;
+  border-bottom:1px solid #eef0f4;
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:10px;
+}
+.flyer-price>div{display:grid;gap:2px}
+.flyer-price span{
+  font-size:7px;
+  text-transform:uppercase;
+  color:#8e95a8;
+}
+.flyer-price small{
+  font-size:7px;
+  color:#9aa0b0;
+}
+.flyer-price strong{
+  font-size:20px;
+  color:#293369;
+}
+.flyer-login-price{
+  width:100%;
+  min-height:58px;
+  margin:0;
+  padding:9px 10px;
+  border:1px solid #e4e7ef;
+  border-radius:10px;
+  background:#f9fafc;
+  display:grid;
+  grid-template-columns:25px 1fr auto;
+  gap:8px;
+  align-items:center;
+  text-align:left;
+  cursor:pointer;
+}
+.flyer-login-price>span{
+  width:25px;height:25px;
+  display:grid;place-items:center;
+  border-radius:8px;background:#fff;
+}
+.flyer-login-price b{
+  display:block;
+  font-size:8px;
+  color:#293369;
+}
+.flyer-login-price small{
+  display:block;
+  margin-top:1px;
+  font-size:7px;
+  color:#8c93a6;
+}
+.flyer-login-price>strong{
+  font-size:13px;color:#293369;
+}
+.flyer-volume-deal{
+  display:grid;
+  gap:2px;
+  margin-top:8px;
+  padding:8px 9px;
+  border-radius:9px;
+  background:#fff5e4;
+  border:1px solid #f2dfbb;
+}
+.flyer-volume-deal b{
+  font-size:7px;
+  text-transform:uppercase;
+  color:#9a6511;
+}
+.flyer-volume-deal span{
+  font-size:7px;
+  color:#875b18;
+}
+.flyer-pack-switch{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:3px;
+  margin-top:8px;
+  padding:3px;
+  border-radius:9px;
+  background:#f2f4f8;
+}
+.flyer-pack-switch button{
+  min-height:30px;
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  color:#7c8499;
+  font-size:8px;
+  font-weight:800;
+  cursor:pointer;
+}
+.flyer-pack-switch button.active{
+  background:#fff;
+  color:#293369;
+  box-shadow:0 2px 6px rgba(41,51,105,.08);
+}
+.flyer-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  margin-top:8px;
+}
+.flyer-actions button{
+  min-height:36px;
+  border-radius:9px;
+  font:800 8px 'Roboto',sans-serif;
+  cursor:pointer;
+}
+.flyer-view{
+  background:#fff;
+  color:#293369;
+  border:1px solid #dfe3ec;
+}
+.flyer-offer{
+  background:#ec0419;
+  color:#fff;
+  border:1px solid #ec0419;
+}
+
+@media(max-width:1050px){
+  .mail-campaign-hero{
+    grid-template-columns:1fr 390px;
+    padding:28px;
+  }
+  .mail-campaign-copy h1{font-size:58px}
+  .mail-campaign-visual{
+    grid-template-columns:1fr;
+  }
+  .mail-flyer-side{display:none}
+  .mail-quick-strip,
+  .mail-category-strip,
+  .catalog{
+    width:min(94vw,980px)!important;
+  }
+  .product-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
+@media(max-width:700px){
+  .mail-campaign-hero{
+    width:94vw;
+    grid-template-columns:1fr;
+    gap:20px;
+    padding:22px 18px;
+    border-radius:22px;
+  }
+  .mail-campaign-copy{
+    padding:2px 0;
+  }
+  .mail-campaign-copy h1{
+    font-size:44px;
+  }
+  .mail-campaign-copy>p{
+    font-size:12px;
+  }
+  .mail-campaign-actions{
+    flex-direction:column;
+  }
+  .mail-campaign-actions>*{
+    width:100%;
+    justify-content:center;
+    text-align:center;
+  }
+  .mail-campaign-meta{
+    grid-template-columns:1fr;
+  }
+  .mail-campaign-visual{
+    min-height:300px;
+  }
+  .mail-flyer-product{
+    min-height:300px;
+  }
+  .mail-flyer-product-media{
+    min-height:180px;
+  }
+  .mail-quick-strip{
+    grid-template-columns:repeat(2,1fr);
+    width:94vw;
+  }
+  .mail-category-strip{
+    width:94vw;
+  }
+  .mail-category-strip .category-square-grid{
+    grid-template-columns:repeat(2,1fr)!important;
+  }
+  .catalog{
+    width:94vw!important;
+  }
+  .product-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:9px!important;
+  }
+  .flyer-product-image{
+    height:165px;
+  }
+  .flyer-product-copy{
+    padding:10px;
+  }
+  .flyer-product-copy h3{
+    min-height:44px;
+    font-size:11px;
+  }
+  .flyer-price strong{
+    font-size:15px;
+  }
+  .flyer-actions{
+    grid-template-columns:1fr;
+  }
+}
