@@ -752,7 +752,7 @@ document.getElementById("clearProductImport").onclick=()=>{
 
 function buildCampaignMailLink(){
  const title=(document.getElementById("campaignMailTitle")?.value||"Deze week geselecteerd").trim();
- const base="https://mfatihdumluu-eng.github.io/emigro-catalog/";
+ const base=new URL("./",location.href).href;
  const url=base+"?src=email&campaign="+encodeURIComponent(title);
  const box=document.getElementById("campaignMailLink");
  if(box)box.textContent=url;
