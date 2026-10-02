@@ -3,32 +3,26 @@ const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-customer-auth",persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const BRAND={navy:"#293369",red:"#ec0419"};
 let VALIDITY={from:"01-10-2026",to:"30-10-2026"};
-const palette=["#293369","#3b4a89","#5663a3","#ec0419","#f03748","#b60618","#68729d","#8890b1","#a61b2b"];
+const palette=["#293369","#3b4a89","#5663a3","#8890b1"];
 let cats=[
- ["Soft Drinks",palette[0],"Australia","🥤"],["Juices",palette[1],"Turkey","🍎"],["Sauces",palette[3],"Belgium","🥣"],
- ["Snacks",palette[4],"Netherlands","🍿"],["Frozen",palette[2],"Netherlands","❄️"],["Grocery",palette[5],"Turkey","🧺"],
- ["Dairy",palette[6],"Germany","🥛"],["Sweets",palette[8],"Turkey","🍬"],["Non-Food",palette[7],"Netherlands","✨"]
+ ["Zuivel",palette[0],"Emigro assortiment","🥛"],
+ ["Drinks",palette[1],"Emigro assortiment","🥤"],
+ ["Diepvries",palette[2],"Emigro assortiment","❄️"],
+ ["Non-Food",palette[3],"Emigro assortiment","📦"]
 ];
-const names=["Original","Classic","Premium","Gold","Family","Select","Fresh","Royal","Extra","Natural","Special","Max","Traditional","Deluxe","Daily","Pro","Mini","XL","Pure","Signature","Choice","Plus","Top"];
-const demoProducts=cats.flatMap((c,ci)=>Array.from({length:23},(_,i)=>{
- const id=ci*23+i+1;
- const palletOnly=i%7===0,caseOnly=!palletOnly&&i%6===0;
- const beverage=ci===0||ci===1;
- const statiegeld=beverage?(i%3===0?0:(i%2===0?0.15:0.25)):null;
- return {
-   id,sku:`EM-${String(ci+1).padStart(2,"0")}-${String(i+1).padStart(3,"0")}`,
-   brand:["Emigro","Manna","Golden","Anatolia","EuroTaste"][(i+ci)%5],
-   name:`${names[i%names.length]} ${c[0].replace("Soft Drinks","Drink").replace("Non-Food","Care")}`,
-   category:c[0],origin:c[2],ean:`87${String(10000000000+id*731).slice(-11)}`,
-   net:["250 ml","330 ml","375 ml","500 ml","750 g","1 kg"][(i+ci)%6],
-   caseQty:[6,12,18,24][(i+ci)%4],palletCases:48+((i+ci)%5)*6,
-   caseAvailable:!palletOnly,palletAvailable:!caseOnly,
-   tone:c[1],icon:c[3],hero:i===0,featured:i===1||i===7,heroLayout:ci%2===0?"editorial":"grid4",
-   beverage,statiegeld,statiegeldScope:statiegeld>0?"both":"none",
-   specialOfferMode:(id%4===0&&!palletOnly)?"case":((id%5===0&&!caseOnly)?"pallet":null),
-   specialOfferQty:(id%4===0&&!palletOnly)?12:((id%5===0&&!caseOnly)?3:null)
- };
-}));
+
+const demoProducts=[
+ {id:101,sku:"28584",brand:"Yayla",name:"Yayla Yogurt 3.5% 6x1kg",category:"Zuivel",origin:"—",ean:"4027394103014",net:"6x1kg",caseQty:6,palletCases:48,caseAvailable:true,palletAvailable:true,tone:palette[0],icon:"🥛",hero:true,featured:true,heroLayout:"editorial",beverage:false,statiegeld:0,statiegeldScope:"none",specialOfferMode:"case",specialOfferQty:12,sourceUrl:"https://www.emigro.nl/yayla/4524-yayla-yogurt-35-6x1kg",sourceReference:"28584",campaignBadge:"NIEUW"},
+ {id:102,sku:"7472",brand:"Yayla",name:"Yayla Koy Yogurt 2kg",category:"Zuivel",origin:"—",ean:"4027394003703",net:"2kg",caseQty:1,palletCases:48,caseAvailable:true,palletAvailable:true,tone:palette[0],icon:"🥛",hero:false,featured:true,heroLayout:"editorial",beverage:false,statiegeld:0,statiegeldScope:"none",specialOfferMode:"case",specialOfferQty:18,sourceUrl:"https://www.emigro.nl/yayla/4527-yayla-koy-yogurt-2kg",sourceReference:"7472",campaignBadge:"VOLUME DEAL"},
+ {id:103,sku:"26500",brand:"Landhof",name:"Landhof Volle Melk 12x1L",category:"Zuivel",origin:"—",ean:"8718989030070",net:"12x1L",caseQty:12,palletCases:48,caseAvailable:true,palletAvailable:true,tone:palette[0],icon:"🥛",hero:false,featured:false,heroLayout:"editorial",beverage:true,statiegeld:0,statiegeldScope:"none",specialOfferMode:"pallet",specialOfferQty:2,sourceUrl:"https://www.emigro.nl/landhof/4494-landhof-volle-melk-12x-1lt",sourceReference:"26500",campaignBadge:"ACTIE"},
+ {id:201,sku:"17318",brand:"Fuze Tea",name:"Fuze Tea Green Tea 24x330ml",category:"Drinks",origin:"—",ean:"17318",net:"24x330ml",caseQty:24,palletCases:54,caseAvailable:true,palletAvailable:true,tone:palette[1],icon:"🥤",hero:true,featured:true,heroLayout:"grid4",beverage:true,statiegeld:0,statiegeldScope:"none",specialOfferMode:"case",specialOfferQty:20,sourceUrl:"https://www.emigro.nl/1128-fuze-tea",sourceReference:"17318",campaignBadge:"ACTIE"},
+ {id:202,sku:"25912",brand:"Fuze Tea",name:"Fuzetea Sparkling Lemon Black Tea 24x330ml",category:"Drinks",origin:"—",ean:"25912",net:"24x330ml",caseQty:24,palletCases:54,caseAvailable:true,palletAvailable:true,tone:palette[1],icon:"🥤",hero:false,featured:true,heroLayout:"grid4",beverage:true,statiegeld:0,statiegeldScope:"none",specialOfferMode:"case",specialOfferQty:20,sourceUrl:"https://www.emigro.nl/1128-fuze-tea",sourceReference:"25912",campaignBadge:"VOLUME DEAL"},
+ {id:203,sku:"23959",brand:"Fuze Tea",name:"Fuzetea Black Tea Peach Hibiscus 24x330ml",category:"Drinks",origin:"—",ean:"23959",net:"24x330ml",caseQty:24,palletCases:54,caseAvailable:true,palletAvailable:true,tone:palette[1],icon:"🥤",hero:false,featured:false,heroLayout:"grid4",beverage:true,statiegeld:0,statiegeldScope:"none",specialOfferMode:"pallet",specialOfferQty:2,sourceUrl:"https://www.emigro.nl/1128-fuze-tea",sourceReference:"23959",campaignBadge:"ACTIE"},
+ {id:301,sku:"11522",brand:"Firat",name:"Firat Lahmacun 60 stuks",category:"Diepvries",origin:"—",ean:"11522",net:"60 stuks",caseQty:1,palletCases:48,caseAvailable:true,palletAvailable:true,tone:palette[2],icon:"❄️",hero:true,featured:true,heroLayout:"editorial",beverage:false,statiegeld:0,statiegeldScope:"none",specialOfferMode:"case",specialOfferQty:10,sourceUrl:"https://www.emigro.nl/",sourceReference:"11522",campaignBadge:"NIEUW"},
+ {id:401,sku:"6575",brand:"Emigro",name:"Pizza Doos 40cm",category:"Non-Food",origin:"—",ean:"1000000004694",net:"40cm",caseQty:1,palletCases:48,caseAvailable:true,palletAvailable:true,tone:palette[3],icon:"📦",hero:true,featured:true,heroLayout:"grid4",beverage:false,statiegeld:0,statiegeldScope:"none",specialOfferMode:"case",specialOfferQty:20,sourceUrl:"https://www.emigro.nl/pizza-doos-doner-box/3929-pizza-doos-40cm",sourceReference:"6575",campaignBadge:"VOLUME DEAL"},
+ {id:402,sku:"24750",brand:"Eyup Sabri",name:"Eyup Sabri Doekjes Klasik Citroen 150st",category:"Non-Food",origin:"—",ean:"8691685020319",net:"150st",caseQty:1,palletCases:48,caseAvailable:true,palletAvailable:true,tone:palette[3],icon:"📦",hero:false,featured:true,heroLayout:"grid4",beverage:false,statiegeld:0,statiegeldScope:"none",specialOfferMode:"case",specialOfferQty:12,sourceUrl:"https://www.emigro.nl/eyup-sabri/3982-eyup-sabri-doekjes-klasik-citroen-150st",sourceReference:"24750",campaignBadge:"ACTIE"},
+ {id:403,sku:"27958",brand:"Premium Quality",name:"Menu Box 2 Vak 100st",category:"Non-Food",origin:"—",ean:"8712426025209",net:"100st",caseQty:1,palletCases:48,caseAvailable:true,palletAvailable:true,tone:palette[3],icon:"📦",hero:false,featured:false,heroLayout:"grid4",beverage:false,statiegeld:0,statiegeldScope:"none",specialOfferMode:"pallet",specialOfferQty:2,sourceUrl:"https://www.emigro.nl/menubakken-met-deksel/3830-premium-quality-menu-box-2-vak-100st",sourceReference:"27958",campaignBadge:"HORECA"}
+];
 let products=[...demoProducts];
 const euro=n=>n==null?"—":new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(Number(n));
 const esc=(v="")=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
@@ -58,6 +52,9 @@ let quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
 let session=null,profile=null,priceMap={},pendingAction=null,kvkVerified=false,verifiedKvkData=null,demoMode=false;
 let customerOrders=[],customerAddresses=[],customerNotifications=[],customerQuotes=[],liveCatalogLoaded=false;
 const REFERRAL_CODE=(new URLSearchParams(location.search).get("ref")||"").trim().toUpperCase();
+const URL_PARAMS=new URLSearchParams(location.search);
+const CAMPAIGN_TITLE=(URL_PARAMS.get("campaign")||"Deze week geselecteerd").trim();
+const CAMPAIGN_SOURCE=(URL_PARAMS.get("src")||"email").trim();
 let referralLandingHandled=false;
 
 const approved=()=>demoMode||profile?.status==="approved";
@@ -78,8 +75,10 @@ const priceFor=(p,mode)=>{
 };
 const modeFor=p=>priceMode[p.id]||(p.caseAvailable?"case":"pallet");
 const currentPrice=p=>priceFor(p,modeFor(p));
+const displayPrice=n=>n==null?"Prijs op aanvraag":euro(n);
+const productSourceLink=p=>p?.sourceUrl?`<a class="source-product-link" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Bekijk op Emigro.nl ↗</a>`:"";
 const specialOfferRule=p=>p?.specialOfferMode&&p?.specialOfferQty?{mode:p.specialOfferMode,qty:Number(p.specialOfferQty)}:null;
-const specialOfferText=p=>{const r=specialOfferRule(p);return r?`${r.qty} ${r.mode==="case"?"koli":"palet"} ve üzeri taleplerde bu ürün için özel teklif hazırlanır.`:""};
+const specialOfferText=p=>{const r=specialOfferRule(p);return r?`Vanaf ${r.qty} ${r.mode==="case"?"dozen":"pallets"} maken we voor dit product een persoonlijke prijs.`:""};
 const specialOfferReached=(p,mode,qty)=>{const r=specialOfferRule(p);return !!r&&r.mode===mode&&Number(qty)>=r.qty};
 const depositText=p=>{
  if(!p.beverage&&Number(p.statiegeld||0)<=0)return"";
@@ -144,7 +143,10 @@ async function loadLiveCatalog(){
     image3:r.image_3||null,
     minQty:Number(r.min_order_qty||1),
     specialOfferMode:r.special_offer_mode||null,
-    specialOfferQty:r.special_offer_qty==null?null:Number(r.special_offer_qty)
+    specialOfferQty:r.special_offer_qty==null?null:Number(r.special_offer_qty),
+    sourceUrl:r.source_url||null,
+    sourceReference:r.source_reference||r.barcode||null,
+    campaignBadge:r.campaign_badge||null
    };
  });
  quoteItems=quoteItems.filter(item=>products.some(p=>String(p.id)===String(item.id)));
@@ -391,17 +393,18 @@ function heroBlock(index){
  return `<section class="inline-hero"><div><div class="eyebrow">HERO PRODUCT · ${p.category}</div><h2 style="font:600 42px/.96 var(--serif);margin:8px 0">${p.brand}<br>${p.name}</h2><p>${p.origin} · ${p.net}</p><button class="ghost" onclick="openProduct(${jsId(p.id)})">Ürünü aç</button></div><div style="display:grid;place-items:center">${bottle(p,true)}</div></section>`;
 }
 function lockedPrice(){
- const text=session?(profile?.status==="pending"?"Üyelik onayı bekleniyor":"Fiyat erişimi kapalı"):"Fiyatları görmek için giriş yapın";
- return `<button class="price-locked" onclick="openAuth('Fiyatları görmek için Emigro tarafından onaylanmış üyeliğinizle giriş yapın.')"><span>🔒</span><b>${text}</b><small>Giriş yap / Üye ol</small></button>`;
+ const text=session?(profile?.status==="pending"?"Lidmaatschap wacht op goedkeuring":"Prijs toegang niet actief"):"Log in om prijzen te bekijken";
+ return `<button class="price-locked" onclick="openAuth(\'Log in met uw Emigro-klantaccount om prijzen en persoonlijke offertes te bekijken.\')"><span>🔒</span><b>${text}</b><small>Emigro-account vereist</small></button>`;
 }
 function card(p,index){
- const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable;
- return `${index>0&&index%12===0?heroBlock(index):""}<article class="card">
- <button class="card-media" onclick="openProduct(${jsId(p.id)})"><span class="badge">${p.icon} ${p.category}</span>${bottle(p)}${(p.beverage||p.statiegeld>0)?`<span class="deposit-badge ${p.statiegeld>0?"yes":"no"}">${p.statiegeld>0?"Statiegeld":"Geen statiegeld"}</span>`:""}</button>
- <div class="card-body"><div class="brandline">${p.brand} · ${p.origin}</div><h3 class="product-title-link" onclick="openProduct(${jsId(p.id)})">${p.name}</h3><div class="meta"><span>${p.net}</span><span class="barcode-meta">Barkod: ${p.ean}</span><span>${p.palletCases} koli/palet</span></div>
- ${(p.beverage||p.statiegeld>0)?`<div class="deposit-line">${depositText(p)}</div>`:""}
- ${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},'case')">Koli</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},'pallet')">Palet</button></div>`:`<div class="single-type">ⓘ ${p.caseAvailable?"Sadece koli":"Sadece palet"}</div>`}
- ${approved()?`<div class="pricebox"><div><span>${mode==="case"?"Koli fiyatı":"Palet fiyatı"}</span><strong>${euro(currentPrice(p))}</strong></div><small>${mode==="case"?p.caseQty+" adet / koli":p.palletCases+" koli / palet"}</small></div><div class="price-valid-mini">Geçerli: ${VALIDITY.from} / ${VALIDITY.to}</div>`:lockedPrice()}
+ const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable,price=currentPrice(p);
+ return `${index>0&&index%12===0?heroBlock(index):""}<article class="card action-card">
+ <button class="card-media" onclick="openProduct(${jsId(p.id)})"><span class="badge">${p.icon} ${p.category}</span>${p.campaignBadge?`<span class="campaign-badge">${esc(p.campaignBadge)}</span>`:""}${bottle(p)}</button>
+ <div class="card-body"><div class="brandline">${p.brand}${p.sourceReference?` · Ref. ${esc(p.sourceReference)}`:""}</div><h3 class="product-title-link" onclick="openProduct(${jsId(p.id)})">${p.name}</h3><div class="meta"><span>${p.net}</span><span>${p.caseQty} per doos</span><span>${p.palletCases} dozen/pallet</span></div>
+ ${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},\'case\')">Doos</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},\'pallet\')">Pallet</button></div>`:`<div class="single-type">ⓘ ${p.caseAvailable?"Alleen doos":"Alleen pallet"}</div>`}
+ ${approved()?`<div class="pricebox"><div><span>${mode==="case"?"Prijs per doos":"Prijs per pallet"}</span><strong>${displayPrice(price)}</strong></div><small>${price==null?"Persoonlijke prijs wordt bevestigd":(mode==="case"?p.caseQty+" stuks / doos":p.palletCases+" dozen / pallet")}</small></div><div class="price-valid-mini">Geldig: ${VALIDITY.from} / ${VALIDITY.to}</div>`:lockedPrice()}
+ ${specialOfferRule(p)?`<div class="special-offer-hint"><b>Volume deal</b><span>${specialOfferText(p)}</span></div>`:""}
+ <div class="action-card-links">${productSourceLink(p)}<button class="mini-offer-btn" type="button" onclick="event.stopPropagation();${approved()?`addQuote(${jsId(p.id)})`:`openAuth(\'Log in om voor dit product een persoonlijke offerte aan te vragen.\',\'quote\')`}">Prijs aanvragen</button></div>
  </div></article>`;
 }
 function renderProducts(){
@@ -422,7 +425,7 @@ function openProduct(id){
  selectedImage=0;
  document.getElementById("modalTitle").textContent=selected.brand+" "+selected.name;
  document.getElementById("modalSub").textContent=selected.origin+" · "+selected.category;
- document.getElementById("factsGrid").innerHTML=[["SKU",selected.sku],["Barkod",selected.ean],["Net",selected.net],["Koli içi",selected.caseQty],["Palet içi",selected.palletCases],["Menşei",selected.origin]].map(([a,b])=>`<div><span>${a}</span><strong>${b}</strong></div>`).join("");
+ document.getElementById("factsGrid").innerHTML=[["Referentie",selected.sourceReference||selected.sku],["EAN",selected.ean],["Verpakking",selected.net],["Per doos",selected.caseQty],["Dozen / pallet",selected.palletCases],["Categorie",selected.category]].map(([a,b])=>`<div><span>${a}</span><strong>${b}</strong></div>`).join("")+(selected.sourceUrl?`<div class="facts-source"><span>Bron</span><a href="${esc(selected.sourceUrl)}" target="_blank" rel="noopener">Emigro.nl ↗</a></div>`:"");
  document.getElementById("depositDetail").innerHTML=(selected.beverage||selected.statiegeld>0)?`<div class="deposit-detail ${selected.statiegeld>0?"yes":"no"}"><b>${selected.statiegeld>0?"Statiegeld aanwezig":"Geen statiegeld"}</b><span>${selected.statiegeld>0?euro(selected.statiegeld)+" · "+(selected.statiegeldScope==="case"?"yalnız koli":selected.statiegeldScope==="pallet"?"yalnız palet":"koli + palet"):"Dit product heeft geen statiegeld"}</span></div>`:"";
  renderMedia();renderDetailCommerce();renderFav();renderDetailQuoteButton();openModal("productModal");
  try{renderAlternativeProducts()}catch(err){console.warn("Alternatif ürünler yüklenemedi",err)}
@@ -493,8 +496,8 @@ function renderMedia(){
 }
 window.renderMedia=renderMedia;
 function renderDetailCommerce(){
- const dual=selected.caseAvailable&&selected.palletAvailable,mode=modeFor(selected);
- document.getElementById("detailPriceArea").innerHTML=`<div class="detail-commerce">${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(selected.id)},'case')">Koli</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(selected.id)},'pallet')">Palet</button></div>`:`<div class="single-type">ⓘ ${selected.caseAvailable?"Sadece koli":"Sadece palet"}</div>`}${approved()?`<div class="detail-price"><span>${mode==="case"?"Koli fiyatı":"Palet fiyatı"}</span><strong>${euro(currentPrice(selected))}</strong><small>${mode==="case"?selected.caseQty+" adet / koli":selected.palletCases+" koli / palet"}</small></div><div class="detail-validity">Fiyat geçerliliği: <b>${VALIDITY.from} — ${VALIDITY.to}</b></div>`:lockedPrice()}</div>`;
+ const dual=selected.caseAvailable&&selected.palletAvailable,mode=modeFor(selected),price=currentPrice(selected);
+ document.getElementById("detailPriceArea").innerHTML=`<div class="detail-commerce">${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(selected.id)},\'case\')">Doos</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(selected.id)},\'pallet\')">Pallet</button></div>`:`<div class="single-type">ⓘ ${selected.caseAvailable?"Alleen doos":"Alleen pallet"}</div>`}${approved()?`<div class="detail-price"><span>${mode==="case"?"Prijs per doos":"Prijs per pallet"}</span><strong>${displayPrice(price)}</strong><small>${price==null?"Prijs wordt bij de offerte bevestigd":(mode==="case"?selected.caseQty+" stuks / doos":selected.palletCases+" dozen / pallet")}</small></div><div class="detail-validity">Prijsperiode: <b>${VALIDITY.from} — ${VALIDITY.to}</b></div>`:lockedPrice()}${selected.sourceUrl?`<div class="detail-source-link"><a href="${esc(selected.sourceUrl)}" target="_blank" rel="noopener">Bekijk product op Emigro.nl ↗</a></div>`:""}</div>`;
 }
 function renderDetailQuoteButton(){
  const b=document.getElementById("detailQuoteBtn");
@@ -991,7 +994,11 @@ document.getElementById("depositFilter").onchange=e=>{depositFilter=e.target.val
 document.getElementById("scanBarcodeBtn").onclick=scanBarcode;
 document.getElementById("loadMore").onclick=()=>{shown+=24;renderProducts()};
 
-function renderAll(){renderBanner();renderCategories();renderProducts();renderQuoteCart()}
+function renderCampaignMeta(){
+ const title=document.getElementById("campaignTitle");if(title)title.textContent=CAMPAIGN_TITLE;
+ const note=document.getElementById("campaignMailNote");if(note)note.classList.toggle("hidden",CAMPAIGN_SOURCE!=="email");
+}
+function renderAll(){renderCampaignMeta();renderBanner();renderCategories();renderProducts();renderQuoteCart()}
 function setMobileNavActive(name){
  document.querySelectorAll("[data-mobile-nav]").forEach(b=>b.classList.toggle("active",b.dataset.mobileNav===name));
 }
