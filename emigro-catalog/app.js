@@ -632,13 +632,25 @@ function quoteTotal(){return quoteItems.reduce((sum,i)=>sum+quoteLinePrice(i)*i.
 function renderQuoteCart(){
  const bar=document.getElementById("quoteCart");
  if(!approved()||!quoteItems.length){bar.classList.add("hidden");return}
+ const wasHidden=bar.classList.contains("hidden");
  bar.classList.remove("hidden");
  const n=quoteItems.length;
- document.getElementById("quoteCount").textContent=n+" product"+(n===1?"":"en");
- document.getElementById("quoteTotal").textContent=euro(quoteTotal());
- const head=document.getElementById("quoteCartHeadline"),hint=document.getElementById("quoteCartHint");
+ const count=document.getElementById("quoteCount");
+ const total=document.getElementById("quoteTotal");
+ const head=document.getElementById("quoteCartHeadline");
+ const hint=document.getElementById("quoteCartHint");
+ const progress=document.getElementById("quoteProgressBar");
+ if(count)count.textContent=String(n);
+ if(total)total.textContent=euro(quoteTotal());
  if(head)head.textContent=n>=3?"Klaar voor uw aanvraag":"Uw offertelijst";
- if(hint)hint.textContent=n>=3?"Vraag nu één gecombineerde offerte aan.":`Voeg nog ${3-n} product${3-n===1?"":"en"} toe voor één gecombineerde aanvraag.`;
+ if(hint)hint.textContent=n>=3?"U kunt nu één scherpe gecombineerde prijs aanvragen.":`Nog ${3-n} product${3-n===1?"":"en"} toevoegen voor een sterkere aanvraag.`;
+ if(progress)progress.style.width=Math.min(100,(n/3)*100)+"%";
+ bar.classList.toggle("ready",n>=3);
+ bar.classList.remove("pop");
+ void bar.offsetWidth;
+ bar.classList.add("pop");
+ if(wasHidden)setTimeout(()=>bar.classList.add("attention"),120);
+ setTimeout(()=>bar.classList.remove("attention"),1400);
 }
 function populateMemberQuote(){
  document.getElementById("memberName").value=profile.contact_name||"";
