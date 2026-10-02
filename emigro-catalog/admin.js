@@ -184,21 +184,28 @@ function renderOfferProducts(){
    const modeLabel=i.mode==="case"?"Koli":"Palet";
    const threshold=i.special_offer_threshold_qty?Number(i.special_offer_threshold_qty):null;
    const thresholdMode=i.special_offer_threshold_mode==="pallet"?"palet":"koli";
-   const inputValue=special&&!i.manual_price?"":Number(i.unit_price||0);
+   const basePrice=Number(i.base_unit_price??i.unit_price??0);
+   const inputValue=i.manual_price?Number(i.unit_price||0):"";
    return `
    <div class="offer-product-line ${special?"special-required":""}">
-     <span>${idx+1}</span>
+     <div class="offer-line-index">${idx+1}</div>
      <div class="offer-product-main">
-       <b>${esc(i.name)}</b>
-       <small>${esc(i.sku)} · ${modeLabel} · Adet: ${i.qty}</small>
-       ${special?`<div class="offer-special-required"><b>Özel teklif fiyatı zorunlu</b><span>${threshold||""} ${thresholdMode} eşiğine ulaşıldı.</span></div>`:""}
+       <div class="offer-product-title-row">
+         <b>${esc(i.name)}</b>
+         ${special?'<span class="special-offer-badge">ÖZEL TEKLİF</span>':""}
+       </div>
+       <small>${esc(i.sku)} · ${modeLabel} · ${i.qty} adet</small>
+       <div class="offer-price-reference"><span>Standart birim fiyat</span><strong>${euro(basePrice)}</strong></div>
+       ${special
+         ?`<div class="offer-special-required"><b>Yeni fiyat zorunlu</b><span>${threshold||""} ${thresholdMode} özel teklif eşiğine ulaşıldı. Bu ürün yeni fiyat girilmeden yayınlanamaz.</span></div>`
+         :'<div class="offer-optional-price-note"><span>İsterseniz bu ürün için farklı bir teklif fiyatı girebilirsiniz.</span></div>'}
      </div>
-     <label class="offer-unit-price-field">
-       <span>Birim fiyat (€)${special?" *":""}</span>
-       <input type="number" min="0.01" step="0.01" id="offer-unit-${idx}" value="${inputValue}" placeholder="${special?"Özel fiyat girin":Number(i.unit_price||0).toFixed(2)}" oninput="updateOfferItemPrice(${idx},this.value)">
-       ${special&&!i.manual_price?`<small>Katalog fiyatı: ${euro(Number(i.base_unit_price||i.unit_price||0))}</small>`:""}
+     <label class="offer-unit-price-field ${special?"required":""}">
+       <span>${special?"Yeni birim fiyat (€) *":"Yeni birim fiyat (€) · opsiyonel"}</span>
+       <input type="number" min="0.01" step="0.01" id="offer-unit-${idx}" value="${inputValue}" placeholder="${special?"Özel fiyat girin":"Boş bırak = standart fiyat"}" oninput="updateOfferItemPrice(${idx},this.value)">
+       <small>${i.manual_price?`Uygulanan fiyat: ${euro(Number(i.unit_price||0))}`:`Standart: ${euro(basePrice)}`}</small>
      </label>
-     <strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong>
+     <div class="offer-line-total"><span>Satır toplamı</span><strong>${euro(Number(i.unit_price||0)*Number(i.qty||0))}</strong></div>
      <button type="button" class="remove-offer-item" onclick="removeOfferItem(${idx})">Ürünü çıkar</button>
    </div>`;
  }).join("");
@@ -219,8 +226,10 @@ function updateOfferItemPrice(idx,value){
  }
  recalcActiveQuoteBase();
  updateOfferPreview();
- const total=document.querySelectorAll(".offer-product-line")[idx]?.querySelector(":scope > strong");
+ const total=document.querySelectorAll(".offer-product-line")[idx]?.querySelector(".offer-line-total strong");
  if(total)total.textContent=euro(Number(item.unit_price||0)*Number(item.qty||0));
+ const meta=document.querySelectorAll(".offer-product-line")[idx]?.querySelector(".offer-unit-price-field small");
+ if(meta)meta.textContent=item.manual_price?"Uygulanan fiyat: "+euro(Number(item.unit_price||0)):"Standart: "+euro(Number(item.base_unit_price||item.unit_price||0));
 }
 window.updateOfferItemPrice=updateOfferItemPrice;
 
@@ -228,7 +237,7 @@ function validateRequiredSpecialPrices(){
  const items=activeQuote?.items||[];
  const idx=items.findIndex(i=>i.special_offer_required&&(!i.manual_price||!(Number(i.unit_price)>0)));
  if(idx<0)return true;
- notify("Özel teklif eşiğine ulaşan ürün için birim fiyatı elle girmeniz gerekiyor.","error");
+ notify("Özel teklif eşiğine ulaşan ürün için yeni birim fiyat girmeniz gerekiyor.","error");
  const input=document.getElementById("offer-unit-"+idx);
  input?.focus();
  input?.classList.add("required-error");
