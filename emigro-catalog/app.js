@@ -369,7 +369,12 @@ function renderCategories(){
  document.getElementById("categories").innerHTML=`<button class="category-btn ${active==="All"?"active":""}" style="${active==="All"?`background:${BRAND.navy}`:""}" onclick="setCategory('All')"><span class="cat-icon">☰</span>Alle (${products.length})</button>`+
  cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-btn ${active===c[0]?"active":""}" ${active===c[0]?`style="background:${c[1]}"`:""} onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="cat-icon">${c[3]}</span>${c[0]} (${count})</button>`}).join("");
 }
-function setCategory(c){active=c;campaignBadgeFilter="";shown=24;renderAll();document.getElementById("products").scrollIntoView({behavior:"smooth",block:"start"})}
+function setCategory(c){
+ active=c;campaignBadgeFilter="";shown=24;renderAll();
+ const hash=c==="All"?"products":"category-"+encodeURIComponent(c);
+ history.replaceState(null,"",location.pathname+location.search+"#"+hash);
+ document.getElementById("products").scrollIntoView({behavior:"smooth",block:"start"});
+}
 window.setCategory=setCategory;
 function filtered(){
  let list=products.filter(p=>{
@@ -412,9 +417,11 @@ function renderCampaignShowcase(){
 function showCampaign(label){
  campaignBadgeFilter=label||"";
  active="All";shown=24;
- renderProducts();renderBanner();renderCategories();
+ renderProducts();renderBanner();renderCategories();renderCampaignMeta();
  const box=document.getElementById("campaignActiveFilter");
  if(box)box.innerHTML=campaignBadgeFilter?`<span class="active-campaign-chip">${esc(campaignBadgeFilter)} <button type="button" onclick="showCampaign('')">×</button></span>`:"";
+ const target=campaignBadgeFilter?"actie-"+campaignBadgeFilter.toLowerCase().replace(/\s+/g,"-"):"products";
+ history.replaceState(null,"",location.pathname+location.search+"#"+target);
  document.getElementById("products")?.scrollIntoView({behavior:"smooth",block:"start"});
 }
 window.showCampaign=showCampaign;
@@ -435,16 +442,17 @@ function lockedPrice(){
 }
 function card(p,index){
  const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable,price=currentPrice(p),rule=specialOfferRule(p);
- return `<article class="card action-card flyer-product-card">
+ return `<article class="card action-card flyer-product-card" id="product-card-${esc(p.sku)}">
    <button class="flyer-product-image" onclick="openProduct(${jsId(p.id)})">${p.campaignBadge?`<span class="flyer-badge">${esc(p.campaignBadge)}</span>`:""}${bottle(p)}</button>
    <div class="flyer-product-copy">
      <div class="flyer-brand">${esc(p.brand)}</div>
      <h3 onclick="openProduct(${jsId(p.id)})">${esc(p.name)}</h3>
-     <div class="flyer-pack">${esc(p.net)} · ${p.caseQty} per doos</div>
-     ${approved()?`<div class="flyer-price"><div><span>${mode==="case"?"Prijs per doos":"Prijs per pallet"}</span><small>${mode==="case"?p.caseQty+" stuks":p.palletCases+" dozen"}</small></div><strong>${displayPrice(price)}</strong></div>`:`<button class="flyer-login-price" type="button" onclick="openAuth('Log in om uw zakelijke prijs te bekijken.')"><span>🔒</span><div><b>Zakelijke prijs</b><small>Log in om te bekijken</small></div><strong>→</strong></button>`}
+     ${p.campaignBadge?`<div class="flyer-validity">Actie geldig t/m ${esc(VALIDITY.to||"")}</div>`:""}
+     <div class="flyer-pack-grid"><span>📦 <b>Doos</b> ${p.caseQty} × ${esc(p.net)}</span><span>🏗️ <b>Pallet</b> ${p.palletCases} dozen</span></div>
+     ${approved()?`<div class="flyer-price"><div><span>${mode==="case"?"Prijs per doos":"Prijs per pallet"}</span><small>${mode==="case"?p.caseQty+" stuks":p.palletCases+" dozen"}</small></div><strong>${displayPrice(price)}</strong></div>`:`<button class="flyer-login-price strong-lock" type="button" onclick="openAuth('Log in om uw zakelijke prijs te bekijken.')"><span>🔒</span><div><b>Inloggen voor uw prijs</b><small>Uw zakelijke prijs blijft privé</small></div><strong>→</strong></button>`}
      ${rule?`<div class="flyer-volume-deal"><b>Volume deal</b><span>Vanaf ${rule.qty} ${rule.mode==="case"?"dozen":"pallets"} persoonlijke prijs</span></div>`:""}
-     ${dual?`<div class="flyer-pack-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},'case')">Doos</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},'pallet')">Pallet</button></div>`:""}
-     <div class="flyer-actions"><button class="flyer-view" type="button" onclick="openProduct(${jsId(p.id)})">Details</button><button class="flyer-offer" type="button" onclick="event.stopPropagation();${approved()?`addQuote(${jsId(p.id)})`:`openAuth('Log in om voor dit product een persoonlijke offerte aan te vragen.','quote')`}">+ Offerte</button></div>
+     ${dual?`<div class="flyer-pack-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},'case')">📦 Doos</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},'pallet')">🏗️ Pallet</button></div>`:""}
+     <div class="flyer-actions"><button class="flyer-view" type="button" onclick="openProduct(${jsId(p.id)})">Bekijk product</button><button class="flyer-offer" type="button" onclick="event.stopPropagation();${approved()?`addQuote(${jsId(p.id)})`:`openAuth('Log in om voor dit product een persoonlijke offerte aan te vragen.','quote')`}">+ Offerte</button></div>
    </div>
  </article>`;
 }
@@ -487,7 +495,7 @@ function openProduct(id){
  document.getElementById("depositDetail").innerHTML=(selected.beverage||selected.statiegeld>0)?`<div class="deposit-detail ${selected.statiegeld>0?"yes":"no"}"><b>${selected.statiegeld>0?"Statiegeld aanwezig":"Geen statiegeld"}</b><span>${selected.statiegeld>0?euro(selected.statiegeld)+" · "+(selected.statiegeldScope==="case"?"yalnız koli":selected.statiegeldScope==="pallet"?"yalnız palet":"koli + palet"):"Dit product heeft geen statiegeld"}</span></div>`:"";
  renderMedia();renderDetailCommerce();renderFav();renderDetailQuoteButton();openModal("productModal");
  try{renderAlternativeProducts()}catch(err){console.warn("Alternatif ürünler yüklenemedi",err)}
- history.replaceState(null,"",`?product=${encodeURIComponent(selected.sku)}`);
+ history.replaceState(null,"",location.pathname+location.search+`#product-${encodeURIComponent(selected.sku)}`);
 }
 window.openProduct=openProduct;
 
@@ -624,7 +632,13 @@ function quoteTotal(){return quoteItems.reduce((sum,i)=>sum+quoteLinePrice(i)*i.
 function renderQuoteCart(){
  const bar=document.getElementById("quoteCart");
  if(!approved()||!quoteItems.length){bar.classList.add("hidden");return}
- bar.classList.remove("hidden");document.getElementById("quoteCount").textContent=quoteItems.length+" producten";document.getElementById("quoteTotal").textContent=euro(quoteTotal());
+ bar.classList.remove("hidden");
+ const n=quoteItems.length;
+ document.getElementById("quoteCount").textContent=n+" product"+(n===1?"":"en");
+ document.getElementById("quoteTotal").textContent=euro(quoteTotal());
+ const head=document.getElementById("quoteCartHeadline"),hint=document.getElementById("quoteCartHint");
+ if(head)head.textContent=n>=3?"Klaar voor uw aanvraag":"Uw offertelijst";
+ if(hint)hint.textContent=n>=3?"Vraag nu één gecombineerde offerte aan.":`Voeg nog ${3-n} product${3-n===1?"":"en"} toe voor één gecombineerde aanvraag.`;
 }
 function populateMemberQuote(){
  document.getElementById("memberName").value=profile.contact_name||"";
@@ -1066,6 +1080,11 @@ function updateEmailStickyCta(){
 function renderCampaignMeta(){
  const title=document.getElementById("campaignTitle");if(title)title.textContent=CAMPAIGN_TITLE;
  const note=document.getElementById("campaignMailNote");if(note)note.classList.toggle("hidden",CAMPAIGN_SOURCE!=="email");
+ const dealCount=document.getElementById("campaignDealCount");if(dealCount)dealCount.textContent=products.length;
+ const volumeCount=document.getElementById("campaignVolumeCount");if(volumeCount)volumeCount.textContent=products.filter(p=>p.campaignBadge==="VOLUME DEAL"||specialOfferRule(p)).length;
+ const edition=document.getElementById("campaignEdition");
+ if(edition)edition.textContent=(VALIDITY.name||CAMPAIGN_TITLE||"EMIGRO SELECTIE").toUpperCase();
+ document.querySelectorAll("[data-campaign-pill]").forEach(btn=>btn.classList.toggle("active",(btn.dataset.campaignPill||"")===(campaignBadgeFilter||"")));
 }
 function renderAll(){syncOfficialLoginLink();renderCampaignMeta();updateEmailStickyCta();renderBanner();renderCategories();renderProducts();renderQuoteCart()}
 function setMobileNavActive(name){
@@ -1183,7 +1202,17 @@ async function bootstrapCatalog(){
  await syncAuth();
  if(matchMedia("(max-width:700px)").matches&&!document.body.classList.contains("screen-home")&&!document.body.classList.contains("screen-categories")&&!document.body.classList.contains("screen-products")&&!document.body.classList.contains("screen-dashboard"))setMobileScreen("home");
  await handleReferralLanding();
- const sku=new URLSearchParams(location.search).get("product");if(sku){const p=products.find(x=>x.sku===sku);if(p)openProduct(p.id)}
+ const legacySku=new URLSearchParams(location.search).get("product");
+ if(legacySku){const p=products.find(x=>x.sku===legacySku);if(p)openProduct(p.id)}
+ const hash=decodeURIComponent(location.hash.replace(/^#/,""));
+ if(hash.startsWith("product-")){
+   const sku=hash.slice(8);const p=products.find(x=>String(x.sku)===sku||String(x.sourceReference||"")===sku);if(p)openProduct(p.id);
+ }else if(hash.startsWith("category-")){
+   const cat=hash.slice(9);if(cats.some(x=>x[0]===cat))setCategory(cat);
+ }else if(hash.startsWith("actie-")){
+   const label=hash.slice(6).replace(/-/g," ").toUpperCase();
+   if(["ACTIE","VOLUME DEAL","NIEUW","HORECA"].includes(label))showCampaign(label);
+ }
 }
 bootstrapCatalog();
 sb.auth.onAuthStateChange(()=>setTimeout(syncAuth,0));
