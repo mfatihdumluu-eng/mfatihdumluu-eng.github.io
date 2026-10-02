@@ -24,35 +24,36 @@
 </header>
 
 <main>
-<section class="hero actie-hero" id="home">
-  <div class="hero-copy">
-    <div class="eyebrow">SPECIAAL UIT UW EMIGRO-MAIL</div>
+<section class="mail-campaign-hero" id="home">
+  <div class="mail-campaign-copy">
+    <div class="mail-kicker">EMIGRO SELECTIE · ALLEEN VOOR ZAKELIJKE KLANTEN</div>
     <h1 id="campaignTitle">Deze week geselecteerd</h1>
-    <p>Een korte, zakelijke selectie met acties en volume deals. Bekijk eerst wat interessant is en log pas in wanneer u uw prijs wilt zien.</p>
-    <div class="campaign-mail-note" id="campaignMailNote">Persoonlijk geselecteerd voor zakelijke klanten.</div>
-    <div class="hero-actions"><a class="btn" href="#products">Bekijk producten</a><button class="ghost" type="button" onclick="openAuth('Log in om uw klantprijzen en persoonlijke offertes te bekijken.')">🔒 Bekijk uw prijs</button></div>
+    <p>Acties, nieuwe producten en volume deals die de moeite waard zijn. Bekijk de selectie direct; log alleen in wanneer u uw zakelijke prijs wilt zien.</p>
+    <div class="mail-campaign-actions">
+      <a class="btn mail-primary" href="#products">Bekijk de deals</a>
+      <button class="mail-price-cta" type="button" onclick="openAuth('Log in om uw zakelijke prijzen te bekijken.')"><span>🔒</span><div><b>Bekijk uw prijs</b><small>Alleen na login</small></div></button>
+    </div>
+    <div class="mail-campaign-meta">
+      <div><span>Geldig t/m</span><strong id="globalValidity">01-10-2026 — 30-10-2026</strong></div>
+      <div><span>Meer nodig?</span><strong>Vraag een persoonlijke offerte</strong></div>
+    </div>
   </div>
-  <div class="hero-product-cluster" id="heroCluster"></div>
+  <div class="mail-campaign-visual" id="heroCluster"></div>
 </section>
 
-<section class="campaign-info-bar email-campaign-bar">
-  <div class="campaign-period"><span>GELDIG T/M</span><strong id="globalValidity">01-10-2026 — 30-10-2026</strong></div>
-  <div class="campaign-login-message"><span class="campaign-lock">🔒</span><div><b>Uw zakelijke prijs blijft privé</b><small>Producten bekijken kan direct. Prijzen openen na login.</small></div></div>
-  <button class="btn campaign-login-btn" type="button" onclick="openAuth('Log in om uw zakelijke prijzen te bekijken.')">Bekijk mijn prijs</button>
+<section class="mail-quick-strip">
+  <button type="button" onclick="showCampaign('ACTIE')"><span>%</span><div><b>Acties</b><small>Direct bekijken</small></div></button>
+  <button type="button" onclick="showCampaign('VOLUME DEAL')"><span>↗</span><div><b>Volume deals</b><small>Meer afname, persoonlijke prijs</small></div></button>
+  <button type="button" onclick="showCampaign('NIEUW')"><span>+</span><div><b>Nieuw</b><small>Net toegevoegd</small></div></button>
+  <button type="button" onclick="showCampaign('HORECA')"><span>★</span><div><b>Horeca</b><small>Voor foodservice</small></div></button>
 </section>
 
-<section class="email-steps" aria-label="Zo werkt het">
-  <div><span>1</span><b>Bekijk</b><small>Ontdek de geselecteerde producten.</small></div>
-  <div><span>2</span><b>Log in</b><small>Open uw zakelijke prijzen.</small></div>
-  <div><span>3</span><b>Vraag offerte</b><small>Meer nodig? Stuur één aanvraag.</small></div>
-</section>
-
-<section class="campaign-showcase" id="campaignShowcase">
-  <div class="section-title campaign-title-row">
-    <div><div class="eyebrow">SNEL FILTEREN</div><h2>Kies wat u wilt zien</h2><p>Direct naar actie, volume, nieuw of horeca.</p></div>
-    <button class="ghost" type="button" onclick="showCampaign('')">Bekijk alles</button>
+<section class="mail-category-strip" id="categoryBrowser">
+  <div class="mail-section-head">
+    <div><div class="eyebrow">CATEGORIEËN</div><h2>Snel filteren</h2></div>
+    <button class="ghost" type="button" onclick="setCategory('All')">Alles tonen</button>
   </div>
-  <div class="campaign-showcase-grid" id="campaignShowcaseGrid"></div>
+  <div class="category-square-grid" id="categorySquares"></div>
 </section>
 
 <section class="customer-dashboard hidden" id="customerDashboard">
@@ -74,19 +75,10 @@
   <div class="customer-dashboard-list" id="customerDashboardList"><div class="admin-loading">Offertes worden geladen…</div></div>
 </section>
 
-<section class="category-browser category-browser-compact" id="categoryBrowser">
-  <div class="section-title compact-title"><div><div class="eyebrow">CATEGORIEËN</div><h2>Snel naar een categorie</h2></div><p>Alleen tonen wat voor u relevant is.</p></div>
-  <div class="category-square-grid" id="categorySquares"></div>
-</section>
-
-
-
-
-
 <section class="catalog" id="products">
   <div id="categoryBanner"></div>
   <div class="catalog-head">
-    <div><div class="eyebrow">UW SELECTIE</div><h2>Bekijk de actieproducten</h2><p id="resultCount"></p><div id="campaignActiveFilter"></div></div>
+    <div><div class="eyebrow">DEALS VAN DEZE CAMPAGNE</div><h2>Producten die nu aandacht verdienen</h2><p id="resultCount"></p><div id="campaignActiveFilter"></div></div>
     <div class="controls advanced-controls">
       <div class="search-with-scan"><input id="search" placeholder="Zoek in deze actie..."><button class="ghost" id="scanBarcodeBtn" type="button" aria-label="Barkod tara">⌁ Tara</button></div>
       <select id="sort"><option value="name">Naam</option><option value="low">Prijs: laag naar hoog</option><option value="high">Prijs: hoog naar laag</option></select>
@@ -100,17 +92,7 @@
   <div class="loadmore-wrap"><button class="ghost" id="loadMore">Meer producten tonen</button></div>
 </section>
 
-<section class="final-promo">
-  <div class="final-promo-copy">
-    <div class="eyebrow">MEER NODIG DAN DE ACTIE?</div>
-    <h2>Vraag Emigro om een scherpe prijs voor uw volume.</h2>
-    <p>Selecteer meerdere producten, kies doos of pallet en stuur één aanvraag. Emigro kan per product een persoonlijke prijs voorstellen.</p>
-  </div>
-  <div class="final-promo-actions">
-    <a class="btn" href="#products">Selecteer producten</a>
-    <button class="ghost" type="button" onclick="openAuth('Log in om een persoonlijke offerte aan te vragen.')">Inloggen</button>
-  </div>
-</section>
+
 </main>
 
 <div class="quote-cart hidden" id="quoteCart">
