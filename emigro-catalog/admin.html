@@ -153,7 +153,10 @@
         <label>Durum<select id="offerStatus"><option value="reviewing">İnceleniyor</option><option value="offered">Teklif verildi</option><option value="accepted">Kabul edildi</option><option value="declined">Reddedildi</option><option value="closed">Kapalı</option></select></label>
         <label>Korting (%)<input type="number" id="discountPercent" min="0" max="100" step="0.01" value="0"></label>
         <label>Ek korting (€)<input type="number" id="discountAmount" min="0" step="0.01" value="0"></label>
-        <label>Kargo ücreti (€)<input type="number" id="shippingFee" min="0" step="0.01" value="0"></label>
+        <div class="shipping-fee-control">
+          <label>Kargo ücreti (€)<input type="number" id="shippingFee" min="0" step="0.01" value="0"></label>
+          <button type="button" class="ghost free-shipping-btn" id="freeShippingBtn">Ücretsiz teslimat</button>
+        </div>
         <label>Teklif geçerlilik tarihi<input type="date" id="offerValidTo"></label>
         <label>Teklif notu<textarea id="adminNote" rows="5" placeholder="Teslimat, ödeme, stok veya diğer şartlar..."></textarea></label>
         <div class="offer-totals" id="offerTotals"></div>
