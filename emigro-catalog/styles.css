@@ -3208,3 +3208,233 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .hanos-inspired-card .simple-card-actions{grid-template-columns:1fr!important}
   .simple-source-link{display:none}
 }
+
+/* Email-first campaign landing */
+.email-landing-nav{display:flex;gap:18px}
+.email-landing-nav a,.email-landing-nav button{font-size:10px}
+
+.email-campaign-bar{
+  box-shadow:0 8px 24px rgba(41,51,105,.04);
+}
+.email-steps{
+  width:min(1180px,90vw);
+  margin:16px auto 0;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+.email-steps>div{
+  min-height:70px;
+  display:grid;
+  grid-template-columns:32px 1fr;
+  grid-template-rows:auto auto;
+  gap:2px 10px;
+  align-items:center;
+  padding:12px 14px;
+  border:1px solid #e8eaf1;
+  border-radius:14px;
+  background:#fff;
+}
+.email-steps span{
+  grid-row:1/3;
+  width:30px;height:30px;
+  display:grid;place-items:center;
+  border-radius:10px;
+  background:#293369;
+  color:#fff;
+  font-size:9px;
+  font-weight:800;
+}
+.email-steps b{font-size:10px;color:#293369}
+.email-steps small{font-size:8px;color:#7d8498}
+
+.email-filter-card{
+  grid-template-columns:36px 1fr!important;
+  min-height:74px!important;
+}
+.email-filter-card .campaign-filter-arrow{display:none!important}
+
+.email-category-chip{
+  min-height:72px!important;
+  grid-template-columns:36px 1fr!important;
+  grid-template-rows:1fr!important;
+  padding:11px 13px!important;
+  border-radius:14px!important;
+}
+.email-category-chip .category-square-icon{
+  width:36px!important;height:36px!important;
+  border-radius:10px!important;
+  font-size:18px!important;
+}
+.email-category-chip strong{font-size:13px!important}
+.email-category-chip small{font-size:8px!important}
+
+.product-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:16px!important;
+}
+.email-product-card{
+  border-radius:20px!important;
+  overflow:hidden!important;
+  box-shadow:0 8px 24px rgba(41,51,105,.045)!important;
+}
+.email-product-card:hover{
+  box-shadow:0 16px 36px rgba(41,51,105,.09)!important;
+}
+.email-product-media{
+  height:280px!important;
+  background:linear-gradient(180deg,#fff,#f8f9fc)!important;
+}
+.email-product-body{
+  padding:16px!important;
+}
+.email-product-body h3{
+  min-height:42px!important;
+  margin:4px 0 9px!important;
+  font-size:17px!important;
+}
+.email-pack-line{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-bottom:11px;
+}
+.email-pack-line span{
+  padding:5px 7px;
+  border-radius:8px;
+  background:#f3f4f8;
+  color:#747c94;
+  font-size:8px;
+  font-weight:700;
+}
+.email-price-block{
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:14px;
+  padding:13px 0;
+  border-top:1px solid #edf0f4;
+  border-bottom:1px solid #edf0f4;
+}
+.email-price-block span{
+  font-size:8px;
+  text-transform:uppercase;
+  color:#8a90a5;
+}
+.email-price-block strong{
+  font-size:24px;
+  color:#293369;
+}
+.email-price-lock{
+  width:100%;
+  min-height:60px;
+  margin:4px 0 10px;
+  border:1px solid #e0e4ed;
+  border-radius:12px;
+  background:#fafbfe;
+  display:grid;
+  grid-template-columns:28px 1fr;
+  align-items:center;
+  gap:8px;
+  padding:10px 11px;
+  text-align:left;
+  cursor:pointer;
+}
+.email-price-lock>span{
+  width:28px;height:28px;
+  display:grid;place-items:center;
+  border-radius:9px;
+  background:#fff;
+}
+.email-price-lock b{display:block;font-size:9px;color:#293369}
+.email-price-lock small{display:block;margin-top:2px;font-size:7px;color:#8a90a4}
+.email-volume-strip{
+  margin:0 0 9px;
+  padding:8px 9px;
+  border-radius:9px;
+  background:#fff4df;
+  color:#805511;
+  font-size:8px;
+  font-weight:800;
+}
+.email-pack-switch{margin-bottom:9px!important}
+.email-card-actions{
+  grid-template-columns:1fr 1fr!important;
+  margin-top:2px!important;
+}
+.email-card-actions button{min-height:42px!important}
+.email-card-actions .simple-primary-action{
+  box-shadow:0 7px 18px rgba(236,4,25,.16);
+}
+
+.email-sticky-cta{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%);
+  z-index:80;
+  width:min(760px,calc(100vw - 32px));
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:12px 14px 12px 16px;
+  border:1px solid #dfe3ed;
+  border-radius:16px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 18px 46px rgba(41,51,105,.18);
+  backdrop-filter:blur(10px);
+}
+.email-sticky-cta>div{display:grid;gap:2px}
+.email-sticky-cta b{font-size:10px;color:#293369}
+.email-sticky-cta small{font-size:8px;color:#7d8499}
+.email-sticky-cta .btn{
+  min-width:112px;
+  min-height:40px;
+  border-radius:10px;
+  font-size:9px;
+}
+
+@media(max-width:1050px){
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .email-product-media{height:240px!important}
+}
+@media(max-width:700px){
+  .email-landing-nav{display:none}
+  .email-steps{
+    width:min(94vw,560px);
+    grid-template-columns:1fr;
+    gap:7px;
+  }
+  .email-steps>div{min-height:56px}
+  .campaign-showcase-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  .category-square-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  .product-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+  }
+  .email-product-media{height:170px!important}
+  .email-product-body{padding:11px!important}
+  .email-product-body h3{
+    min-height:44px!important;
+    font-size:12px!important;
+  }
+  .email-pack-line span{font-size:7px!important}
+  .email-price-block strong{font-size:16px!important}
+  .email-price-lock{min-height:54px!important}
+  .email-card-actions{
+    grid-template-columns:1fr!important;
+  }
+  .email-card-actions button{min-height:36px!important}
+  .email-sticky-cta{
+    bottom:78px;
+    width:calc(100vw - 20px);
+    padding:10px 11px;
+  }
+  .email-sticky-cta small{display:none}
+  .email-sticky-cta .btn{min-width:96px}
+}
