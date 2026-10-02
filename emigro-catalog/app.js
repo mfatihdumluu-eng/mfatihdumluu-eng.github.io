@@ -46,7 +46,7 @@ window.addEventListener("online",()=>{syncNetworkState();notify("İnternet bağl
 window.addEventListener("offline",syncNetworkState);
 syncNetworkState();
 
-let active="All",shown=24,sort="name",query="",originFilter="",saleFilter="",depositFilter="",selected=null,selectedImage=0,priceMode={};
+let active="All",shown=24,sort="name",query="",originFilter="",saleFilter="",depositFilter="",campaignBadgeFilter="",selected=null,selectedImage=0,priceMode={};
 let favorites=JSON.parse(localStorage.getItem("emigro-favorites")||"[]");
 let quoteItems=JSON.parse(localStorage.getItem("emigro-quote")||"[]");
 let session=null,profile=null,priceMap={},pendingAction=null,kvkVerified=false,verifiedKvkData=null,demoMode=false;
@@ -352,23 +352,40 @@ document.getElementById("registerForm").onsubmit=async e=>{
 };
 
 function renderHero(){
- const heroes=products.filter(p=>p.hero).slice(0,4),root=document.getElementById("heroCluster");
- root.innerHTML=heroes[0].heroLayout==="editorial"
- ?`<div class="hero-tile editorial" onclick="openProduct(${jsId(heroes[0].id)})"><div><div class="eyebrow">HERO PRODUCT</div><h3>${heroes[0].brand}<br>${heroes[0].name}</h3><small>${heroes[0].category} · ${heroes[0].origin}</small></div><div style="display:grid;place-items:center">${bottle(heroes[0],true)}</div></div>`
- :heroes.map(p=>`<div class="hero-tile" onclick="openProduct(${jsId(p.id)})">${bottle(p)}<small>${p.name}</small></div>`).join("");
+ const root=document.getElementById("heroCluster");
+ if(!root)return;
+ const picks=[
+   products.find(p=>p.campaignBadge==="VOLUME DEAL"),
+   products.find(p=>p.campaignBadge==="NIEUW"),
+   products.find(p=>p.campaignBadge==="ACTIE"),
+   products.find(p=>p.campaignBadge==="HORECA")
+ ].filter(Boolean);
+ const unique=[...new Map(picks.map(p=>[p.id,p])).values()].slice(0,4);
+ if(!unique.length){root.innerHTML="";return}
+ root.innerHTML=unique.map((p,i)=>`
+   <button class="hero-promo-tile ${i===0?"lead":""}" onclick="openProduct(${jsId(p.id)})">
+     <span class="hero-promo-label">${esc(p.campaignBadge||"SELECTIE")}</span>
+     <div class="hero-promo-media">${bottle(p,i===0)}</div>
+     <div class="hero-promo-copy">
+       <small>${esc(p.category)}</small>
+       <b>${esc(p.brand)} ${esc(p.name)}</b>
+       <span>${approved()?displayPrice(currentPrice(p)):"Login voor prijs"}</span>
+     </div>
+   </button>`).join("");
 }
 function renderCategorySquares(){
- document.getElementById("categorySquares").innerHTML=cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-square" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="category-square-icon">${c[3]}</span><strong>${c[0]}</strong><small>${count} ürün</small></button>`}).join("");
+ document.getElementById("categorySquares").innerHTML=cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-square" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="category-square-icon">${c[3]}</span><strong>${c[0]}</strong><small>${count} producten</small></button>`}).join("");
 }
 function renderCategories(){
  document.getElementById("categories").innerHTML=`<button class="category-btn ${active==="All"?"active":""}" style="${active==="All"?`background:${BRAND.navy}`:""}" onclick="setCategory('All')"><span class="cat-icon">☰</span>Alle (${products.length})</button>`+
  cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-btn ${active===c[0]?"active":""}" ${active===c[0]?`style="background:${c[1]}"`:""} onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="cat-icon">${c[3]}</span>${c[0]} (${count})</button>`}).join("");
 }
-function setCategory(c){active=c;shown=24;renderAll();document.getElementById("products").scrollIntoView({behavior:"smooth",block:"start"})}
+function setCategory(c){active=c;campaignBadgeFilter="";shown=24;renderAll();document.getElementById("products").scrollIntoView({behavior:"smooth",block:"start"})}
 window.setCategory=setCategory;
 function filtered(){
  let list=products.filter(p=>{
    if(active!=="All"&&p.category!==active)return false;
+   if(campaignBadgeFilter&&p.campaignBadge!==campaignBadgeFilter)return false;
    if(originFilter&&p.origin!==originFilter)return false;
    if(saleFilter==="case"&&!(p.caseAvailable&&!p.palletAvailable))return false;
    if(saleFilter==="pallet"&&!(p.palletAvailable&&!p.caseAvailable))return false;
@@ -382,6 +399,41 @@ function filtered(){
  else list.sort((a,b)=>(a.brand+" "+a.name).localeCompare(b.brand+" "+b.name));
  return list;
 }
+function campaignGroupInfo(label){
+ const map={
+  "VOLUME DEAL":{title:"Meer voordeel bij volume",text:"Producten waarbij grotere afnames interessant worden voor een persoonlijke prijs.",tone:"#293369",icon:"↗"},
+  "NIEUW":{title:"Nieuw in de spotlight",text:"Nieuwe of extra uitgelichte artikelen om uw assortiment fris te houden.",tone:"#ec0419",icon:"+"},
+  "ACTIE":{title:"Actie van dit moment",text:"Producten die Emigro in deze campagne extra naar voren brengt.",tone:"#a61b2b",icon:"%"},
+  "HORECA":{title:"Voor horeca & foodservice",text:"Praktische producten voor professionele keuken, take-away en service.",tone:"#5663a3",icon:"★"}
+ };
+ return map[label]||{title:label,text:"Geselecteerde campagneproducten.",tone:"#293369",icon:"•"};
+}
+function renderCampaignShowcase(){
+ const root=document.getElementById("campaignShowcaseGrid");if(!root)return;
+ const labels=["VOLUME DEAL","NIEUW","ACTIE","HORECA"];
+ const groups=labels.map(label=>({label,items:products.filter(p=>p.campaignBadge===label)})).filter(g=>g.items.length);
+ root.innerHTML=groups.map((g,idx)=>{
+   const info=campaignGroupInfo(g.label),lead=g.items[0],more=g.items.slice(1,3);
+   return `<article class="campaign-showcase-card" style="--campaign-tone:${info.tone}">
+     <div class="campaign-showcase-top"><span>${info.icon}</span><b>${esc(g.label)}</b></div>
+     <div class="campaign-showcase-body">
+       <div><h3>${info.title}</h3><p>${info.text}</p><button type="button" onclick="showCampaign('${g.label.replace(/'/g,"\\'")}')">Bekijk ${g.items.length} product${g.items.length===1?"":"en"} →</button></div>
+       <button class="campaign-product-visual" onclick="openProduct(${jsId(lead.id)})">${bottle(lead,true)}<small>${esc(lead.brand)} ${esc(lead.name)}</small></button>
+     </div>
+     ${more.length?`<div class="campaign-mini-list">${more.map(p=>`<button onclick="openProduct(${jsId(p.id)})"><span>${esc(p.brand)}</span><b>${esc(p.name)}</b></button>`).join("")}</div>`:""}
+   </article>`;
+ }).join("");
+}
+function showCampaign(label){
+ campaignBadgeFilter=label||"";
+ active="All";shown=24;
+ renderProducts();renderBanner();renderCategories();
+ const box=document.getElementById("campaignActiveFilter");
+ if(box)box.innerHTML=campaignBadgeFilter?`<span class="active-campaign-chip">${esc(campaignBadgeFilter)} <button type="button" onclick="showCampaign('')">×</button></span>`:"";
+ document.getElementById("products")?.scrollIntoView({behavior:"smooth",block:"start"});
+}
+window.showCampaign=showCampaign;
+
 function renderBanner(){
  const root=document.getElementById("categoryBanner");if(active==="All"){root.innerHTML="";return}
  const c=cats.find(x=>x[0]===active);
@@ -409,12 +461,30 @@ function card(p,index){
 }
 function renderProducts(){
  const list=filtered();document.getElementById("resultCount").textContent=`${list.length} producten · ${Math.min(shown,list.length)} zichtbaar`;
+ const campaignBox=document.getElementById("campaignActiveFilter");
+ if(campaignBox)campaignBox.innerHTML=campaignBadgeFilter?`<span class="active-campaign-chip">${esc(campaignBadgeFilter)} <button type="button" onclick="showCampaign('')">×</button></span>`:"";
  document.getElementById("productGrid").innerHTML=list.slice(0,shown).map(card).join("");
  document.getElementById("loadMore").style.display=shown<list.length?"inline-block":"none";
 }
 function renderFeatured(){
- const list=cats.map(c=>products.find(p=>p.category===c[0]&&p.featured)||products.find(p=>p.category===c[0])).filter(Boolean);
- document.getElementById("featuredGrid").innerHTML=list.map(p=>`<article class="featured-card" onclick="openProduct(${jsId(p.id)})">${bottle(p)}<div class="brandline">${p.category}</div><h3>${p.brand}<br>${p.name}</h3><div class="meta">${p.origin} · ${p.net}</div>${p.beverage?`<div class="deposit-line">${depositText(p)}</div>`:""}</article>`).join("");
+ const root=document.getElementById("featuredGrid");if(!root)return;
+ const list=products.filter(p=>p.featured).slice(0,4);
+ root.innerHTML=list.map((p,idx)=>{
+   const price=currentPrice(p);
+   return `<article class="featured-card promo-featured ${idx===0?"featured-lead":""}">
+     <button class="featured-media" onclick="openProduct(${jsId(p.id)})">
+       ${p.campaignBadge?`<span class="featured-badge">${esc(p.campaignBadge)}</span>`:""}
+       ${bottle(p,idx===0)}
+     </button>
+     <div class="featured-copy">
+       <div class="brandline">${esc(p.category)} · ${esc(p.brand)}</div>
+       <h3 onclick="openProduct(${jsId(p.id)})">${esc(p.name)}</h3>
+       <p>${specialOfferRule(p)?specialOfferText(p):"Bekijk het product en vraag bij grotere aantallen een persoonlijke offerte aan."}</p>
+       <div class="featured-price-tease">${approved()?`<span>Uw prijs</span><strong>${displayPrice(price)}</strong>`:`<span>Zakelijke prijs</span><strong>🔒 Login vereist</strong>`}</div>
+       <div class="featured-actions"><button type="button" onclick="openProduct(${jsId(p.id)})">Bekijk deal</button>${p.sourceUrl?`<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Emigro.nl ↗</a>`:""}</div>
+     </div>
+   </article>`;
+ }).join("");
 }
 function setMode(id,mode){priceMode[id]=mode;renderProducts();if(selected?.id===id){renderDetailCommerce();renderDetailQuoteButton()}renderQuoteCart()}
 window.setMode=setMode;
@@ -1004,7 +1074,7 @@ function renderCampaignMeta(){
  const title=document.getElementById("campaignTitle");if(title)title.textContent=CAMPAIGN_TITLE;
  const note=document.getElementById("campaignMailNote");if(note)note.classList.toggle("hidden",CAMPAIGN_SOURCE!=="email");
 }
-function renderAll(){syncOfficialLoginLink();renderCampaignMeta();renderBanner();renderCategories();renderProducts();renderQuoteCart()}
+function renderAll(){syncOfficialLoginLink();renderCampaignMeta();renderCampaignShowcase();renderBanner();renderCategories();renderProducts();renderQuoteCart()}
 function setMobileNavActive(name){
  document.querySelectorAll("[data-mobile-nav]").forEach(b=>b.classList.toggle("active",b.dataset.mobileNav===name));
 }
