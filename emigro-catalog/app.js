@@ -353,30 +353,17 @@ document.getElementById("registerForm").onsubmit=async e=>{
 
 function renderHero(){
  const root=document.getElementById("heroCluster");if(!root)return;
- const p=products.find(x=>x.campaignBadge==="VOLUME DEAL")||products.find(x=>x.featured)||products[0];
- if(!p){root.innerHTML="";return}
- const price=currentPrice(p);
- root.innerHTML=`
-   <button class="hero-spotlight" onclick="openProduct(${jsId(p.id)})">
-     <span class="hero-spotlight-badge">${esc(p.campaignBadge||"SELECTIE")}</span>
-     <div class="hero-spotlight-media">${bottle(p,true)}</div>
-     <div class="hero-spotlight-copy">
-       <small>${esc(p.category)} · ${esc(p.brand)}</small>
-       <strong>${esc(p.name)}</strong>
-       <span>${approved()?displayPrice(price):"Login voor prijs"}</span>
-       <em>Bekijk deal →</em>
-     </div>
-   </button>`;
+ const pool=[products.find(p=>p.campaignBadge==="ACTIE"),products.find(p=>p.campaignBadge==="VOLUME DEAL"),products.find(p=>p.campaignBadge==="NIEUW")].filter(Boolean);
+ const list=[...new Map(pool.map(p=>[p.id,p])).values()];
+ const lead=list[0]||products.find(p=>p.featured)||products[0];
+ const side=list.slice(1,3);
+ if(!lead){root.innerHTML="";return}
+ const leadPrice=currentPrice(lead);
+ root.innerHTML=`<div class="mail-flyer-lead"><button class="mail-flyer-product" onclick="openProduct(${jsId(lead.id)})"><span class="mail-flyer-badge">${esc(lead.campaignBadge||"SELECTIE")}</span><div class="mail-flyer-product-media">${bottle(lead,true)}</div><div class="mail-flyer-product-copy"><small>${esc(lead.brand)}</small><b>${esc(lead.name)}</b><strong>${approved()?displayPrice(leadPrice):"🔒 Login voor prijs"}</strong><em>Bekijk product →</em></div></button></div><div class="mail-flyer-side">${side.map(p=>`<button onclick="openProduct(${jsId(p.id)})"><span>${esc(p.campaignBadge||"DEAL")}</span><div class="mail-flyer-side-media">${bottle(p)}</div><div><small>${esc(p.brand)}</small><b>${esc(p.name)}</b></div></button>`).join("")}</div>`;
 }
 function renderCategorySquares(){
  const root=document.getElementById("categorySquares");if(!root)return;
- root.innerHTML=cats.map(c=>{
-   const count=products.filter(p=>p.category===c[0]).length;
-   return `<button class="category-square email-category-chip" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')">
-     <span class="category-square-icon">${c[3]}</span>
-     <span class="category-pill-copy"><strong>${c[0]}</strong><small>${count}</small></span>
-   </button>`;
- }).join("");
+ root.innerHTML=cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-square mail-category-card" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="mail-category-icon">${c[3]}</span><div><strong>${c[0]}</strong><small>${count} producten</small></div><span class="mail-category-arrow">→</span></button>`}).join("");
 }
 function renderCategories(){
  document.getElementById("categories").innerHTML=`<button class="category-btn ${active==="All"?"active":""}" style="${active==="All"?`background:${BRAND.navy}`:""}" onclick="setCategory('All')"><span class="cat-icon">☰</span>Alle (${products.length})</button>`+
@@ -447,23 +434,17 @@ function lockedPrice(){
  return `<button class="price-locked" onclick="openAuth(\'Log in met uw Emigro-klantaccount om prijzen en persoonlijke offertes te bekijken.\')"><span>🔒</span><b>${text}</b><small>Emigro-account vereist</small></button>`;
 }
 function card(p,index){
- const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable,price=currentPrice(p);
- return `${index>0&&index%24===0?heroBlock(index):""}<article class="card action-card simple-product-card email-product-card">
-   <button class="card-media simple-card-media email-product-media" onclick="openProduct(${jsId(p.id)})">
-     ${p.campaignBadge?`<span class="campaign-badge">${esc(p.campaignBadge)}</span>`:""}
-     ${bottle(p)}
-   </button>
-   <div class="card-body simple-card-body email-product-body">
-     <div class="simple-card-brand">${esc(p.brand)}</div>
-     <h3 class="product-title-link" onclick="openProduct(${jsId(p.id)})">${esc(p.name)}</h3>
-     <div class="email-pack-line"><span>${esc(p.net)}</span><span>${p.caseQty} / doos</span></div>
-     ${approved()?`<div class="email-price-block"><span>${mode==="case"?"Prijs per doos":"Prijs per pallet"}</span><strong>${displayPrice(price)}</strong></div>`:`<button class="email-price-lock" type="button" onclick="openAuth('Log in om uw zakelijke prijs te bekijken.')"><span>🔒</span><div><b>Prijs na login</b><small>Bekijk uw zakelijke prijs</small></div></button>`}
-     ${specialOfferRule(p)?`<div class="email-volume-strip">Vanaf ${specialOfferRule(p).qty} ${specialOfferRule(p).mode==="case"?"dozen":"pallets"} persoonlijke prijs</div>`:""}
-     ${dual?`<div class="price-switch compact-switch email-pack-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},'case')">Doos</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},'pallet')">Pallet</button></div>`:""}
-     <div class="simple-card-actions email-card-actions">
-       <button class="simple-secondary-action" type="button" onclick="event.stopPropagation();openProduct(${jsId(p.id)})">Bekijk</button>
-       <button class="simple-primary-action" type="button" onclick="event.stopPropagation();${approved()?`addQuote(${jsId(p.id)})`:`openAuth('Log in om voor dit product een persoonlijke offerte aan te vragen.','quote')`}">Offerte</button>
-     </div>
+ const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable,price=currentPrice(p),rule=specialOfferRule(p);
+ return `<article class="card action-card flyer-product-card">
+   <button class="flyer-product-image" onclick="openProduct(${jsId(p.id)})">${p.campaignBadge?`<span class="flyer-badge">${esc(p.campaignBadge)}</span>`:""}${bottle(p)}</button>
+   <div class="flyer-product-copy">
+     <div class="flyer-brand">${esc(p.brand)}</div>
+     <h3 onclick="openProduct(${jsId(p.id)})">${esc(p.name)}</h3>
+     <div class="flyer-pack">${esc(p.net)} · ${p.caseQty} per doos</div>
+     ${approved()?`<div class="flyer-price"><div><span>${mode==="case"?"Prijs per doos":"Prijs per pallet"}</span><small>${mode==="case"?p.caseQty+" stuks":p.palletCases+" dozen"}</small></div><strong>${displayPrice(price)}</strong></div>`:`<button class="flyer-login-price" type="button" onclick="openAuth('Log in om uw zakelijke prijs te bekijken.')"><span>🔒</span><div><b>Zakelijke prijs</b><small>Log in om te bekijken</small></div><strong>→</strong></button>`}
+     ${rule?`<div class="flyer-volume-deal"><b>Volume deal</b><span>Vanaf ${rule.qty} ${rule.mode==="case"?"dozen":"pallets"} persoonlijke prijs</span></div>`:""}
+     ${dual?`<div class="flyer-pack-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},'case')">Doos</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},'pallet')">Pallet</button></div>`:""}
+     <div class="flyer-actions"><button class="flyer-view" type="button" onclick="openProduct(${jsId(p.id)})">Details</button><button class="flyer-offer" type="button" onclick="event.stopPropagation();${approved()?`addQuote(${jsId(p.id)})`:`openAuth('Log in om voor dit product een persoonlijke offerte aan te vragen.','quote')`}">+ Offerte</button></div>
    </div>
  </article>`;
 }
@@ -1086,7 +1067,7 @@ function renderCampaignMeta(){
  const title=document.getElementById("campaignTitle");if(title)title.textContent=CAMPAIGN_TITLE;
  const note=document.getElementById("campaignMailNote");if(note)note.classList.toggle("hidden",CAMPAIGN_SOURCE!=="email");
 }
-function renderAll(){syncOfficialLoginLink();renderCampaignMeta();updateEmailStickyCta();renderCampaignShowcase();renderBanner();renderCategories();renderProducts();renderQuoteCart()}
+function renderAll(){syncOfficialLoginLink();renderCampaignMeta();updateEmailStickyCta();renderBanner();renderCategories();renderProducts();renderQuoteCart()}
 function setMobileNavActive(name){
  document.querySelectorAll("[data-mobile-nav]").forEach(b=>b.classList.toggle("active",b.dataset.mobileNav===name));
 }
