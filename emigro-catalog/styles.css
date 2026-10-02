@@ -1758,3 +1758,270 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .offer-product-line{grid-template-columns:24px minmax(0,1fr)!important}
   .offer-unit-price-field,.offer-product-line>strong,.offer-product-line>.remove-offer-item{grid-column:2!important}
 }
+
+/* Desktop-only polish for customer account / quote screens */
+@media(min-width:701px){
+  .customer-dashboard{
+    max-width:1180px!important;
+    margin:28px auto 80px!important;
+    padding:28px 30px 34px!important;
+    border-radius:24px!important;
+    background:#fff!important;
+    box-shadow:0 18px 55px rgba(41,51,105,.08)!important;
+  }
+  .customer-dashboard-head{
+    display:flex!important;
+    align-items:flex-start!important;
+    justify-content:space-between!important;
+    gap:24px!important;
+    margin-bottom:18px!important;
+  }
+  .customer-dashboard-head h2{
+    font-size:34px!important;
+    line-height:1.05!important;
+    margin:4px 0 8px!important;
+  }
+  .customer-dashboard-head p{
+    max-width:680px!important;
+    font-size:13px!important;
+    line-height:1.55!important;
+  }
+
+  .customer-dashboard-stats{
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    gap:14px!important;
+    margin:20px 0 22px!important;
+  }
+  .customer-dashboard-stats>div{
+    min-height:104px!important;
+    padding:18px 20px!important;
+    border-radius:18px!important;
+    background:linear-gradient(180deg,#fbfcff,#f6f8fc)!important;
+    border:1px solid #e4e7f0!important;
+    box-shadow:none!important;
+  }
+  .customer-dashboard-stats span{
+    font-size:11px!important;
+    letter-spacing:.04em!important;
+    text-transform:uppercase!important;
+    color:#767f9d!important;
+  }
+  .customer-dashboard-stats strong{
+    margin-top:8px!important;
+    font-size:30px!important;
+    color:#293369!important;
+  }
+
+  .customer-dashboard-tabs{
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:10px!important;
+    width:100%!important;
+    margin:0 0 24px!important;
+    padding:10px!important;
+    border-radius:18px!important;
+    background:#f5f7fb!important;
+    border:1px solid #e6e8f1!important;
+    overflow:visible!important;
+  }
+  .customer-dashboard-tabs button{
+    min-height:48px!important;
+    padding:12px 14px!important;
+    border-radius:12px!important;
+    border:1px solid transparent!important;
+    background:transparent!important;
+    color:#293369!important;
+    font-size:13px!important;
+    font-weight:700!important;
+    white-space:normal!important;
+    box-shadow:none!important;
+  }
+  .customer-dashboard-tabs button:hover{
+    background:#fff!important;
+    border-color:#dde1ed!important;
+  }
+  .customer-dashboard-tabs button.active{
+    background:#293369!important;
+    color:#fff!important;
+    border-color:#293369!important;
+    box-shadow:0 8px 20px rgba(41,51,105,.18)!important;
+  }
+
+  .customer-dashboard-list{
+    display:grid!important;
+    gap:16px!important;
+  }
+  .customer-dash-card{
+    padding:22px 24px!important;
+    border-radius:18px!important;
+    border:1px solid #e3e6ef!important;
+    box-shadow:0 8px 24px rgba(41,51,105,.045)!important;
+    background:#fff!important;
+  }
+  .customer-dash-card-head{
+    display:flex!important;
+    justify-content:space-between!important;
+    align-items:flex-start!important;
+    gap:24px!important;
+    padding-bottom:14px!important;
+    border-bottom:1px solid #eceef4!important;
+  }
+  .customer-dash-card-head h3{
+    margin:7px 0 4px!important;
+    font-size:24px!important;
+    line-height:1.12!important;
+  }
+  .customer-dash-card-head small{
+    font-size:11px!important;
+    color:#7c839b!important;
+  }
+  .customer-dash-card-head>strong{
+    font-size:24px!important;
+    color:#293369!important;
+    white-space:nowrap!important;
+  }
+
+  .customer-dash-items{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+    margin:18px 0!important;
+  }
+  .customer-dash-item{
+    min-height:76px!important;
+    padding:14px 16px!important;
+    border-radius:14px!important;
+    background:#f8f9fc!important;
+    border:1px solid #edf0f5!important;
+  }
+  .customer-dash-item b{
+    font-size:13px!important;
+    line-height:1.35!important;
+  }
+  .customer-dash-item small{
+    margin-top:4px!important;
+    font-size:10px!important;
+    color:#78809a!important;
+  }
+
+  .customer-dash-summary{
+    width:min(480px,100%)!important;
+    margin-left:auto!important;
+    margin-top:14px!important;
+    padding-top:8px!important;
+  }
+  .customer-dash-summary>div{
+    padding:10px 0!important;
+    font-size:13px!important;
+  }
+  .customer-dash-summary .grand{
+    margin-top:4px!important;
+    padding-top:14px!important;
+    font-size:20px!important;
+  }
+
+  .customer-offer-actions{
+    display:flex!important;
+    justify-content:flex-end!important;
+    gap:10px!important;
+    margin-top:18px!important;
+  }
+  .customer-offer-actions button{
+    width:auto!important;
+    min-width:180px!important;
+    min-height:46px!important;
+    padding:11px 18px!important;
+    border-radius:12px!important;
+  }
+
+  .my-quote-valid,.my-quote-note,.customer-decision{
+    border-radius:14px!important;
+  }
+}
+
+/* Desktop-only polish for admin offer editor product lines */
+@media(min-width:701px){
+  .offer-product-line{
+    display:grid!important;
+    grid-template-columns:36px minmax(260px,1.8fr) minmax(180px,.9fr) minmax(130px,.6fr) auto!important;
+    align-items:start!important;
+    gap:16px!important;
+    padding:18px!important;
+    border:1px solid #e2e6ef!important;
+    border-radius:16px!important;
+    background:#fff!important;
+    box-shadow:0 6px 18px rgba(41,51,105,.04)!important;
+  }
+  .offer-product-line.special-required{
+    border-color:#f0c66c!important;
+    background:linear-gradient(180deg,#fffdfa,#fff8e9)!important;
+    box-shadow:0 8px 22px rgba(198,139,17,.08)!important;
+  }
+  .offer-line-index{
+    width:32px;height:32px;border-radius:10px;
+    display:grid;place-items:center;
+    background:#f0f3fa;color:#293369;font-weight:700;font-size:12px;
+  }
+  .offer-product-title-row{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;
+  }
+  .offer-product-title-row>b{font-size:14px;color:#293369}
+  .special-offer-badge{
+    display:inline-flex;align-items:center;
+    padding:4px 7px;border-radius:999px;
+    background:#ec0419;color:#fff;font-size:8px;font-weight:800;letter-spacing:.08em;
+  }
+  .offer-product-main>small{
+    display:block;font-size:10px;color:#7a829c;margin-bottom:10px;
+  }
+  .offer-price-reference{
+    display:flex;align-items:center;gap:8px;
+    padding:8px 10px;border-radius:10px;background:#f6f8fc;margin-bottom:8px;
+  }
+  .offer-price-reference span{font-size:9px;color:#7a829c}
+  .offer-price-reference strong{font-size:11px;color:#293369}
+  .offer-optional-price-note{
+    font-size:9px;color:#7a829c;line-height:1.4;
+  }
+  .offer-special-required{
+    margin:0!important;
+    padding:9px 10px!important;
+    border-radius:10px!important;
+  }
+  .offer-unit-price-field{
+    min-width:0!important;
+    padding:12px!important;
+    border-radius:12px!important;
+    background:#f8f9fc!important;
+    border:1px solid #e4e8f0!important;
+  }
+  .offer-unit-price-field.required{
+    background:#fff8ea!important;
+    border-color:#efcf88!important;
+  }
+  .offer-unit-price-field input{
+    min-height:42px!important;
+    font-size:13px!important;
+  }
+  .offer-line-total{
+    display:grid;gap:5px;padding-top:8px;text-align:right;
+  }
+  .offer-line-total span{
+    font-size:8px;color:#7a829c;text-transform:uppercase;
+  }
+  .offer-line-total strong{
+    font-size:17px;color:#293369;white-space:nowrap;
+  }
+  .offer-product-line .remove-offer-item{
+    align-self:center!important;
+    min-height:40px!important;
+    padding:9px 12px!important;
+    border-radius:10px!important;
+    background:#fff!important;
+    border:1px solid #efc7cc!important;
+    color:#a61b2b!important;
+    font-size:10px!important;
+    font-weight:700!important;
+  }
+}
