@@ -369,7 +369,15 @@ function renderHero(){
    </button>`;
 }
 function renderCategorySquares(){
- document.getElementById("categorySquares").innerHTML=cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-square" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="category-square-icon">${c[3]}</span><strong>${c[0]}</strong><small>${count} producten</small></button>`}).join("");
+ const root=document.getElementById("categorySquares");if(!root)return;
+ root.innerHTML=cats.map(c=>{
+   const count=products.filter(p=>p.category===c[0]).length;
+   return `<button class="category-square category-pill-card" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')">
+     <span class="category-square-icon">${c[3]}</span>
+     <span class="category-pill-copy"><strong>${c[0]}</strong><small>${count} producten</small></span>
+     <span class="category-pill-arrow">→</span>
+   </button>`;
+ }).join("");
 }
 function renderCategories(){
  document.getElementById("categories").innerHTML=`<button class="category-btn ${active==="All"?"active":""}" style="${active==="All"?`background:${BRAND.navy}`:""}" onclick="setCategory('All')"><span class="cat-icon">☰</span>Alle (${products.length})</button>`+
@@ -396,10 +404,10 @@ function filtered(){
 }
 function campaignGroupInfo(label){
  const map={
-  "VOLUME DEAL":{title:"Meer voordeel bij volume",text:"Producten waarbij grotere afnames interessant worden voor een persoonlijke prijs.",tone:"#293369",icon:"↗"},
-  "NIEUW":{title:"Nieuw in de spotlight",text:"Nieuwe of extra uitgelichte artikelen om uw assortiment fris te houden.",tone:"#ec0419",icon:"+"},
-  "ACTIE":{title:"Actie van dit moment",text:"Producten die Emigro in deze campagne extra naar voren brengt.",tone:"#a61b2b",icon:"%"},
-  "HORECA":{title:"Voor horeca & foodservice",text:"Praktische producten voor professionele keuken, take-away en service.",tone:"#5663a3",icon:"★"}
+  "VOLUME DEAL":{title:"Volume deals",text:"Persoonlijke prijs bij grotere afname.",tone:"#293369",icon:"↗"},
+  "NIEUW":{title:"Nieuw",text:"Nieuwe producten in de selectie.",tone:"#ec0419",icon:"+"},
+  "ACTIE":{title:"Acties",text:"Scherp geselecteerde campagneproducten.",tone:"#a61b2b",icon:"%"},
+  "HORECA":{title:"Horeca",text:"Voor keuken, take-away en service.",tone:"#5663a3",icon:"★"}
  };
  return map[label]||{title:label,text:"Geselecteerde campagneproducten.",tone:"#293369",icon:"•"};
 }
@@ -442,22 +450,25 @@ function lockedPrice(){
 }
 function card(p,index){
  const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable,price=currentPrice(p);
- return `${index>0&&index%12===0?heroBlock(index):""}<article class="card action-card simple-product-card">
+ const validLabel=VALIDITY.to||"";
+ return `${index>0&&index%24===0?heroBlock(index):""}<article class="card action-card simple-product-card hanos-inspired-card">
    <button class="card-media simple-card-media" onclick="openProduct(${jsId(p.id)})">
      ${p.campaignBadge?`<span class="campaign-badge">${esc(p.campaignBadge)}</span>`:""}
      ${bottle(p)}
    </button>
    <div class="card-body simple-card-body">
-     <div class="simple-card-brand">${esc(p.brand)} <span>· ${esc(p.category)}</span></div>
+     <div class="simple-card-brand">${esc(p.brand)}</div>
      <h3 class="product-title-link" onclick="openProduct(${jsId(p.id)})">${esc(p.name)}</h3>
-     <div class="simple-card-meta"><span>${esc(p.net)}</span><span>${p.caseQty} / doos</span></div>
+     ${p.campaignBadge?`<div class="card-validity">Actie geldig t/m ${esc(validLabel)}</div>`:""}
+     <div class="simple-card-meta"><span>${esc(p.net)}</span><span>${p.caseQty} per doos</span>${p.sourceReference?`<span>Art. ${esc(p.sourceReference)}</span>`:""}</div>
      ${dual?`<div class="price-switch compact-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},'case')">Doos</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},'pallet')">Pallet</button></div>`:""}
-     ${approved()?`<div class="simple-price-row"><span>${mode==="case"?"Per doos":"Per pallet"}</span><strong>${displayPrice(price)}</strong></div>`:lockedPrice()}
-     ${specialOfferRule(p)?`<button class="simple-volume-note" type="button" onclick="event.stopPropagation();openProduct(${jsId(p.id)})">Volume deal · ${specialOfferRule(p).qty}+ ${specialOfferRule(p).mode==="case"?"dozen":"pallets"} →</button>`:""}
+     ${approved()?`<div class="simple-price-row"><div><span>${mode==="case"?"Prijs per doos":"Prijs per pallet"}</span><small>${mode==="case"?p.caseQty+" stuks":p.palletCases+" dozen"}</small></div><strong>${displayPrice(price)}</strong></div>`:lockedPrice()}
+     ${specialOfferRule(p)?`<button class="simple-volume-note" type="button" onclick="event.stopPropagation();openProduct(${jsId(p.id)})">Vanaf ${specialOfferRule(p).qty} ${specialOfferRule(p).mode==="case"?"dozen":"pallets"}: persoonlijke prijs →</button>`:""}
      <div class="simple-card-actions">
+       <button class="simple-secondary-action" type="button" onclick="event.stopPropagation();openProduct(${jsId(p.id)})">Bekijk</button>
        <button class="simple-primary-action" type="button" onclick="event.stopPropagation();${approved()?`addQuote(${jsId(p.id)})`:`openAuth('Log in om voor dit product een persoonlijke offerte aan te vragen.','quote')`}">Offerte</button>
-       ${p.sourceUrl?`<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Emigro.nl ↗</a>`:""}
      </div>
+     ${p.sourceUrl?`<a class="simple-source-link" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Origineel product op Emigro.nl ↗</a>`:""}
    </div>
  </article>`;
 }
