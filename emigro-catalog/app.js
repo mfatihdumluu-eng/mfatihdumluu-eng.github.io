@@ -352,26 +352,21 @@ document.getElementById("registerForm").onsubmit=async e=>{
 };
 
 function renderHero(){
- const root=document.getElementById("heroCluster");
- if(!root)return;
- const picks=[
-   products.find(p=>p.campaignBadge==="VOLUME DEAL"),
-   products.find(p=>p.campaignBadge==="NIEUW"),
-   products.find(p=>p.campaignBadge==="ACTIE"),
-   products.find(p=>p.campaignBadge==="HORECA")
- ].filter(Boolean);
- const unique=[...new Map(picks.map(p=>[p.id,p])).values()].slice(0,4);
- if(!unique.length){root.innerHTML="";return}
- root.innerHTML=unique.map((p,i)=>`
-   <button class="hero-promo-tile ${i===0?"lead":""}" onclick="openProduct(${jsId(p.id)})">
-     <span class="hero-promo-label">${esc(p.campaignBadge||"SELECTIE")}</span>
-     <div class="hero-promo-media">${bottle(p,i===0)}</div>
-     <div class="hero-promo-copy">
-       <small>${esc(p.category)}</small>
-       <b>${esc(p.brand)} ${esc(p.name)}</b>
-       <span>${approved()?displayPrice(currentPrice(p)):"Login voor prijs"}</span>
+ const root=document.getElementById("heroCluster");if(!root)return;
+ const p=products.find(x=>x.campaignBadge==="VOLUME DEAL")||products.find(x=>x.featured)||products[0];
+ if(!p){root.innerHTML="";return}
+ const price=currentPrice(p);
+ root.innerHTML=`
+   <button class="hero-spotlight" onclick="openProduct(${jsId(p.id)})">
+     <span class="hero-spotlight-badge">${esc(p.campaignBadge||"SELECTIE")}</span>
+     <div class="hero-spotlight-media">${bottle(p,true)}</div>
+     <div class="hero-spotlight-copy">
+       <small>${esc(p.category)} · ${esc(p.brand)}</small>
+       <strong>${esc(p.name)}</strong>
+       <span>${approved()?displayPrice(price):"Login voor prijs"}</span>
+       <em>Bekijk deal →</em>
      </div>
-   </button>`).join("");
+   </button>`;
 }
 function renderCategorySquares(){
  document.getElementById("categorySquares").innerHTML=cats.map(c=>{const count=products.filter(p=>p.category===c[0]).length;return `<button class="category-square" style="--cat:${c[1]}" onclick="setCategory('${c[0].replace(/'/g,"\\'")}')"><span class="category-square-icon">${c[3]}</span><strong>${c[0]}</strong><small>${count} producten</small></button>`}).join("");
@@ -410,18 +405,15 @@ function campaignGroupInfo(label){
 }
 function renderCampaignShowcase(){
  const root=document.getElementById("campaignShowcaseGrid");if(!root)return;
- const labels=["VOLUME DEAL","NIEUW","ACTIE","HORECA"];
+ const labels=["VOLUME DEAL","ACTIE","NIEUW","HORECA"];
  const groups=labels.map(label=>({label,items:products.filter(p=>p.campaignBadge===label)})).filter(g=>g.items.length);
- root.innerHTML=groups.map((g,idx)=>{
-   const info=campaignGroupInfo(g.label),lead=g.items[0],more=g.items.slice(1,3);
-   return `<article class="campaign-showcase-card" style="--campaign-tone:${info.tone}">
-     <div class="campaign-showcase-top"><span>${info.icon}</span><b>${esc(g.label)}</b></div>
-     <div class="campaign-showcase-body">
-       <div><h3>${info.title}</h3><p>${info.text}</p><button type="button" onclick="showCampaign('${g.label.replace(/'/g,"\\'")}')">Bekijk ${g.items.length} product${g.items.length===1?"":"en"} →</button></div>
-       <button class="campaign-product-visual" onclick="openProduct(${jsId(lead.id)})">${bottle(lead,true)}<small>${esc(lead.brand)} ${esc(lead.name)}</small></button>
-     </div>
-     ${more.length?`<div class="campaign-mini-list">${more.map(p=>`<button onclick="openProduct(${jsId(p.id)})"><span>${esc(p.brand)}</span><b>${esc(p.name)}</b></button>`).join("")}</div>`:""}
-   </article>`;
+ root.innerHTML=groups.map(g=>{
+   const info=campaignGroupInfo(g.label);
+   return `<button class="campaign-filter-card" style="--campaign-tone:${info.tone}" onclick="showCampaign('${g.label.replace(/'/g,"\\'")}')">
+     <span class="campaign-filter-icon">${info.icon}</span>
+     <div><b>${info.title}</b><small>${g.items.length} product${g.items.length===1?"":"en"}</small></div>
+     <span class="campaign-filter-arrow">→</span>
+   </button>`;
  }).join("");
 }
 function showCampaign(label){
@@ -450,14 +442,24 @@ function lockedPrice(){
 }
 function card(p,index){
  const mode=modeFor(p),dual=p.caseAvailable&&p.palletAvailable,price=currentPrice(p);
- return `${index>0&&index%12===0?heroBlock(index):""}<article class="card action-card">
- <button class="card-media" onclick="openProduct(${jsId(p.id)})"><span class="badge">${p.icon} ${p.category}</span>${p.campaignBadge?`<span class="campaign-badge">${esc(p.campaignBadge)}</span>`:""}${bottle(p)}</button>
- <div class="card-body"><div class="brandline">${p.brand}${p.sourceReference?` · Ref. ${esc(p.sourceReference)}`:""}</div><h3 class="product-title-link" onclick="openProduct(${jsId(p.id)})">${p.name}</h3><div class="meta"><span>${p.net}</span><span>${p.caseQty} per doos</span><span>${p.palletCases} dozen/pallet</span></div>
- ${dual?`<div class="price-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},\'case\')">Doos</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},\'pallet\')">Pallet</button></div>`:`<div class="single-type">ⓘ ${p.caseAvailable?"Alleen doos":"Alleen pallet"}</div>`}
- ${approved()?`<div class="pricebox"><div><span>${mode==="case"?"Prijs per doos":"Prijs per pallet"}</span><strong>${displayPrice(price)}</strong></div><small>${price==null?"Persoonlijke prijs wordt bevestigd":(mode==="case"?p.caseQty+" stuks / doos":p.palletCases+" dozen / pallet")}</small></div><div class="price-valid-mini">Geldig: ${VALIDITY.from} / ${VALIDITY.to}</div>`:lockedPrice()}
- ${specialOfferRule(p)?`<div class="special-offer-hint"><b>Volume deal</b><span>${specialOfferText(p)}</span></div>`:""}
- <div class="action-card-links">${productSourceLink(p)}<button class="mini-offer-btn" type="button" onclick="event.stopPropagation();${approved()?`addQuote(${jsId(p.id)})`:`openAuth(\'Log in om voor dit product een persoonlijke offerte aan te vragen.\',\'quote\')`}">Prijs aanvragen</button></div>
- </div></article>`;
+ return `${index>0&&index%12===0?heroBlock(index):""}<article class="card action-card simple-product-card">
+   <button class="card-media simple-card-media" onclick="openProduct(${jsId(p.id)})">
+     ${p.campaignBadge?`<span class="campaign-badge">${esc(p.campaignBadge)}</span>`:""}
+     ${bottle(p)}
+   </button>
+   <div class="card-body simple-card-body">
+     <div class="simple-card-brand">${esc(p.brand)} <span>· ${esc(p.category)}</span></div>
+     <h3 class="product-title-link" onclick="openProduct(${jsId(p.id)})">${esc(p.name)}</h3>
+     <div class="simple-card-meta"><span>${esc(p.net)}</span><span>${p.caseQty} / doos</span></div>
+     ${dual?`<div class="price-switch compact-switch"><button class="${mode==="case"?"active":""}" onclick="setMode(${jsId(p.id)},'case')">Doos</button><button class="${mode==="pallet"?"active":""}" onclick="setMode(${jsId(p.id)},'pallet')">Pallet</button></div>`:""}
+     ${approved()?`<div class="simple-price-row"><span>${mode==="case"?"Per doos":"Per pallet"}</span><strong>${displayPrice(price)}</strong></div>`:lockedPrice()}
+     ${specialOfferRule(p)?`<button class="simple-volume-note" type="button" onclick="event.stopPropagation();openProduct(${jsId(p.id)})">Volume deal · ${specialOfferRule(p).qty}+ ${specialOfferRule(p).mode==="case"?"dozen":"pallets"} →</button>`:""}
+     <div class="simple-card-actions">
+       <button class="simple-primary-action" type="button" onclick="event.stopPropagation();${approved()?`addQuote(${jsId(p.id)})`:`openAuth('Log in om voor dit product een persoonlijke offerte aan te vragen.','quote')`}">Offerte</button>
+       ${p.sourceUrl?`<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Emigro.nl ↗</a>`:""}
+     </div>
+   </div>
+ </article>`;
 }
 function renderProducts(){
  const list=filtered();document.getElementById("resultCount").textContent=`${list.length} producten · ${Math.min(shown,list.length)} zichtbaar`;
@@ -469,19 +471,18 @@ function renderProducts(){
 function renderFeatured(){
  const root=document.getElementById("featuredGrid");if(!root)return;
  const list=products.filter(p=>p.featured).slice(0,4);
- root.innerHTML=list.map((p,idx)=>{
+ root.innerHTML=list.map(p=>{
    const price=currentPrice(p);
-   return `<article class="featured-card promo-featured ${idx===0?"featured-lead":""}">
-     <button class="featured-media" onclick="openProduct(${jsId(p.id)})">
+   return `<article class="featured-card promo-featured-simple">
+     <button class="featured-simple-media" onclick="openProduct(${jsId(p.id)})">
        ${p.campaignBadge?`<span class="featured-badge">${esc(p.campaignBadge)}</span>`:""}
-       ${bottle(p,idx===0)}
+       ${bottle(p)}
      </button>
-     <div class="featured-copy">
-       <div class="brandline">${esc(p.category)} · ${esc(p.brand)}</div>
+     <div class="featured-simple-copy">
+       <span>${esc(p.brand)}</span>
        <h3 onclick="openProduct(${jsId(p.id)})">${esc(p.name)}</h3>
-       <p>${specialOfferRule(p)?specialOfferText(p):"Bekijk het product en vraag bij grotere aantallen een persoonlijke offerte aan."}</p>
-       <div class="featured-price-tease">${approved()?`<span>Uw prijs</span><strong>${displayPrice(price)}</strong>`:`<span>Zakelijke prijs</span><strong>🔒 Login vereist</strong>`}</div>
-       <div class="featured-actions"><button type="button" onclick="openProduct(${jsId(p.id)})">Bekijk deal</button>${p.sourceUrl?`<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Emigro.nl ↗</a>`:""}</div>
+       <strong>${approved()?displayPrice(price):"🔒 Login voor prijs"}</strong>
+       <button type="button" onclick="openProduct(${jsId(p.id)})">Bekijk product</button>
      </div>
    </article>`;
  }).join("");
