@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="tr">
+<html lang="nl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Emigro Digital Catalogue</title>
+<title>Emigro Acties & Offertes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&display=swap" rel="stylesheet">
@@ -14,100 +14,93 @@
 <div class="network-banner hidden" id="networkBanner">Bağlantı kesildi. İnternet geri geldiğinde işlemlerinize devam edebilirsiniz.</div>
 <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 <header class="topbar">
-  <a class="brand" href="#home"><img src="./logo.svg" alt="Emigro Cash & Carry"><span class="brand-fallback"><b>emigro</b><small>Cash & Carry</small></span></a>
-  <nav><a href="#categoryBrowser">Ürünler</a><a href="#featured">Öne çıkan</a><button class="nav-link-btn hidden" id="customerDashboardNav">Müşteri Hesabı</button><button class="nav-link-btn" onclick="requestPdf()">PDF katalog</button></nav>
+  <a class="brand" href="#home"><img src="./logo.svg" alt="Emigro"><span class="brand-fallback"><b>emigro</b><small>Acties & Offertes</small></span></a>
+  <nav><a href="#featured">Acties</a><a href="#categoryBrowser">Categorieën</a><a href="#products">Producten</a><button class="nav-link-btn hidden" id="customerDashboardNav">Mijn offertes</button></nav>
   <div class="top-actions">
-    <button class="ghost" id="priceInfoBtn">Fiyat bilgisi</button>
-    <button class="ghost" id="accountBtn">Giriş / Üyelik</button>
-    <button class="btn hidden" id="customerAccountBtn">Müşteri Hesabı</button>
-    <button class="btn" onclick="requestPdf()">PDF katalog</button>
+    <button class="ghost" id="priceInfoBtn">Hoe werkt het?</button>
+    <button class="ghost" id="accountBtn">Inloggen</button>
+    <button class="btn hidden" id="customerAccountBtn">Mijn offertes</button>
   </div>
 </header>
 
 <main>
-<section class="hero" id="home">
+<section class="hero actie-hero" id="home">
   <div class="hero-copy">
-    <div class="eyebrow">B2B PRODUCT CATALOGUE · 9 KATEGORİ · 200+ ÜRÜN</div>
-    <h1>Emigro Cash & Carry<br>Your B2B wholesale partner.</h1>
-    <p>Ürünleri, kategorileri ve güncel B2B tekliflerini tek yerden yönetin. Onaylı müşteriler koli/palet fiyatlarını görür, teklif oluşturur ve kabul edilen siparişlerini hesaplarından takip eder.</p>
-    <div class="hero-actions"><a class="btn" href="#categoryBrowser">Ürünleri incele</a><button class="ghost" onclick="requestPdf()">PDF kataloğu aç</button></div>
-    <div class="stats"><div><strong>207+</strong><span>ürün</span></div><div><strong>9</strong><span>kategori</span></div><div><strong>Onaylı</strong><span>B2B üyelik</span></div></div>
+    <div class="eyebrow">EMIGRO ACTIES · VOLUME DEALS · PERSOONLIJKE OFFERTES</div>
+    <h1 id="campaignTitle">Deze week geselecteerd</h1>
+    <p>Een compacte selectie uit het Emigro-assortiment. Bekijk de producten, open het originele product op Emigro.nl en vraag bij grotere aantallen direct een persoonlijke prijs aan.</p>
+    <div class="campaign-mail-note" id="campaignMailNote">Deze selectie is via e-mail met u gedeeld.</div>
+    <div class="hero-actions"><a class="btn" href="#featured">Bekijk acties</a><a class="ghost" href="https://www.emigro.nl/" target="_blank" rel="noopener">Naar Emigro.nl ↗</a></div>
+    <div class="stats"><div><strong>4</strong><span>hoofdcategorieën</span></div><div><strong>Actie</strong><span>gerichte selectie</span></div><div><strong>Login</strong><span>voor prijzen</span></div></div>
   </div>
   <div class="hero-product-cluster" id="heroCluster"></div>
 </section>
 
-<section class="notice"><b>Üyelik kontrollü fiyatlandırma.</b><span>Fiyatlar yalnızca giriş yapmış ve Emigro tarafından onaylanmış üyeler tarafından görülebilir. İçeceklerde statiegeld bilgisi herkese açık gösterilir.</span></section>
-<section class="validity-banner"><div><span>FİYAT GEÇERLİLİK DÖNEMİ</span><strong id="globalValidity">01-10-2026 — 30-10-2026</strong></div><p>Onaylı üyelere gösterilen katalog fiyatları yalnızca belirtilen tarih aralığında geçerlidir. Stok ve ticari koşullar değişebilir.</p></section>
+<section class="notice"><b>Prijzen alleen voor ingelogde Emigro-klanten.</b><span>Productinformatie en originele Emigro-links zijn zichtbaar voor iedereen. Prijzen en persoonlijke offertes worden pas geopend na het inloggen.</span></section>
+<section class="validity-banner"><div><span>ACTIE- / PRIJS-PERIODE</span><strong id="globalValidity">01-10-2026 — 30-10-2026</strong></div><p>Actieprijzen en persoonlijke offertes kunnen aan een geldigheidsperiode, voorraad en afnamevoorwaarden zijn gebonden.</p></section>
 
 <section class="customer-dashboard hidden" id="customerDashboard">
   <div class="customer-dashboard-head">
     <div>
-      <div class="eyebrow">MÜŞTERİ HESABI</div>
-      <h2>Tekliflerim & Siparişlerim</h2>
-      <p>Gönderdiğiniz talepleri, size sunulan teklifleri ve kabul ettiğiniz siparişleri tek ekranda takip edin.</p>
+      <div class="eyebrow">MIJN OFFERTES</div>
+      <h2>Prijsaanvragen & offertes</h2>
+      <p>Bekijk uw aangevraagde producten, ontvangen prijsvoorstellen en de status van uw offertes.</p>
     </div>
     <div class="customer-dashboard-actions">
-      <button class="ghost" id="refreshCustomerDashboard">Yenile</button>
-      <button class="ghost customer-dashboard-close" id="closeCustomerDashboard" aria-label="Müşteri hesabını kapat">Kapat ×</button>
+      <button class="ghost" id="refreshCustomerDashboard">Vernieuwen</button>
+      <button class="ghost customer-dashboard-close" id="closeCustomerDashboard" aria-label="Sluiten">Sluiten ×</button>
     </div>
   </div>
   <div class="customer-dashboard-stats" id="customerDashboardStats"></div>
   <div class="customer-dashboard-tabs">
-    <button class="active" data-customer-tab="quotes">Tekliflerim</button>
-    <button data-customer-tab="orders">Siparişlerim</button>
-    <button data-customer-tab="accepted">Kabul edilen</button>
-    <button data-customer-tab="rejected">Reddedilen</button>
-    <button data-customer-tab="favorites">Favoriler</button>
-    <button data-customer-tab="addresses">Adreslerim</button>
-    <button data-customer-tab="notifications">Bildirimler</button>
-    <button data-customer-tab="invite">Davet et</button>
+    <button class="active" data-customer-tab="quotes">Mijn offertes</button>
   </div>
-  <div class="customer-dashboard-list" id="customerDashboardList"><div class="admin-loading">Hesap verileri yükleniyor…</div></div>
+  <div class="customer-dashboard-list" id="customerDashboardList"><div class="admin-loading">Offertes worden geladen…</div></div>
 </section>
 
 <section class="category-browser" id="categoryBrowser">
-  <div class="section-title"><div class="eyebrow">KATEGORİLER</div><h2>Ürün kategorisini seçin</h2><p>Bir kategoriye tıklayın; o kategorinin ürünleri açılır.</p></div>
+  <div class="section-title"><div class="eyebrow">CATEGORIEËN VAN EMIGRO.NL</div><h2>Kies een categorie</h2><p>De hoofdindeling volgt Emigro.nl: Zuivel, Drinks, Diepvries en Non-Food.</p></div>
   <div class="category-square-grid" id="categorySquares"></div>
 </section>
 
 <section id="featured" class="featured-section">
-  <div class="section-title"><div class="eyebrow">FEATURED PRODUCTS</div><h2>Öne çıkan ürünler</h2><p>Farklı kategorilerden seçilmiş ürünler tek vitrinde.</p></div>
+  <div class="section-title"><div class="eyebrow">ACTIES & SELECTIE</div><h2>Uitgelichte deals</h2><p>Producten die we deze campagne extra onder de aandacht brengen.</p></div>
   <div class="featured-grid" id="featuredGrid"></div>
 </section>
 
 <section class="catalog" id="products">
   <div id="categoryBanner"></div>
   <div class="catalog-head">
-    <div><div class="eyebrow">PRODUCT OVERVIEW</div><h2>Ürün kataloğu</h2><p id="resultCount"></p></div>
+    <div><div class="eyebrow">ACTIE ASSORTIMENT</div><h2>Geselecteerde producten</h2><p id="resultCount"></p></div>
     <div class="controls advanced-controls">
-      <div class="search-with-scan"><input id="search" placeholder="Ürün, marka, barkod veya SKU ara"><button class="ghost" id="scanBarcodeBtn" type="button" aria-label="Barkod tara">⌁ Tara</button></div>
-      <select id="sort"><option value="name">İsme göre</option><option value="low">Fiyat: düşükten</option><option value="high">Fiyat: yüksekten</option></select>
-      <select id="originFilter"><option value="">Tüm menşeiler</option></select>
-      <select id="saleFilter"><option value="">Koli / Palet</option><option value="case">Sadece koli</option><option value="pallet">Sadece palet</option><option value="both">Koli + palet</option></select>
+      <div class="search-with-scan"><input id="search" placeholder="Zoek product, merk, referentie of EAN"><button class="ghost" id="scanBarcodeBtn" type="button" aria-label="Barkod tara">⌁ Tara</button></div>
+      <select id="sort"><option value="name">Naam</option><option value="low">Prijs: laag naar hoog</option><option value="high">Prijs: hoog naar laag</option></select>
+      <select id="originFilter"><option value="">Alle herkomsten</option></select>
+      <select id="saleFilter"><option value="">Doos / pallet</option><option value="case">Alleen doos</option><option value="pallet">Alleen pallet</option><option value="both">Doos + pallet</option></select>
       <select id="depositFilter"><option value="">Statiegeld</option><option value="yes">Statiegeld var</option><option value="no">Statiegeld yok</option></select>
     </div>
   </div>
   <div class="category-row" id="categories"></div>
   <div class="product-grid" id="productGrid"></div>
-  <div class="loadmore-wrap"><button class="ghost" id="loadMore">24 ürün daha göster</button></div>
+  <div class="loadmore-wrap"><button class="ghost" id="loadMore">Meer producten tonen</button></div>
 </section>
 </main>
 
 <div class="quote-cart hidden" id="quoteCart">
-  <div><b>Teklif listesi</b><span id="quoteCount">0 ürün</span></div>
-  <div class="quote-total"><small>Tahmini toplam</small><strong id="quoteTotal">€0,00</strong></div>
-  <button class="btn" id="openQuote">Teklif iste</button>
+  <div><b>Offertelijst</b><span id="quoteCount">0 producten</span></div>
+  <div class="quote-total"><small>Indicatie</small><strong id="quoteTotal">Offerte</strong></div>
+  <button class="btn" id="openQuote">Offerte aanvragen</button>
 </div>
 
 <div class="modal-backdrop hidden" id="authModal">
   <div class="modal auth-modal">
     <button class="close" data-close="authModal">×</button>
-    <div class="auth-brand"><div class="auth-logo-wrap"><img src="./logo.svg" alt="Emigro"><span class="brand-fallback"><b>emigro</b><small>Cash & Carry</small></span></div><div><div class="eyebrow">EMIGRO B2B</div><h2 id="authTitle">Giriş yap veya üye ol</h2><p id="authReason">Fiyatları görmek ve teklif istemek için onaylı üyelik gerekir.</p></div></div>
-    <div class="auth-tabs"><button class="active" id="loginTab">Giriş yap</button><button id="registerTab">Üye ol</button></div>
+    <div class="auth-brand"><div class="auth-logo-wrap"><img src="./logo.svg" alt="Emigro"><span class="brand-fallback"><b>emigro</b><small>Cash & Carry</small></span></div><div><div class="eyebrow">EMIGRO KLANTACCOUNT</div><h2 id="authTitle">Inloggen</h2><p id="authReason">Log in om prijzen te bekijken en persoonlijke offertes aan te vragen.</p></div></div>
+    <div class="auth-official-link"><a class="btn" id="officialEmigroLogin" href="https://www.emigro.nl/aanmelden" target="_blank" rel="noopener">Open Emigro.nl inloggen ↗</a><small>De definitieve koppeling gebruikt hetzelfde Emigro-klantaccount. Deze preview behoudt tijdelijk de bestaande portal-login.</small></div><div class="auth-tabs"><button class="active" id="loginTab">Portal login</button><button id="registerTab">Nieuw account</button></div>
     <form id="loginForm" class="auth-form">
-      <label>E-posta<input type="email" id="loginEmail" required autocomplete="email"></label>
-      <label>Şifre<input type="password" id="loginPassword" required autocomplete="current-password"></label>
-      <button class="btn" type="submit">Giriş yap</button>
+      <label>E-mail<input type="email" id="loginEmail" required autocomplete="email"></label>
+      <label>Wachtwoord<input type="password" id="loginPassword" required autocomplete="current-password"></label>
+      <button class="btn" type="submit">Inloggen</button>
       <button class="ghost hidden" type="button" id="demoLoginBtn">Demo kullanıcıyla giriş yap</button>
       <div class="auth-message" id="loginMessage"></div>
     </form>
@@ -150,7 +143,7 @@
         <div id="detailPriceArea"></div>
         <div id="depositDetail"></div>
         <div id="detailQuoteControls"></div>
-        <button class="quote-product-btn" id="detailQuoteBtn">+ Teklif iste</button>
+        <button class="quote-product-btn" id="detailQuoteBtn">+ Offerte aanvragen</button>
       </div>
     </div>
 
@@ -160,7 +153,7 @@
           <div class="eyebrow">ALTERNATİF ÜRÜNLER</div>
           <h3>Bunlara da bakabilirsiniz</h3>
         </div>
-        <span class="alternative-refresh-note">Otomatik yenilenir</span>
+        <span class="alternative-refresh-note">Wordt automatisch vernieuwd</span>
       </div>
       <div class="alternative-track" id="alternativeProducts"></div>
     </section>
@@ -170,7 +163,7 @@
 <div class="modal-backdrop hidden" id="quoteModal">
   <div class="modal quote-modal">
     <button class="close" data-close="quoteModal">×</button>
-    <div class="modal-title-row"><div><div class="eyebrow">TEKLİF TALEBİ</div><h2>Seçtiğiniz ürünler</h2><p>Koli/palet tercihi ve adetlerinizi kontrol edip formu gönderin.</p></div></div>
+    <div class="modal-title-row"><div><div class="eyebrow">PERSOONLIJKE OFFERTE</div><h2>Geselecteerde producten</h2><p>Controleer aantallen en vraag een persoonlijke prijs aan.</p></div></div>
     <div class="quote-layout">
       <div class="quote-lines" id="quoteLines"></div>
       <form class="quote-form" id="quoteForm">
@@ -181,11 +174,11 @@
         <label>Firma adı<input id="memberCompany" name="Firma" required readonly></label>
         <label>E-posta<input id="memberEmail" type="email" name="E-posta" required readonly></label>
         <label>Telefon<input id="memberPhone" name="Telefon" readonly></label>
-        <label>Not<textarea name="Not" id="quoteNote" rows="4" placeholder="Teslimat, miktar veya diğer notlar..."></textarea></label>
+        <label>Not<textarea name="Not" id="quoteNote" rows="4" placeholder="Aantal, levering of andere wensen..."></textarea></label>
         <label class="validity-check"><input type="checkbox" id="validityConfirm" required><span id="quoteValidityConfirmText">Fiyatların yalnızca <b>01-10-2026 — 30-10-2026</b> tarihleri arasında geçerli olduğunu gördüm ve kabul ediyorum.</span></label>
         <div class="form-total"><span>Tahmini toplam</span><strong id="formQuoteTotal">€0,00</strong></div>
-        <button class="btn" id="quoteSubmitBtn" type="submit">Teklif talebini gönder</button>
-        <small>Talep Emigro'ya iletilir ve üyelik bilgilerinizle eşleştirilir.</small>
+        <button class="btn" id="quoteSubmitBtn" type="submit">Offerteaanvraag versturen</button>
+        <small>Uw aanvraag wordt gekoppeld aan uw Emigro-klantprofiel.</small>
       </form>
     </div>
   </div>
@@ -199,28 +192,28 @@
   </div>
 </div>
 
-<div class="modal-backdrop hidden" id="priceInfo"><div class="modal small-modal"><button class="close" data-close="priceInfo">×</button><h2>Fiyat ve üyelik bilgisi</h2><div class="info-list"><div><b>Fiyatlar</b><span>Yalnızca Emigro tarafından onaylanmış ve giriş yapmış B2B üyeler görebilir.</span></div><div><b>PDF katalog</b><span>Yalnızca onaylı üyeler indirebilir. Giriş yoksa önce üyelik ekranı açılır.</span></div><div><b>Statiegeld</b><span>İçeceklerde depozito olup olmadığı herkese açık gösterilir.</span></div><div><b>Teklif</b><span>Yalnızca onaylı üyeler teklif listesi oluşturup gönderebilir.</span></div></div></div></div>
+<div class="modal-backdrop hidden" id="priceInfo"><div class="modal small-modal"><button class="close" data-close="priceInfo">×</button><h2>Hoe werkt dit platform?</h2><div class="info-list"><div><b>Acties</b><span>U ontvangt via e-mail een gerichte selectie van producten.</span></div><div><b>Prijzen</b><span>Prijzen blijven verborgen tot u bent ingelogd met een Emigro-klantaccount.</span></div><div><b>Bron</b><span>Waar beschikbaar opent “Bekijk op Emigro.nl” het originele product.</span></div><div><b>Offerte</b><span>Voor grotere aantallen kunt u meerdere producten verzamelen en één persoonlijke offerte aanvragen.</span></div></div></div></div>
 
 <nav class="mobile-app-nav" id="mobileAppNav" aria-label="Mobil menü">
   <button type="button" class="active" data-mobile-nav="home">
     <span class="mobile-nav-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5.5 9.5V20h13V9.5"></path></svg></span>
-    <small>Ana sayfa</small>
+    <small>Home</small>
   </button>
   <button type="button" data-mobile-nav="categories">
     <span class="mobile-nav-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.8"></rect><rect x="14" y="4" width="6" height="6" rx="1.8"></rect><rect x="4" y="14" width="6" height="6" rx="1.8"></rect><rect x="14" y="14" width="6" height="6" rx="1.8"></rect></svg></span>
-    <small>Kategoriler</small>
+    <small>Categorieën</small>
   </button>
   <button type="button" data-mobile-nav="products">
     <span class="mobile-nav-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2.2"></rect><path d="M8 10.5h8"></path><path d="M8 14h6"></path></svg></span>
-    <small>Ürünler</small>
+    <small>Acties</small>
   </button>
   <button type="button" data-mobile-nav="quotes">
     <span class="mobile-nav-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6.5h10A1.5 1.5 0 0 1 18.5 8v8A1.5 1.5 0 0 1 17 17.5H7A1.5 1.5 0 0 1 5.5 16V8A1.5 1.5 0 0 1 7 6.5Z"></path><path d="M9 10.5h6"></path><path d="M9 13.5h4"></path></svg></span>
-    <small>Teklifler</small>
+    <small>Offertes</small>
   </button>
   <button type="button" data-mobile-nav="account">
     <span class="mobile-nav-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2"></circle><path d="M6.5 18c1.4-2.5 3.2-3.7 5.5-3.7s4.1 1.2 5.5 3.7"></path></svg></span>
-    <small>Hesabım</small>
+    <small>Account</small>
   </button>
 </nav>
 
