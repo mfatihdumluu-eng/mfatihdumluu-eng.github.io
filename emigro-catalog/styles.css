@@ -1724,3 +1724,37 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .customer-shipping-state.carrier{background:#edf8f1;border-color:#d3eadb}
 .customer-shipping-state.carrier b{color:#24613d}
 .customer-shipping-state.carrier .btn{margin-top:5px;width:max-content}
+
+/* Special-offer threshold UX */
+.detail-special-offer,.quote-special-note,.offer-special-required{
+  display:grid;gap:3px;border-radius:11px;padding:10px 11px;
+  background:#fff8ea;border:1px solid #efd8a5;color:#805600
+}
+.detail-special-offer b,.offer-special-required b{font-size:10px}
+.detail-special-offer span,.offer-special-required span,.quote-special-note{font-size:9px;line-height:1.4}
+.detail-special-offer.reached,.quote-special-note.reached{
+  background:#eef3ff;border-color:#d7e0f6;color:#293369
+}
+.quote-special-note{margin-top:6px}
+.quote-admin-card.has-special-offer{border-color:#e9c56f!important}
+.special-admin-chip{
+  background:#fff3cf;color:#805600;border-radius:999px;padding:5px 8px;
+  font-weight:700
+}
+.offer-product-line.special-required{
+  border-color:#e9c56f!important;background:#fffdf7
+}
+.offer-unit-price-field{display:grid;gap:4px;min-width:130px}
+.offer-unit-price-field span{font-size:8px;font-weight:700;color:#6b7084;text-transform:uppercase}
+.offer-unit-price-field input{
+  width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 10px;
+  font:700 11px 'Roboto',sans-serif;color:#293369;background:#fff
+}
+.offer-unit-price-field small{font-size:8px;color:#8a6a1a}
+.offer-unit-price-field input.required-error{
+  border-color:#ec0419!important;box-shadow:0 0 0 3px rgba(236,4,25,.12)
+}
+@media(max-width:700px){
+  .offer-product-line{grid-template-columns:24px minmax(0,1fr)!important}
+  .offer-unit-price-field,.offer-product-line>strong,.offer-product-line>.remove-offer-item{grid-column:2!important}
+}
