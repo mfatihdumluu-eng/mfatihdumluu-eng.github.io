@@ -3,128 +3,159 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="x-apple-disable-message-reformatting">
-<title>Emigro Weekly Mailing</title>
+<title>Emigro Weekly Mailing Builder</title>
 <style>
-:root{--ink:#111315;--muted:#70757b;--line:#e6e8ea;--soft:#f7f8f9;--yellow:#ffd400;--dark:#131517;--red:#d94b2b}
-*{box-sizing:border-box}body{margin:0;background:#eceff1;font-family:Arial,Helvetica,sans-serif;color:var(--ink)}
-a{text-decoration:none;color:inherit}.shell{padding:26px 12px 50px}.mail{width:100%;max-width:760px;margin:auto;background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.12)}
-.header{background:var(--dark);color:#fff;padding:22px 26px}.headrow{display:flex;justify-content:space-between;align-items:center;gap:18px}.logo{width:132px;max-height:42px}
-.issue{text-align:right}.issue b{display:block;font-size:12px;letter-spacing:1.3px}.issue span{font-size:11px;color:#aeb4ba}
-.ribbon{background:linear-gradient(90deg,var(--yellow),#ffeb7b);padding:10px 26px;font-size:11px;font-weight:950;letter-spacing:1.1px}
-.hero{background:linear-gradient(130deg,#111,#25282b);color:#fff;padding:34px 28px}.heroInner{display:grid;grid-template-columns:1.15fr .85fr;gap:22px;align-items:center}
-.eyebrow{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:950;color:var(--yellow)}
-.hero h1{font-size:40px;line-height:1.02;margin:10px 0 12px;letter-spacing:-1px}.hero p{font-size:15px;line-height:1.55;color:#c8cdd2;margin:0 0 18px}
-.heroPrice{font-size:38px;font-weight:950}.heroMeta{font-size:11px;color:#aeb4ba;margin-top:4px}.heroVisual{height:220px;border-radius:22px;background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:90px}
-.heroCta{display:inline-block;margin-top:18px;background:var(--yellow);color:#111;padding:13px 18px;border-radius:9px;font-weight:900;font-size:13px}
-.section{padding:28px 24px 10px}.sectionHead{display:flex;justify-content:space-between;align-items:end;gap:15px;padding-bottom:12px;border-bottom:2px solid #17191b}
-.sectionHead h2{font-size:23px;margin:4px 0 0}.sectionHead span{font-size:11px;color:var(--muted)}
-.rows{border-bottom:1px solid var(--line)}.row{display:grid;grid-template-columns:74px 1fr auto;gap:14px;align-items:center;padding:13px 0;border-top:1px solid var(--line);cursor:pointer}
-.row:first-child{border-top:0}.thumb{height:62px;border-radius:10px;background:linear-gradient(145deg,#f1f3f4,#e4e7e9);display:flex;align-items:center;justify-content:center;font-size:32px}
-.rowName{font-size:14px;font-weight:900;line-height:1.25}.rowDesc{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35}.right{text-align:right;min-width:110px}
-.rowPrice{font-size:18px;font-weight:950}.details{font-size:10px;color:#555;margin-top:5px}.row:hover{background:#fbfbfb}
-.footer{margin-top:28px;padding:28px;background:#111;color:#aeb4ba;text-align:center;font-size:11px;line-height:1.6}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.modal.open{display:flex}
-.dialog{width:min(650px,100%);background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.35);position:relative}
-.datebar{background:var(--yellow);padding:12px 22px;font-size:12px;font-weight:950;letter-spacing:.8px;text-transform:uppercase}
-.close{position:absolute;right:12px;top:8px;border:0;width:34px;height:34px;border-radius:50%;background:#fff;font-size:20px;cursor:pointer}
-.modalGrid{display:grid;grid-template-columns:220px 1fr}.modalVisual{min-height:270px;background:linear-gradient(145deg,#f0f2f4,#e0e4e7);display:flex;align-items:center;justify-content:center;font-size:90px}
-.modalBody{padding:28px}.modalDept{font-size:10px;color:#2563eb;font-weight:950;letter-spacing:1px;text-transform:uppercase}.modalTitle{font-size:28px;font-weight:950;line-height:1.05;margin:8px 0}.modalText{font-size:13px;color:var(--muted);line-height:1.55}.modalPrice{font-size:34px;font-weight:950;margin:16px 0}
-.actions{display:flex;gap:9px;flex-wrap:wrap}.btn{border:0;border-radius:9px;padding:12px 14px;font-weight:900;font-size:12px;cursor:pointer}.dark{background:#111;color:#fff}.yellow{background:var(--yellow);color:#111}
-@media(max-width:650px){.shell{padding:0}.mail{border-radius:0}.header{padding:18px}.hero{padding:26px 18px}.heroInner{grid-template-columns:1fr}.hero h1{font-size:34px}.heroVisual{height:170px}.section{padding:24px 16px 6px}
-.row{grid-template-columns:58px 1fr auto;gap:10px}.thumb{height:52px;font-size:27px}.right{min-width:86px}.rowPrice{font-size:16px}.rowDesc{display:none}.modalGrid{grid-template-columns:1fr}.modalVisual{min-height:170px}.modalBody{padding:22px}.modalTitle{font-size:24px}}
+:root{--ink:#121416;--muted:#70757b;--line:#e5e7eb;--yellow:#ffd400;--soft:#f6f7f8;--blue:#2563eb}
+*{box-sizing:border-box}body{margin:0;background:#e9ecef;font-family:Arial,Helvetica,sans-serif;color:var(--ink)}
+button,select,input{font:inherit}.builder{max-width:1180px;margin:18px auto;padding:0 14px}
+.panel{background:#151719;color:#fff;border-radius:18px;padding:16px 18px;margin-bottom:14px;box-shadow:0 12px 30px rgba(0,0,0,.14)}
+.panelTop{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}.panelTitle{font-weight:900;font-size:14px;letter-spacing:.7px}.panelSub{font-size:12px;color:#aeb4ba;margin-top:3px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.control{background:#232629;border:1px solid #35393d;border-radius:12px;padding:9px 11px}.control label{display:block;font-size:10px;color:#abb1b7;font-weight:800;margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px}
+.control select,.control input{border:0;background:#fff;color:#111;border-radius:8px;padding:8px 10px;min-width:135px}
+.mail{max-width:760px;margin:auto;background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 22px 65px rgba(0,0,0,.14)}
+.header{background:#111315;color:#fff;padding:21px 25px;display:flex;justify-content:space-between;align-items:center;gap:16px}.logo{width:132px}.issue{text-align:right}.issue b{display:block;font-size:12px;letter-spacing:1.2px}.issue span{font-size:11px;color:#abb1b7}
+.ribbon{background:linear-gradient(90deg,var(--yellow),#ffeb7b);padding:10px 25px;font-size:11px;font-weight:950;letter-spacing:1.1px}
+.topHero{background:linear-gradient(130deg,#111,#26292c);color:#fff;padding:28px}.topHeroGrid{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:center}
+.eyebrow{font-size:11px;letter-spacing:1.4px;font-weight:950;text-transform:uppercase;color:var(--yellow)}
+.topHero h1{font-size:39px;line-height:1;margin:10px 0 12px}.topHero p{font-size:14px;line-height:1.55;color:#c8cdd2;margin:0 0 18px}.heroPrice{font-size:37px;font-weight:950}
+.heroVisual{height:205px;border-radius:22px;background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:86px}
+.content{padding:27px 22px 34px}.section{margin-top:30px}.section:first-child{margin-top:0}.sectionHead{display:flex;justify-content:space-between;align-items:end;gap:12px;border-bottom:2px solid #141618;padding-bottom:10px;margin-bottom:12px}.sectionHead h2{font-size:22px;margin:4px 0 0}.sectionHead span{font-size:11px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-flow:dense;gap:10px}
+.card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;cursor:pointer;transition:.18s;min-width:0}.card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.08)}
+.card.span2{grid-column:span 2}.card.span3{grid-column:span 3}.card.span4{grid-column:span 2;grid-row:span 2}
+.visual{aspect-ratio:1/1;background:linear-gradient(145deg,#f0f2f4,#e2e6e9);display:flex;align-items:center;justify-content:center;font-size:47px;position:relative;overflow:hidden}
+.span2 .visual{aspect-ratio:2/1;font-size:62px}.span3 .visual{aspect-ratio:3/1;font-size:70px}.span4 .visual{height:100%;min-height:300px;aspect-ratio:auto;font-size:92px}
+.badge{position:absolute;left:9px;top:9px;background:#fff;border-radius:999px;padding:5px 8px;font-size:9px;font-weight:950;letter-spacing:.6px}
+.cardBody{padding:11px}.name{font-size:13px;font-weight:900;line-height:1.2}.desc{font-size:10px;line-height:1.35;color:var(--muted);margin-top:4px}.price{font-size:17px;font-weight:950;margin-top:8px}
+.span2 .cardBody,.span3 .cardBody{display:flex;align-items:end;justify-content:space-between;gap:14px}.span2 .price,.span3 .price{font-size:22px}
+.span4{display:grid;grid-template-columns:1.05fr .95fr}.span4 .cardBody{padding:18px;display:flex;flex-direction:column;justify-content:center}.span4 .name{font-size:23px}.span4 .desc{font-size:12px;margin-top:8px}.span4 .price{font-size:30px;margin-top:15px}
+.footer{margin-top:28px;padding:26px;background:#111;color:#aeb4ba;text-align:center;font-size:11px;line-height:1.6}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.67);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.modal.open{display:flex}.dialog{width:min(650px,100%);background:#fff;border-radius:20px;overflow:hidden;position:relative;box-shadow:0 30px 90px rgba(0,0,0,.35)}
+.datebar{background:var(--yellow);padding:12px 22px;font-size:12px;font-weight:950;letter-spacing:.8px;text-transform:uppercase}.close{position:absolute;right:12px;top:8px;border:0;width:34px;height:34px;border-radius:50%;background:#fff;font-size:20px;cursor:pointer}
+.modalGrid{display:grid;grid-template-columns:220px 1fr}.modalVisual{min-height:270px;background:linear-gradient(145deg,#f0f2f4,#dfe3e6);display:flex;align-items:center;justify-content:center;font-size:90px}.modalBody{padding:28px}.modalDept{font-size:10px;color:var(--blue);font-weight:950;letter-spacing:1px;text-transform:uppercase}.modalTitle{font-size:28px;font-weight:950;line-height:1.05;margin:8px 0}.modalText{font-size:13px;color:var(--muted);line-height:1.55}.modalPrice{font-size:34px;font-weight:950;margin:16px 0}.actions{display:flex;gap:9px;flex-wrap:wrap}.btn{border:0;border-radius:9px;padding:12px 14px;font-weight:900;font-size:12px;cursor:pointer}.dark{background:#111;color:#fff}.yellow{background:var(--yellow);color:#111}
+@media(max-width:700px){.builder{margin:0;padding:0}.panel{border-radius:0;margin:0}.mail{border-radius:0}.topHeroGrid{grid-template-columns:1fr}.topHero{padding:24px 18px}.topHero h1{font-size:33px}.heroVisual{height:165px}.content{padding:24px 14px}.grid{grid-template-columns:repeat(2,1fr)}.card.span3{grid-column:span 2}.card.span4{grid-column:span 2;grid-row:span 1;display:grid;grid-template-columns:1fr 1fr}.span4 .visual{min-height:180px}.modalGrid{grid-template-columns:1fr}.modalVisual{min-height:165px}.modalBody{padding:22px}}
 </style>
 </head>
 <body>
-<div class="shell"><div class="mail">
-<div class="header"><div class="headrow">
-<img class="logo" src="https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg" alt="Emigro">
-<div class="issue"><b>WEEKLY DEALS</b><span id="headerDates"></span></div>
-</div></div>
-<div class="ribbon" id="ribbon">DEZE WEEK • HERO • NIEUW • ACTIE • OP = OP</div>
+<div class="builder">
+  <div class="panel">
+    <div class="panelTop">
+      <div><div class="panelTitle">EMIGRO MAILING PANEL</div><div class="panelSub">Kare ürün yapısı korunur; adet ve büyük blok düzeni kategori bazında değişir.</div></div>
+    </div>
+    <div class="controls">
+      <div class="control"><label>Afdeling</label><select id="categorySelect"></select></div>
+      <div class="control"><label>Producten</label><select id="countSelect"></select></div>
+      <div class="control"><label>Uitgelicht blok</label>
+        <select id="featureSelect">
+          <option value="none">Geen groot blok</option>
+          <option value="2">2 kare yatay</option>
+          <option value="3">3 kare yatay</option>
+          <option value="4">2 x 2 büyük blok</option>
+        </select>
+      </div>
+      <div class="control"><label>Week Hero</label>
+        <select id="topHeroSelect"><option value="on">Tonen</option><option value="off">Verbergen</option></select>
+      </div>
+    </div>
+  </div>
 
-<section class="hero"><div class="heroInner">
-<div>
-<div class="eyebrow">Hero van de week</div>
-<h1 id="heroName"></h1><p id="heroDesc"></p>
-<div class="heroPrice" id="heroPrice"></div><div class="heroMeta">excl. btw • zolang de voorraad strekt</div>
-<a class="heroCta" id="heroLink" href="#" target="_blank" rel="noopener">Bekijk product →</a>
-</div>
-<div class="heroVisual" id="heroIcon"></div>
-</div></section>
+  <div class="mail">
+    <div class="header">
+      <img class="logo" src="https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg" alt="Emigro">
+      <div class="issue"><b>WEEKLY DEALS</b><span id="headerDates"></span></div>
+    </div>
+    <div class="ribbon">DEZE WEEK • HERO • NIEUW • ACTIE • OP = OP</div>
 
-<main id="content"></main>
-<footer class="footer">Emigro Weekly Deals • prijzen en beschikbaarheid kunnen wijzigen • OP = OP</footer>
-</div></div>
+    <section class="topHero" id="topHero">
+      <div class="topHeroGrid">
+        <div>
+          <div class="eyebrow">Hero van de week</div>
+          <h1>Coca-Cola Original Taste 24 x 330 ml</h1>
+          <p>De wekelijkse blikvanger: sterke rotatie, herkenbaar merk en direct inzetbaar voor retail, horeca en convenience.</p>
+          <div class="heroPrice">€ 18,95</div>
+        </div>
+        <div class="heroVisual">🥤</div>
+      </div>
+    </section>
 
-<div class="modal" id="modal" aria-hidden="true">
-<div class="dialog">
-<div class="datebar" id="modalDates"></div>
-<button class="close" id="closeBtn" aria-label="Sluiten">×</button>
-<div class="modalGrid">
-<div class="modalVisual" id="modalIcon"></div>
-<div class="modalBody">
-<div class="modalDept" id="modalDept"></div>
-<div class="modalTitle" id="modalTitle"></div>
-<div class="modalText" id="modalText"></div>
-<div class="modalPrice" id="modalPrice"></div>
-<div class="actions">
-<button class="btn dark" id="modalClose2">Sluiten</button>
-<a class="btn yellow" id="modalLink" href="#" target="_blank" rel="noopener">Naar productpagina →</a>
+    <main class="content" id="content"></main>
+    <footer class="footer">Emigro Weekly Deals • prijzen en beschikbaarheid kunnen wijzigen • OP = OP</footer>
+  </div>
 </div>
-</div>
-</div>
-</div>
+
+<div class="modal" id="modal">
+  <div class="dialog">
+    <div class="datebar" id="modalDates"></div>
+    <button class="close" id="closeBtn">×</button>
+    <div class="modalGrid">
+      <div class="modalVisual" id="modalIcon"></div>
+      <div class="modalBody">
+        <div class="modalDept" id="modalDept"></div>
+        <div class="modalTitle" id="modalTitle"></div>
+        <div class="modalText" id="modalText"></div>
+        <div class="modalPrice" id="modalPrice"></div>
+        <div class="actions">
+          <button class="btn dark" id="modalClose2">Sluiten</button>
+          <a class="btn yellow" id="modalLink" href="https://mfatihdumluu-eng.github.io/emigro-catalog/" target="_blank" rel="noopener">Naar productpagina →</a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
 const campaign={from:"5 oktober 2026",to:"11 oktober 2026"};
 const dateText=campaign.from+" t/m "+campaign.to;
-document.getElementById("headerDates").textContent=dateText;
-document.getElementById("modalDates").textContent="Geldig: "+dateText;
-
-const baseLink="https://mfatihdumluu-eng.github.io/emigro-catalog/";
-const hero={name:"Coca-Cola Original Taste 24 x 330 ml",desc:"De wekelijkse blikvanger: sterke rotatie, herkenbaar merk en direct inzetbaar voor retail, horeca en convenience.",price:"€ 18,95",icon:"🥤",link:baseLink};
+headerDates.textContent=dateText; modalDates.textContent="Geldig: "+dateText;
 
 const groups=[
-{label:"Dranken",products:[
-["Coca-Cola Zero 24-pack","Sterke hardloper voor elk koelschap.","€ 18,49","🥤"],["Fanta Orange 24-pack","Fris en herkenbaar, ideaal voor retail.","€ 16,95","🍊"],["Sprite 24-pack","Licht en verfrissend.","€ 16,49","🥤"],["Red Bull 24 x 250 ml","Populaire energydrank voor snelle omloop.","€ 28,95","⚡"],["Monster Energy 12-pack","Groot formaat en hoge zichtbaarheid.","€ 19,95","⚡"],["Lipton Ice Tea Peach","Verfrissende smaak, breed publiek.","€ 15,49","🧊"],["Spa Reine 24-pack","Mineraalwater voor dagelijks gebruik.","€ 10,95","💧"],["Chaudfontaine Sparkling","Bruisend mineraalwater.","€ 11,49","💦"],["Fernandes Green Punch","Sterke kleur en herkenbare smaak.","€ 17,95","🥤"],["Capri-Sun Orange 40-pack","Handig voor horeca en gezinnen.","€ 13,95","🧃"]]},
-{label:"Slagerij",products:[
-["Ribeye Premium","Mals rundvlees voor grill en horeca.","€ 14,90 / kg","🥩"],["Kipdijfilet","Sappig en veelzijdig.","€ 7,95 / kg","🍗"],["Kipfilet","Mager en breed inzetbaar.","€ 8,49 / kg","🍗"],["Rundergehakt","Dagverse basis voor vele gerechten.","€ 6,99 / kg","🥩"],["Lamskoteletten","Premium keuze voor grill en pan.","€ 12,95 / kg","🍖"],["Kalfsschnitzel","Mals en snel te bereiden.","€ 13,90 / kg","🥩"],["Sucadelappen","Ideaal voor slow cooking.","€ 10,95 / kg","🥩"],["Kippenvleugels","Sterke horeca- en grillfavoriet.","€ 5,95 / kg","🍗"],["Entrecote","Krachtige smaak en mooie presentatie.","€ 15,90 / kg","🥩"],["Lamsbout","Geschikt voor oven en catering.","€ 11,95 / kg","🍖"]]},
-{label:"AGF",products:[
-["Avocado Hass","Romig en direct verkoopklaar.","€ 8,95 / doos","🥑"],["Mango Ready to Eat","Rijp en aantrekkelijk gepresenteerd.","€ 1,79","🥭"],["Blauwe bessen","Premium fruit met snelle rotatie.","€ 2,49","🫐"],["Snackpaprika Mix","Kleurrijk en praktisch verpakt.","€ 3,95","🫑"],["Bananen Premium","Dagelijkse hardloper.","€ 1,49 / kg","🍌"],["Aardbeien","Vers en seizoensgericht.","€ 2,95","🍓"],["Tomaten Roma","Veelzijdig voor keuken en retail.","€ 2,25 / kg","🍅"],["Komkommer","Fris en breed inzetbaar.","€ 0,89","🥒"],["Citroenen","Voor keuken, drank en presentatie.","€ 2,49 / net","🍋"],["Druiven wit","Zoet, fris en verkoopklaar.","€ 2,79","🍇"]]},
-{label:"Zuivel",products:[
-["Volle Melk 12 x 1L","Betrouwbare basis voor grootverbruik.","€ 13,95","🥛"],["Halfvolle Melk 12 x 1L","Veelgevraagde dagelijkse keuze.","€ 12,95","🥛"],["Griekse Yoghurt","Romig en veelzijdig.","€ 3,29","🥣"],["Mozzarella Horeca Pack","Handig voor pizza en salades.","€ 8,49","🧀"],["Gouda Jong","Klassieke Nederlandse kaas.","€ 7,95","🧀"],["Roomboter 250 g","Voor bakken, koken en brood.","€ 1,99","🧈"],["Kookroom 1L","Praktisch formaat voor horeca.","€ 3,95","🥛"],["Crème Fraîche","Voor saus, topping en keuken.","€ 2,29","🥣"],["Feta Blok","Sterke smaak en veelzijdig gebruik.","€ 6,95","🧀"],["Ayran 1L","Populaire gekoelde drank.","€ 1,49","🥛"]]},
-{label:"Diepvries",products:[
-["Premium Friet 10 mm","Krokant resultaat en constante kwaliteit.","€ 17,50 / doos","🍟"],["Chicken Strips","Snel te bereiden en breed inzetbaar.","€ 22,95","🍗"],["Mini Pide Mix","Handig voor snack en horeca.","€ 19,95","🥙"],["Pizza Margherita Box","Klassieker voor snelle service.","€ 18,95","🍕"],["Kroketten Horeca","Bekende snack voor frituur en kantine.","€ 21,50","🥟"],["Kaassoufflés","Populaire vegetarische snack.","€ 18,49","🧀"],["Falafel","Veelzijdige vegetarische keuze.","€ 14,95","🧆"],["Spinazie Blokjes","Praktisch en voordelig.","€ 8,95","🥬"],["Frambozen diepvries","Voor smoothies en patisserie.","€ 9,49","🫐"],["Baklava Assorti","Dessertassortiment uit de vriezer.","€ 24,95","🍰"]]},
-{label:"Non-food",products:[
-["Keukenrol Professional","Sterk absorberend voor dagelijks gebruik.","€ 11,95","🧻"],["Aluminiumfolie 150 m","Grootverpakking voor professionele keukens.","€ 8,95","📦"],["Nitril Handschoenen","Comfortabel en praktisch verpakt.","€ 5,95","🧤"],["Vuilniszakken 120L","Extra stevig voor grootverbruik.","€ 10,95","🗑️"],["Vershoudfolie 300 m","Handig voor keuken en productie.","€ 9,49","📦"],["Papieren Bekers 250 ml","Praktisch voor koffie en events.","€ 4,95","🥤"],["Servetten 2-laags","Netjes voor horeca en catering.","€ 6,49","🧻"],["Afwasmiddel 5L","Groot formaat voor professioneel gebruik.","€ 7,95","🧴"],["Handzeep 5L","Voordelige navulverpakking.","€ 8,49","🧼"],["Take-away Bakjes 50 st.","Handig voor afhaal en bezorging.","€ 12,95","🥡"]]}
+{key:"dranken",label:"Dranken",items:[
+["Coca-Cola Zero 24-pack","Sterke hardloper voor elk koelschap.","€ 18,49","🥤"],["Fanta Orange 24-pack","Fris en herkenbaar, ideaal voor retail.","€ 16,95","🍊"],["Sprite 24-pack","Licht en verfrissend.","€ 16,49","🥤"],["Red Bull 24 x 250 ml","Populaire energydrank voor snelle omloop.","€ 28,95","⚡"],["Monster Energy 12-pack","Groot formaat en hoge zichtbaarheid.","€ 19,95","⚡"],["Lipton Ice Tea Peach","Verfrissende smaak, breed publiek.","€ 15,49","🧊"],["Spa Reine 24-pack","Mineraalwater voor dagelijks gebruik.","€ 10,95","💧"],["Chaudfontaine Sparkling","Bruisend mineraalwater.","€ 11,49","💦"],["Fernandes Green Punch","Sterke kleur en herkenbare smaak.","€ 17,95","🥤"],["Capri-Sun Orange 40-pack","Handig voor horeca en gezinnen.","€ 13,95","🧃"],["Pepsi Max 24-pack","Suikervrije cola voor snelle rotatie.","€ 15,95","🥤"],["AA Drink 24-pack","Sportdrank voor retail en convenience.","€ 17,49","⚡"]]},
+{key:"slagerij",label:"Slagerij",items:[
+["Ribeye Premium","Mals rundvlees voor grill en horeca.","€ 14,90 / kg","🥩"],["Kipdijfilet","Sappig en veelzijdig.","€ 7,95 / kg","🍗"],["Kipfilet","Mager en breed inzetbaar.","€ 8,49 / kg","🍗"],["Rundergehakt","Dagverse basis voor vele gerechten.","€ 6,99 / kg","🥩"],["Lamskoteletten","Premium keuze voor grill en pan.","€ 12,95 / kg","🍖"],["Kalfsschnitzel","Mals en snel te bereiden.","€ 13,90 / kg","🥩"],["Sucadelappen","Ideaal voor slow cooking.","€ 10,95 / kg","🥩"],["Kippenvleugels","Sterke horeca- en grillfavoriet.","€ 5,95 / kg","🍗"],["Entrecote","Krachtige smaak en mooie presentatie.","€ 15,90 / kg","🥩"],["Lamsbout","Geschikt voor oven en catering.","€ 11,95 / kg","🍖"],["Kipgehakt","Licht en veelzijdig.","€ 6,49 / kg","🍗"],["Runderlappen","Voor stoof en keuken.","€ 9,95 / kg","🥩"]]},
+{key:"agf",label:"AGF",items:[
+["Avocado Hass","Romig en direct verkoopklaar.","€ 8,95 / doos","🥑"],["Mango Ready to Eat","Rijp en aantrekkelijk gepresenteerd.","€ 1,79","🥭"],["Blauwe bessen","Premium fruit met snelle rotatie.","€ 2,49","🫐"],["Snackpaprika Mix","Kleurrijk en praktisch verpakt.","€ 3,95","🫑"],["Bananen Premium","Dagelijkse hardloper.","€ 1,49 / kg","🍌"],["Aardbeien","Vers en seizoensgericht.","€ 2,95","🍓"],["Tomaten Roma","Veelzijdig voor keuken en retail.","€ 2,25 / kg","🍅"],["Komkommer","Fris en breed inzetbaar.","€ 0,89","🥒"],["Citroenen","Voor keuken, drank en presentatie.","€ 2,49 / net","🍋"],["Druiven wit","Zoet, fris en verkoopklaar.","€ 2,79","🍇"],["Courgette","Vers en veelzijdig.","€ 1,39","🥒"],["Sinaasappelen","Fris en sterk in presentatie.","€ 3,49 / net","🍊"]]},
+{key:"zuivel",label:"Zuivel",items:[
+["Volle Melk 12 x 1L","Betrouwbare basis voor grootverbruik.","€ 13,95","🥛"],["Halfvolle Melk 12 x 1L","Veelgevraagde dagelijkse keuze.","€ 12,95","🥛"],["Griekse Yoghurt","Romig en veelzijdig.","€ 3,29","🥣"],["Mozzarella Horeca Pack","Handig voor pizza en salades.","€ 8,49","🧀"],["Gouda Jong","Klassieke Nederlandse kaas.","€ 7,95","🧀"],["Roomboter 250 g","Voor bakken, koken en brood.","€ 1,99","🧈"],["Kookroom 1L","Praktisch formaat voor horeca.","€ 3,95","🥛"],["Crème Fraîche","Voor saus, topping en keuken.","€ 2,29","🥣"],["Feta Blok","Sterke smaak en veelzijdig gebruik.","€ 6,95","🧀"],["Ayran 1L","Populaire gekoelde drank.","€ 1,49","🥛"],["Cheddar Plakken","Ideaal voor burgers en horeca.","€ 6,49","🧀"],["Mascarpone","Voor dessert en keuken.","€ 3,69","🥣"]]},
+{key:"diepvries",label:"Diepvries",items:[
+["Premium Friet 10 mm","Krokant resultaat en constante kwaliteit.","€ 17,50 / doos","🍟"],["Chicken Strips","Snel te bereiden en breed inzetbaar.","€ 22,95","🍗"],["Mini Pide Mix","Handig voor snack en horeca.","€ 19,95","🥙"],["Pizza Margherita Box","Klassieker voor snelle service.","€ 18,95","🍕"],["Kroketten Horeca","Bekende snack voor frituur en kantine.","€ 21,50","🥟"],["Kaassoufflés","Populaire vegetarische snack.","€ 18,49","🧀"],["Falafel","Veelzijdige vegetarische keuze.","€ 14,95","🧆"],["Spinazie Blokjes","Praktisch en voordelig.","€ 8,95","🥬"],["Frambozen diepvries","Voor smoothies en patisserie.","€ 9,49","🫐"],["Baklava Assorti","Dessertassortiment uit de vriezer.","€ 24,95","🍰"],["Nuggets Horeca","Snelle snackoplossing.","€ 19,49","🍗"],["Onion Rings","Krokante bijgerechtfavoriet.","€ 12,95","🧅"]]},
+{key:"nonfood",label:"Non-food",items:[
+["Keukenrol Professional","Sterk absorberend voor dagelijks gebruik.","€ 11,95","🧻"],["Aluminiumfolie 150 m","Grootverpakking voor professionele keukens.","€ 8,95","📦"],["Nitril Handschoenen","Comfortabel en praktisch verpakt.","€ 5,95","🧤"],["Vuilniszakken 120L","Extra stevig voor grootverbruik.","€ 10,95","🗑️"],["Vershoudfolie 300 m","Handig voor keuken en productie.","€ 9,49","📦"],["Papieren Bekers 250 ml","Praktisch voor koffie en events.","€ 4,95","🥤"],["Servetten 2-laags","Netjes voor horeca en catering.","€ 6,49","🧻"],["Afwasmiddel 5L","Groot formaat voor professioneel gebruik.","€ 7,95","🧴"],["Handzeep 5L","Voordelige navulverpakking.","€ 8,49","🧼"],["Take-away Bakjes 50 st.","Handig voor afhaal en bezorging.","€ 12,95","🥡"],["Poetsrollen","Voor keuken en werkplaats.","€ 9,95","🧻"],["Koffiebekers 100 st.","Voor kantoor en horeca.","€ 5,49","☕"]]}
 ];
 
-heroName.textContent=hero.name;heroDesc.textContent=hero.desc;heroPrice.textContent=hero.price;heroIcon.textContent=hero.icon;heroLink.href=hero.link;
+const cfg={}; groups.forEach(g=>cfg[g.key]={count:8,feature:"none"});
+const categorySelect=document.getElementById("categorySelect"),countSelect=document.getElementById("countSelect"),featureSelect=document.getElementById("featureSelect");
+groups.forEach(g=>{const o=document.createElement("option");o.value=g.key;o.textContent=g.label;categorySelect.appendChild(o)});
+for(let i=1;i<=12;i++){const o=document.createElement("option");o.value=i;o.textContent=i+" ürün";countSelect.appendChild(o)}
+categorySelect.onchange=syncControls;countSelect.onchange=()=>{cfg[categorySelect.value].count=+countSelect.value;render()};featureSelect.onchange=()=>{cfg[categorySelect.value].feature=featureSelect.value;render()};
+topHeroSelect.onchange=()=>topHero.style.display=topHeroSelect.value==="on"?"block":"none";
+function syncControls(){const c=cfg[categorySelect.value];countSelect.value=c.count;featureSelect.value=c.feature}
+syncControls();
 
-const content=document.getElementById("content");
-groups.forEach(g=>{
- const sec=document.createElement("section");sec.className="section";
- sec.innerHTML='<div class="sectionHead"><div><div class="eyebrow" style="color:#2563eb">'+g.label+'</div><h2>'+g.label+'</h2></div><span>10 producten • klik voor details</span></div><div class="rows"></div>';
- const rows=sec.querySelector(".rows");
- g.products.forEach(p=>{
-  const row=document.createElement("div");row.className="row";
-  row.innerHTML='<div class="thumb">'+p[3]+'</div><div><div class="rowName">'+p[0]+'</div><div class="rowDesc">'+p[1]+'</div></div><div class="right"><div class="rowPrice">'+p[2]+'</div><div class="details">details →</div></div>';
-  row.onclick=()=>openModal(g.label,p);
-  rows.appendChild(row);
- });
- content.appendChild(sec);
-});
-
-const modal=document.getElementById("modal");
-function openModal(dept,p){
- modalDept.textContent=dept;modalTitle.textContent=p[0];modalText.textContent=p[1]+" Beschikbaarheid en actuele voorwaarden kunnen per moment verschillen.";
- modalPrice.textContent=p[2];modalIcon.textContent=p[3];modalLink.href=baseLink;modalDates.textContent="Geldig: "+dateText;
- modal.classList.add("open");modal.setAttribute("aria-hidden","false");
+function openModal(label,p){
+ modalDept.textContent=label;modalTitle.textContent=p[0];modalText.textContent=p[1]+" Beschikbaarheid en actuele voorwaarden kunnen per moment verschillen.";modalPrice.textContent=p[2];modalIcon.textContent=p[3];modalDates.textContent="Geldig: "+dateText;modal.classList.add("open")
 }
-function closeModal(){modal.classList.remove("open");modal.setAttribute("aria-hidden","true")}
-closeBtn.onclick=closeModal;modalClose2.onclick=closeModal;modal.onclick=e=>{if(e.target===modal)closeModal()};document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
+function closeModal(){modal.classList.remove("open")} closeBtn.onclick=closeModal;modalClose2.onclick=closeModal;modal.onclick=e=>{if(e.target===modal)closeModal()};
+
+function render(){
+ content.innerHTML="";
+ groups.forEach(g=>{
+   const sec=document.createElement("section");sec.className="section";
+   const c=cfg[g.key];sec.innerHTML='<div class="sectionHead"><div><div class="eyebrow" style="color:#2563eb">'+g.label+'</div><h2>'+g.label+'</h2></div><span>'+c.count+' producten</span></div><div class="grid"></div>';
+   const grid=sec.querySelector(".grid");
+   g.items.slice(0,c.count).forEach((p,idx)=>{
+     const card=document.createElement("article");let cls="card";
+     if(idx===0 && c.feature==="2") cls+=" span2";
+     if(idx===0 && c.feature==="3") cls+=" span3";
+     if(idx===0 && c.feature==="4") cls+=" span4";
+     card.className=cls;
+     card.innerHTML='<div class="visual"><span class="badge">'+(idx===0&&c.feature!=="none"?"HERO":"PRODUCT")+'</span><span>'+p[3]+'</span></div><div class="cardBody"><div><div class="name">'+p[0]+'</div><div class="desc">'+p[1]+'</div></div><div class="price">'+p[2]+'</div></div>';
+     card.onclick=()=>openModal(g.label,p);grid.appendChild(card)
+   });
+   content.appendChild(sec)
+ });
+}
+render();
 </script>
 </body>
 </html>
