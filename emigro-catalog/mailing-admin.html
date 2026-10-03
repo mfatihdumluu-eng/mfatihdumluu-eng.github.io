@@ -37,7 +37,7 @@
     <div class="sectionTitle">Genel Renkler</div>
     <div class="designGrid">
       <div class="field"><label>Sayfa arka planı</label><input id="pageBg" class="swatch" type="color"></div>
-      <div class="field"><label>Üst header</label><input id="headerColor" class="swatch" type="color"></div>
+      <div class="field"><label>Üst header</label><input id="headerColor" class="swatch" type="color"></div><div class="field"><label>WEEKLY DEALS yazı rengi</label><input id="headerTitleColor" class="swatch" type="color"></div><div class="field"><label>Tarih yazı rengi</label><input id="headerDateColor" class="swatch" type="color"></div><div class="field"><label>WEEKLY DEALS punto (px)</label><input id="headerTitleSize" type="number" min="8" max="32" step="1"></div><div class="field"><label>Tarih punto (px)</label><input id="headerDateSize" type="number" min="8" max="28" step="1"></div>
       <div class="field"><label>Üst şerit</label><input id="ribbonColor" class="swatch" type="color"></div>
       <div class="field"><label>Hero arka planı</label><input id="heroBg" class="swatch" type="color"></div>
       <div class="field"><label>Hero yazı rengi</label><input id="heroText" class="swatch" type="color"></div>
@@ -79,7 +79,7 @@
 const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-admin-auth",persistSession:true,autoRefreshToken:true}});
-const baseDesign={logoWidth:165,pageBg:"#f3f4f6",headerColor:"#ffffff",ribbonColor:"#eef1f5",heroBg:"#102348",heroText:"#ffffff",buttonColor:"#d71920",navBg:"#0d1c3b",cardBg:"#ffffff",accentColor:"#d71920",popupHeaderColor:"#d71920"};
+const baseDesign={logoWidth:165,pageBg:"#f3f4f6",headerColor:"#ffffff",headerTitleColor:"#102348",headerDateColor:"#8a94a3",headerTitleSize:12,headerDateSize:11,ribbonColor:"#eef1f5",heroBg:"#102348",heroText:"#ffffff",buttonColor:"#d71920",navBg:"#0d1c3b",cardBg:"#ffffff",accentColor:"#d71920",popupHeaderColor:"#d71920"};
 const fallback={design:baseDesign,logo:"https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg",dates:{from:"5 oktober 2026",to:"11 oktober 2026"},mail:{subject:"Emigro Weekly Deals",preheader:""},heroSlides:[{name:"Coca-Cola Original Taste 24 x 330 ml",desc:"De wekelijkse blikvanger.",oldPrice:"€ 21,95",newPrice:"€ 18,95",heroImage:"",targetType:"category",categoryKey:"dranken",externalLink:""}],groups:[{key:"dranken",label:"Dranken",feature:"4",cardColor:"",items:[]}]};
 let data=structuredClone(fallback),selected=0,adminUser=null,recipients=[];
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
@@ -113,7 +113,7 @@ function normalize(){
 }
 function bindTop(){
  logoPreview.src=data.logo||"";logoWidth.value=data.design.logoWidth;logoWidthNum.value=data.design.logoWidth;
- pageBg.value=data.design.pageBg;headerColor.value=data.design.headerColor;ribbonColor.value=data.design.ribbonColor;heroBg.value=data.design.heroBg;heroText.value=data.design.heroText;buttonColor.value=data.design.buttonColor;navBg.value=data.design.navBg;cardBg.value=data.design.cardBg;accentColor.value=data.design.accentColor;popupHeaderColor.value=data.design.popupHeaderColor||"#d71920";
+ pageBg.value=data.design.pageBg;headerColor.value=data.design.headerColor;headerTitleColor.value=data.design.headerTitleColor||"#102348";headerDateColor.value=data.design.headerDateColor||"#8a94a3";headerTitleSize.value=data.design.headerTitleSize||12;headerDateSize.value=data.design.headerDateSize||11;ribbonColor.value=data.design.ribbonColor;heroBg.value=data.design.heroBg;heroText.value=data.design.heroText;buttonColor.value=data.design.buttonColor;navBg.value=data.design.navBg;cardBg.value=data.design.cardBg;accentColor.value=data.design.accentColor;popupHeaderColor.value=data.design.popupHeaderColor||"#d71920";
  from.value=data.dates.from||"";to.value=data.dates.to||"";mailSubject.value=data.mail.subject||"";mailPreheader.value=data.mail.preheader||"";
  renderHeroSlides()
 }
@@ -154,7 +154,7 @@ addRecipient.onclick=async()=>{const em=recipientEmail.value.trim();if(!em)retur
 window.toggleRecipient=async(id,active)=>{await sb.from("emigro_mailing_recipients").update({active}).eq("id",id);await loadRecipients()};window.deleteRecipient=async id=>{if(!confirm("Adres silinsin mi?"))return;await sb.from("emigro_mailing_recipients").delete().eq("id",id);await loadRecipients()};
 
 async function persist(){
- data.design={logoWidth:+logoWidthNum.value||136,pageBg:pageBg.value,headerColor:headerColor.value,ribbonColor:ribbonColor.value,heroBg:heroBg.value,heroText:heroText.value,buttonColor:buttonColor.value,navBg:navBg.value,cardBg:cardBg.value,accentColor:accentColor.value,popupHeaderColor:popupHeaderColor.value};
+ data.design={logoWidth:+logoWidthNum.value||136,pageBg:pageBg.value,headerColor:headerColor.value,headerTitleColor:headerTitleColor.value,headerDateColor:headerDateColor.value,headerTitleSize:+headerTitleSize.value||12,headerDateSize:+headerDateSize.value||11,ribbonColor:ribbonColor.value,heroBg:heroBg.value,heroText:heroText.value,buttonColor:buttonColor.value,navBg:navBg.value,cardBg:cardBg.value,accentColor:accentColor.value,popupHeaderColor:popupHeaderColor.value};
  data.dates={from:from.value,to:to.value};data.mail={subject:mailSubject.value.trim()||"Emigro Weekly Deals",preheader:mailPreheader.value.trim()};
  const {error}=await sb.from("emigro_mailing_state").upsert({id:"main",data,updated_by:adminUser.id,updated_at:new Date().toISOString()});if(error)throw error
 }
