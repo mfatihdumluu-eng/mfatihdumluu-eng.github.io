@@ -22,7 +22,7 @@
 </div>
 
 <div id="app" class="wrap hidden">
-  <div class="box"><div class="actions" style="justify-content:space-between;align-items:center"><div><h1>Emigro Mailing Yönetim Paneli</h1><div class="sub">Kategori, ürün, logo, renk, fiyat, link ve görselleri buradan yönetebilirsin.</div></div><button id="logout" class="btn ghost">Çıkış</button></div></div>
+  <div class="box"><div class="actions" style="justify-content:space-between;align-items:center"><div><h1>Emigro Mailing Yönetim Paneli</h1><div class="sub">Kategori, ürün, logo, renk, fiyat, link, görsel ve mail gönderimini buradan yönetebilirsin.</div></div><div class="actions"><button id="loadDemo" class="btn yellow">⚡ 10 Kategorilik Demo Yükle</button><button id="logout" class="btn ghost">Çıkış</button></div></div></div>
 
   <div class="box"><h2>Genel Ayarlar</h2><div class="grid">
     <div class="field upload"><label>Logo yükle</label><input id="logoFile" type="file" accept="image/*"><img id="logoPreview" class="preview" alt=""></div>
@@ -45,6 +45,23 @@
     <div class="box"><div class="actions" style="justify-content:space-between;align-items:center"><div><h2>Ürünler</h2><div id="selectedText" class="sub">Bir kategori seç.</div></div><button id="addProduct" class="btn dark" disabled>+ Ürün Ekle</button></div><div id="categorySettings"></div><div id="products"></div></div>
   </div>
 
+  <div class="box">
+    <h2>Mail Gönderimi</h2>
+    <div class="sub">Bu bölüm web mailinginin e-posta sürümünü test adresine veya tüm aktif mailing listesine gönderir.</div>
+    <div class="grid" style="margin-top:12px">
+      <div class="field"><label>Mail konusu</label><input id="mailSubject" placeholder="Emigro Weekly Deals"></div>
+      <div class="field"><label>Önizleme metni</label><input id="mailPreheader" placeholder="Bu haftanın fırsatlarını keşfedin"></div>
+      <div class="field"><label>Test e-posta adresi</label><input id="testEmail" type="email" placeholder="test@example.com"></div>
+      <div class="field"><label>Mailing listesine adres ekle</label><div class="actions"><input id="recipientEmail" type="email" placeholder="musteri@example.com" style="flex:1"><button id="addRecipient" class="btn yellow">Ekle</button></div></div>
+    </div>
+    <div id="recipientList" style="margin-top:14px"></div>
+    <div class="actions" style="margin-top:14px">
+      <button id="sendTest" class="btn ghost">Test Maili Gönder</button>
+      <button id="sendAll" class="btn yellow">Tüm Aktif Listeye Gönder</button>
+      <span id="mailMsg" class="status"></span>
+    </div>
+  </div>
+
   <div class="box"><div class="actions"><button id="save" class="btn dark">DB'ye Kaydet</button><a href="./mailing.html" target="_blank" class="btn yellow">Mailing'i Aç</a><span id="saveMsg" class="status"></span></div></div>
 </div>
 
@@ -53,17 +70,87 @@ const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-admin-auth",persistSession:true,autoRefreshToken:true}});
 const fallback={colors:{primary:"#ffd400",dark:"#111315"},logo:"https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg",dates:{from:"5 oktober 2026",to:"11 oktober 2026"},hero:{name:"Coca-Cola Original Taste 24 x 330 ml",desc:"Een sterke blikvanger voor retail, horeca en convenience.",oldPrice:"€ 21,95",newPrice:"€ 18,95",link:"#",heroImage:"",images:[]},groups:[{key:"dranken",label:"Dranken",feature:"4",items:[]},{key:"slagerij",label:"Slagerij",feature:"2",items:[]},{key:"agf",label:"AGF",feature:"3",items:[]}]};
-let data=structuredClone(fallback),selected=0,adminUser=null;
+let data=structuredClone(fallback),selected=0,adminUser=null,recipients=[];
+
+const demoData={
+  colors:{primary:"#ffd400",dark:"#111315"},
+  logo:"https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg",
+  dates:{from:"5 oktober 2026",to:"11 oktober 2026"},
+  mail:{subject:"Emigro Weekly Deals",preheader:"Deze week: nieuwe producten, scherpe acties en hero deals."},
+  hero:{name:"Coca-Cola Original Taste 24 x 330 ml",desc:"De wekelijkse blikvanger voor retail, horeca en convenience.",oldPrice:"€ 21,95",newPrice:"€ 18,95",link:"#",heroImage:"",images:[]},
+  groups:[
+    {key:"dranken",label:"Dranken",feature:"4",items:[
+      {name:"Coca-Cola Zero 24-pack",desc:"Sterke hardloper voor elk koelschap.",oldPrice:"€ 20,49",newPrice:"€ 18,49",link:"#",heroImage:"",images:[]},
+      {name:"Fanta Orange 24-pack",desc:"Fris en herkenbaar.",oldPrice:"€ 18,95",newPrice:"€ 16,95",link:"#",heroImage:"",images:[]},
+      {name:"Red Bull 24 x 250 ml",desc:"Populaire energydrank.",oldPrice:"€ 31,95",newPrice:"€ 28,95",link:"#",heroImage:"",images:[]},
+      {name:"Lipton Ice Tea Peach",desc:"Verfrissende smaak.",oldPrice:"€ 17,49",newPrice:"€ 15,49",link:"#",heroImage:"",images:[]}
+    ]},
+    {key:"slagerij",label:"Slagerij",feature:"2",items:[
+      {name:"Ribeye Premium",desc:"Mals rundvlees voor grill en horeca.",oldPrice:"€ 16,90 / kg",newPrice:"€ 14,90 / kg",link:"#",heroImage:"",images:[]},
+      {name:"Kipdijfilet",desc:"Sappig en veelzijdig.",oldPrice:"€ 8,95 / kg",newPrice:"€ 7,95 / kg",link:"#",heroImage:"",images:[]},
+      {name:"Rundergehakt",desc:"Dagverse basis.",oldPrice:"€ 7,99 / kg",newPrice:"€ 6,99 / kg",link:"#",heroImage:"",images:[]},
+      {name:"Lamskoteletten",desc:"Premium keuze.",oldPrice:"€ 14,95 / kg",newPrice:"€ 12,95 / kg",link:"#",heroImage:"",images:[]}
+    ]},
+    {key:"agf",label:"AGF",feature:"3",items:[
+      {name:"Avocado Hass",desc:"Romig en direct verkoopklaar.",oldPrice:"€ 10,95",newPrice:"€ 8,95",link:"#",heroImage:"",images:[]},
+      {name:"Mango Ready to Eat",desc:"Rijp en aantrekkelijk.",oldPrice:"€ 2,49",newPrice:"€ 1,79",link:"#",heroImage:"",images:[]},
+      {name:"Aardbeien",desc:"Vers en seizoensgericht.",oldPrice:"€ 3,49",newPrice:"€ 2,95",link:"#",heroImage:"",images:[]},
+      {name:"Snackpaprika Mix",desc:"Kleurrijk en praktisch.",oldPrice:"€ 4,49",newPrice:"€ 3,95",link:"#",heroImage:"",images:[]}
+    ]},
+    {key:"zuivel",label:"Zuivel",feature:"none",items:[
+      {name:"Volle Melk 12 x 1L",desc:"Betrouwbare basis.",oldPrice:"€ 15,95",newPrice:"€ 13,95",link:"#",heroImage:"",images:[]},
+      {name:"Griekse Yoghurt",desc:"Romig en veelzijdig.",oldPrice:"€ 3,79",newPrice:"€ 3,29",link:"#",heroImage:"",images:[]},
+      {name:"Gouda Jong",desc:"Klassieke Nederlandse kaas.",oldPrice:"€ 8,95",newPrice:"€ 7,95",link:"#",heroImage:"",images:[]},
+      {name:"Roomboter 250 g",desc:"Voor bakken en koken.",oldPrice:"€ 2,69",newPrice:"€ 1,99",link:"#",heroImage:"",images:[]}
+    ]},
+    {key:"diepvries",label:"Diepvries",feature:"2",items:[
+      {name:"Premium Friet 10 mm",desc:"Krokant resultaat.",oldPrice:"€ 19,50",newPrice:"€ 17,50",link:"#",heroImage:"",images:[]},
+      {name:"Chicken Strips",desc:"Snel te bereiden.",oldPrice:"€ 24,95",newPrice:"€ 22,95",link:"#",heroImage:"",images:[]},
+      {name:"Pizza Margherita Box",desc:"Klassieker voor snelle service.",oldPrice:"€ 21,95",newPrice:"€ 18,95",link:"#",heroImage:"",images:[]},
+      {name:"Baklava Assorti",desc:"Dessertassortiment.",oldPrice:"€ 27,95",newPrice:"€ 24,95",link:"#",heroImage:"",images:[]}
+    ]},
+    {key:"bakkerij",label:"Bakkerij",feature:"none",items:[
+      {name:"Turks Brood",desc:"Dagvers assortiment.",oldPrice:"€ 1,59",newPrice:"€ 1,29",link:"#",heroImage:"",images:[]},
+      {name:"Mini Croissants",desc:"Ideaal voor ontbijt.",oldPrice:"€ 9,95",newPrice:"€ 8,49",link:"#",heroImage:"",images:[]},
+      {name:"Pita Brood 10-pack",desc:"Voor horeca en retail.",oldPrice:"€ 4,49",newPrice:"€ 3,79",link:"#",heroImage:"",images:[]},
+      {name:"Brioche Buns",desc:"Voor burgers en sandwiches.",oldPrice:"€ 6,95",newPrice:"€ 5,95",link:"#",heroImage:"",images:[]}
+    ]},
+    {key:"snacks",label:"Snacks",feature:"2",items:[
+      {name:"Doritos Nacho Cheese",desc:"Sterke snackfavoriet.",oldPrice:"€ 2,39",newPrice:"€ 1,89",link:"#",heroImage:"",images:[]},
+      {name:"Lays Naturel",desc:"Klassieke chips.",oldPrice:"€ 2,29",newPrice:"€ 1,79",link:"#",heroImage:"",images:[]},
+      {name:"M&M Peanut",desc:"Populaire chocolade snack.",oldPrice:"€ 3,49",newPrice:"€ 2,99",link:"#",heroImage:"",images:[]},
+      {name:"Pringles Original",desc:"Herkenbaar premium snackproduct.",oldPrice:"€ 2,99",newPrice:"€ 2,49",link:"#",heroImage:"",images:[]}
+    ]},
+    {key:"ontbijt",label:"Ontbijt",feature:"none",items:[
+      {name:"Nutella 750 g",desc:"Ontbijtfavoriet.",oldPrice:"€ 6,95",newPrice:"€ 5,95",link:"#",heroImage:"",images:[]},
+      {name:"Cornflakes 1 kg",desc:"Grootverpakking.",oldPrice:"€ 5,49",newPrice:"€ 4,49",link:"#",heroImage:"",images:[]},
+      {name:"Honing 500 g",desc:"Voor ontbijt en horeca.",oldPrice:"€ 4,95",newPrice:"€ 3,95",link:"#",heroImage:"",images:[]},
+      {name:"Aardbeienjam",desc:"Klassieke broodbelegkeuze.",oldPrice:"€ 3,29",newPrice:"€ 2,69",link:"#",heroImage:"",images:[]}
+    ]},
+    {key:"sauzen",label:"Sauzen & Kruiden",feature:"3",items:[
+      {name:"Mayonaise 5L",desc:"Horeca grootverpakking.",oldPrice:"€ 14,95",newPrice:"€ 12,95",link:"#",heroImage:"",images:[]},
+      {name:"Ketchup 5L",desc:"Voor keuken en fastfood.",oldPrice:"€ 12,95",newPrice:"€ 10,95",link:"#",heroImage:"",images:[]},
+      {name:"Knoflooksaus 1L",desc:"Populaire saus.",oldPrice:"€ 4,95",newPrice:"€ 3,95",link:"#",heroImage:"",images:[]},
+      {name:"Paprikapoeder 500 g",desc:"Voor professionele keuken.",oldPrice:"€ 6,95",newPrice:"€ 5,49",link:"#",heroImage:"",images:[]}
+    ]},
+    {key:"nonfood",label:"Non-food",feature:"none",items:[
+      {name:"Keukenrol Professional",desc:"Sterk absorberend.",oldPrice:"€ 13,95",newPrice:"€ 11,95",link:"#",heroImage:"",images:[]},
+      {name:"Aluminiumfolie 150 m",desc:"Grootverpakking.",oldPrice:"€ 9,95",newPrice:"€ 8,95",link:"#",heroImage:"",images:[]},
+      {name:"Nitril Handschoenen",desc:"Comfortabel en praktisch.",oldPrice:"€ 6,95",newPrice:"€ 5,95",link:"#",heroImage:"",images:[]},
+      {name:"Take-away Bakjes 50 st.",desc:"Voor afhaal en bezorging.",oldPrice:"€ 14,95",newPrice:"€ 12,95",link:"#",heroImage:"",images:[]}
+    ]}
+  ]
+};
 const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 
-async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session)return showLogin();const {data:p}=await sb.from("emigro_catalog_profiles").select("role").eq("id",session.user.id).single();if(p?.role!=="admin"){await sb.auth.signOut();return showLogin("Bu hesap admin değil.")}adminUser=session.user;$("login").classList.add("hidden");$("app").classList.remove("hidden");await loadState();}
+async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session)return showLogin();const {data:p}=await sb.from("emigro_catalog_profiles").select("role").eq("id",session.user.id).single();if(p?.role!=="admin"){await sb.auth.signOut();return showLogin("Bu hesap admin değil.")}adminUser=session.user;$("login").classList.add("hidden");$("app").classList.remove("hidden");await Promise.all([loadState(),loadRecipients()]);}
 function showLogin(msg=""){$("login").classList.remove("hidden");$("app").classList.add("hidden");$("loginMsg").textContent=msg}
 $("loginBtn").onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$("email").value,password:$("password").value});if(error)return showLogin(error.message);guard()};
 $("logout").onclick=async()=>{await sb.auth.signOut();showLogin()};
 
 async function loadState(){const {data:r}=await sb.from("emigro_mailing_state").select("data").eq("id","main").single();data=(r?.data&&Object.keys(r.data).length)?r.data:structuredClone(fallback);normalize();bindTop();render();}
-function normalize(){data.colors||={primary:"#ffd400",dark:"#111315"};data.dates||={from:"",to:""};data.hero||=structuredClone(fallback.hero);data.hero.images||=[];data.groups||=[];data.groups.forEach((g,i)=>{g.key||=("cat"+i);g.items||=[];g.feature||="none";g.items.forEach(p=>p.images||=[])});}
-function bindTop(){logoPreview.src=data.logo||"";primary.value=data.colors.primary;dark.value=data.colors.dark;from.value=data.dates.from;to.value=data.dates.to;hName.value=data.hero.name||"";hLink.value=data.hero.link||"";hOld.value=data.hero.oldPrice||"";hNew.value=data.hero.newPrice||"";hDesc.value=data.hero.desc||"";hHeroPreview.src=data.hero.heroImage||"";drawHeroGallery();}
+function normalize(){data.colors||={primary:"#ffd400",dark:"#111315"};data.dates||={from:"",to:""};data.mail||={subject:"Emigro Weekly Deals",preheader:""};data.hero||=structuredClone(fallback.hero);data.hero.images||=[];data.groups||=[];data.groups.forEach((g,i)=>{g.key||=("cat"+i);g.items||=[];g.feature||="none";g.items.forEach(p=>p.images||=[])});}
+function bindTop(){logoPreview.src=data.logo||"";primary.value=data.colors.primary;dark.value=data.colors.dark;from.value=data.dates.from;to.value=data.dates.to;hName.value=data.hero.name||"";hLink.value=data.hero.link||"";hOld.value=data.hero.oldPrice||"";hNew.value=data.hero.newPrice||"";hDesc.value=data.hero.desc||"";hHeroPreview.src=data.hero.heroImage||"";mailSubject.value=data.mail?.subject||"Emigro Weekly Deals";mailPreheader.value=data.mail?.preheader||"";drawHeroGallery();}
 function slug(s){return (s||"file").toLowerCase().replace(/[^a-z0-9._-]+/g,"-").replace(/-+/g,"-")}
 async function upload(file,folder){if(!file)return"";const path=folder+"/"+Date.now()+"-"+Math.random().toString(36).slice(2,8)+"-"+slug(file.name);const {error}=await sb.storage.from("emigro-mailing").upload(path,file,{cacheControl:"3600",upsert:false});if(error)throw error;return sb.storage.from("emigro-mailing").getPublicUrl(path).data.publicUrl}
 logoFile.onchange=async()=>{try{data.logo=await upload(logoFile.files[0],"branding");logoPreview.src=data.logo}catch(e){alert(e.message)}};
@@ -82,6 +169,18 @@ function productHtml(p,i){return '<div class="product" data-i="'+i+'"><div class
 function wireProducts(g){document.querySelectorAll(".product").forEach(el=>{const i=+el.dataset.i,p=g.items[i];el.querySelectorAll("[data-k]").forEach(inp=>inp.oninput=()=>p[inp.dataset.k]=inp.value);el.querySelector("[data-remove]").onclick=()=>{g.items.splice(i,1);renderProducts();renderCats()};el.querySelector("[data-hero-file]").onchange=async e=>{try{p.heroImage=await upload(e.target.files[0],"products/hero");renderProducts()}catch(err){alert(err.message)}};el.querySelector("[data-popup-file]").onchange=async e=>{try{for(const f of [...e.target.files])p.images.push(await upload(f,"products/popup"));renderProducts()}catch(err){alert(err.message)}};el.querySelectorAll("[data-imgdel]").forEach(b=>b.onclick=()=>{p.images.splice(+b.dataset.imgdel,1);renderProducts()})})}
 addProduct.onclick=()=>{const g=data.groups[selected];g.items.push({name:"Yeni ürün",desc:"",oldPrice:"",newPrice:"",link:"#",heroImage:"",images:[]});renderProducts();renderCats()};
 
-save.onclick=async()=>{data.colors={primary:primary.value,dark:dark.value};data.dates={from:from.value,to:to.value};data.hero={...data.hero,name:hName.value,link:hLink.value,oldPrice:hOld.value,newPrice:hNew.value,desc:hDesc.value};saveMsg.textContent="Kaydediliyor...";saveMsg.className="status";const {error}=await sb.from("emigro_mailing_state").upsert({id:"main",data,updated_by:adminUser.id,updated_at:new Date().toISOString()});if(error){saveMsg.textContent=error.message;saveMsg.className="status err"}else{saveMsg.textContent="Kaydedildi.";saveMsg.className="status ok"}};
+loadDemo.onclick=()=>{if(!confirm("10 kategorilik demo mevcut panel içeriğinin yerini alsın mı? DB'ye kaydetmek için ayrıca Kaydet'e basman gerekir."))return;data=structuredClone(demoData);selected=0;normalize();bindTop();render();saveMsg.textContent="Demo yüklendi. Henüz DB'ye kaydedilmedi.";saveMsg.className="status ok"};
+
+async function loadRecipients(){const {data:r,error}=await sb.from("emigro_mailing_recipients").select("*").order("created_at",{ascending:false});if(error){recipientList.innerHTML='<div class="status err">'+esc(error.message)+'</div>';return}recipients=r||[];renderRecipients()}
+function renderRecipients(){recipientList.innerHTML=recipients.length?'<div class="sub" style="margin-bottom:8px">Aktif mailing listesi: <b>'+recipients.filter(x=>x.active).length+'</b> / '+recipients.length+'</div>'+recipients.map(r=>'<div class="cat"><div><b>'+esc(r.email)+'</b><br><small>'+(r.active?"Aktif":"Pasif")+'</small></div><div class="actions"><button class="btn ghost" onclick="toggleRecipient(\''+r.id+'\','+(!r.active)+')">'+(r.active?"Pasif Yap":"Aktif Yap")+'</button><button class="btn danger" onclick="deleteRecipient(\''+r.id+'\')">Sil</button></div></div>').join(""):'<div class="sub">Mailing listesinde henüz adres yok.</div>'}
+addRecipient.onclick=async()=>{const email=recipientEmail.value.trim();if(!email)return;const {error}=await sb.from("emigro_mailing_recipients").insert({email,active:true});if(error){mailMsg.textContent=error.message;mailMsg.className="status err";return}recipientEmail.value="";await loadRecipients()};
+window.toggleRecipient=async(id,active)=>{await sb.from("emigro_mailing_recipients").update({active}).eq("id",id);await loadRecipients()};
+window.deleteRecipient=async(id)=>{if(!confirm("Adres silinsin mi?"))return;await sb.from("emigro_mailing_recipients").delete().eq("id",id);await loadRecipients()};
+
+async function persist(){data.colors={primary:primary.value,dark:dark.value};data.dates={from:from.value,to:to.value};data.mail={subject:mailSubject.value.trim()||"Emigro Weekly Deals",preheader:mailPreheader.value.trim()};data.hero={...data.hero,name:hName.value,link:hLink.value,oldPrice:hOld.value,newPrice:hNew.value,desc:hDesc.value};const {error}=await sb.from("emigro_mailing_state").upsert({id:"main",data,updated_by:adminUser.id,updated_at:new Date().toISOString()});if(error)throw error}
+async function sendMail(mode){mailMsg.textContent="Hazırlanıyor...";mailMsg.className="status";try{await persist();const body={mode,subject:mailSubject.value.trim()||"Emigro Weekly Deals"};if(mode==="test"){body.test_email=testEmail.value.trim();if(!body.test_email)throw new Error("Test e-posta adresi gir.");}else{if(!confirm("Mailing tüm aktif listeye gönderilsin mi?"))return;}const {data:r,error}=await sb.functions.invoke("send-mailing-email",{body});if(error)throw error;if(!r?.ok)throw new Error(r?.error||"Gönderim başarısız");mailMsg.textContent=mode==="test"?"Test maili gönderildi.":r.sent+" / "+r.total+" adrese gönderildi.";mailMsg.className="status ok"}catch(e){mailMsg.textContent=e.message||String(e);mailMsg.className="status err"}}
+sendTest.onclick=()=>sendMail("test");sendAll.onclick=()=>sendMail("all");
+
+save.onclick=async()=>{saveMsg.textContent="Kaydediliyor...";saveMsg.className="status";try{await persist();saveMsg.textContent="Kaydedildi.";saveMsg.className="status ok"}catch(e){saveMsg.textContent=e.message||String(e);saveMsg.className="status err"}};
 guard();
 </script></body></html>
