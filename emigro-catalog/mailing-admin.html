@@ -25,7 +25,7 @@
 <div id="app" class="wrap hidden">
   <div class="stickySave"><div><b>Değişiklikleri yayınla</b><div class="sub">Tüm ayarlar DB’ye kaydedilir ve mailing’e anında yansır.</div></div><div class="actions"><button id="saveTop" class="btn yellow">DB’ye Kaydet</button><a href="./mailing.html" target="_blank" class="btn ghost">Önizleme</a><span id="saveTopMsg" class="status"></span></div></div>
 
-  <div class="box"><div class="actions" style="justify-content:space-between"><div><h1>Emigro Mailing Yönetim Paneli</h1><div class="sub">Tasarım, hero slide, kategori, ürün, görsel ve mail gönderimini buradan yönetebilirsin.</div></div><div class="actions"><button id="loadDemo" class="btn yellow">⚡ 10 Kategorilik Demo Yükle</button><button id="logout" class="btn ghost">Çıkış</button></div></div></div>
+  <div class="box"><div class="actions" style="justify-content:space-between"><div><h1>Emigro Mailing Yönetim Paneli</h1><div class="sub">Tasarım, hero slide, kategori, ürün, görsel ve mail gönderimini buradan yönetebilirsin. Final görünüm Emigro lacivert-kırmızı-beyaz paletine göre düzenlendi.</div></div><div class="actions"><button id="loadDemo" class="btn yellow">⚡ 10 Kategorilik Demo Yükle</button><button id="logout" class="btn ghost">Çıkış</button></div></div></div>
 
   <div class="box">
     <h2>Tasarım ve Genel Ayarlar</h2><div class="sub">Normal ürün kartları tek genel renk kullanır. İstersen kategori bazında bu rengi ezebilirsin.</div>
@@ -79,7 +79,7 @@
 const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-admin-auth",persistSession:true,autoRefreshToken:true}});
-const baseDesign={logoWidth:136,pageBg:"#edf0f2",headerColor:"#111315",ribbonColor:"#ffd400",heroBg:"#15191d",heroText:"#ffffff",buttonColor:"#ffd400",navBg:"#171a1d",cardBg:"#ffffff",accentColor:"#2563eb",popupHeaderColor:"#d71920"};
+const baseDesign={logoWidth:165,pageBg:"#f3f4f6",headerColor:"#ffffff",ribbonColor:"#eef1f5",heroBg:"#102348",heroText:"#ffffff",buttonColor:"#d71920",navBg:"#0d1c3b",cardBg:"#ffffff",accentColor:"#d71920",popupHeaderColor:"#d71920"};
 const fallback={design:baseDesign,logo:"https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg",dates:{from:"5 oktober 2026",to:"11 oktober 2026"},mail:{subject:"Emigro Weekly Deals",preheader:""},heroSlides:[{name:"Coca-Cola Original Taste 24 x 330 ml",desc:"De wekelijkse blikvanger.",oldPrice:"€ 21,95",newPrice:"€ 18,95",heroImage:"",targetType:"category",categoryKey:"dranken",externalLink:""}],groups:[{key:"dranken",label:"Dranken",feature:"4",cardColor:"",items:[]}]};
 let data=structuredClone(fallback),selected=0,adminUser=null,recipients=[];
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
