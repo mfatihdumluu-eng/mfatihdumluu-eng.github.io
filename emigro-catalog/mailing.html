@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Emigro Weekly Deals</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Emigro Weekly Deals</title>
 <style>
 :root{--page:#f3f4f6;--header:#ffffff;--header-title:#102348;--header-date:#8a94a3;--header-title-size:12px;--header-date-size:11px;--ribbon:#eef1f5;--hero:#102348;--hero-text:#fff;--button:#d71920;--nav:#0d1c3b;--card:#fff;--accent:#d71920;--popup-head:#d71920;--muted:#697386;--line:#e6e9ee;--logo-w:165px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--page);font-family:Arial,sans-serif}.shell{padding:24px 12px 50px}.mail{max-width:780px;margin:auto;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.13)}header{background:var(--header);color:#102348;padding:22px 28px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border-bottom:1px solid #e8ebef}.headerSpacer{min-width:0}.logo{width:var(--logo-w);max-height:96px;object-fit:contain;justify-self:center}.dates{font-size:var(--header-date-size);color:var(--header-date);text-align:right;line-height:1.45;justify-self:end}.dates b{display:block;color:var(--header-title);font-size:var(--header-title-size);letter-spacing:.9px}.ribbon{background:var(--ribbon);color:#102348;padding:11px 28px;font-size:11px;font-weight:950;letter-spacing:.75px;border-bottom:1px solid #dfe4ea}
@@ -12,7 +12,8 @@
 <body id="top"><div class="shell"><div class="mail"><header><div class="headerSpacer"></div><img id="logo" class="logo"><div class="dates"><b>WEEKLY DEALS</b><span id="headerDates"></span></div></header><div class="ribbon">DEZE WEEK • HERO • NIEUW • ACTIE • OP = OP</div><section id="heroWrap" class="heroWrap"></section><nav id="nav" class="nav"></nav><main id="content" class="content"></main><div class="footer">Emigro Weekly Deals • prijzen en beschikbaarheid kunnen wijzigen • OP = OP</div></div></div>
 <div id="modal" class="modal"><div class="dialog"><div id="modalDates" class="datebar"></div><button id="closeBtn" class="close">×</button><div class="modalGrid"><div id="modalVisual" class="modalVisual"></div><div class="modalBody"><div id="modalDept" class="modalDept"></div><div id="modalTitle" class="modalTitle"></div><div id="modalText" class="modalText"></div><div id="modalOld" class="old"></div><div id="modalNew" class="modalNew"></div><div id="dots" class="dots"></div><div class="actions"><button id="shareModal" class="btn dark" type="button">↗ Delen</button><a id="productLink" class="btn yellow" target="_blank">Naar productpagina →</a></div></div></div></div></div>
 <script>
-const sb=supabase.createClient("https://hroarfuwpfsqilsijwpp.supabase.co","sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo");
+const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
+const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const logo=document.getElementById("logo");
 const headerDates=document.getElementById("headerDates");
 const modalDates=document.getElementById("modalDates");
@@ -33,7 +34,27 @@ const productLink=document.getElementById("productLink");
 const baseDesign={logoWidth:165,pageBg:"#f3f4f6",headerColor:"#ffffff",headerTitleColor:"#102348",headerDateColor:"#8a94a3",headerTitleSize:12,headerDateSize:11,ribbonColor:"#eef1f5",heroBg:"#102348",heroText:"#ffffff",buttonColor:"#d71920",navBg:"#0d1c3b",cardBg:"#ffffff",accentColor:"#d71920",popupHeaderColor:"#d71920"};
 const fallback={design:baseDesign,logo:"https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg",dates:{from:"",to:""},heroSlides:[],groups:[]};
 const media=u=>u?'<img src="'+u+'" alt="">':'<div class="ph">🛒</div>';let data=fallback,imgs=[],ix=0,heroIx=0,heroTimer=null;
-async function init(){const {data:r}=await sb.from("emigro_mailing_state").select("data").eq("id","main").single();if(r?.data&&Object.keys(r.data).length)data=r.data;normalize();applyDesign();const dt=(data.dates?.from||"")+" t/m "+(data.dates?.to||"");headerDates.textContent=dt;modalDates.textContent="Geldig: "+dt;logo.src=data.logo||fallback.logo;render()}
+async function init(){
+  try{
+    const res=await fetch(SUPABASE_URL+"/rest/v1/emigro_mailing_state?id=eq.main&select=data",{
+      headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,Accept:"application/json"},
+      cache:"no-store"
+    });
+    if(!res.ok) throw new Error("DB "+res.status);
+    const rows=await res.json();
+    if(rows?.[0]?.data&&Object.keys(rows[0].data).length)data=rows[0].data;
+    normalize();
+    applyDesign();
+    const dt=(data.dates?.from||"")+" t/m "+(data.dates?.to||"");
+    headerDates.textContent=dt;
+    modalDates.textContent="Geldig: "+dt;
+    logo.src=data.logo||fallback.logo;
+    render();
+  }catch(err){
+    console.error("Mailing load failed",err);
+    content.innerHTML='<div style="padding:34px;text-align:center;color:#991b1b;font-weight:700">Mailing verisi yüklenemedi. Lütfen sayfayı yenileyin.</div>';
+  }
+}
 function normalize(){data.design={...baseDesign,...(data.design||{})};if(!data.heroSlides&&data.hero)data.heroSlides=[{name:data.hero.name||"",desc:data.hero.desc||"",oldPrice:data.hero.oldPrice||"",newPrice:data.hero.newPrice||"",heroImage:data.hero.heroImage||"",targetType:"external",categoryKey:"",externalLink:data.hero.link||""}];data.heroSlides||=[];data.groups||=[];data.groups.forEach(g=>{g.items||=[];g.feature||="none";g.cardColor=g.cardColor||""})}
 function applyDesign(){const d=data.design;document.documentElement.style.setProperty("--page",d.pageBg);document.documentElement.style.setProperty("--header",d.headerColor);document.documentElement.style.setProperty("--header-title",d.headerTitleColor||"#102348");document.documentElement.style.setProperty("--header-date",d.headerDateColor||"#8a94a3");document.documentElement.style.setProperty("--header-title-size",(d.headerTitleSize||12)+"px");document.documentElement.style.setProperty("--header-date-size",(d.headerDateSize||11)+"px");document.documentElement.style.setProperty("--ribbon",d.ribbonColor);document.documentElement.style.setProperty("--hero",d.heroBg);document.documentElement.style.setProperty("--hero-text",d.heroText);document.documentElement.style.setProperty("--button",d.buttonColor);document.documentElement.style.setProperty("--nav",d.navBg);document.documentElement.style.setProperty("--card",d.cardBg);document.documentElement.style.setProperty("--accent",d.accentColor);document.documentElement.style.setProperty("--popup-head",d.popupHeaderColor||"#d71920");document.documentElement.style.setProperty("--logo-w",(d.logoWidth||136)+"px")}
 function heroHref(h){if(h.targetType==="external"&&h.externalLink)return h.externalLink;if(h.categoryKey)return "#sec-"+h.categoryKey;return"#"}
