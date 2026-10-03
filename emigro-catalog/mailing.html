@@ -13,6 +13,24 @@
 <div id="modal" class="modal"><div class="dialog"><div id="modalDates" class="datebar"></div><button id="closeBtn" class="close">×</button><div class="modalGrid"><div id="modalVisual" class="modalVisual"></div><div class="modalBody"><div id="modalDept" class="modalDept"></div><div id="modalTitle" class="modalTitle"></div><div id="modalText" class="modalText"></div><div id="modalOld" class="old"></div><div id="modalNew" class="modalNew"></div><div id="dots" class="dots"></div><div class="actions"><button id="shareModal" class="btn dark" type="button">↗ Delen</button><a id="productLink" class="btn yellow" target="_blank">Naar productpagina →</a></div></div></div></div></div>
 <script>
 const sb=supabase.createClient("https://hroarfuwpfsqilsijwpp.supabase.co","sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo");
+const logo=document.getElementById("logo");
+const headerDates=document.getElementById("headerDates");
+const modalDates=document.getElementById("modalDates");
+const heroWrap=document.getElementById("heroWrap");
+const nav=document.getElementById("nav");
+const content=document.getElementById("content");
+const modal=document.getElementById("modal");
+const modalVisual=document.getElementById("modalVisual");
+const modalDept=document.getElementById("modalDept");
+const modalTitle=document.getElementById("modalTitle");
+const modalText=document.getElementById("modalText");
+const modalOld=document.getElementById("modalOld");
+const modalNew=document.getElementById("modalNew");
+const dots=document.getElementById("dots");
+const closeBtn=document.getElementById("closeBtn");
+const close2=document.getElementById("close2");
+const shareModal=document.getElementById("shareModal");
+const productLink=document.getElementById("productLink");
 const baseDesign={logoWidth:165,pageBg:"#f3f4f6",headerColor:"#ffffff",headerTitleColor:"#102348",headerDateColor:"#8a94a3",headerTitleSize:12,headerDateSize:11,ribbonColor:"#eef1f5",heroBg:"#102348",heroText:"#ffffff",buttonColor:"#d71920",navBg:"#0d1c3b",cardBg:"#ffffff",accentColor:"#d71920",popupHeaderColor:"#d71920"};
 const fallback={design:baseDesign,logo:"https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg",dates:{from:"",to:""},heroSlides:[],groups:[]};
 const media=u=>u?'<img src="'+u+'" alt="">':'<div class="ph">🛒</div>';let data=fallback,imgs=[],ix=0,heroIx=0,heroTimer=null;
