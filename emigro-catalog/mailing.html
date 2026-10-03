@@ -1,154 +1,153 @@
 <!doctype html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="x-apple-disable-message-reformatting">
-  <title>Emigro 15-daagse Mailing</title>
-  <style>
-    body{margin:0!important;padding:0!important;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827}
-    table{border-collapse:collapse}
-    img{border:0;display:block;max-width:100%;height:auto}
-    a{text-decoration:none}
-    .wrap{width:100%;background:#f3f4f6;padding:24px 0}
-    .container{width:100%;max-width:680px;background:#ffffff;margin:0 auto}
-    .px{padding-left:28px;padding-right:28px}
-    .hero-title{font-size:34px;line-height:1.08;font-weight:800;margin:0}
-    .section-title{font-size:24px;line-height:1.2;font-weight:800;margin:0}
-    .product-title{font-size:21px;line-height:1.25;font-weight:800;margin:0 0 8px}
-    .price{font-size:30px;font-weight:900;line-height:1}
-    .old-price{font-size:16px;color:#6b7280;text-decoration:line-through}
-    .btn{display:inline-block;background:#111827;color:#ffffff!important;padding:14px 22px;border-radius:8px;font-size:15px;font-weight:700}
-    .btn-accent{background:#e11d48}
-    .muted{color:#6b7280;font-size:14px;line-height:1.55}
-    .card{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
-    .ph{background:#eef0f3;text-align:center;color:#6b7280;font-weight:800;letter-spacing:.5px}
-    .hero-ph{height:330px;line-height:330px;font-size:28px}
-    .small-ph{height:210px;line-height:210px;font-size:18px}
-    .actie-ph{height:245px;line-height:245px;font-size:20px}
-    @media only screen and (max-width:620px){
-      .wrap{padding:0!important}
-      .container{max-width:100%!important}
-      .px{padding-left:18px!important;padding-right:18px!important}
-      .hero-title{font-size:28px!important}
-      .section-title{font-size:22px!important}
-      .stack{display:block!important;width:100%!important}
-      .stack-pad{padding-left:0!important;padding-right:0!important}
-      .mobile-gap{display:block!important;height:14px!important;width:100%!important}
-      .btn{display:block!important;text-align:center!important}
-      .hero-ph{height:240px!important;line-height:240px!important}
-      .small-ph,.actie-ph{height:200px!important;line-height:200px!important}
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<title>Emigro Deals</title>
+<style>
+body{margin:0;background:#eceff1;font-family:Arial,Helvetica,sans-serif;color:#171717}
+table{border-collapse:collapse} img{display:block;border:0;max-width:100%;height:auto} a{text-decoration:none}
+.shell{width:100%;padding:28px 0;background:#eceff1}
+.mail{width:100%;max-width:700px;margin:auto;background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.12)}
+.pad{padding-left:30px;padding-right:30px}
+.top{background:#171717;color:#fff}
+.kicker{font-size:12px;letter-spacing:1.8px;font-weight:800;text-transform:uppercase}
+.hero{background:linear-gradient(135deg,#161616 0%,#292929 70%,#353535 100%);color:#fff}
+.heroBox{padding:34px 30px 28px}
+.heroTitle{font-size:42px;line-height:1.02;font-weight:900;margin:10px 0 12px;letter-spacing:-1.2px}
+.heroCopy{font-size:16px;line-height:1.6;color:#d8d8d8;margin:0 0 20px}
+.badge{display:inline-block;background:#ffd500;color:#111;padding:8px 12px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:1px}
+.priceBig{font-size:44px;line-height:1;font-weight:900;margin:8px 0 4px}
+.priceNote{font-size:13px;color:#bdbdbd}
+.cta{display:inline-block;background:#ffd500;color:#111!important;padding:15px 22px;border-radius:10px;font-weight:900;font-size:15px}
+.ctaDark{background:#171717;color:#fff!important}
+.section{padding-top:30px;padding-bottom:30px}
+.sectionHead{font-size:27px;line-height:1.15;font-weight:900;margin:5px 0 8px}
+.sectionSub{font-size:14px;color:#6b7280;line-height:1.5}
+.card{border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;background:#fff}
+.imgph{background:linear-gradient(135deg,#f1f3f5,#d9dee3);color:#7a828a;text-align:center;font-weight:900;letter-spacing:.8px}
+.newimg{height:205px;line-height:205px}
+.actimg{height:245px;line-height:245px}
+.prodName{font-size:19px;line-height:1.25;font-weight:900;margin-bottom:8px}
+.prodPrice{font-size:25px;font-weight:900}
+.old{font-size:14px;color:#8b8b8b;text-decoration:line-through}
+.accentStrip{background:#ffd500;padding:11px 30px;font-size:12px;font-weight:900;letter-spacing:1.4px;color:#111}
+.deals{background:#f8fafc}
+.footer{background:#111;color:#bdbdbd;font-size:12px;line-height:1.6}
+.heroImg{height:310px;line-height:310px;background:radial-gradient(circle at 70% 40%,#494949,#1b1b1b 55%,#111);text-align:center;color:#9ca3af;font-size:22px;font-weight:900}
+.pill{display:inline-block;background:#fff2b2;color:#6b5200;padding:6px 9px;border-radius:999px;font-size:11px;font-weight:800}
+@media(max-width:620px){
+.shell{padding:0}.mail{border-radius:0}.pad,.heroBox{padding-left:18px!important;padding-right:18px!important}
+.stack{display:block!important;width:100%!important;padding:0!important}
+.gap{display:block!important;height:14px!important;width:100%!important}
+.heroTitle{font-size:34px!important}.heroImg{height:230px!important;line-height:230px!important}
+.cta{display:block!important;text-align:center!important}.newimg,.actimg{height:190px!important;line-height:190px!important}
+}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <table role="presentation" width="100%">
-      <tr><td align="center">
-        <table role="presentation" class="container" width="680">
-          <tr>
-            <td class="px" style="padding-top:22px;padding-bottom:18px;background:#111827;">
-              <table role="presentation" width="100%">
-                <tr>
-                  <td><img src="https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg" width="122" alt="Emigro" style="max-height:42px"></td>
-                  <td align="right" style="font-size:12px;color:#d1d5db;font-weight:700;">15-DAAGSE DEALS</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+<div class="shell">
+<table role="presentation" width="100%"><tr><td align="center">
+<table role="presentation" class="mail" width="700">
 
-          <tr><td class="ph hero-ph">HERO PRODUCT IMAGE</td></tr>
-          <tr>
-            <td class="px" style="padding-top:26px;padding-bottom:30px;">
-              <div style="font-size:13px;font-weight:800;letter-spacing:1.2px;color:#e11d48;margin-bottom:10px;">HERO PRODUCT</div>
-              <h1 class="hero-title">[Hero productnaam]</h1>
-              <p style="font-size:16px;line-height:1.6;color:#4b5563;margin:14px 0 18px;">[Korte krachtige omschrijving. Waarom moet de klant dit product nu bekijken?]</p>
-              <div class="price">€ [prijs]</div>
-              <div style="height:20px"></div>
-              <a class="btn btn-accent" href="./">Bekijk product</a>
-            </td>
-          </tr>
+<tr><td class="top pad" style="padding-top:22px;padding-bottom:18px">
+<table role="presentation" width="100%"><tr>
+<td><img src="https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg" width="128" alt="Emigro"></td>
+<td align="right"><span class="kicker">15-DAAGSE DEALS</span></td>
+</tr></table>
+</td></tr>
 
-          <tr>
-            <td class="px" style="padding-top:28px;padding-bottom:14px;background:#f9fafb;">
-              <div style="font-size:13px;font-weight:800;letter-spacing:1.1px;color:#2563eb;">NIEUW BINNEN</div>
-              <h2 class="section-title" style="margin-top:7px;">Nieuw in ons assortiment</h2>
-            </td>
-          </tr>
-          <tr>
-            <td class="px" style="padding-top:10px;padding-bottom:32px;background:#f9fafb;">
-              <table role="presentation" width="100%">
-                <tr>
-                  <td class="stack" width="50%" valign="top" style="padding-right:8px;">
-                    <table role="presentation" width="100%" class="card" style="background:#fff;">
-                      <tr><td class="ph small-ph">NIEUW 01</td></tr>
-                      <tr><td style="padding:18px;">
-                        <div class="product-title">[Nieuw product 1]</div>
-                        <div style="font-size:22px;font-weight:900;margin:10px 0 16px;">€ [prijs]</div>
-                        <a class="btn" href="./">Bekijk</a>
-                      </td></tr>
-                    </table>
-                  </td>
-                  <td class="mobile-gap" width="14"></td>
-                  <td class="stack" width="50%" valign="top" style="padding-left:8px;">
-                    <table role="presentation" width="100%" class="card" style="background:#fff;">
-                      <tr><td class="ph small-ph">NIEUW 02</td></tr>
-                      <tr><td style="padding:18px;">
-                        <div class="product-title">[Nieuw product 2]</div>
-                        <div style="font-size:22px;font-weight:900;margin:10px 0 16px;">€ [prijs]</div>
-                        <a class="btn" href="./">Bekijk</a>
-                      </td></tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+<tr><td class="accentStrip">NIEUW • SCHERP GEPRIJSD • OP = OP</td></tr>
 
-          <tr>
-            <td class="px" style="padding-top:30px;padding-bottom:14px;">
-              <div style="font-size:13px;font-weight:800;letter-spacing:1.1px;color:#d97706;">ACTIE</div>
-              <h2 class="section-title" style="margin-top:7px;">Tijdelijk extra voordelig</h2>
-            </td>
-          </tr>
-          <tr>
-            <td class="px" style="padding-bottom:30px;">
-              <table role="presentation" width="100%" class="card">
-                <tr>
-                  <td class="stack ph actie-ph" width="42%" valign="middle">ACTIE PRODUCT</td>
-                  <td class="stack" width="58%" valign="middle" style="padding:24px;">
-                    <div style="font-size:12px;font-weight:800;color:#d97706;margin-bottom:8px;">OP = OP</div>
-                    <div class="product-title">[Actie productnaam]</div>
-                    <div class="old-price">Van € [oude prijs]</div>
-                    <div class="price" style="margin:6px 0 18px;">NU € [actieprijs]</div>
-                    <a class="btn btn-accent" href="./">Profiteer nu</a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+<tr><td class="hero">
+<table role="presentation" width="100%"><tr>
+<td class="stack" width="54%" valign="middle">
+<div class="heroBox">
+<span class="badge">HERO PRODUCT</span>
+<div class="heroTitle">[Hero productnaam]</div>
+<p class="heroCopy">De blikvanger van deze editie. Sterk geprijsd, direct beschikbaar en geselecteerd voor onze zakelijke klanten.</p>
+<div class="priceBig">€ [prijs]</div>
+<div class="priceNote">excl. btw • zolang de voorraad strekt</div>
+<div style="height:22px"></div>
+<a class="cta" href="./">Bekijk de deal →</a>
+</div>
+</td>
+<td class="stack heroImg" width="46%" valign="middle">HERO IMAGE</td>
+</tr></table>
+</td></tr>
 
-          <tr>
-            <td class="px" align="center" style="padding-top:30px;padding-bottom:34px;background:#111827;">
-              <div style="font-size:26px;font-weight:900;color:#ffffff;margin-bottom:10px;">Bekijk alle deals</div>
-              <div style="font-size:14px;line-height:1.5;color:#d1d5db;margin-bottom:22px;">Nieuwe producten, scherpe acties en onze Hero Product selectie.</div>
-              <a class="btn btn-accent" href="./">Bekijk alle aanbiedingen</a>
-            </td>
-          </tr>
+<tr><td class="pad section deals">
+<div class="kicker" style="color:#2563eb">NIEUW BINNEN</div>
+<div class="sectionHead">Vers binnen. Meteen interessant.</div>
+<div class="sectionSub">Nieuwe producten die direct aandacht verdienen.</div>
+<div style="height:18px"></div>
 
-          <tr>
-            <td class="px" align="center" style="padding-top:22px;padding-bottom:26px;">
-              <div class="muted">
-                Je ontvangt deze e-mail omdat je klant bent van Emigro of je hebt aangemeld voor onze aanbiedingen.<br><br>
-                <a href="#" style="color:#6b7280;text-decoration:underline;">Afmelden</a>
-                &nbsp; | &nbsp;
-                <a href="./" style="color:#6b7280;text-decoration:underline;">Website</a>
-              </div>
-            </td>
-          </tr>
-        </table>
-      </td></tr>
-    </table>
-  </div>
+<table role="presentation" width="100%"><tr>
+<td class="stack" width="50%" valign="top" style="padding-right:8px">
+<table role="presentation" width="100%" class="card">
+<tr><td class="imgph newimg">NIEUW PRODUCT 01</td></tr>
+<tr><td style="padding:18px">
+<span class="pill">NIEUW</span>
+<div style="height:10px"></div>
+<div class="prodName">[Nieuw product 1]</div>
+<div class="prodPrice">€ [prijs]</div>
+<div style="height:14px"></div>
+<a class="cta ctaDark" href="./">Bekijk product</a>
+</td></tr>
+</table>
+</td>
+<td class="gap" width="14"></td>
+<td class="stack" width="50%" valign="top" style="padding-left:8px">
+<table role="presentation" width="100%" class="card">
+<tr><td class="imgph newimg">NIEUW PRODUCT 02</td></tr>
+<tr><td style="padding:18px">
+<span class="pill">NIEUW</span>
+<div style="height:10px"></div>
+<div class="prodName">[Nieuw product 2]</div>
+<div class="prodPrice">€ [prijs]</div>
+<div style="height:14px"></div>
+<a class="cta ctaDark" href="./">Bekijk product</a>
+</td></tr>
+</table>
+</td>
+</tr></table>
+</td></tr>
+
+<tr><td class="pad section">
+<div class="kicker" style="color:#c2410c">ACTIE</div>
+<div class="sectionHead">Pak deze prijs mee.</div>
+<div class="sectionSub">Tijdelijk voordeel voor snelle beslissers.</div>
+<div style="height:18px"></div>
+<table role="presentation" width="100%" class="card">
+<tr>
+<td class="stack imgph actimg" width="44%">ACTIE PRODUCT</td>
+<td class="stack" width="56%" valign="middle" style="padding:24px">
+<span class="badge" style="background:#ffedd5;color:#9a3412">OP = OP</span>
+<div style="height:12px"></div>
+<div class="prodName" style="font-size:23px">[Actie productnaam]</div>
+<div class="old">Van € [oude prijs]</div>
+<div class="priceBig" style="color:#d9480f;font-size:38px">NU € [actieprijs]</div>
+<div style="height:18px"></div>
+<a class="cta" href="./">Profiteer nu →</a>
+</td>
+</tr></table>
+</td></tr>
+
+<tr><td class="pad" style="padding-top:34px;padding-bottom:34px;background:#ffd500;text-align:center">
+<div style="font-size:30px;font-weight:900;letter-spacing:-.5px">Meer voordeel ontdekken?</div>
+<div style="font-size:15px;line-height:1.5;margin-top:8px;margin-bottom:20px">Bekijk het volledige aanbod en de nieuwste zakelijke deals.</div>
+<a class="cta ctaDark" href="./">Bekijk alle aanbiedingen</a>
+</td></tr>
+
+<tr><td class="pad footer" style="padding-top:24px;padding-bottom:24px;text-align:center">
+Je ontvangt deze e-mail omdat je klant bent van Emigro of je hebt aangemeld voor aanbiedingen.<br><br>
+<a href="#" style="color:#fff;text-decoration:underline">Afmelden</a> &nbsp;•&nbsp;
+<a href="./" style="color:#fff;text-decoration:underline">Website</a>
+</td></tr>
+
+</table>
+</td></tr></table>
+</div>
 </body>
 </html>
