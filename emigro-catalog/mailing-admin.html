@@ -5,182 +5,160 @@
 <title>Emigro Mailing Yönetim Paneli</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--y:#ffd400;--ink:#111315;--muted:#6f757b;--line:#dde1e5;--bg:#eef1f3}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:#111}.wrap{max-width:1180px;margin:24px auto;padding:0 16px}
+:root{--y:#ffd400;--ink:#111315;--muted:#6f757b;--line:#dfe3e7;--bg:#eef1f3}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:#111}.wrap{max-width:1200px;margin:20px auto;padding:0 16px}
 .box{background:#fff;border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 10px 30px rgba(0,0,0,.06)}h1,h2,h3{margin-top:0}.sub{font-size:12px;color:var(--muted);line-height:1.5}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.field label{display:block;font-size:11px;font-weight:850;color:#666;margin-bottom:5px}.field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff}.field textarea{min-height:72px}
-.btn{border:0;border-radius:10px;padding:11px 14px;font-weight:900;cursor:pointer}.dark{background:#111;color:#fff}.yellow{background:var(--y);color:#111}.ghost{background:#f1f3f5}.danger{background:#fee2e2;color:#991b1b}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.designGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.field label{display:block;font-size:11px;font-weight:850;color:#666;margin-bottom:5px}.field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff}.field textarea{min-height:72px}.swatch{height:42px;padding:4px!important}
+.btn{border:0;border-radius:10px;padding:11px 14px;font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}.dark{background:#111;color:#fff}.yellow{background:var(--y);color:#111}.ghost{background:#f1f3f5;color:#111}.danger{background:#fee2e2;color:#991b1b}.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stickySave{position:sticky;top:8px;z-index:100;background:#111;color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:14px;box-shadow:0 12px 30px rgba(0,0,0,.18);display:flex;justify-content:space-between;align-items:center;gap:10px}.stickySave .sub{color:#aeb4ba}
+.sectionTitle{font-size:12px;font-weight:950;letter-spacing:.8px;text-transform:uppercase;color:#333;margin:17px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--line)}
 .two{display:grid;grid-template-columns:.8fr 1.2fr;gap:16px}.categoryList{display:flex;flex-direction:column;gap:8px}.cat{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fafafa;display:flex;justify-content:space-between;gap:8px;align-items:center;cursor:pointer}.cat.active{background:#fff7cc;border-color:#111}.cat b{font-size:13px}.cat small{color:var(--muted)}
-.product{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px;background:#fafafa}.productHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.upload{border:1px dashed #bcc3c9;border-radius:10px;padding:12px;background:#fbfcfd}.preview{margin-top:8px;max-height:100px;max-width:180px;object-fit:contain;border-radius:8px;background:#f0f2f4}
+.product,.heroSlide{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px;background:#fafafa}.productHead,.slideHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.upload{border:1px dashed #bcc3c9;border-radius:10px;padding:12px;background:#fbfcfd}.preview{margin-top:8px;max-height:120px;max-width:220px;object-fit:contain;border-radius:8px;background:#f0f2f4}
 .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.imgCard{border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff}.imgCard img{width:100%;height:90px;object-fit:cover;border-radius:7px}.count{display:inline-block;background:#111;color:#fff;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900}
+.rangeRow{display:grid;grid-template-columns:1fr 95px;gap:8px;align-items:center}.checkRow{display:flex;gap:8px;align-items:center;margin-top:8px}.checkRow input{width:auto}
 .login{max-width:420px;margin:70px auto}.hidden{display:none!important}.status{font-size:12px;font-weight:700}.ok{color:#166534}.err{color:#991b1b}
-@media(max-width:800px){.grid,.two,.gallery{grid-template-columns:1fr}}
+@media(max-width:900px){.designGrid{grid-template-columns:1fr 1fr}}@media(max-width:800px){.grid,.two,.gallery,.designGrid{grid-template-columns:1fr}.stickySave{position:static}}
 </style></head>
 <body>
-<div id="login" class="wrap login">
-  <div class="box"><h2>Admin Girişi</h2><div class="field"><label>E-posta</label><input id="email" type="email"></div><div class="field" style="margin-top:10px"><label>Şifre</label><input id="password" type="password"></div><div class="actions" style="margin-top:12px"><button id="loginBtn" class="btn dark">Giriş Yap</button></div><div id="loginMsg" class="status"></div></div>
-</div>
+<div id="login" class="wrap login"><div class="box"><h2>Admin Girişi</h2><div class="field"><label>E-posta</label><input id="email" type="email"></div><div class="field" style="margin-top:10px"><label>Şifre</label><input id="password" type="password"></div><div class="actions" style="margin-top:12px"><button id="loginBtn" class="btn dark">Giriş Yap</button></div><div id="loginMsg" class="status"></div></div></div>
 
 <div id="app" class="wrap hidden">
-  <div class="box"><div class="actions" style="justify-content:space-between;align-items:center"><div><h1>Emigro Mailing Yönetim Paneli</h1><div class="sub">Kategori, ürün, logo, renk, fiyat, link, görsel ve mail gönderimini buradan yönetebilirsin.</div></div><div class="actions"><button id="loadDemo" class="btn yellow">⚡ 10 Kategorilik Demo Yükle</button><button id="logout" class="btn ghost">Çıkış</button></div></div></div>
+  <div class="stickySave"><div><b>Değişiklikleri yayınla</b><div class="sub">Tüm ayarlar DB’ye kaydedilir ve mailing’e anında yansır.</div></div><div class="actions"><button id="saveTop" class="btn yellow">DB’ye Kaydet</button><a href="./mailing.html" target="_blank" class="btn ghost">Önizleme</a><span id="saveTopMsg" class="status"></span></div></div>
 
-  <div class="box"><h2>Genel Ayarlar</h2><div class="grid">
-    <div class="field upload"><label>Logo yükle</label><input id="logoFile" type="file" accept="image/*"><img id="logoPreview" class="preview" alt=""></div>
-    <div class="field"><label>Ana renk</label><input id="primary" type="color"></div>
-    <div class="field"><label>Koyu renk</label><input id="dark" type="color"></div>
-    <div class="field"><label>Başlangıç tarihi</label><input id="from"></div>
-    <div class="field"><label>Bitiş tarihi</label><input id="to"></div>
-  </div></div>
+  <div class="box"><div class="actions" style="justify-content:space-between"><div><h1>Emigro Mailing Yönetim Paneli</h1><div class="sub">Tasarım, hero slide, kategori, ürün, görsel ve mail gönderimini buradan yönetebilirsin.</div></div><div class="actions"><button id="loadDemo" class="btn yellow">⚡ 10 Kategorilik Demo Yükle</button><button id="logout" class="btn ghost">Çıkış</button></div></div></div>
 
-  <div class="box"><h2>Haftanın Hero Ürünü</h2><div class="sub">Hero görseli büyük alan için ayrıdır; popup normal ürün görsellerini kullanır.</div><div class="grid">
-    <div class="field"><label>Ürün adı</label><input id="hName"></div><div class="field"><label>Ürün linki</label><input id="hLink"></div>
-    <div class="field"><label>Eski fiyat</label><input id="hOld"></div><div class="field"><label>Yeni fiyat</label><input id="hNew"></div>
-    <div class="field" style="grid-column:1/-1"><label>Açıklama</label><textarea id="hDesc"></textarea></div>
-    <div class="field upload"><label>Hero görseli yükle</label><input id="hHeroFile" type="file" accept="image/*"><img id="hHeroPreview" class="preview" alt=""></div>
-    <div class="field upload"><label>Popup görseli ekle <span id="hCount" class="count">0</span></label><input id="hPopupFile" type="file" accept="image/*" multiple><div id="hGallery" class="gallery"></div></div>
-  </div></div>
-
-  <div class="two">
-    <div class="box"><div class="actions" style="justify-content:space-between;align-items:center"><div><h2>Kategoriler</h2><div class="sub">Kategori ekle, seç, yeniden adlandır veya sil.</div></div><button id="addCategory" class="btn yellow">+ Kategori</button></div><div id="categories" class="categoryList"></div></div>
-    <div class="box"><div class="actions" style="justify-content:space-between;align-items:center"><div><h2>Ürünler</h2><div id="selectedText" class="sub">Bir kategori seç.</div></div><button id="addProduct" class="btn dark" disabled>+ Ürün Ekle</button></div><div id="categorySettings"></div><div id="products"></div></div>
+  <div class="box">
+    <h2>Tasarım ve Genel Ayarlar</h2><div class="sub">Normal ürün kartları tek genel renk kullanır. İstersen kategori bazında bu rengi ezebilirsin.</div>
+    <div class="sectionTitle">Logo</div>
+    <div class="grid">
+      <div class="field upload"><label>Logo yükle</label><input id="logoFile" type="file" accept="image/*"><img id="logoPreview" class="preview" alt=""></div>
+      <div class="field"><label>Logo genişliği (px)</label><div class="rangeRow"><input id="logoWidth" type="range" min="60" max="360" step="5"><input id="logoWidthNum" type="number" min="60" max="360" step="5"></div><div class="sub">60–360 px</div></div>
+    </div>
+    <div class="sectionTitle">Genel Renkler</div>
+    <div class="designGrid">
+      <div class="field"><label>Sayfa arka planı</label><input id="pageBg" class="swatch" type="color"></div>
+      <div class="field"><label>Üst header</label><input id="headerColor" class="swatch" type="color"></div>
+      <div class="field"><label>Üst şerit</label><input id="ribbonColor" class="swatch" type="color"></div>
+      <div class="field"><label>Hero arka planı</label><input id="heroBg" class="swatch" type="color"></div>
+      <div class="field"><label>Hero yazı rengi</label><input id="heroText" class="swatch" type="color"></div>
+      <div class="field"><label>Buton / vurgu</label><input id="buttonColor" class="swatch" type="color"></div>
+      <div class="field"><label>Kategori menüsü</label><input id="navBg" class="swatch" type="color"></div>
+      <div class="field"><label>Normal ürün kartı</label><input id="cardBg" class="swatch" type="color"></div>
+      <div class="field"><label>Kategori başlık vurgusu</label><input id="accentColor" class="swatch" type="color"></div>
+    </div>
+    <div class="sectionTitle">Kampanya Tarihi</div>
+    <div class="grid"><div class="field"><label>Başlangıç tarihi</label><input id="from"></div><div class="field"><label>Bitiş tarihi</label><input id="to"></div></div>
   </div>
 
   <div class="box">
-    <h2>Mail Gönderimi</h2>
-    <div class="sub">Bu bölüm web mailinginin e-posta sürümünü test adresine veya tüm aktif mailing listesine gönderir.</div>
-    <div class="grid" style="margin-top:12px">
-      <div class="field"><label>Mail konusu</label><input id="mailSubject" placeholder="Emigro Weekly Deals"></div>
-      <div class="field"><label>Önizleme metni</label><input id="mailPreheader" placeholder="Bu haftanın fırsatlarını keşfedin"></div>
-      <div class="field"><label>Test e-posta adresi</label><input id="testEmail" type="email" placeholder="test@example.com"></div>
-      <div class="field"><label>Mailing listesine adres ekle</label><div class="actions"><input id="recipientEmail" type="email" placeholder="musteri@example.com" style="flex:1"><button id="addRecipient" class="btn yellow">Ekle</button></div></div>
-    </div>
-    <div id="recipientList" style="margin-top:14px"></div>
-    <div class="actions" style="margin-top:14px">
-      <button id="sendTest" class="btn ghost">Test Maili Gönder</button>
-      <button id="sendAll" class="btn yellow">Tüm Aktif Listeye Gönder</button>
-      <span id="mailMsg" class="status"></span>
-    </div>
+    <div class="actions" style="justify-content:space-between"><div><h2>Üst Hero Slide'ları</h2><div class="sub">İstediğin kadar slide ekle veya azalt. Her slide doğrudan bir kategoriye ya da harici linke gidebilir.</div></div><button id="addHeroSlide" class="btn yellow">+ Hero Slide</button></div>
+    <div id="heroSlides"></div>
   </div>
 
-  <div class="box"><div class="actions"><button id="save" class="btn dark">DB'ye Kaydet</button><a href="./mailing.html" target="_blank" class="btn yellow">Mailing'i Aç</a><span id="saveMsg" class="status"></span></div></div>
+  <div class="two">
+    <div class="box"><div class="actions" style="justify-content:space-between"><div><h2>Kategoriler</h2><div class="sub">Kategori ekle, seç veya sil.</div></div><button id="addCategory" class="btn yellow">+ Kategori</button></div><div id="categories" class="categoryList"></div></div>
+    <div class="box"><div class="actions" style="justify-content:space-between"><div><h2>Ürünler</h2><div id="selectedText" class="sub">Bir kategori seç.</div></div><button id="addProduct" class="btn dark" disabled>+ Ürün Ekle</button></div><div id="categorySettings"></div><div id="products"></div></div>
+  </div>
+
+  <div class="box">
+    <h2>Mail Gönderimi</h2><div class="sub">Web mailinginin e-posta sürümünü test adresine veya tüm aktif listeye gönderir.</div>
+    <div class="grid" style="margin-top:12px">
+      <div class="field"><label>Mail konusu</label><input id="mailSubject"></div>
+      <div class="field"><label>Önizleme metni</label><input id="mailPreheader"></div>
+      <div class="field"><label>Test e-posta adresi</label><input id="testEmail" type="email"></div>
+      <div class="field"><label>Mailing listesine adres ekle</label><div class="actions"><input id="recipientEmail" type="email" style="flex:1"><button id="addRecipient" class="btn yellow">Ekle</button></div></div>
+    </div>
+    <div id="recipientList" style="margin-top:14px"></div>
+    <div class="actions" style="margin-top:14px"><button id="sendTest" class="btn ghost">Test Maili Gönder</button><button id="sendAll" class="btn yellow">Tüm Aktif Listeye Gönder</button><span id="mailMsg" class="status"></span></div>
+  </div>
+
+  <div class="box"><div class="actions"><button id="save" class="btn dark">DB’ye Kaydet</button><a href="./mailing.html" target="_blank" class="btn yellow">Mailing’i Aç</a><span id="saveMsg" class="status"></span></div></div>
 </div>
 
 <script>
 const SUPABASE_URL="https://hroarfuwpfsqilsijwpp.supabase.co";
 const SUPABASE_KEY="sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{storageKey:"emigro-admin-auth",persistSession:true,autoRefreshToken:true}});
-const fallback={colors:{primary:"#ffd400",dark:"#111315"},logo:"https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg",dates:{from:"5 oktober 2026",to:"11 oktober 2026"},hero:{name:"Coca-Cola Original Taste 24 x 330 ml",desc:"Een sterke blikvanger voor retail, horeca en convenience.",oldPrice:"€ 21,95",newPrice:"€ 18,95",link:"#",heroImage:"",images:[]},groups:[{key:"dranken",label:"Dranken",feature:"4",items:[]},{key:"slagerij",label:"Slagerij",feature:"2",items:[]},{key:"agf",label:"AGF",feature:"3",items:[]}]};
+const baseDesign={logoWidth:136,pageBg:"#edf0f2",headerColor:"#111315",ribbonColor:"#ffd400",heroBg:"#15191d",heroText:"#ffffff",buttonColor:"#ffd400",navBg:"#171a1d",cardBg:"#ffffff",accentColor:"#2563eb"};
+const fallback={design:baseDesign,logo:"https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg",dates:{from:"5 oktober 2026",to:"11 oktober 2026"},mail:{subject:"Emigro Weekly Deals",preheader:""},heroSlides:[{name:"Coca-Cola Original Taste 24 x 330 ml",desc:"De wekelijkse blikvanger.",oldPrice:"€ 21,95",newPrice:"€ 18,95",heroImage:"",targetType:"category",categoryKey:"dranken",externalLink:""}],groups:[{key:"dranken",label:"Dranken",feature:"4",cardColor:"",items:[]}]};
 let data=structuredClone(fallback),selected=0,adminUser=null,recipients=[];
-
-const demoData={
-  colors:{primary:"#ffd400",dark:"#111315"},
-  logo:"https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg",
-  dates:{from:"5 oktober 2026",to:"11 oktober 2026"},
-  mail:{subject:"Emigro Weekly Deals",preheader:"Deze week: nieuwe producten, scherpe acties en hero deals."},
-  hero:{name:"Coca-Cola Original Taste 24 x 330 ml",desc:"De wekelijkse blikvanger voor retail, horeca en convenience.",oldPrice:"€ 21,95",newPrice:"€ 18,95",link:"#",heroImage:"",images:[]},
-  groups:[
-    {key:"dranken",label:"Dranken",feature:"4",items:[
-      {name:"Coca-Cola Zero 24-pack",desc:"Sterke hardloper voor elk koelschap.",oldPrice:"€ 20,49",newPrice:"€ 18,49",link:"#",heroImage:"",images:[]},
-      {name:"Fanta Orange 24-pack",desc:"Fris en herkenbaar.",oldPrice:"€ 18,95",newPrice:"€ 16,95",link:"#",heroImage:"",images:[]},
-      {name:"Red Bull 24 x 250 ml",desc:"Populaire energydrank.",oldPrice:"€ 31,95",newPrice:"€ 28,95",link:"#",heroImage:"",images:[]},
-      {name:"Lipton Ice Tea Peach",desc:"Verfrissende smaak.",oldPrice:"€ 17,49",newPrice:"€ 15,49",link:"#",heroImage:"",images:[]}
-    ]},
-    {key:"slagerij",label:"Slagerij",feature:"2",items:[
-      {name:"Ribeye Premium",desc:"Mals rundvlees voor grill en horeca.",oldPrice:"€ 16,90 / kg",newPrice:"€ 14,90 / kg",link:"#",heroImage:"",images:[]},
-      {name:"Kipdijfilet",desc:"Sappig en veelzijdig.",oldPrice:"€ 8,95 / kg",newPrice:"€ 7,95 / kg",link:"#",heroImage:"",images:[]},
-      {name:"Rundergehakt",desc:"Dagverse basis.",oldPrice:"€ 7,99 / kg",newPrice:"€ 6,99 / kg",link:"#",heroImage:"",images:[]},
-      {name:"Lamskoteletten",desc:"Premium keuze.",oldPrice:"€ 14,95 / kg",newPrice:"€ 12,95 / kg",link:"#",heroImage:"",images:[]}
-    ]},
-    {key:"agf",label:"AGF",feature:"3",items:[
-      {name:"Avocado Hass",desc:"Romig en direct verkoopklaar.",oldPrice:"€ 10,95",newPrice:"€ 8,95",link:"#",heroImage:"",images:[]},
-      {name:"Mango Ready to Eat",desc:"Rijp en aantrekkelijk.",oldPrice:"€ 2,49",newPrice:"€ 1,79",link:"#",heroImage:"",images:[]},
-      {name:"Aardbeien",desc:"Vers en seizoensgericht.",oldPrice:"€ 3,49",newPrice:"€ 2,95",link:"#",heroImage:"",images:[]},
-      {name:"Snackpaprika Mix",desc:"Kleurrijk en praktisch.",oldPrice:"€ 4,49",newPrice:"€ 3,95",link:"#",heroImage:"",images:[]}
-    ]},
-    {key:"zuivel",label:"Zuivel",feature:"none",items:[
-      {name:"Volle Melk 12 x 1L",desc:"Betrouwbare basis.",oldPrice:"€ 15,95",newPrice:"€ 13,95",link:"#",heroImage:"",images:[]},
-      {name:"Griekse Yoghurt",desc:"Romig en veelzijdig.",oldPrice:"€ 3,79",newPrice:"€ 3,29",link:"#",heroImage:"",images:[]},
-      {name:"Gouda Jong",desc:"Klassieke Nederlandse kaas.",oldPrice:"€ 8,95",newPrice:"€ 7,95",link:"#",heroImage:"",images:[]},
-      {name:"Roomboter 250 g",desc:"Voor bakken en koken.",oldPrice:"€ 2,69",newPrice:"€ 1,99",link:"#",heroImage:"",images:[]}
-    ]},
-    {key:"diepvries",label:"Diepvries",feature:"2",items:[
-      {name:"Premium Friet 10 mm",desc:"Krokant resultaat.",oldPrice:"€ 19,50",newPrice:"€ 17,50",link:"#",heroImage:"",images:[]},
-      {name:"Chicken Strips",desc:"Snel te bereiden.",oldPrice:"€ 24,95",newPrice:"€ 22,95",link:"#",heroImage:"",images:[]},
-      {name:"Pizza Margherita Box",desc:"Klassieker voor snelle service.",oldPrice:"€ 21,95",newPrice:"€ 18,95",link:"#",heroImage:"",images:[]},
-      {name:"Baklava Assorti",desc:"Dessertassortiment.",oldPrice:"€ 27,95",newPrice:"€ 24,95",link:"#",heroImage:"",images:[]}
-    ]},
-    {key:"bakkerij",label:"Bakkerij",feature:"none",items:[
-      {name:"Turks Brood",desc:"Dagvers assortiment.",oldPrice:"€ 1,59",newPrice:"€ 1,29",link:"#",heroImage:"",images:[]},
-      {name:"Mini Croissants",desc:"Ideaal voor ontbijt.",oldPrice:"€ 9,95",newPrice:"€ 8,49",link:"#",heroImage:"",images:[]},
-      {name:"Pita Brood 10-pack",desc:"Voor horeca en retail.",oldPrice:"€ 4,49",newPrice:"€ 3,79",link:"#",heroImage:"",images:[]},
-      {name:"Brioche Buns",desc:"Voor burgers en sandwiches.",oldPrice:"€ 6,95",newPrice:"€ 5,95",link:"#",heroImage:"",images:[]}
-    ]},
-    {key:"snacks",label:"Snacks",feature:"2",items:[
-      {name:"Doritos Nacho Cheese",desc:"Sterke snackfavoriet.",oldPrice:"€ 2,39",newPrice:"€ 1,89",link:"#",heroImage:"",images:[]},
-      {name:"Lays Naturel",desc:"Klassieke chips.",oldPrice:"€ 2,29",newPrice:"€ 1,79",link:"#",heroImage:"",images:[]},
-      {name:"M&M Peanut",desc:"Populaire chocolade snack.",oldPrice:"€ 3,49",newPrice:"€ 2,99",link:"#",heroImage:"",images:[]},
-      {name:"Pringles Original",desc:"Herkenbaar premium snackproduct.",oldPrice:"€ 2,99",newPrice:"€ 2,49",link:"#",heroImage:"",images:[]}
-    ]},
-    {key:"ontbijt",label:"Ontbijt",feature:"none",items:[
-      {name:"Nutella 750 g",desc:"Ontbijtfavoriet.",oldPrice:"€ 6,95",newPrice:"€ 5,95",link:"#",heroImage:"",images:[]},
-      {name:"Cornflakes 1 kg",desc:"Grootverpakking.",oldPrice:"€ 5,49",newPrice:"€ 4,49",link:"#",heroImage:"",images:[]},
-      {name:"Honing 500 g",desc:"Voor ontbijt en horeca.",oldPrice:"€ 4,95",newPrice:"€ 3,95",link:"#",heroImage:"",images:[]},
-      {name:"Aardbeienjam",desc:"Klassieke broodbelegkeuze.",oldPrice:"€ 3,29",newPrice:"€ 2,69",link:"#",heroImage:"",images:[]}
-    ]},
-    {key:"sauzen",label:"Sauzen & Kruiden",feature:"3",items:[
-      {name:"Mayonaise 5L",desc:"Horeca grootverpakking.",oldPrice:"€ 14,95",newPrice:"€ 12,95",link:"#",heroImage:"",images:[]},
-      {name:"Ketchup 5L",desc:"Voor keuken en fastfood.",oldPrice:"€ 12,95",newPrice:"€ 10,95",link:"#",heroImage:"",images:[]},
-      {name:"Knoflooksaus 1L",desc:"Populaire saus.",oldPrice:"€ 4,95",newPrice:"€ 3,95",link:"#",heroImage:"",images:[]},
-      {name:"Paprikapoeder 500 g",desc:"Voor professionele keuken.",oldPrice:"€ 6,95",newPrice:"€ 5,49",link:"#",heroImage:"",images:[]}
-    ]},
-    {key:"nonfood",label:"Non-food",feature:"none",items:[
-      {name:"Keukenrol Professional",desc:"Sterk absorberend.",oldPrice:"€ 13,95",newPrice:"€ 11,95",link:"#",heroImage:"",images:[]},
-      {name:"Aluminiumfolie 150 m",desc:"Grootverpakking.",oldPrice:"€ 9,95",newPrice:"€ 8,95",link:"#",heroImage:"",images:[]},
-      {name:"Nitril Handschoenen",desc:"Comfortabel en praktisch.",oldPrice:"€ 6,95",newPrice:"€ 5,95",link:"#",heroImage:"",images:[]},
-      {name:"Take-away Bakjes 50 st.",desc:"Voor afhaal en bezorging.",oldPrice:"€ 14,95",newPrice:"€ 12,95",link:"#",heroImage:"",images:[]}
-    ]}
-  ]
+const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+const demoCategories=[
+["dranken","Dranken","4"],["slagerij","Slagerij","2"],["agf","AGF","3"],["zuivel","Zuivel","none"],["diepvries","Diepvries","2"],["bakkerij","Bakkerij","none"],["snacks","Snacks","2"],["ontbijt","Ontbijt","none"],["sauzen","Sauzen & Kruiden","3"],["nonfood","Non-food","none"]
+];
+const demoProductNames={
+dranken:["Coca-Cola Zero 24-pack","Fanta Orange 24-pack","Red Bull 24 x 250 ml","Lipton Ice Tea Peach"],
+slagerij:["Ribeye Premium","Kipdijfilet","Rundergehakt","Lamskoteletten"],
+agf:["Avocado Hass","Mango Ready to Eat","Aardbeien","Snackpaprika Mix"],
+zuivel:["Volle Melk 12 x 1L","Griekse Yoghurt","Gouda Jong","Roomboter 250 g"],
+diepvries:["Premium Friet 10 mm","Chicken Strips","Pizza Margherita Box","Baklava Assorti"],
+bakkerij:["Turks Brood","Mini Croissants","Pita Brood 10-pack","Brioche Buns"],
+snacks:["Doritos Nacho Cheese","Lays Naturel","M&M Peanut","Pringles Original"],
+ontbijt:["Nutella 750 g","Cornflakes 1 kg","Honing 500 g","Aardbeienjam"],
+sauzen:["Mayonaise 5L","Ketchup 5L","Knoflooksaus 1L","Paprikapoeder 500 g"],
+nonfood:["Keukenrol Professional","Aluminiumfolie 150 m","Nitril Handschoenen","Take-away Bakjes 50 st."]
 };
-const $=id=>document.getElementById(id), esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+function makeDemo(){const d={design:{...baseDesign,logoWidth:165},logo:"https://mfatihdumluu-eng.github.io/emigro-catalog/logo.svg",dates:{from:"5 oktober 2026",to:"11 oktober 2026"},mail:{subject:"Emigro Weekly Deals",preheader:"Deze week: nieuwe producten en scherpe acties."},heroSlides:[],groups:[]};demoCategories.forEach(([key,label,feature],gi)=>{const items=(demoProductNames[key]||[]).map((name,i)=>({name,desc:"Demo productomschrijving.",oldPrice:"€ "+(20+i)+",95",newPrice:"€ "+(17+i)+",95",link:"#",heroImage:"",images:[]}));d.groups.push({key,label,feature,cardColor:"",items});if(gi<4)d.heroSlides.push({name:items[0]?.name||label,desc:label+" hero deal",oldPrice:items[0]?.oldPrice||"",newPrice:items[0]?.newPrice||"",heroImage:"",targetType:"category",categoryKey:key,externalLink:""})});return d}
 
-async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session)return showLogin();const {data:p}=await sb.from("emigro_catalog_profiles").select("role").eq("id",session.user.id).single();if(p?.role!=="admin"){await sb.auth.signOut();return showLogin("Bu hesap admin değil.")}adminUser=session.user;$("login").classList.add("hidden");$("app").classList.remove("hidden");await Promise.all([loadState(),loadRecipients()]);}
-function showLogin(msg=""){$("login").classList.remove("hidden");$("app").classList.add("hidden");$("loginMsg").textContent=msg}
-$("loginBtn").onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$("email").value,password:$("password").value});if(error)return showLogin(error.message);guard()};
-$("logout").onclick=async()=>{await sb.auth.signOut();showLogin()};
+async function guard(){const {data:{session}}=await sb.auth.getSession();if(!session)return showLogin();const {data:p}=await sb.from("emigro_catalog_profiles").select("role").eq("id",session.user.id).single();if(p?.role!=="admin"){await sb.auth.signOut();return showLogin("Bu hesap admin değil.")}adminUser=session.user;login.classList.add("hidden");app.classList.remove("hidden");await Promise.all([loadState(),loadRecipients()])}
+function showLogin(msg=""){login.classList.remove("hidden");app.classList.add("hidden");loginMsg.textContent=msg}
+loginBtn.onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:email.value,password:password.value});if(error)return showLogin(error.message);guard()};logout.onclick=async()=>{await sb.auth.signOut();showLogin()};
 
-async function loadState(){const {data:r}=await sb.from("emigro_mailing_state").select("data").eq("id","main").single();data=(r?.data&&Object.keys(r.data).length)?r.data:structuredClone(fallback);normalize();bindTop();render();}
-function normalize(){data.colors||={primary:"#ffd400",dark:"#111315"};data.dates||={from:"",to:""};data.mail||={subject:"Emigro Weekly Deals",preheader:""};data.hero||=structuredClone(fallback.hero);data.hero.images||=[];data.groups||=[];data.groups.forEach((g,i)=>{g.key||=("cat"+i);g.items||=[];g.feature||="none";g.items.forEach(p=>p.images||=[])});}
-function bindTop(){logoPreview.src=data.logo||"";primary.value=data.colors.primary;dark.value=data.colors.dark;from.value=data.dates.from;to.value=data.dates.to;hName.value=data.hero.name||"";hLink.value=data.hero.link||"";hOld.value=data.hero.oldPrice||"";hNew.value=data.hero.newPrice||"";hDesc.value=data.hero.desc||"";hHeroPreview.src=data.hero.heroImage||"";mailSubject.value=data.mail?.subject||"Emigro Weekly Deals";mailPreheader.value=data.mail?.preheader||"";drawHeroGallery();}
-function slug(s){return (s||"file").toLowerCase().replace(/[^a-z0-9._-]+/g,"-").replace(/-+/g,"-")}
+async function loadState(){const {data:r}=await sb.from("emigro_mailing_state").select("data").eq("id","main").single();data=(r?.data&&Object.keys(r.data).length)?r.data:structuredClone(fallback);normalize();bindTop();render()}
+function normalize(){
+ data.design={...baseDesign,...(data.design||{})};
+ if(!data.heroSlides){data.heroSlides=data.hero?[{name:data.hero.name||"",desc:data.hero.desc||"",oldPrice:data.hero.oldPrice||"",newPrice:data.hero.newPrice||"",heroImage:data.hero.heroImage||"",targetType:"external",categoryKey:"",externalLink:data.hero.link||""}]:[]}
+ data.mail||={subject:"Emigro Weekly Deals",preheader:""};data.dates||={from:"",to:""};data.groups||=[];
+ data.groups.forEach((g,i)=>{g.key||="cat-"+i;g.items||=[];g.feature||="none";g.cardColor=g.cardColor||"";g.items.forEach(p=>p.images||=[])});
+}
+function bindTop(){
+ logoPreview.src=data.logo||"";logoWidth.value=data.design.logoWidth;logoWidthNum.value=data.design.logoWidth;
+ pageBg.value=data.design.pageBg;headerColor.value=data.design.headerColor;ribbonColor.value=data.design.ribbonColor;heroBg.value=data.design.heroBg;heroText.value=data.design.heroText;buttonColor.value=data.design.buttonColor;navBg.value=data.design.navBg;cardBg.value=data.design.cardBg;accentColor.value=data.design.accentColor;
+ from.value=data.dates.from||"";to.value=data.dates.to||"";mailSubject.value=data.mail.subject||"";mailPreheader.value=data.mail.preheader||"";
+ renderHeroSlides()
+}
+logoWidth.oninput=()=>logoWidthNum.value=logoWidth.value;logoWidthNum.oninput=()=>logoWidth.value=logoWidthNum.value;
+function slug(s){return(s||"file").toLowerCase().replace(/[^a-z0-9._-]+/g,"-").replace(/-+/g,"-")}
 async function upload(file,folder){if(!file)return"";const path=folder+"/"+Date.now()+"-"+Math.random().toString(36).slice(2,8)+"-"+slug(file.name);const {error}=await sb.storage.from("emigro-mailing").upload(path,file,{cacheControl:"3600",upsert:false});if(error)throw error;return sb.storage.from("emigro-mailing").getPublicUrl(path).data.publicUrl}
 logoFile.onchange=async()=>{try{data.logo=await upload(logoFile.files[0],"branding");logoPreview.src=data.logo}catch(e){alert(e.message)}};
-hHeroFile.onchange=async()=>{try{data.hero.heroImage=await upload(hHeroFile.files[0],"hero");hHeroPreview.src=data.hero.heroImage}catch(e){alert(e.message)}};
-hPopupFile.onchange=async()=>{try{for(const f of [...hPopupFile.files])data.hero.images.push(await upload(f,"hero-popup"));drawHeroGallery()}catch(e){alert(e.message)}};
-function drawHeroGallery(){hCount.textContent=data.hero.images.length;hGallery.innerHTML=data.hero.images.map((u,i)=>'<div class="imgCard"><img src="'+u+'"><button class="btn danger" onclick="removeHeroImg('+i+')">Sil</button></div>').join("")}
-window.removeHeroImg=i=>{data.hero.images.splice(i,1);drawHeroGallery()};
 
-function render(){renderCats();renderProducts()}
+function categoryOptions(selectedKey){return '<option value="">Kategori seç</option>'+data.groups.map(g=>'<option value="'+esc(g.key)+'" '+(g.key===selectedKey?"selected":"")+'>'+esc(g.label)+'</option>').join("")}
+function renderHeroSlides(){
+ heroSlides.innerHTML=data.heroSlides.length?data.heroSlides.map((h,i)=>'<div class="heroSlide" data-hi="'+i+'"><div class="slideHead"><b>Hero Slide '+(i+1)+'</b><button class="btn danger" data-hremove>Sil</button></div><div class="grid"><div class="field"><label>Başlık</label><input data-hk="name" value="'+esc(h.name||"")+'"></div><div class="field"><label>Açıklama</label><input data-hk="desc" value="'+esc(h.desc||"")+'"></div><div class="field"><label>Eski fiyat</label><input data-hk="oldPrice" value="'+esc(h.oldPrice||"")+'"></div><div class="field"><label>Yeni fiyat</label><input data-hk="newPrice" value="'+esc(h.newPrice||"")+'"></div><div class="field"><label>Tıklayınca</label><select data-hk="targetType"><option value="category" '+(h.targetType!=="external"?"selected":"")+'>Kategoriye git</option><option value="external" '+(h.targetType==="external"?"selected":"")+'>Harici link</option></select></div><div class="field"><label>Bağlı kategori</label><select data-hcat>'+categoryOptions(h.categoryKey)+'</select></div><div class="field"><label>Harici link</label><input data-hk="externalLink" value="'+esc(h.externalLink||"")+'"></div><div class="field upload"><label>Hero görseli</label><input type="file" accept="image/*" data-hfile><img class="preview" src="'+esc(h.heroImage||"")+'"></div></div></div>').join(""):'<div class="sub">Henüz hero slide yok.</div>';
+ heroSlides.querySelectorAll(".heroSlide").forEach(el=>{const i=+el.dataset.hi,h=data.heroSlides[i];el.querySelectorAll("[data-hk]").forEach(inp=>inp.oninput=()=>h[inp.dataset.hk]=inp.value);el.querySelector("[data-hcat]").onchange=e=>h.categoryKey=e.target.value;el.querySelector("[data-hremove]").onclick=()=>{data.heroSlides.splice(i,1);renderHeroSlides()};el.querySelector("[data-hfile]").onchange=async e=>{try{h.heroImage=await upload(e.target.files[0],"hero-slides");renderHeroSlides()}catch(err){alert(err.message)}}})
+}
+addHeroSlide.onclick=()=>{data.heroSlides.push({name:"Yeni Hero",desc:"",oldPrice:"",newPrice:"",heroImage:"",targetType:"category",categoryKey:data.groups[0]?.key||"",externalLink:""});renderHeroSlides()};
+
+function render(){renderCats();renderProducts();renderHeroSlides()}
 function renderCats(){categories.innerHTML=data.groups.map((g,i)=>'<div class="cat '+(i===selected?"active":"")+'" onclick="selectCat('+i+')"><div><b>'+esc(g.label)+'</b><br><small>'+g.items.length+' ürün</small></div><button class="btn danger" onclick="event.stopPropagation();removeCat('+i+')">Sil</button></div>').join("")}
 window.selectCat=i=>{selected=i;render()};window.removeCat=i=>{if(!confirm("Kategori silinsin mi?"))return;data.groups.splice(i,1);selected=Math.max(0,Math.min(selected,data.groups.length-1));render()};
-addCategory.onclick=()=>{const name=prompt("Kategori adı");if(!name)return;data.groups.push({key:"cat-"+Date.now(),label:name,feature:"none",items:[]});selected=data.groups.length-1;render()};
-function renderProducts(){if(!data.groups.length){selectedText.textContent="Kategori yok.";addProduct.disabled=true;categorySettings.innerHTML=products.innerHTML="";return}const g=data.groups[selected];addProduct.disabled=false;selectedText.textContent=g.label+" kategorisi";categorySettings.innerHTML='<div class="grid"><div class="field"><label>Kategori adı</label><input id="catName" value="'+esc(g.label)+'"></div><div class="field"><label>İlk ürün yerleşimi</label><select id="catFeature"><option value="none">Normal kare</option><option value="2">2 kare yatay</option><option value="3">3 kare yatay</option><option value="4">2x2 büyük Hero</option></select></div></div>';catFeature.value=g.feature;catName.oninput=()=>{g.label=catName.value;renderCats()};catFeature.onchange=()=>g.feature=catFeature.value;
-products.innerHTML=g.items.length?g.items.map((p,i)=>productHtml(p,i)).join(""):'<div class="sub">Henüz ürün yok.</div>';wireProducts(g)}
-function productHtml(p,i){return '<div class="product" data-i="'+i+'"><div class="productHead"><b>Ürün '+(i+1)+'</b><button class="btn danger" data-remove>Sil</button></div><div class="grid"><div class="field"><label>Ürün adı</label><input data-k="name" value="'+esc(p.name||"")+'"></div><div class="field"><label>Ürün linki</label><input data-k="link" value="'+esc(p.link||"")+'"></div><div class="field"><label>Eski fiyat</label><input data-k="oldPrice" value="'+esc(p.oldPrice||"")+'"></div><div class="field"><label>Yeni fiyat</label><input data-k="newPrice" value="'+esc(p.newPrice||"")+'"></div><div class="field" style="grid-column:1/-1"><label>Açıklama</label><textarea data-k="desc">'+esc(p.desc||"")+'</textarea></div><div class="field upload"><label>Hero alanı görseli</label><input type="file" accept="image/*" data-hero-file><img class="preview" src="'+esc(p.heroImage||"")+'"></div><div class="field upload"><label>Popup görselleri <span class="count">'+(p.images||[]).length+'</span></label><input type="file" accept="image/*" multiple data-popup-file><div class="gallery">'+(p.images||[]).map((u,x)=>'<div class="imgCard"><img src="'+u+'"><button class="btn danger" data-imgdel="'+x+'">Sil</button></div>').join("")+'</div></div></div></div>'}
+addCategory.onclick=()=>{const name=prompt("Kategori adı");if(!name)return;data.groups.push({key:"cat-"+Date.now(),label:name,feature:"none",cardColor:"",items:[]});selected=data.groups.length-1;render()};
+
+function renderProducts(){
+ if(!data.groups.length){selectedText.textContent="Kategori yok.";addProduct.disabled=true;categorySettings.innerHTML=products.innerHTML="";return}
+ const g=data.groups[selected];addProduct.disabled=false;selectedText.textContent=g.label+" kategorisi";
+ categorySettings.innerHTML='<div class="grid"><div class="field"><label>Kategori adı</label><input id="catName" value="'+esc(g.label)+'"></div><div class="field"><label>İlk ürün yerleşimi</label><select id="catFeature"><option value="none">Normal kare</option><option value="2">2 kare yatay</option><option value="3">3 kare yatay</option><option value="4">2x2 büyük Hero</option></select></div><div class="field"><label>Kategoriye özel kart rengi</label><input id="catCardColor" type="color" value="'+(g.cardColor||data.design.cardBg)+'"><div class="checkRow"><input id="catUseColor" type="checkbox" '+(g.cardColor?"checked":"")+'><label for="catUseColor">Bu kategori genel kart renginden farklı olsun</label></div></div></div>';
+ catFeature.value=g.feature;catName.oninput=()=>{g.label=catName.value;renderCats();renderHeroSlides()};catFeature.onchange=()=>g.feature=catFeature.value;catUseColor.onchange=()=>{g.cardColor=catUseColor.checked?catCardColor.value:""};catCardColor.oninput=()=>{if(catUseColor.checked)g.cardColor=catCardColor.value};
+ products.innerHTML=g.items.length?g.items.map((p,i)=>productHtml(p,i)).join(""):'<div class="sub">Henüz ürün yok.</div>';wireProducts(g)
+}
+function productHtml(p,i){return '<div class="product" data-i="'+i+'"><div class="productHead"><b>Ürün '+(i+1)+'</b><button class="btn danger" data-remove>Sil</button></div><div class="grid"><div class="field"><label>Ürün adı</label><input data-k="name" value="'+esc(p.name||"")+'"></div><div class="field"><label>Ürün linki</label><input data-k="link" value="'+esc(p.link||"")+'"></div><div class="field"><label>Eski fiyat</label><input data-k="oldPrice" value="'+esc(p.oldPrice||"")+'"></div><div class="field"><label>Yeni fiyat</label><input data-k="newPrice" value="'+esc(p.newPrice||"")+'"></div><div class="field" style="grid-column:1/-1"><label>Açıklama</label><textarea data-k="desc">'+esc(p.desc||"")+'</textarea></div><div class="field upload"><label>Kategori Hero kartı görseli</label><input type="file" accept="image/*" data-hero-file><img class="preview" src="'+esc(p.heroImage||"")+'"></div><div class="field upload"><label>Popup görselleri <span class="count">'+(p.images||[]).length+'</span></label><input type="file" accept="image/*" multiple data-popup-file><div class="gallery">'+(p.images||[]).map((u,x)=>'<div class="imgCard"><img src="'+u+'"><button class="btn danger" data-imgdel="'+x+'">Sil</button></div>').join("")+'</div></div></div></div>'}
 function wireProducts(g){document.querySelectorAll(".product").forEach(el=>{const i=+el.dataset.i,p=g.items[i];el.querySelectorAll("[data-k]").forEach(inp=>inp.oninput=()=>p[inp.dataset.k]=inp.value);el.querySelector("[data-remove]").onclick=()=>{g.items.splice(i,1);renderProducts();renderCats()};el.querySelector("[data-hero-file]").onchange=async e=>{try{p.heroImage=await upload(e.target.files[0],"products/hero");renderProducts()}catch(err){alert(err.message)}};el.querySelector("[data-popup-file]").onchange=async e=>{try{for(const f of [...e.target.files])p.images.push(await upload(f,"products/popup"));renderProducts()}catch(err){alert(err.message)}};el.querySelectorAll("[data-imgdel]").forEach(b=>b.onclick=()=>{p.images.splice(+b.dataset.imgdel,1);renderProducts()})})}
 addProduct.onclick=()=>{const g=data.groups[selected];g.items.push({name:"Yeni ürün",desc:"",oldPrice:"",newPrice:"",link:"#",heroImage:"",images:[]});renderProducts();renderCats()};
 
-loadDemo.onclick=()=>{if(!confirm("10 kategorilik demo mevcut panel içeriğinin yerini alsın mı? DB'ye kaydetmek için ayrıca Kaydet'e basman gerekir."))return;data=structuredClone(demoData);selected=0;normalize();bindTop();render();saveMsg.textContent="Demo yüklendi. Henüz DB'ye kaydedilmedi.";saveMsg.className="status ok"};
+loadDemo.onclick=()=>{if(!confirm("10 kategorilik demo mevcut panel içeriğinin yerini alsın mı?"))return;data=makeDemo();selected=0;normalize();bindTop();render();saveMsg.textContent="Demo yüklendi. Henüz DB’ye kaydedilmedi.";saveMsg.className="status ok"};
 
 async function loadRecipients(){const {data:r,error}=await sb.from("emigro_mailing_recipients").select("*").order("created_at",{ascending:false});if(error){recipientList.innerHTML='<div class="status err">'+esc(error.message)+'</div>';return}recipients=r||[];renderRecipients()}
 function renderRecipients(){recipientList.innerHTML=recipients.length?'<div class="sub" style="margin-bottom:8px">Aktif mailing listesi: <b>'+recipients.filter(x=>x.active).length+'</b> / '+recipients.length+'</div>'+recipients.map(r=>'<div class="cat"><div><b>'+esc(r.email)+'</b><br><small>'+(r.active?"Aktif":"Pasif")+'</small></div><div class="actions"><button class="btn ghost" onclick="toggleRecipient(\''+r.id+'\','+(!r.active)+')">'+(r.active?"Pasif Yap":"Aktif Yap")+'</button><button class="btn danger" onclick="deleteRecipient(\''+r.id+'\')">Sil</button></div></div>').join(""):'<div class="sub">Mailing listesinde henüz adres yok.</div>'}
-addRecipient.onclick=async()=>{const email=recipientEmail.value.trim();if(!email)return;const {error}=await sb.from("emigro_mailing_recipients").insert({email,active:true});if(error){mailMsg.textContent=error.message;mailMsg.className="status err";return}recipientEmail.value="";await loadRecipients()};
-window.toggleRecipient=async(id,active)=>{await sb.from("emigro_mailing_recipients").update({active}).eq("id",id);await loadRecipients()};
-window.deleteRecipient=async(id)=>{if(!confirm("Adres silinsin mi?"))return;await sb.from("emigro_mailing_recipients").delete().eq("id",id);await loadRecipients()};
+addRecipient.onclick=async()=>{const em=recipientEmail.value.trim();if(!em)return;const {error}=await sb.from("emigro_mailing_recipients").insert({email:em,active:true});if(error){mailMsg.textContent=error.message;mailMsg.className="status err";return}recipientEmail.value="";await loadRecipients()};
+window.toggleRecipient=async(id,active)=>{await sb.from("emigro_mailing_recipients").update({active}).eq("id",id);await loadRecipients()};window.deleteRecipient=async id=>{if(!confirm("Adres silinsin mi?"))return;await sb.from("emigro_mailing_recipients").delete().eq("id",id);await loadRecipients()};
 
-async function persist(){data.colors={primary:primary.value,dark:dark.value};data.dates={from:from.value,to:to.value};data.mail={subject:mailSubject.value.trim()||"Emigro Weekly Deals",preheader:mailPreheader.value.trim()};data.hero={...data.hero,name:hName.value,link:hLink.value,oldPrice:hOld.value,newPrice:hNew.value,desc:hDesc.value};const {error}=await sb.from("emigro_mailing_state").upsert({id:"main",data,updated_by:adminUser.id,updated_at:new Date().toISOString()});if(error)throw error}
-async function sendMail(mode){mailMsg.textContent="Hazırlanıyor...";mailMsg.className="status";try{await persist();const body={mode,subject:mailSubject.value.trim()||"Emigro Weekly Deals"};if(mode==="test"){body.test_email=testEmail.value.trim();if(!body.test_email)throw new Error("Test e-posta adresi gir.");}else{if(!confirm("Mailing tüm aktif listeye gönderilsin mi?"))return;}const {data:r,error}=await sb.functions.invoke("send-mailing-email",{body});if(error)throw error;if(!r?.ok)throw new Error(r?.error||"Gönderim başarısız");mailMsg.textContent=mode==="test"?"Test maili gönderildi.":r.sent+" / "+r.total+" adrese gönderildi.";mailMsg.className="status ok"}catch(e){mailMsg.textContent=e.message||String(e);mailMsg.className="status err"}}
-sendTest.onclick=()=>sendMail("test");sendAll.onclick=()=>sendMail("all");
-
-save.onclick=async()=>{saveMsg.textContent="Kaydediliyor...";saveMsg.className="status";try{await persist();saveMsg.textContent="Kaydedildi.";saveMsg.className="status ok"}catch(e){saveMsg.textContent=e.message||String(e);saveMsg.className="status err"}};
-guard();
+async function persist(){
+ data.design={logoWidth:+logoWidthNum.value||136,pageBg:pageBg.value,headerColor:headerColor.value,ribbonColor:ribbonColor.value,heroBg:heroBg.value,heroText:heroText.value,buttonColor:buttonColor.value,navBg:navBg.value,cardBg:cardBg.value,accentColor:accentColor.value};
+ data.dates={from:from.value,to:to.value};data.mail={subject:mailSubject.value.trim()||"Emigro Weekly Deals",preheader:mailPreheader.value.trim()};
+ const {error}=await sb.from("emigro_mailing_state").upsert({id:"main",data,updated_by:adminUser.id,updated_at:new Date().toISOString()});if(error)throw error
+}
+async function doSave(msgEl){msgEl.textContent="Kaydediliyor...";msgEl.className="status";try{await persist();msgEl.textContent="Kaydedildi.";msgEl.className="status ok"}catch(e){msgEl.textContent=e.message||String(e);msgEl.className="status err"}}
+save.onclick=()=>doSave(saveMsg);saveTop.onclick=()=>doSave(saveTopMsg);
+async function sendMail(mode){mailMsg.textContent="Hazırlanıyor...";mailMsg.className="status";try{await persist();const body={mode,subject:mailSubject.value.trim()||"Emigro Weekly Deals"};if(mode==="test"){body.test_email=testEmail.value.trim();if(!body.test_email)throw new Error("Test e-posta adresi gir.")}else if(!confirm("Mailing tüm aktif listeye gönderilsin mi?"))return;const {data:r,error}=await sb.functions.invoke("send-mailing-email",{body});if(error)throw error;if(!r?.ok)throw new Error(r?.error||"Gönderim başarısız");mailMsg.textContent=mode==="test"?"Test maili gönderildi.":r.sent+" / "+r.total+" adrese gönderildi.";mailMsg.className="status ok"}catch(e){mailMsg.textContent=e.message||String(e);mailMsg.className="status err"}}
+sendTest.onclick=()=>sendMail("test");sendAll.onclick=()=>sendMail("all");guard();
 </script></body></html>
