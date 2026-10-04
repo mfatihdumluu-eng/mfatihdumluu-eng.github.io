@@ -266,4 +266,4 @@ input,select,textarea{min-height:44px;font:inherit}
 .bottom-nav button{min-height:54px}
 dialog{max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px);overflow:auto;overscroll-behavior:contain}
 .modal-head{padding-top:max(15px,env(safe-area-inset-top))}
-.connection-banner{position:fixed;z-index:100;top:env(safe-area-inset-top);left:50%;transform:translateX(-50%);width:min(100%,480px);padding:10px 14px;background:#fff3cd;border-bottom:1px solid #f2d277;color:#7a4b00;font-size:12px;font-weight:800;text-align:center}
+.connection-banner{position:fixed;z-index:100;bottom:calc(78px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(calc(100% - 24px),456px);padding:10px 14px;background:#fff3cd;border:1px solid #f2d277;border-radius:14px;color:#7a4b00;font-size:12px;font-weight:800;text-align:center;box-shadow:var(--shadow)}
