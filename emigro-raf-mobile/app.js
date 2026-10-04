@@ -717,7 +717,7 @@ function productCardHtml(data,p,openable=true){
   const employeeOwns=currentRole==='employee'&&owner?.id===activeAppUserId();
   const actionLabel=employeeOwns?'⚠ Sorun bildir':currentRole==='cashier'?'⚠ Kasa sorunu bildir':currentRole==='superadmin'?'Düzenle':'Admine bilgi ver';
   const actionClass=(employeeOwns||currentRole==='cashier')?'danger':'secondary';
-  return '<article class="card product-info-card">'
+  return '<article class="card product-info-card product-card-open-area" data-product="'+p.id+'">'
     +'<div class="card-pad">'
     +'<div class="simple-row"><div><strong>'+esc(p.name)+'</strong><div class="meta">'+esc(p.barcode||'Barkod yok')+' · '+esc(p.unit||'')+'</div></div>'
     +(editable?'<span class="badge blue">Yönetilebilir</span>':'<span class="badge dark">Ürün</span>')+'</div>'
@@ -1223,6 +1223,10 @@ function excelImportModal(data){
 }
 
 function bindActions(data){
+  document.querySelectorAll('.product-card-open-area').forEach(card=>card.onclick=e=>{
+    if(e.target.closest('button')) return;
+    productDetailModal(data,card.dataset.product);
+  });
   document.querySelectorAll('.product-card-detail').forEach(b=>b.onclick=()=>productDetailModal(data,b.dataset.product));
   document.querySelectorAll('.product-card-action').forEach(b=>b.onclick=()=>{
     const p=data.products.find(x=>x.id===b.dataset.product);
@@ -1271,7 +1275,8 @@ function bindActions(data){
     const checks=todaysChecks(data);
     const unchecked=list.filter(p=>!checks.some(x=>x.productId===p.id&&x.shelfId===shelfId));
     for(const p of unchecked) await saveCheck(p,shelfId,'ok',{bulk:true,meter:p.meter,level:p.level,position:p.position});
-    render();
+    employeeMeter='all';employeeLevel='all';employeePosition='all';
+    render().then(()=>setTimeout(()=>document.getElementById('meterListAnchor')?.scrollIntoView({behavior:'smooth',block:'start'}),60));
   });
   document.querySelectorAll('.product-detail-problem').forEach(b=>b.onclick=()=>{
     const p=data.products.find(x=>x.id===b.dataset.product);
