@@ -203,10 +203,10 @@ function navFor(role){
     ['home','box','Depo'],['products','box','Ürünler'],['notifications','bell','Bildirim'],['issues','alert','Bekleyen'],['history','clock','Geçmiş']
   ];
   if(role==='manager') return [
-    ['home','home','Özet'],['products','box','Ürünler'],['issues','alert','Hatalar'],['shelves','shelves','Raflar'],['people','users','Personel']
+    ['home','home','Özet'],['products','box','Ürünler'],['issues','alert','Hatalar'],['shelves','shelves','Raflar']
   ];
   return [
-    ['home','home','Panel'],['products','box','Ürünler'],['issues','alert','Hatalar'],['adminnotes','note','Notlar'],['shelves','shelves','Raflar'],['people','users','Kullanıcı']
+    ['home','home','Panel'],['products','box','Ürünler'],['issues','alert','Hatalar'],['adminnotes','note','Notlar'],['shelves','shelves','Raflar']
   ];
 }
 function renderNav(){
@@ -224,6 +224,7 @@ async function render(){
   else if(currentView==='issues') app.innerHTML=issuesView(data);
   else if(currentView==='shelves') app.innerHTML=shelvesView(data);
   else if(currentView==='products') app.innerHTML=productsView(data);
+  else if(currentView==='system'&&isSystemAdmin()) app.innerHTML=systemView(data);
   else if(currentView==='people') app.innerHTML=peopleView(data);
   else if(currentView==='performance') app.innerHTML=performanceView(data);
   else if(currentView==='history') app.innerHTML=historyView(data);
@@ -241,7 +242,7 @@ async function homeView(data){
   return managerHome(data,true);
 }
 function employeeHome(data){
-  const assigned=data.assignments.filter(a=>a.userId==='u_emp'&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
+  const assigned=data.assignments.filter(a=>a.userId===activeAppUserId()&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
   const shelves=data.shelves.filter(s=>assigned.includes(s.id)&&s.active);
   const prog=shelves.map(s=>shelfProgress(data,s.id));
   const done=prog.filter(p=>p.complete).length;
@@ -287,7 +288,7 @@ function employeeReminderBanner(data,shelves){
       if(!checks.some(c=>c.productId===p.id)) missing.push({shelf:s,product:p});
     });
   });
-  const direct=(data.notifications||[]).filter(n=>n.targetUserId==='u_emp'&&!n.closed);
+  const direct=(data.notifications||[]).filter(n=>n.targetUserId===activeAppUserId()&&!n.closed);
   if(!missing.length&&!direct.length) return '<div class="notice" style="background:#e8f7ef;border-color:#a8dfc2;color:#0f6d43"><b>✓ Şu ana kadar gözden kaçan kontrol görünmüyor.</b></div>';
   const parts=[];
   if(direct.length) parts.push('<b>🔔 '+direct.length+' yönetici bildirimin var.</b>');
@@ -342,11 +343,11 @@ function monthlyPerformanceModal(data,userId){
     +'</div>');
 }
 function notificationsView(data){
-  const targetUser=currentRole==='employee'?'u_emp':currentRole==='warehouse'?'u_wh':null;
+  const targetUser=['employee','warehouse','cashier'].includes(currentRole)?activeAppUserId():null;
   const direct=(data.notifications||[]).filter(n=>(!targetUser||n.targetUserId===targetUser)&&!n.closed).sort((a,b)=>b.ts-a.ts);
   const cards=[];
   if(currentRole==='employee'){
-    const assigned=data.assignments.filter(a=>a.userId==='u_emp'&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
+    const assigned=data.assignments.filter(a=>a.userId===activeAppUserId()&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
     const checks=todaysChecks(data);
     data.shelves.filter(s=>assigned.includes(s.id)&&s.active).forEach(s=>{
       const missed=data.products.filter(p=>p.shelfId===s.id&&p.active&&p.required&&!checks.some(c=>c.productId===p.id));
@@ -361,7 +362,7 @@ function notificationsView(data){
 }
 
 function cashierHome(data){
-  const recent=data.issues.filter(i=>i.reportedBy==='u_cash').sort((a,b)=>b.ts-a.ts).slice(0,5);
+  const recent=data.issues.filter(i=>i.reportedBy===activeAppUserId()).sort((a,b)=>b.ts-a.ts).slice(0,5);
   return '<section class="hero">'
     +'<div class="eyebrow">Kasa kullanıcısı</div><h1>Ürün sorunu bildir</h1>'
     +'<p>Ürün adı veya barkod ara. Raf ve sorumlu otomatik bulunur.</p></section>'
@@ -452,10 +453,10 @@ function issueCard(data,i,warehouseMode=false){
 function issuesView(data){
   let issues=data.issues.filter(issueOpen);
   if(currentRole==='employee'){
-    const shelfIds=data.assignments.filter(a=>a.userId==='u_emp'&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
+    const shelfIds=data.assignments.filter(a=>a.userId===activeAppUserId()&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
     issues=issues.filter(i=>shelfIds.includes(i.shelfId));
   }
-  if(currentRole==='cashier') issues=issues.filter(i=>i.reportedBy==='u_cash');
+  if(currentRole==='cashier') issues=issues.filter(i=>i.reportedBy===activeAppUserId());
   if(currentRole==='warehouse') issues=issues.filter(i=>i.type==='missing');
 
   if(currentRole==='superadmin'&&issueTypeFilter==='unchecked'){
@@ -598,7 +599,7 @@ function peopleView(data){
   `;
 }
 function performanceView(data){
-  const assigned=data.assignments.filter(a=>a.userId==='u_emp'&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
+  const assigned=data.assignments.filter(a=>a.userId===activeAppUserId()&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
   const shelves=data.shelves.filter(s=>assigned.includes(s.id));
   const done=shelves.filter(s=>shelfProgress(data,s.id).complete).length;
   const pct=shelves.length?Math.round(done/shelves.length*100):0;
@@ -611,7 +612,7 @@ function historyView(data){
   return `<div class="section-title"><h2>Depo Geçmişi</h2><small>bugün</small></div>${data.issues.filter(i=>i.type==='missing').map(i=>issueCard(data,i,false)).join('')||'<div class="card empty">Kayıt yok.</div>'}`;
 }
 function profileView(data){
-  const u=currentRole==='employee'?data.users.find(x=>x.id==='u_emp'):currentRole==='warehouse'?data.users.find(x=>x.id==='u_wh'):currentRole==='manager'?data.users.find(x=>x.id==='u_mgr'):data.users.find(x=>x.id==='u_admin');
+  const u=data.users.find(x=>x.id===activeAppUserId())||data.users.find(x=>x.id===currentUser?.app_user_id);
   return `<div class="card"><div class="card-pad"><div class="row-left"><div class="avatar">${esc(u?.name?.charAt(0)||'E')}</div><div><strong>${esc(u?.name||'')}</strong><div class="meta">${ROLE_NAMES[currentRole]}<br>@${esc(u?.username||'')}</div></div></div></div></div>
   <div class="card"><div class="card-pad"><strong>Yetki</strong><div class="meta">${currentRole==='employee'?'Sadece atanmış raflarını kontrol eder ve sorun bildirir.':currentRole==='warehouse'?'Rafta yok bildirimlerini doğrular ve depo durumunu bildirir.':currentRole==='manager'?'Raf/ürün tanımlar, tüm kontrolleri ve hataları görür.':'Tüm sistemi, kullanıcıları, şifreleri, roller ve raf atamalarını yönetir.'}</div></div></div>`;
 }
@@ -813,7 +814,7 @@ function bindActions(data){
     const issue={
       id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),
       productId:p.id,shelfId:p.shelfId,type,state:'reported',
-      reportedBy:'u_cash',source:'cashier',note,
+      reportedBy:activeAppUserId(),source:'cashier',note,
       assignedToUserId:owner?.id||null,
       visibility:['employee','manager','superadmin']
     };
@@ -854,7 +855,7 @@ function bindActions(data){
     i.state='resolved';
     i.resolvedAt=Date.now();
     i.resolvedTime=timeNow();
-    i.resolvedBy=currentRole==='superadmin'?'u_admin':'u_mgr';
+    i.resolvedBy=activeAppUserId()||'manager';
     await put('issues',i);
     render();
   });
@@ -968,13 +969,13 @@ function showMultiIssueForm(data,p,shelfId){
 
     await put('dailyChecks',{
       id:uid('c'),date:today(),ts:Date.now(),time:timeNow(),
-      productId:p.id,shelfId,status:'problem',reportedBy:'u_emp',problemTypes:selected
+      productId:p.id,shelfId,status:'problem',reportedBy:activeAppUserId(),problemTypes:selected
     });
 
     for(const type of selected){
       await put('issues',{
         id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),
-        productId:p.id,shelfId,type,state:'reported',reportedBy:'u_emp',
+        productId:p.id,shelfId,type,state:'reported',reportedBy:activeAppUserId(),
         qty,unit,expiry:(type==='expiring'||type==='expired')?expiry:null,note,
         visibility:type.startsWith('label_')?['manager','superadmin']:['warehouse','manager','superadmin']
       });
@@ -1001,7 +1002,7 @@ async function createScenario(data,type){
   if(type==='ok'){
     await put('dailyChecks',{
       id:uid('c'),date:today(),ts:Date.now(),time:timeNow(),
-      productId:p.id,shelfId:shelf.id,status:'ok',reportedBy:'u_emp'
+      productId:p.id,shelfId:shelf.id,status:'ok',reportedBy:activeAppUserId()
     });
     return;
   }
@@ -1027,7 +1028,7 @@ async function createScenario(data,type){
       id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),
       productId:p.id,shelfId:shelf.id,type:'missing',
       state:type==='warehouse_found'?'warehouse_found':'warehouse_none',
-      reportedBy:'u_emp',qty:0,unit:p.unit||'adet',expiry:null,
+      reportedBy:activeAppUserId(),qty:0,unit:p.unit||'adet',expiry:null,
       visibility:['warehouse','manager','superadmin']
     };
     if(type==='warehouse_found'){
@@ -1136,10 +1137,10 @@ function notificationModal(data){
 }
 
 async function saveCheck(product,shelfId,status,extra){
-  const check={id:uid('c'),date:today(),ts:Date.now(),time:timeNow(),productId:product.id,shelfId,status,reportedBy:'u_emp',...extra};
+  const check={id:uid('c'),date:today(),ts:Date.now(),time:timeNow(),productId:product.id,shelfId,status,reportedBy:activeAppUserId(),...extra};
   await put('dailyChecks',check);
   if(status!=='ok'){
-    const issue={id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),productId:product.id,shelfId,type:status,state:'reported',reportedBy:'u_emp',qty:extra.qty??null,unit:extra.unit||product.unit,expiry:extra.expiry||null,visibility:['warehouse','manager','superadmin']};
+    const issue={id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),productId:product.id,shelfId,type:status,state:'reported',reportedBy:activeAppUserId(),qty:extra.qty??null,unit:extra.unit||product.unit,expiry:extra.expiry||null,visibility:['warehouse','manager','superadmin']};
     await put('issues',issue);
   }
 }
