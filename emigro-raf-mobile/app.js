@@ -7,7 +7,9 @@ const STATUS={
   expired:{label:'Tarihi geçmiş',cls:'danger'},
   low:{label:'Stok az',cls:'warn'},
   missing:{label:'Rafta yok',cls:'dark'},
-  damaged:{label:'Hasarlı/bozuk',cls:'danger'}
+  damaged:{label:'Hasarlı/bozuk',cls:'danger'},
+  label_missing:{label:'Raf etiketi yok',cls:'warn'},
+  label_wrong:{label:'Raf etiketi yanlış',cls:'danger'}
 };
 let currentRole='employee';
 let currentView='home';
@@ -117,7 +119,7 @@ function navFor(role){
     ['home','⌂','Özet'],['issues','!','Hatalar'],['shelves','▦','Raflar'],['people','♟','Personel']
   ];
   return [
-    ['home','⌂','Panel'],['issues','!','Hatalar'],['shelves','▦','Raflar'],['people','♟','Kullanıcı']
+    ['home','⌂','Panel'],['issues','!','Hatalar'],['adminnotes','✎','Notlar'],['shelves','▦','Raflar'],['people','♟','Kullanıcı']
   ];
 }
 function renderNav(){
@@ -138,6 +140,7 @@ async function render(){
   else if(currentView==='performance') app.innerHTML=performanceView(data);
   else if(currentView==='history') app.innerHTML=historyView(data);
   else if(currentView==='notifications') app.innerHTML=notificationsView(data);
+  else if(currentView==='adminnotes') app.innerHTML=adminNotesView(data);
   else app.innerHTML=profileView(data);
   bindActions(data);
 }
@@ -201,6 +204,49 @@ function employeeReminderBanner(data,shelves){
   if(missing.length) parts.push('<b>⚠ '+missing.length+' ürün henüz kontrol edilmedi.</b> Bildirim ekranından nerede olduklarını görebilirsin.');
   return '<button class="notice notice-button open-notifications">'+parts.join('<br>')+'</button>';
 }
+
+function shelfOwner(data,shelfId){
+  const a=data.assignments.find(x=>x.shelfId===shelfId&&x.active);
+  return a?data.users.find(u=>u.id===a.userId):null;
+}
+function adminNotesView(data){
+  if(currentRole!=='superadmin') return '<div class="card empty">Bu alan sadece Süper Admin içindir.</div>';
+  const notes=(data.notifications||[])
+    .filter(n=>n.note||n.closed)
+    .sort((a,b)=>(b.closedAt||b.noteAt||b.ts)-(a.closedAt||a.noteAt||a.ts));
+  const rows=notes.map(n=>{
+    const u=data.users.find(x=>x.id===n.targetUserId);
+    const s=data.shelves.find(x=>x.id===n.shelfId);
+    return '<article class="card admin-note"><div class="card-pad">'
+      +'<div class="simple-row"><strong>'+esc(u?.name||'Personel')+'</strong><span class="badge '+(n.closed?'ok':'blue')+'">'+(n.closed?'Tamamlandı':'Not bıraktı')+'</span></div>'
+      +'<div class="meta">'+(s?'<b>Raf:</b> '+esc(s.name)+'<br>':'')
+      +'<b>Gönderilen:</b> '+esc(n.message||n.title||'')+'<br>'
+      +(n.note?'<b>Personel notu:</b> '+esc(n.note)+'<br>':'')
+      +(n.closedTime?'<b>Tamamlandı:</b> '+esc(n.closedTime):'')
+      +'</div></div></article>';
+  }).join('');
+  return '<div class="section-title"><h2>Personel Notları</h2><small>'+notes.length+' kayıt</small></div>'
+    +(rows||'<div class="card empty">Henüz personel notu yok.</div>');
+}
+function monthlyPerformanceModal(data,userId){
+  const u=data.users.find(x=>x.id===userId);
+  if(!u) return;
+  const month=today().slice(0,7);
+  const shelfIds=data.assignments.filter(a=>a.userId===userId&&a.active).map(a=>a.shelfId);
+  const checks=data.dailyChecks.filter(x=>x.date?.startsWith(month)&&shelfIds.includes(x.shelfId));
+  const issues=data.issues.filter(x=>x.date?.startsWith(month)&&x.reportedBy===userId);
+  const expectedProducts=data.products.filter(p=>shelfIds.includes(p.shelfId)&&p.active&&p.required).length;
+  const uniqueToday=new Set(todaysChecks(data).filter(x=>shelfIds.includes(x.shelfId)).map(x=>x.productId)).size;
+  const completion=expectedProducts?Math.round(uniqueToday/expectedProducts*100):0;
+  const score=Math.max(0,Math.min(100,70+Math.round(completion*.3)));
+  const shelfNames=shelfIds.map(id=>data.shelves.find(s=>s.id===id)?.name).filter(Boolean);
+  openModal('Aylık performans',
+    '<div class="performance-profile">'
+    +'<div class="row-left"><div class="avatar">'+esc(u.name.charAt(0))+'</div><div><strong>'+esc(u.name)+'</strong><div class="sub">'+month+'</div></div></div>'
+    +'<div class="grid" style="margin-top:14px"><div class="metric"><b>'+score+'</b><span>Performans puanı</span></div><div class="metric"><b>'+checks.length+'</b><span>Ürün kontrolü</span></div><div class="metric"><b>'+issues.length+'</b><span>Sorun bildirimi</span></div><div class="metric"><b>'+completion+'%</b><span>Bugünkü tamamlanma</span></div></div>'
+    +'<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div class="card-pad"><strong>Sorumlu raflar</strong><div class="meta">'+shelfNames.map(esc).join('<br>')+'</div></div></div>'
+    +'</div>');
+}
 function notificationsView(data){
   const targetUser=currentRole==='employee'?'u_emp':currentRole==='warehouse'?'u_wh':null;
   const direct=(data.notifications||[]).filter(n=>(!targetUser||n.targetUserId===targetUser)&&!n.closed).sort((a,b)=>b.ts-a.ts);
@@ -252,8 +298,15 @@ function managerHome(data,isAdmin){
     <div class="metric"><b>${issues.filter(i=>i.type==='expired').length}</b><span>Tarihi geçmiş</span></div>
     <div class="metric"><b>${issues.filter(i=>i.type==='expiring').length}</b><span>Tarihi yaklaşan</span></div>
   </div>
-  <div class="section-title"><h2>${afterDeadline(data.settings)?'Kontrol edilmeyen raflar':'Kontrol bekleyen raflar'}</h2><small>12:00 kontrolü</small></div>
-  ${un.slice(0,5).map(s=>`<div class="card"><div class="card-pad simple-row"><div><strong>${esc(s.name)}</strong><div class="meta">${shelfProgress(data,s.id).done}/${shelfProgress(data,s.id).total} ürün kontrol edildi</div></div><span class="badge ${afterDeadline(data.settings)?'danger':'dark'}">${afterDeadline(data.settings)?'Gecikti':'Bekliyor'}</span></div></div>`).join('')||'<div class="card empty">Tüm raflar kontrol edildi.</div>'}
+  <div class="section-title"><h2>Bugün yapılacaklar</h2><small>${activeShelves.length-done} raf kaldı</small></div>
+  ${activeShelves.map(s=>{
+    const pg=shelfProgress(data,s.id);
+    const owner=shelfOwner(data,s.id);
+    const remain=Math.max(0,pg.total-pg.done);
+    return `<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>${esc(s.name)}</strong><div class="meta">${pg.done}/${pg.total} ürün kontrol edildi · ${remain} kaldı</div></div><span class="badge ${pg.complete?'ok':afterDeadline(data.settings)?'danger':'dark'}">${pg.complete?'Tamamlandı':afterDeadline(data.settings)?'Gecikti':'Bekliyor'}</span></div>${owner?`<button class="owner-link performance-user" data-user="${owner.id}">👤 ${esc(owner.name)} · performansı gör</button>`:'<div class="owner-link muted">Sorumlu atanmamış</div>'}</div></div>`;
+  }).join('')}
+  ${un.length?`<div class="section-title"><h2>${afterDeadline(data.settings)?'Yapılmayan / geciken':'Henüz tamamlanmayan'}</h2><small>${un.length} raf</small></div>`:''
+  }
   <div class="section-title"><h2>Hata ekranı</h2><small>${issues.length} açık</small></div>
   ${issues.slice(0,4).map(i=>issueCard(data,i,false)).join('')||'<div class="card empty">Açık sorun yok.</div>'}
   `;
@@ -282,7 +335,7 @@ function shelvesView(data){
   <div class="section-title"><h2>Raf Yönetimi</h2>${canEdit?'<button class="btn" id="addShelf">+ Raf</button>':''}</div>
   ${data.shelves.filter(s=>s.active).map(s=>{
     const ps=data.products.filter(p=>p.shelfId===s.id&&p.active);
-    return `<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>${esc(s.name)}</strong><div class="meta">${esc(s.department)} · ${esc(s.location)}<br>${ps.length} ürün tanımlı</div></div>${canEdit?`<button class="btn secondary add-product" data-shelf="${s.id}">+ Ürün</button>`:''}</div></div>
+    return `<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>${esc(s.name)}</strong><div class="meta">${esc(s.department)} · ${esc(s.location)}<br>${ps.length} ürün tanımlı</div>${shelfOwner(data,s.id)?`<button class="owner-link performance-user" data-user="${shelfOwner(data,s.id).id}">👤 ${esc(shelfOwner(data,s.id).name)}</button>`:'<div class="owner-link muted">Sorumlu atanmamış</div>'}</div>${canEdit?`<button class="btn secondary add-product" data-shelf="${s.id}">+ Ürün</button>`:''}</div></div>
     ${ps.slice(0,4).map(p=>`<div class="product"><div class="product-name">${esc(p.name)}</div><div class="sub">${esc(p.unit)} · ${esc(p.barcode||'')}</div></div>`).join('')}
     ${ps.length>4?`<div class="product sub">+${ps.length-4} ürün daha</div>`:''}</div>`;
   }).join('')}
@@ -323,6 +376,7 @@ function closeModal(){document.getElementById('modal').close();}
 
 function bindActions(data){
   document.querySelectorAll('.open-notifications').forEach(b=>b.onclick=()=>{currentView='notifications';render();});
+  document.querySelectorAll('.performance-user').forEach(b=>b.onclick=()=>monthlyPerformanceModal(data,b.dataset.user));
   document.querySelectorAll('.go-shelf').forEach(b=>b.onclick=()=>{currentView='home';render().then(()=>setTimeout(()=>document.querySelector('[data-shelf-card="'+b.dataset.shelf+'"]')?.scrollIntoView({behavior:'smooth',block:'start'}),50));});
   document.querySelectorAll('.close-note').forEach(b=>b.onclick=async()=>{
     const n=(data.notifications||[]).find(x=>x.id===b.dataset.id);
@@ -348,8 +402,7 @@ function bindActions(data){
   });
   document.querySelectorAll('.problem-btn').forEach(b=>b.onclick=()=>{
     const p=data.products.find(x=>x.id===b.dataset.product);
-    openModal('Sorun bildir','<div class="problem-sheet"><div><strong>'+esc(p.name)+'</strong><div class="sub">Sorun türünü seç</div></div><button class="issue-choice warn" data-status="expiring">🟡 Tarihi yaklaşıyor</button><button class="issue-choice danger" data-status="expired">🔴 Tarihi geçmiş</button><button class="issue-choice low" data-status="low">🟠 Stok az</button><button class="issue-choice missing" data-status="missing">⚫ Rafta yok</button><button class="issue-choice danger" data-status="damaged">❌ Hasarlı / bozuk</button></div>');
-    document.querySelectorAll('.issue-choice').forEach(x=>x.onclick=()=>showIssueForm(data,p,b.dataset.shelf,x.dataset.status));
+    showMultiIssueForm(data,p,b.dataset.shelf);
   });
   document.querySelectorAll('.check-btn').forEach(b=>b.onclick=async()=>{
     const p=data.products.find(x=>x.id===b.dataset.product);
@@ -374,24 +427,39 @@ function bindActions(data){
   document.getElementById('openTestCenter')?.addEventListener('click',()=>testCenterModal(data));
 }
 
-function showIssueForm(data,p,shelfId,st){
-  const needsExpiry=['expiring','expired'].includes(st);
-  openModal(STATUS[st].label,`
-    <div class="form-grid">
-      <div><strong>${esc(p.name)}</strong><div class="sub">Sorun bilgilerini gir</div></div>
-      ${needsExpiry?'<label>Son kullanma tarihi<input id="fExpiry" type="date" required></label>':''}
-      <label>Miktar<input id="fQty" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0" required></label>
-      <label>Birim<select id="fUnit"><option value="adet">Adet</option><option value="kg">Kg</option><option value="koli">Koli</option><option value="paket">Paket</option><option value="şişe">Şişe</option><option value="kasa">Kasa</option></select></label>
-      <button class="btn full" id="saveIssue">Bildirimi kaydet</button>
-    </div>`);
-  document.getElementById('saveIssue').onclick=async()=>{
-    const qty=Number(document.getElementById('fQty').value);
-    const unit=document.getElementById('fUnit').value;
-    const expiry=needsExpiry?document.getElementById('fExpiry').value:null;
-    if(!Number.isFinite(qty)||qty<0){alert('Miktar girin.');return;}
-    if(needsExpiry&&!expiry){alert('Son kullanma tarihini girin.');return;}
-    await saveCheck(p,shelfId,st,{qty,unit,expiry});
-    closeModal(); render();
+function showMultiIssueForm(data,p,shelfId){
+  openModal('Sorun bildir',
+    '<div class="form-grid">'
+    +'<div><strong>'+esc(p.name)+'</strong><div class="sub">Birden fazla sorun seçebilirsin.</div></div>'
+    +'<label class="check-row"><input type="checkbox" name="issueType" value="expiring"> 🟡 Tarihi yaklaşıyor</label>'
+    +'<label class="check-row"><input type="checkbox" name="issueType" value="expired"> 🔴 Tarihi geçmiş</label>'
+    +'<label class="check-row"><input type="checkbox" name="issueType" value="low"> 🟠 Stok az</label>'
+    +'<label class="check-row"><input type="checkbox" name="issueType" value="missing"> ⚫ Rafta yok</label>'
+    +'<label class="check-row"><input type="checkbox" name="issueType" value="damaged"> ❌ Hasarlı / bozuk</label>'
+    +'<label class="check-row"><input type="checkbox" name="issueType" value="label_missing"> 🏷️ Raf etiketi yok</label>'
+    +'<label class="check-row"><input type="checkbox" name="issueType" value="label_wrong"> ⚠️ Raf etiketi yanlış</label>'
+    +'<label>Son kullanma tarihi <span class="sub">(tarih sorunu varsa)</span><input id="multiExpiry" type="date"></label>'
+    +'<label>Miktar<input id="multiQty" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></label>'
+    +'<label>Birim<select id="multiUnit"><option value="adet">Adet</option><option value="kg">Kg</option><option value="koli">Koli</option><option value="paket">Paket</option><option value="şişe">Şişe</option><option value="kasa">Kasa</option></select></label>'
+    +'<label>Not <span class="sub">(isteğe bağlı)</span><input id="multiNote" placeholder="Örn. etiket farklı fiyat gösteriyor"></label>'
+    +'<button class="btn full" id="saveMultiIssue">Sorunları bildir</button>'
+    +'</div>');
+  document.getElementById('saveMultiIssue').onclick=async()=>{
+    const selected=[...document.querySelectorAll('input[name="issueType"]:checked')].map(x=>x.value);
+    if(!selected.length){alert('En az bir sorun seçin.');return;}
+    const hasDate=selected.some(x=>x==='expiring'||x==='expired');
+    const expiry=document.getElementById('multiExpiry').value;
+    if(hasDate&&!expiry){alert('Tarih sorunu için son kullanma tarihini girin.');return;}
+    const qtyRaw=document.getElementById('multiQty').value;
+    const qty=qtyRaw===''?null:Number(qtyRaw);
+    const unit=document.getElementById('multiUnit').value;
+    const note=document.getElementById('multiNote').value||'';
+    await put('dailyChecks',{id:uid('c'),date:today(),ts:Date.now(),time:timeNow(),productId:p.id,shelfId,status:'problem',reportedBy:'u_emp',problemTypes:selected});
+    for(const type of selected){
+      await put('issues',{id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),productId:p.id,shelfId,type,state:'reported',reportedBy:'u_emp',qty,unit,expiry:(type==='expiring'||type==='expired')?expiry:null,note,visibility:type.startsWith('label_')?['manager','superadmin']:['warehouse','manager','superadmin']});
+    }
+    closeModal();
+    render();
   };
 }
 
@@ -417,7 +485,7 @@ async function createScenario(data,type){
     return;
   }
 
-  if(['expiring','expired','low','missing','damaged'].includes(type)){
+  if(['expiring','expired','low','missing','damaged','label_missing','label_wrong'].includes(type)){
     const extra={qty:2,unit:p.unit||'adet'};
     if(type==='expiring'){
       extra.expiry=new Date(Date.now()+5*86400000).toISOString().slice(0,10);
@@ -465,7 +533,7 @@ async function createScenario(data,type){
   }
 
   if(type==='all'){
-    const list=['expiring','expired','low','missing','damaged','warehouse_found','warehouse_none','employee_notice','warehouse_notice'];
+    const list=['expiring','expired','low','missing','damaged','label_missing','label_wrong','warehouse_found','warehouse_none','employee_notice','warehouse_notice'];
     for(const item of list) await createScenario(data,item);
   }
 }
@@ -479,6 +547,8 @@ function testCenterModal(data){
     '<button class="test-btn low" data-test="low">🟠 Stok az</button>',
     '<button class="test-btn missing" data-test="missing">⚫ Rafta yok</button>',
     '<button class="test-btn danger" data-test="damaged">❌ Hasarlı</button>',
+    '<button class="test-btn warn" data-test="label_missing">🏷️ Etiket yok</button>',
+    '<button class="test-btn danger" data-test="label_wrong">⚠️ Etiket yanlış</button>',
     '<button class="test-btn blue" data-test="warehouse_found">📦 Depoda var</button>',
     '<button class="test-btn danger" data-test="warehouse_none">🚫 Depoda yok</button>',
     '<button class="test-btn blue" data-test="employee_notice">🔔 Çalışana uyarı</button>',
@@ -501,14 +571,49 @@ function testCenterModal(data){
 }
 
 function notificationModal(data){
-  const targets=data.users.filter(u=>u.active&&(u.role==='employee'||u.role==='warehouse'));
-  const shelfOpts='<option value="">Raf seçmeden genel uyarı</option>'+data.shelves.filter(s=>s.active).map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('');
-  openModal('Personele uyarı gönder','<div class="form-grid"><label>Kime?<select id="nTarget">'+targets.map(u=>'<option value="'+u.id+'">'+esc(u.name)+' · '+ROLE_NAMES[u.role]+'</option>').join('')+'</select></label><label>Raf<select id="nShelf">'+shelfOpts+'</select></label><label>Başlık<input id="nTitle" value="Kontrol uyarısı"></label><label>Mesaj<input id="nMessage" placeholder="Örn. Dranken 02 üst bölümünü tekrar kontrol et"></label><button class="btn full" id="saveNotification">Uyarıyı gönder</button></div>');
+  const shelfOpts=data.shelves.filter(s=>s.active).map(s=>{
+    const owner=shelfOwner(data,s.id);
+    return '<option value="'+s.id+'">'+esc(s.name)+' · '+esc(owner?.name||'Sorumlu yok')+'</option>';
+  }).join('');
+  openModal('Uyarı / not gönder',
+    '<div class="form-grid">'
+    +'<label>Hedef<select id="nRoute"><option value="shelf">Raf sorumlusuna</option><option value="warehouse">Depo sorumlusuna</option></select></label>'
+    +'<label id="nShelfWrap">Raf<select id="nShelf">'+shelfOpts+'</select></label>'
+    +'<div id="nOwnerPreview" class="notice" style="margin:0"></div>'
+    +'<label>Başlık<input id="nTitle" value="Kontrol uyarısı"></label>'
+    +'<label>Mesaj<input id="nMessage" placeholder="Örn. Üst bölümü tekrar kontrol et"></label>'
+    +'<button class="btn full" id="saveNotification">Gönder</button>'
+    +'</div>');
+  const route=document.getElementById('nRoute');
+  const shelf=document.getElementById('nShelf');
+  const wrap=document.getElementById('nShelfWrap');
+  const preview=document.getElementById('nOwnerPreview');
+  const refresh=()=>{
+    if(route.value==='warehouse'){
+      wrap.style.display='none';
+      const wh=data.users.find(u=>u.role==='warehouse'&&u.active);
+      preview.innerHTML='<b>Bildirim:</b> '+esc(wh?.name||'Depo sorumlusu bulunamadı');
+    }else{
+      wrap.style.display='';
+      const owner=shelfOwner(data,shelf.value);
+      preview.innerHTML='<b>Raf sorumlusu:</b> '+esc(owner?.name||'Atanmamış');
+    }
+  };
+  route.onchange=refresh;shelf.onchange=refresh;refresh();
   document.getElementById('saveNotification').onclick=async()=>{
-    await put('notifications',{id:uid('n'),targetUserId:document.getElementById('nTarget').value,shelfId:document.getElementById('nShelf').value||null,title:document.getElementById('nTitle').value||'Kontrol uyarısı',message:document.getElementById('nMessage').value||'Lütfen belirtilen alanı kontrol edin.',read:false,ts:Date.now(),time:timeNow(),sentBy:'u_admin'});
+    let targetUserId=null,shelfId=null;
+    if(route.value==='warehouse'){
+      targetUserId=data.users.find(u=>u.role==='warehouse'&&u.active)?.id||null;
+    }else{
+      shelfId=shelf.value;
+      targetUserId=shelfOwner(data,shelfId)?.id||null;
+    }
+    if(!targetUserId){alert('Bu hedef için sorumlu kullanıcı bulunamadı.');return;}
+    await put('notifications',{id:uid('n'),targetUserId,shelfId,title:document.getElementById('nTitle').value||'Kontrol uyarısı',message:document.getElementById('nMessage').value||'Lütfen belirtilen alanı kontrol edin.',read:false,closed:false,ts:Date.now(),time:timeNow(),sentBy:'u_admin'});
     closeModal();render();
   };
 }
+
 async function saveCheck(product,shelfId,status,extra){
   const check={id:uid('c'),date:today(),ts:Date.now(),time:timeNow(),productId:product.id,shelfId,status,reportedBy:'u_emp',...extra};
   await put('dailyChecks',check);
