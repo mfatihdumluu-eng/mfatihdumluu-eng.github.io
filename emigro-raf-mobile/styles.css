@@ -200,3 +200,14 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 .location-grid label{min-width:0}
 .location-grid input{width:100%;box-sizing:border-box}
 @media(max-width:380px){.location-grid{grid-template-columns:1fr}}
+
+.employee-tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.employee-tools .tool-card{width:100%;border:1px solid var(--line);background:#fff;text-align:left}
+.filter-triple{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.filter-triple label{display:grid;gap:6px;font-size:12px;font-weight:800;color:#4b5563}
+.filter-triple select{width:100%;min-width:0}
+.barcode-camera{min-height:180px;border:2px dashed #b8c0cc;border-radius:20px;background:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.barcode-frame{width:72%;height:82px;border:3px solid currentColor;border-radius:14px;position:relative}
+.barcode-frame:before,.barcode-frame:after{content:"";position:absolute;left:10%;right:10%;height:2px;background:currentColor}
+.barcode-frame:before{top:34%}.barcode-frame:after{bottom:34%}
+@media(max-width:380px){.filter-triple{grid-template-columns:1fr}.employee-tools{grid-template-columns:1fr}}
