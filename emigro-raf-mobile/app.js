@@ -23,6 +23,7 @@ let selectedShelfId=null;
 let currentUser=null;
 let viewAsUserId=null;
 const RAF_AUTH_URL='https://hroarfuwpfsqilsijwpp.supabase.co/functions/v1/raf-auth';
+const RAF_DATA_URL='https://hroarfuwpfsqilsijwpp.supabase.co/functions/v1/raf-data';
 
 function authToken(){return localStorage.getItem('raf_auth_token')||'';}
 function activeAppUserId(){return viewAsUserId||currentUser?.app_user_id||null;}
@@ -71,6 +72,7 @@ async function initAuth(){
       const out=await rafAuth('session');
       if(out.ok&&out.user){
         setEffectiveUser(out.user);
+        await ensureRemoteSeeded();
         showApp();
         await render();
         return;
@@ -93,26 +95,71 @@ function openDB(){
     req.onerror=()=>reject(req.error);
   });
 }
-async function all(store){
+async function localAll(store){
   const db=await openDB();
   return new Promise((resolve,reject)=>{
     const r=db.transaction(store,'readonly').objectStore(store).getAll();
     r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error);
   });
 }
-async function put(store,obj){
+async function localPut(store,obj){
   const db=await openDB();
   return new Promise((resolve,reject)=>{
     const r=db.transaction(store,'readwrite').objectStore(store).put(obj);
     r.onsuccess=()=>resolve(obj); r.onerror=()=>reject(r.error);
   });
 }
-async function clearAll(){
+async function localClearAll(){
   const db=await openDB();
   const tx=db.transaction(Array.from(db.objectStoreNames),'readwrite');
   Array.from(db.objectStoreNames).forEach(n=>tx.objectStore(n).clear());
   return new Promise(res=>tx.oncomplete=res);
 }
+
+async function rafData(action,payload={}){
+  const res=await fetch(RAF_DATA_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action,token:authToken(),...payload})
+  });
+  const out=await res.json().catch(()=>({ok:false,error:'Veri sunucusu yanıtı okunamadı.'}));
+  if(!res.ok&&out.ok!==true) throw new Error(out.error||'Veri işlemi başarısız.');
+  return out;
+}
+async function all(store){
+  if(currentUser&&authToken()){
+    const out=await rafData('all',{store});
+    return out.rows||[];
+  }
+  return localAll(store);
+}
+async function put(store,obj){
+  if(currentUser&&authToken()){
+    const out=await rafData('put',{store,obj});
+    return out.obj||obj;
+  }
+  return localPut(store,obj);
+}
+async function clearAll(){
+  if(currentUser&&authToken()){
+    await rafData('clear');
+  }
+  return localClearAll();
+}
+async function ensureRemoteSeeded(){
+  if(!currentUser||!authToken()) return;
+  const info=await rafData('count');
+  if((info.count||0)>0) return;
+  if(!isSystemAdmin()) return;
+  const stores=['users','shelves','products','assignments','dailyChecks','issues','settings','notifications'];
+  const records=[];
+  for(const store of stores){
+    const rows=await localAll(store);
+    for(const obj of rows) records.push({store,obj});
+  }
+  if(records.length) await rafData('batch_seed',{records});
+}
+
 const today=()=>new Date().toISOString().slice(0,10);
 const timeNow=()=>new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
 const uid=(p='id')=>p+'_'+Math.random().toString(36).slice(2,9);
@@ -1434,6 +1481,7 @@ document.getElementById('loginButton').onclick=async()=>{
     const out=await rafAuth('login',{username,password});
     localStorage.setItem('raf_auth_token',out.token);
     setEffectiveUser(out.user);
+    await ensureRemoteSeeded();
     msg.textContent='';
     showApp();
     await render();
