@@ -156,3 +156,6 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 
 .shelf-admin-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
 .backup-person{color:#6b7280}
+
+#employeeShelfArea{display:grid;gap:10px}
+#uShelves option:disabled{color:#a0a6ad;background:#f1f2f4}
