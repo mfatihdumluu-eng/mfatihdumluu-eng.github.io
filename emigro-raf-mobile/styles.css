@@ -150,3 +150,6 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 .check-row:active{transform:scale(.99)}
 .check-row.selected{background:#eef6ff;border-color:#8ab8ee}
 .check-row.selected input{accent-color:#0a84ff}
+
+.back-home-btn{display:inline-flex;align-items:center;gap:7px;border:0;background:none;color:#1769aa;font-weight:850;padding:2px 0 8px}
+.back-home-btn:active{opacity:.65}
