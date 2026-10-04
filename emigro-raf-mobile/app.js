@@ -57,31 +57,21 @@ function setEffectiveUser(user){
 }
 async function initAuth(){
   await seed();
-  const params=new URLSearchParams(location.search);
-  const invitedUsername=params.get('login');
-  if(invitedUsername&&document.getElementById('loginUsername')) document.getElementById('loginUsername').value=invitedUsername;
-  const resetToken=params.get('reset');
-  if(resetToken){
-    document.getElementById('loginPanel').style.display='none';
-    document.getElementById('resetPanel').style.display='block';
-    showAuth();
-    return;
-  }
-  const token=authToken();
-  if(token){
-    try{
-      const out=await rafAuth('session');
-      if(out.ok&&out.user){
-        setEffectiveUser(out.user);
-        await ensureRemoteSeeded();
-        showApp();
-        await render();
-        return;
-      }
-    }catch(e){}
-    localStorage.removeItem('raf_auth_token');
-  }
-  showAuth();
+  currentUser={
+    id:'preview-system',
+    app_user_id:'u_admin',
+    username:'fatih',
+    name:'Fatih Dumlu',
+    role:'system_admin',
+    active:true,
+    preview:true
+  };
+  viewAsUserId=null;
+  currentRole='superadmin';
+  currentView='system';
+  document.getElementById('authScreen').style.display='none';
+  showApp();
+  await render();
 }
 
 function openDB(){
@@ -128,21 +118,21 @@ async function rafData(action,payload={}){
   return out;
 }
 async function all(store){
-  if(currentUser&&authToken()){
+  if(currentUser&&authToken()&&!currentUser?.preview){
     const out=await rafData('all',{store});
     return out.rows||[];
   }
   return localAll(store);
 }
 async function put(store,obj){
-  if(currentUser&&authToken()){
+  if(currentUser&&authToken()&&!currentUser?.preview){
     const out=await rafData('put',{store,obj});
     return out.obj||obj;
   }
   return localPut(store,obj);
 }
 async function clearAll(){
-  if(currentUser&&authToken()){
+  if(currentUser&&authToken()&&!currentUser?.preview){
     await rafData('clear');
   }
   return localClearAll();
