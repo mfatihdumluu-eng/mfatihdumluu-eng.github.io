@@ -1279,7 +1279,58 @@ function excelImportModal(data){
   };
 }
 
+async function finalizeWriteoffIfReady(issue){
+  if(!isWriteoffIssue(issue)) return;
+  if(issue.managerApprovedAt&&issue.adminApprovedAt){
+    issue.writeoffFinalized=true;
+    issue.finalApprovedAt=Date.now();
+    issue.writeoffMonth=new Date(issue.finalApprovedAt).toISOString().slice(0,7);
+    issue.state='resolved';
+    issue.resolvedAt=issue.finalApprovedAt;
+    issue.resolvedTime=timeNow();
+    issue.resolvedBy='dual_approval';
+  }
+}
 function bindActions(data){
+  document.getElementById('writeoffMonthFilter')?.addEventListener('change',e=>{window.writeoffMonthFilter=e.target.value;render();});
+  document.querySelectorAll('.approve-writeoff-manager').forEach(b=>b.onclick=async()=>{
+    const i=data.issues.find(x=>x.id===b.dataset.id);
+    if(!i||currentRole!=='manager') return;
+    i.managerApprovedAt=Date.now();i.managerApprovedBy=activeAppUserId();i.managerApprovedTime=timeNow();
+    await finalizeWriteoffIfReady(i);
+    await put('issues',i);
+    render();
+  });
+  document.querySelectorAll('.approve-writeoff-admin').forEach(b=>b.onclick=async()=>{
+    const i=data.issues.find(x=>x.id===b.dataset.id);
+    if(!i||currentRole!=='superadmin') return;
+    i.adminApprovedAt=Date.now();i.adminApprovedBy=activeAppUserId();i.adminApprovedTime=timeNow();
+    await finalizeWriteoffIfReady(i);
+    await put('issues',i);
+    render();
+  });
+  document.querySelectorAll('.writeoff-stock').forEach(b=>b.onclick=async()=>{
+    const i=data.issues.find(x=>x.id===b.dataset.id);
+    if(!i||!i.writeoffFinalized) return;
+    if(i.stockDeductedAt){
+      if(!confirm('Stoktan düşüldü işaretini kaldırmak istiyor musun?')) return;
+      i.stockDeductedAt=null;i.stockDeductedBy=null;
+    }else{
+      i.stockDeductedAt=Date.now();i.stockDeductedBy=activeAppUserId();
+    }
+    await put('issues',i);render();
+  });
+  document.querySelectorAll('.writeoff-accounting').forEach(b=>b.onclick=async()=>{
+    const i=data.issues.find(x=>x.id===b.dataset.id);
+    if(!i||!i.writeoffFinalized) return;
+    if(i.accountingPostedAt){
+      if(!confirm('Muhasebeye işlendi işaretini kaldırmak istiyor musun?')) return;
+      i.accountingPostedAt=null;i.accountingPostedBy=null;
+    }else{
+      i.accountingPostedAt=Date.now();i.accountingPostedBy=activeAppUserId();
+    }
+    await put('issues',i);render();
+  });
   document.querySelectorAll('.product-card-open-area').forEach(card=>card.onclick=e=>{
     if(e.target.closest('button')) return;
     productDetailModal(data,card.dataset.product);
