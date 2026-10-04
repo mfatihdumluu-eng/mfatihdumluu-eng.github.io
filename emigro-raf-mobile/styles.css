@@ -141,3 +141,7 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 .mini-clear{border:0;background:none;color:#1769aa;font-size:11px;font-weight:800;padding:7px 0 0}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
 .warn-dot{background:#d99000}.danger-dot{background:#d33131}.orange-dot{background:#e66a00}.dark-dot{background:#374151}
+
+.metric-link{border:0;text-align:left;color:inherit;width:100%;position:relative}
+.metric-link small{display:block;margin-top:7px;color:#9aa2ad;font-size:10px;font-weight:750}
+.metric-link:active{transform:scale(.985)}
