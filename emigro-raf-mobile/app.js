@@ -55,8 +55,68 @@ function setEffectiveUser(user){
   currentRole=user.role==='system_admin'?'superadmin':user.role;
   currentView=user.role==='system_admin'?'system':'home';
 }
+async function ensureBundledCatalog(){
+  const version='catalog_unique_barkod_v1';
+  if(localStorage.getItem('raf_catalog_version')===version) return;
+  try{
+    const res=await fetch('./emigro_raf_catalog.csv',{cache:'no-store'});
+    if(!res.ok) return;
+    const text=await res.text();
+    const wb=XLSX.read(text,{type:'string'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+    if(!rows.length) return;
+    const shelfMap=new Map();
+    const products=[];
+    for(const row of rows){
+      const shelfCode=String(row['Raf Kodu']||'').trim();
+      const name=String(row['Ürün']||'').trim();
+      const barcode=String(row['Barkod']||'').trim();
+      if(!shelfCode||!name) continue;
+      if(!shelfMap.has(shelfCode)){
+        shelfMap.set(shelfCode,{
+          id:'s_'+shelfCode.toLowerCase(),code:shelfCode,name:shelfCode,
+          department:String(row['Bölüm']||'-'),
+          location:String(row['Bölüm']||'')+' · Raf '+shelfCode,
+          approved:false,active:true
+        });
+      }
+      const shelf=shelfMap.get(shelfCode);
+      products.push({
+        id:'p_'+(barcode||uid('x')),shelfId:shelf.id,shelfCode,
+        name,barcode,unit:String(row['Birim']||'adet'),
+        meter:Number(row['Metre']||0)||null,
+        level:Number(row['Kat']||0)||null,
+        position:Number(row['Sıra']||0)||null,
+        locationCode:String(row['Konum Kodu']||''),
+        widthCm:Number(row['Ürün Genişliği (cm)']||0)||null,
+        startCm:Number(row['Başlangıç (cm)']||0),
+        endCm:Number(row['Bitiş (cm)']||0),
+        meterFillCm:Number(row['1 m Doluluk (cm)']||0),
+        required:true,active:true
+      });
+    }
+    const db=await openDB();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(['shelves','products','assignments'],'readwrite');
+      const shelvesStore=tx.objectStore('shelves');
+      const productsStore=tx.objectStore('products');
+      const assignmentsStore=tx.objectStore('assignments');
+      shelvesStore.clear(); productsStore.clear(); assignmentsStore.clear();
+      for(const s of shelfMap.values()) shelvesStore.put(s);
+      for(const p of products) productsStore.put(p);
+      const first=shelfMap.get('A1')||[...shelfMap.values()][0];
+      if(first) assignmentsStore.put({id:'a_catalog_primary',userId:'u_emp',shelfId:first.id,assignmentType:'primary',active:true});
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error);
+      tx.onabort=()=>reject(tx.error);
+    });
+    localStorage.setItem('raf_catalog_version',version);
+  }catch(e){console.error('Catalog import failed',e);}
+}
 async function initAuth(){
   await seed();
+  await ensureBundledCatalog();
   currentUser={
     id:'preview-system',
     app_user_id:'u_admin',
