@@ -310,10 +310,10 @@ function navFor(role){
     ['home','box','Depo'],['products','box','Ürünler'],['scanner','scan','Barkod'],['notifications','bell','Bildirim'],['issues','alert','Bekleyen'],['history','clock','Geçmiş']
   ];
   if(role==='manager') return [
-    ['home','home','Özet'],['products','box','Ürünler'],['scanner','scan','Barkod'],['issues','alert','Hatalar'],['shelves','shelves','Raflar']
+    ['home','home','Özet'],['products','box','Ürünler'],['scanner','scan','Barkod'],['issues','alert','Hatalar'],['writeoffs','note','Stok & Muhasebe'],['shelves','shelves','Raflar']
   ];
   return [
-    ['home','home','Panel'],['products','box','Ürünler'],['scanner','scan','Barkod'],['issues','alert','Hatalar'],['adminnotes','note','Notlar'],['shelves','shelves','Raflar']
+    ['home','home','Panel'],['products','box','Ürünler'],['scanner','scan','Barkod'],['issues','alert','Hatalar'],['writeoffs','note','Stok & Muhasebe'],['adminnotes','note','Notlar'],['shelves','shelves','Raflar']
   ];
 }
 function renderNav(){
@@ -340,6 +340,7 @@ async function render(){
   else if(currentView==='shelves') app.innerHTML=shelvesView(data);
   else if(currentView==='products') app.innerHTML=productsView(data);
   else if(currentView==='scanner') app.innerHTML=scannerView(data);
+  else if(currentView==='writeoffs') app.innerHTML=writeoffsView(data);
   else if(currentView==='system'&&isSystemAdmin()) app.innerHTML=await systemView(data);
   else if(currentView==='sysusers'&&isSystemAdmin()) app.innerHTML=await systemUsersView(data);
   else if(currentView==='sysuserdetail'&&isSystemAdmin()) app.innerHTML=systemUserDetailView(data,selectedSystemUserId);
@@ -601,6 +602,48 @@ function managerHome(data,isAdmin){
       ['cash_barcode_mismatch','Ürün / barkod eşleşmiyor']].map(([v,l])=>'<option value="'+v+'" '+(issueTypeFilter===v?'selected':'')+'>'+l+'</option>').join('')+'</select></label><button class="btn secondary full" id="homeClearIssueFilters">Filtreleri temizle</button></div>':''}
   ${issues.filter(i=>!isAdmin||((issueUserFilter==='all'||i.reportedBy===issueUserFilter)&&(issueTypeFilter==='all'||i.type===issueTypeFilter))).slice(0,6).map(i=>issueCard(data,i,false)).join('')||'<div class="card empty">Bu filtreye uygun açık sorun yok.</div>'}
   `;
+}
+function isWriteoffIssue(i){return i&&['expired','damaged'].includes(i.type);}
+function writeoffMonth(i){
+  if(i.writeoffMonth) return i.writeoffMonth;
+  const d=i.finalApprovedAt?new Date(i.finalApprovedAt):i.ts?new Date(i.ts):new Date();
+  return d.toISOString().slice(0,7);
+}
+function writeoffApprovalHtml(i){
+  if(!isWriteoffIssue(i)) return '';
+  const mgr=i.managerApprovedAt?'<span class="badge ok">Müdür ✓</span>':'<span class="badge warn">Müdür bekliyor</span>';
+  const adm=i.adminApprovedAt?'<span class="badge ok">Admin ✓</span>':'<span class="badge warn">Admin bekliyor</span>';
+  return '<div class="writeoff-approvals">'+mgr+adm+'</div>';
+}
+function writeoffsView(data){
+  if(!['manager','superadmin'].includes(currentRole)) return '<div class="card empty">Bu ekran için yetkiniz yok.</div>';
+  const months=[...new Set(data.issues.filter(i=>i.writeoffFinalized).map(writeoffMonth))].sort().reverse();
+  const selected=(window.writeoffMonthFilter&&months.includes(window.writeoffMonthFilter))?window.writeoffMonthFilter:(months[0]||today().slice(0,7));
+  window.writeoffMonthFilter=selected;
+  const rows=data.issues.filter(i=>i.writeoffFinalized&&writeoffMonth(i)===selected).sort((a,b)=>(b.finalApprovedAt||b.ts||0)-(a.finalApprovedAt||a.ts||0));
+  const totalQty=rows.reduce((s,i)=>s+(Number(i.qty)||0),0);
+  const stockPending=rows.filter(i=>!i.stockDeductedAt).length;
+  const accountingPending=rows.filter(i=>!i.accountingPostedAt).length;
+  const monthOptions=(months.length?months:[selected]).map(m=>'<option value="'+m+'" '+(m===selected?'selected':'')+'>'+m+'</option>').join('');
+  const cards=rows.map(i=>{
+    const p=data.products.find(x=>x.id===i.productId);
+    const s=data.shelves.find(x=>x.id===i.shelfId);
+    const reporter=data.users.find(x=>x.id===i.reportedBy);
+    const mgr=data.users.find(x=>x.id===i.managerApprovedBy);
+    const adm=data.users.find(x=>x.id===i.adminApprovedBy);
+    return '<article class="card writeoff-card"><div class="card-pad">'
+      +'<div class="simple-row"><div><strong>'+esc(p?.name||'Ürün')+'</strong><div class="meta">'+esc(p?.barcode||'Barkod yok')+' · '+esc(STATUS[i.type]?.label||i.type)+'</div></div><span class="badge danger">'+esc(String(i.qty??0))+' '+esc(i.unit||'')+'</span></div>'
+      +'<div class="meta"><b>Konum:</b> '+esc(s?.name||p?.shelfCode||'-')+(p?.meter!=null?' · Metre '+esc(p.meter):'')+(p?.level!=null?' · Kat '+esc(p.level):'')+(p?.position!=null?' · Sıra '+esc(p.position):'')+(p?.locationCode?'<br>'+esc(p.locationCode):'')+'<br><b>Bildiren:</b> '+esc(reporter?.name||'')+(i.expiry?'<br><b>SKT:</b> '+esc(i.expiry):'')+'</div>'
+      +'<div class="approval-audit"><span>Müdür: '+esc(mgr?.name||'Onaylandı')+' · '+esc(i.managerApprovedTime||'')+'</span><span>Admin: '+esc(adm?.name||'Onaylandı')+' · '+esc(i.adminApprovedTime||'')+'</span></div>'
+      +'<div class="writeoff-process">'
+        +'<button class="btn '+(i.stockDeductedAt?'success':'secondary')+' writeoff-stock" data-id="'+i.id+'">'+(i.stockDeductedAt?'✓ Stoktan düşüldü':'Stoktan düşüldü olarak işaretle')+'</button>'
+        +'<button class="btn '+(i.accountingPostedAt?'success':'secondary')+' writeoff-accounting" data-id="'+i.id+'">'+(i.accountingPostedAt?'✓ Muhasebeye işlendi':'Muhasebeye işlendi olarak işaretle')+'</button>'
+      +'</div>'
+      +'</div></article>';
+  }).join('');
+  return '<section class="hero"><div class="eyebrow">Aylık Fire / Iskarta</div><h1>Stok & Muhasebe</h1><p>Yalnızca mağaza müdürü ve admin tarafından birlikte onaylanan tarihi geçmiş ve hasarlı ürünler burada listelenir.</p></section>'
+    +'<div class="card"><div class="card-pad form-grid"><label>Ay<select id="writeoffMonthFilter">'+monthOptions+'</select></label><div class="grid"><div class="metric"><b>'+rows.length+'</b><span>Kayıt</span></div><div class="metric"><b>'+totalQty+'</b><span>Toplam miktar</span></div><div class="metric"><b>'+stockPending+'</b><span>Stok bekliyor</span></div><div class="metric"><b>'+accountingPending+'</b><span>Muhasebe bekliyor</span></div></div></div></div>'
+    +(cards||'<div class="card empty">Bu ay için onaylanmış fire / ıskarta kaydı yok.</div>');
 }
 function issueCard(data,i,warehouseMode=false){
   const p=data.products.find(x=>x.id===i.productId);
