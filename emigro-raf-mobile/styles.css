@@ -237,3 +237,18 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 .writeoff-process{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .writeoff-card .meta{line-height:1.55}
 @media(max-width:420px){.writeoff-process{grid-template-columns:1fr}}
+
+.month-accordion{background:#fff;border:1px solid var(--line);border-radius:18px;margin-bottom:10px;overflow:hidden}
+.month-accordion summary{list-style:none;cursor:pointer;padding:16px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.month-accordion summary::-webkit-details-marker{display:none}
+.month-accordion summary span:first-child{display:grid;gap:3px}
+.month-accordion summary small{color:#6b7280}
+.month-accordion-body{padding:0 14px 14px}
+.report-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.comparison-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.comparison-cards .metric{display:grid;gap:5px;align-content:start}
+.comparison-table-wrap{overflow:auto}
+.comparison-table{width:100%;border-collapse:collapse;font-size:13px}
+.comparison-table th,.comparison-table td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.comparison-table th{font-size:12px;color:#6b7280}
+@media(max-width:560px){.comparison-cards{grid-template-columns:1fr}.report-actions{grid-template-columns:1fr}}
