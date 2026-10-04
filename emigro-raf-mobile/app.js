@@ -538,6 +538,7 @@ function cashierHome(data){
     +'<div class="eyebrow">Kasa kullanıcısı</div><h1>Ürün sorunu bildir</h1>'
     +'<p>Ürün adı veya barkod ara. Raf ve sorumlu otomatik bulunur.</p></section>'
     +'<div class="card"><div class="card-pad form-grid">'
+    +'<div class="btn-row"><button class="btn secondary full open-barcode-camera">'+icon('scan',18)+' Barkod okut</button></div>'
     +'<label>Ürün ara<input id="cashProductSearch" placeholder="Ürün adı veya barkod yaz" autocomplete="off"></label>'
     +'<input type="hidden" id="cashProduct" value="">'
     +'<div id="cashProductResults" class="search-results"><div class="sub">Aramaya başla.</div></div>'
@@ -757,9 +758,9 @@ function employeeProductSearchModal(data){
 let barcodeTestIndex=0;
 function barcodeScannerModal(data){
   const products=data.products.filter(p=>p.active);
-  openModal('Barkod oku','<div class="form-grid"><div class="barcode-camera"><div class="barcode-frame"></div><div class="sub">Kamerayı barkoda tut.</div></div><video id="barcodeVideo" playsinline muted style="width:100%;border-radius:18px;display:none"></video><button class="btn full" id="testBarcodeScan">Test barkod okut</button><div class="sub">Test modunda her okutma farklı bir ürün kartı açar. Gerçek kullanımda barkod eşleşmesi yapılır.</div></div>');
-  let stream=null,stopped=false;
-  const cleanup=()=>{stopped=true;if(stream) stream.getTracks().forEach(t=>t.stop());};
+  openModal('Barkod oku','<div class="form-grid"><video id="barcodeVideo" playsinline muted autoplay style="width:100%;border-radius:18px;background:#111;min-height:220px"></video><div id="barcodeStatus" class="sub">Kamera açılıyor...</div><button class="btn secondary full" id="testBarcodeScan">Test: farklı ürün aç</button></div>');
+  let stream=null,stopped=false,zxingControls=null;
+  const cleanup=()=>{stopped=true;if(zxingControls?.stop)zxingControls.stop();if(stream)stream.getTracks().forEach(t=>t.stop());};
   const oldClose=document.getElementById('modalClose').onclick;
   document.getElementById('modalClose').onclick=()=>{cleanup();closeModal();document.getElementById('modalClose').onclick=oldClose;};
   const openProduct=p=>{cleanup();closeModal();setTimeout(()=>productDetailModal(data,p.id),40);};
@@ -768,100 +769,57 @@ function barcodeScannerModal(data){
     barcodeTestIndex=(barcodeTestIndex+1)%products.length;
     openProduct(products[barcodeTestIndex]);
   };
-  if(!currentUser?.preview&&navigator.mediaDevices?.getUserMedia&&'BarcodeDetector' in window){
-    navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}}).then(async s=>{
-      stream=s;
-      const v=document.getElementById('barcodeVideo');
-      if(!v) return;
-      v.srcObject=s;v.style.display='block';await v.play();
-      const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});
-      const tick=async()=>{
-        if(stopped) return;
-        try{
-          const codes=await detector.detect(v);
-          if(codes.length){
-            const raw=String(codes[0].rawValue||'');
-            const p=data.products.find(x=>String(x.barcode||'')===raw);
-            if(p){openProduct(p);return;}
+  const status=document.getElementById('barcodeStatus');
+  const video=document.getElementById('barcodeVideo');
+  const start=async()=>{
+    if(!navigator.mediaDevices?.getUserMedia){status.textContent='Bu cihazda kamera erişimi desteklenmiyor.';return;}
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+      if(stopped)return;
+      video.srcObject=stream;await video.play();
+      status.textContent='Kamera açık. Barkodu çerçeveye getir.';
+      if('BarcodeDetector' in window){
+        const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39']});
+        const tick=async()=>{
+          if(stopped)return;
+          try{
+            const codes=await detector.detect(video);
+            if(codes.length){
+              const raw=String(codes[0].rawValue||'').trim();
+              status.textContent='Barkod: '+raw;
+              const p=data.products.find(x=>String(x.barcode||'').trim()===raw);
+              if(p){openProduct(p);return;}
+              status.textContent='Barkod okundu ama sistemde ürün bulunamadı: '+raw;
+            }
+          }catch(e){}
+          if(!stopped) requestAnimationFrame(tick);
+        };
+        tick();
+        return;
+      }
+      if(window.ZXingBrowser?.BrowserMultiFormatReader){
+        stream.getTracks().forEach(t=>t.stop());stream=null;
+        const reader=new ZXingBrowser.BrowserMultiFormatReader();
+        zxingControls=await reader.decodeFromVideoDevice(undefined,video,(result,error,controls)=>{
+          if(stopped)return;
+          if(result){
+            const raw=String(result.getText?.()||result.text||'').trim();
+            status.textContent='Barkod: '+raw;
+            const p=data.products.find(x=>String(x.barcode||'').trim()===raw);
+            if(p){zxingControls=controls;openProduct(p);}
+            else status.textContent='Barkod okundu ama sistemde ürün bulunamadı: '+raw;
           }
-        }catch(e){}
-        if(!stopped) requestAnimationFrame(tick);
-      };
-      tick();
-    }).catch(()=>{});
-  }
-}
-function productLocationHtml(data,p){
-  const s=data.shelves.find(x=>x.id===p.shelfId);
-  const owner=s?shelfOwner(data,s.id):null;
-  const backup=s?shelfBackup(data,s.id):null;
-  return '<div class="product-location-hero">'
-    +'<div><b>Raf</b><span>'+esc(s?.name||p.shelfCode||'Raf yok')+'</span></div>'
-    +'<div><b>Metre</b><span>'+esc(p.meter??'-')+'</span></div>'
-    +'<div><b>Kat</b><span>'+esc(p.level??'-')+'</span></div>'
-    +'<div><b>Sıra</b><span>'+esc(p.position??'-')+'</span></div>'
-    +'</div>'
-    +'<div class="card" style="box-shadow:none"><div class="card-pad"><b>Konum Kodu:</b> '+esc(p.locationCode||'-')+'<br><b>Raf sorumlusu:</b> '+esc(owner?.name||'Atanmamış')+(backup?'<br><b>Yedek:</b> '+esc(backup.name):'')+'</div></div>';
-}
-
-async function sendAdminProductInfo(data,p,note){
-  const s=data.shelves.find(x=>x.id===p.shelfId);
-  const owner=s?shelfOwner(data,s.id):null;
-  const who=data.users.find(u=>u.id===activeAppUserId());
-  const loc=(s?.name||p.shelfCode||'Raf')+' · Metre '+(p.meter??'-')+' · Kat '+(p.level??'-')+' · Sıra '+(p.position??'-');
-  for(const admin of data.users.filter(u=>u.active&&u.role==='superadmin')){
-    await put('notifications',{id:uid('n'),targetUserId:admin.id,shelfId:p.shelfId,title:'Ürün hakkında bilgi',message:(who?.name||ROLE_NAMES[currentRole]||'Kullanıcı')+' · '+p.name+' · '+loc+(owner?' · Raf sorumlusu: '+owner.name:'')+(note?' · '+note:''),read:false,closed:false,ts:Date.now(),time:timeNow(),sentBy:activeAppUserId()});
-  }
-}
-
-function adminInfoModal(data,p){
-  openModal('Admine bilgi ver','<div class="form-grid">'+productLocationHtml(data,p)+'<label>Bilgi / Not<textarea id="adminProductInfo" rows="4" placeholder="Adminin bilmesi gereken durumu yaz"></textarea></label><button class="btn full" id="sendAdminProductInfo">Admine gönder</button></div>');
-  document.getElementById('sendAdminProductInfo').onclick=async()=>{
-    const note=document.getElementById('adminProductInfo').value.trim();
-    if(!note){alert('Kısa bir bilgi yazın.');return;}
-    await sendAdminProductInfo(data,p,note);
-    closeModal();
-    alert('Bilgi admine gönderildi.');
+        });
+        return;
+      }
+      status.textContent='Kamera açık. Bu tarayıcı otomatik barkod algılamayı desteklemiyor; test butonunu kullanabilirsin.';
+    }catch(e){
+      status.textContent='Kamera açılamadı. Tarayıcı kamera izni vermeli.';
+    }
   };
+  start();
 }
 
-function cashierIssueModal(data,p){
-  const s=data.shelves.find(x=>x.id===p.shelfId);
-  const owner=s?shelfOwner(data,s.id):null;
-  openModal('Kasa sorunu bildir','<div class="form-grid">'+productLocationHtml(data,p)
-    +'<div class="issue-group"><div class="issue-group-title">Kasa sorunu</div>'
-    +'<label class="check-row"><input type="radio" name="cashModalIssue" value="cash_price_wrong"> Fiyat yanlış</label>'
-    +'<label class="check-row"><input type="radio" name="cashModalIssue" value="cash_not_scanning"> Kasada çıkmıyor / barkod okunmuyor</label>'
-    +'<label class="check-row"><input type="radio" name="cashModalIssue" value="cash_discount_missing"> İndirim uygulanmıyor</label>'
-    +'<label class="check-row"><input type="radio" name="cashModalIssue" value="cash_barcode_mismatch"> Ürün / barkod eşleşmiyor</label></div>'
-    +'<label>Not <span class="sub">(isteğe bağlı)</span><textarea id="cashModalNote" rows="3"></textarea></label>'
-    +'<button class="btn danger full" id="submitCashModalIssue">Sorunu gönder</button></div>');
-  document.getElementById('submitCashModalIssue').onclick=async()=>{
-    const type=document.querySelector('input[name="cashModalIssue"]:checked')?.value;
-    if(!type){alert('Sorun türünü seçin.');return;}
-    const note=document.getElementById('cashModalNote').value||'';
-    const issue={id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),productId:p.id,shelfId:p.shelfId,type,state:'reported',reportedBy:activeAppUserId(),source:'cashier',note,assignedToUserId:owner?.id||null,visibility:['employee','manager','superadmin']};
-    await put('issues',issue);
-    const loc=(s?.name||p.shelfCode||'Raf')+' · Metre '+(p.meter??'-')+' · Kat '+(p.level??'-')+' · Sıra '+(p.position??'-');
-    if(owner) await put('notifications',{id:uid('n'),targetUserId:owner.id,shelfId:p.shelfId,title:'Kasadan ürün sorunu',message:p.name+' · '+(STATUS[type]?.label||type)+' · '+loc+(note?' · '+note:''),read:false,closed:false,ts:Date.now(),time:timeNow(),sourceIssueId:issue.id});
-    for(const admin of data.users.filter(u=>u.active&&u.role==='superadmin')) await put('notifications',{id:uid('n'),targetUserId:admin.id,shelfId:p.shelfId,title:'Kasadan ürün sorunu',message:p.name+' · '+(STATUS[type]?.label||type)+' · '+loc+(owner?' · Raf sorumlusu: '+owner.name:'')+(note?' · '+note:''),read:false,closed:false,ts:Date.now(),time:timeNow(),sourceIssueId:issue.id});
-    closeModal();
-    alert('Sorun raf sorumlusuna ve admine gönderildi.');
-  };
-}
-
-function openProductAction(data,p){
-  if(currentRole==='employee'){
-    closeModal();
-    setTimeout(()=>showMultiIssueForm(data,p,p.shelfId),30);
-    return;
-  }
-  if(currentRole==='cashier'){
-    cashierIssueModal(data,p);
-    return;
-  }
-  adminInfoModal(data,p);
-}
 function productDetailModal(data,productId){
   const p=data.products.find(x=>x.id===productId);
   if(!p) return;
@@ -1148,6 +1106,13 @@ function excelImportModal(data){
 }
 
 function bindActions(data){
+  document.querySelectorAll('.open-barcode-camera').forEach(b=>b.onclick=()=>barcodeScannerModal(data));
+  document.getElementById('manualBarcodeFind')?.addEventListener('click',()=>{
+    const raw=document.getElementById('manualBarcodeInput').value.trim();
+    const p=data.products.find(x=>String(x.barcode||'').trim()===raw);
+    if(!p){alert('Bu barkodla ürün bulunamadı.');return;}
+    productDetailModal(data,p.id);
+  });
   document.querySelectorAll('.employee-open-shelf').forEach(b=>b.onclick=()=>{
     employeeShelfId=b.dataset.shelf;
     employeeMeter='all';employeeLevel='all';employeePosition='all';
@@ -1226,14 +1191,7 @@ function bindActions(data){
       document.querySelectorAll('.select-cash-product').forEach(b=>b.onclick=()=>{
         const p=data.products.find(x=>x.id===b.dataset.product);
         if(!p) return;
-        const s=data.shelves.find(x=>x.id===p.shelfId);
-        const owner=s?shelfOwner(data,s.id):null;
-        document.getElementById('cashProduct').value=p.id;
-        document.getElementById('cashProductSearch').value=p.name;
-        document.getElementById('cashProductResults').innerHTML='';
-        const sel=document.getElementById('cashSelectedProduct');
-        sel.style.display='block';
-        sel.innerHTML='<strong>'+esc(p.name)+'</strong><div class="meta">'+esc(s?.name||p.shelfCode||'Raf yok')+(p.meter!=null?' · Metre '+esc(p.meter):'')+(p.level!=null?' · Kat '+esc(p.level):'')+(p.position!=null?' · Sıra '+esc(p.position):'')+(p.locationCode?'<br>Konum: '+esc(p.locationCode):'')+'<br>Sorumlu: '+esc(owner?.name||'Atanmamış')+'</div>';
+        productDetailModal(data,p.id);
       });
     };
   }
