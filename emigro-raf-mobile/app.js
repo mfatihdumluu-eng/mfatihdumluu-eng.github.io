@@ -771,7 +771,7 @@ function barcodeScannerModal(data){
   const cleanup=()=>{stopped=true;if(zxingControls?.stop)zxingControls.stop();if(stream)stream.getTracks().forEach(t=>t.stop());};
   const oldClose=document.getElementById('modalClose').onclick;
   document.getElementById('modalClose').onclick=()=>{cleanup();closeModal();document.getElementById('modalClose').onclick=oldClose;};
-  const openProduct=p=>{cleanup();closeModal();setTimeout(()=>productDetailModal(data,p.id),40);};
+  const openProduct=p=>{cleanup();try{closeModal();}catch(e){}setTimeout(()=>productDetailModal(data,p.id),180);};
   document.getElementById('testBarcodeScan').onclick=()=>{
     if(!products.length){alert('Ürün bulunamadı.');return;}
     barcodeTestIndex=(barcodeTestIndex+1)%products.length;
@@ -795,7 +795,7 @@ function barcodeScannerModal(data){
             if(codes.length){
               const raw=String(codes[0].rawValue||'').trim();
               status.textContent='Barkod: '+raw;
-              const p=data.products.find(x=>String(x.barcode||'').trim()===raw);
+              const p=findProductByBarcode(data,raw);
               if(p){openProduct(p);return;}
               status.textContent='Barkod okundu ama sistemde ürün bulunamadı: '+raw;
             }
@@ -813,7 +813,7 @@ function barcodeScannerModal(data){
           if(result){
             const raw=String(result.getText?.()||result.text||'').trim();
             status.textContent='Barkod: '+raw;
-            const p=data.products.find(x=>String(x.barcode||'').trim()===raw);
+            const p=findProductByBarcode(data,raw);
             if(p){zxingControls=controls;openProduct(p);}
             else status.textContent='Barkod okundu ama sistemde ürün bulunamadı: '+raw;
           }
@@ -1124,7 +1124,7 @@ function bindActions(data){
   document.querySelectorAll('.open-barcode-camera').forEach(b=>b.onclick=()=>barcodeScannerModal(data));
   document.getElementById('manualBarcodeFind')?.addEventListener('click',()=>{
     const raw=document.getElementById('manualBarcodeInput').value.trim();
-    const p=data.products.find(x=>String(x.barcode||'').trim()===raw);
+    const p=findProductByBarcode(data,raw);
     if(!p){alert('Bu barkodla ürün bulunamadı.');return;}
     productDetailModal(data,p.id);
   });
@@ -1136,8 +1136,12 @@ function bindActions(data){
   document.getElementById('backEmployeeShelves')?.addEventListener('click',()=>{
     employeeShelfId=null;employeeMeter='all';employeeLevel='all';employeePosition='all';render();
   });
+  document.getElementById('backToMeters')?.addEventListener('click',()=>{
+    employeeMeter='all';employeeLevel='all';employeePosition='all';
+    render().then(()=>setTimeout(()=>document.getElementById('meterListAnchor')?.scrollIntoView({behavior:'smooth',block:'start'}),60));
+  });
   const meterFilter=document.getElementById('employeeMeterFilter');
-  if(meterFilter) meterFilter.onchange=()=>{employeeMeter=meterFilter.value;employeeLevel='all';employeePosition='all';render();};
+  if(meterFilter) meterFilter.onchange=()=>{employeeMeter=meterFilter.value;employeeLevel='all';employeePosition='all';render().then(()=>setTimeout(()=>document.getElementById('meterControlSection')?.scrollIntoView({behavior:'smooth',block:'start'}),60));};
   const levelFilter=document.getElementById('employeeLevelFilter');
   if(levelFilter) levelFilter.onchange=()=>{employeeLevel=levelFilter.value;employeePosition='all';render();};
   const positionFilter=document.getElementById('employeePositionFilter');
@@ -1148,7 +1152,7 @@ function bindActions(data){
     employeeMeter=b.dataset.meter;
     employeeLevel='all';
     employeePosition='all';
-    render();
+    render().then(()=>setTimeout(()=>document.getElementById('meterControlSection')?.scrollIntoView({behavior:'smooth',block:'start'}),60));
   });
   document.querySelectorAll('.approve-meter').forEach(b=>b.onclick=async()=>{
     const shelfId=b.dataset.shelf;
