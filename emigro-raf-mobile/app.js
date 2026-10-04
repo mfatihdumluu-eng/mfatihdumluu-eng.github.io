@@ -186,10 +186,10 @@ async function seed(){
     {id:'u_admin',name:'Fatih Dumlu',username:'fatih',role:'superadmin',active:true},
   ];
   const shelves=[
-    {id:'s1',name:'Dranken 01',department:'İçecek',location:'Gang 1 - Sol',active:true},
-    {id:'s2',name:'Dranken 02',department:'İçecek',location:'Gang 1 - Sağ',active:true},
-    {id:'s3',name:'Bakliyat 01',department:'Kuru Gıda',location:'Gang 4 - Sol',active:true},
-    {id:'s4',name:'Koeling 01',department:'Soğuk',location:'Koeling A',active:true}
+    {id:'s1',name:'Dranken 01',department:'İçecek',location:'Gang 1 - Sol',approved:true,active:true},
+    {id:'s2',name:'Dranken 02',department:'İçecek',location:'Gang 1 - Sağ',approved:true,active:true},
+    {id:'s3',name:'Bakliyat 01',department:'Kuru Gıda',location:'Gang 4 - Sol',approved:true,active:true},
+    {id:'s4',name:'Koeling 01',department:'Soğuk',location:'Koeling A',approved:false,active:true}
   ];
   const products=[
     {id:'p1',shelfId:'s1',name:'Coca Cola 1.5L',barcode:'871000001',unit:'adet',required:true,active:true},
@@ -845,7 +845,7 @@ function excelImportModal(data){
       if(!shelfName||!productName) continue;
       let shelf=shelfCache.find(s=>s.name.trim().toLocaleLowerCase('tr')===shelfName.toLocaleLowerCase('tr'));
       if(!shelf){
-        shelf={id:uid('s'),name:shelfName,department:String(row['Bölüm']||row.Bolum||row.bolum||'-'),location:String(row.Konum||row.konum||'-'),active:true};
+        shelf={id:uid('s'),name:shelfName,department:String(row['Bölüm']||row.Bolum||row.bolum||'-'),location:String(row.Konum||row.konum||'-'),approved:false,active:true};
         await put('shelves',shelf);
         shelfCache.push(shelf);
         shelfCount++;
@@ -1423,7 +1423,7 @@ function assignShelfModal(data,shelfId){
 }
 function shelfModal(){
   openModal('Yeni Raf',`<div class="form-grid"><label>Raf adı<input id="sName" placeholder="Dranken 03"></label><label>Bölüm<input id="sDept" placeholder="İçecek"></label><label>Konum<input id="sLoc" placeholder="Gang 2 - Sol"></label><button class="btn full" id="saveShelf">Rafı oluştur</button></div>`);
-  document.getElementById('saveShelf').onclick=async()=>{await put('shelves',{id:uid('s'),name:document.getElementById('sName').value||'Yeni Raf',department:document.getElementById('sDept').value||'-',location:document.getElementById('sLoc').value||'-',active:true});closeModal();render();};
+  document.getElementById('saveShelf').onclick=async()=>{await put('shelves',{id:uid('s'),name:document.getElementById('sName').value||'Yeni Raf',department:document.getElementById('sDept').value||'-',location:document.getElementById('sLoc').value||'-',approved:false,active:true});closeModal();render();};
 }
 function productModal(shelfId){
   openModal('Rafa ürün ekle',`<div class="form-grid"><label>Ürün adı<input id="pName"></label><label>Barkod<input id="pBarcode" inputmode="numeric"></label><label>Birim<select id="pUnit"><option>adet</option><option>kg</option><option>koli</option><option>paket</option><option>şişe</option><option>kasa</option></select></label><button class="btn full" id="saveProduct">Ürünü ekle</button></div>`);
