@@ -1916,13 +1916,13 @@ function showInviteModal(user){
   };
 }
 function userModal(data){
+  const preview=!!currentUser?.preview;
   openModal('Yeni Kullanıcı',
     '<div class="form-grid">'
     +'<label>Ad soyad<input id="uName"></label>'
     +'<label>Kullanıcı adı<input id="uLogin" autocapitalize="none"></label>'
-    +'<label>E-posta <span class="sub">(isteğe bağlı)</span><input id="uEmail" type="email"></label>'
-    +'<label>Şifre<input id="uPass" type="password"></label>'
-    +'<label>Rol<select id="uRole"><option value="employee">Çalışan</option><option value="cashier">Kasa Kullanıcısı</option><option value="warehouse">Depo Sorumlusu</option><option value="manager">Mağaza Müdürü</option><option value="superadmin">Süper Admin</option></select></label>'
+    +(preview?'':'<label>E-posta <span class="sub">(isteğe bağlı)</span><input id="uEmail" type="email"></label><label>Şifre<input id="uPass" type="password"></label>')
+    +'<label>Rol<select id="uRole"><option value="employee">Raf Sorumlusu</option><option value="cashier">Kasa Kullanıcısı</option><option value="warehouse">Depo Sorumlusu</option><option value="manager">Mağaza Müdürü</option><option value="superadmin">Admin</option></select></label>'
     +'<div id="employeeShelfArea">'
       +'<div class="issue-group-title">Raf atama tipi</div>'
       +'<label class="check-row"><input type="radio" name="assignmentMode" value="primary" checked> Ana sorumlu olarak ata</label>'
@@ -1930,7 +1930,7 @@ function userModal(data){
       +'<div class="sub" id="assignmentHelp"></div>'
       +'<label>Raflar<select id="uShelves" multiple size="6"></select></label>'
     +'</div>'
-    +'<button class="btn full" id="saveUser">Kullanıcı oluştur ve davet et</button>'
+    +'<button class="btn full" id="saveUser">'+(preview?'Kullanıcı oluştur':'Kullanıcı oluştur ve davet et')+'</button>'
     +'</div>');
 
   const roleEl=document.getElementById('uRole');
@@ -1948,74 +1948,60 @@ function userModal(data){
     const role=roleEl.value;
     const name=document.getElementById('uName').value||'Yeni Kullanıcı';
     const username=(document.getElementById('uLogin').value||uid('user')).trim().toLowerCase();
-    const password=document.getElementById('uPass').value;
-    const email=document.getElementById('uEmail').value.trim();
-    if(password.length<4){alert('Şifre en az 4 karakter olmalı.');return;}
+    let user={id,name,username,role,active:true};
     try{
-      const remote=await rafAuth('create_user',{app_user_id:id,name,username,password,email:email||null,role});
-      const user={id,name,username,email:email||'',role,active:true,authId:remote.user?.id||null,inviteToken:uid('invite')};
+      if(!preview){
+        const password=document.getElementById('uPass').value;
+        const email=document.getElementById('uEmail').value.trim();
+        if(password.length<4){alert('Şifre en az 4 karakter olmalı.');return;}
+        const remote=await rafAuth('create_user',{app_user_id:id,name,username,password,email:email||null,role});
+        user={...user,email:email||'',authId:remote.user?.id||null,inviteToken:uid('invite')};
+      }
       await put('users',user);
       if(role==='employee'){
         const mode=document.querySelector('input[name="assignmentMode"]:checked')?.value||'primary';
         const selected=[...document.getElementById('uShelves').selectedOptions];
-        for(const o of selected){
-          await put('assignments',{id:uid('a'),userId:id,shelfId:o.value,assignmentType:mode,active:true});
-        }
+        for(const o of selected) await put('assignments',{id:uid('a'),userId:id,shelfId:o.value,assignmentType:mode,active:true});
       }
-      showInviteModal(user);
+      if(preview){closeModal();render();}else showInviteModal(user);
     }catch(e){alert(e.message||'Kullanıcı oluşturulamadı.');}
   };
 }
+
 async function userDetailModal(data,userId){
   const user=data.users.find(u=>u.id===userId);
   if(!user) return;
-  if(!user.inviteToken){
-    user.inviteToken=uid('invite');
-    await put('users',user);
-  }
-  const primary=data.assignments.filter(a=>a.userId===user.id&&a.active&&a.assignmentType!=='backup')
-    .map(a=>data.shelves.find(s=>s.id===a.shelfId)?.name).filter(Boolean);
-  const backup=data.assignments.filter(a=>a.userId===user.id&&a.active&&a.assignmentType==='backup')
-    .map(a=>data.shelves.find(s=>s.id===a.shelfId)?.name).filter(Boolean);
-  const link=inviteUrl(user);
-  openModal('Kullanıcı bilgileri',
-    '<div class="form-grid">'
+  const preview=!!currentUser?.preview;
+  const primary=data.assignments.filter(a=>a.userId===user.id&&a.active&&a.assignmentType!=='backup').map(a=>data.shelves.find(s=>s.id===a.shelfId)?.name).filter(Boolean);
+  const backup=data.assignments.filter(a=>a.userId===user.id&&a.active&&a.assignmentType==='backup').map(a=>data.shelves.find(s=>s.id===a.shelfId)?.name).filter(Boolean);
+  let body='<div class="form-grid">'
     +'<div><strong>'+esc(user.name)+'</strong><div class="sub">'+esc(ROLE_NAMES[user.role]||user.role)+'</div></div>'
-    +'<label>Kullanıcı adı<input id="editUsername" value="'+esc(user.username)+'"></label>'
-    +'<label>E-posta<input id="editEmail" type="email" value="'+esc(user.email||'')+'"></label>'
-    +'<label>Yeni şifre<input id="editPassword" type="password" placeholder="Değiştirmek istemiyorsan boş bırak"></label>'
-    +'<button class="card shelf-permissions-card" id="editUserShelves" style="box-shadow:none;text-align:left"><div class="card-pad"><div class="simple-row"><div><strong>Raf yetkileri</strong><div class="meta">Ana: '+(primary.map(esc).join(', ')||'Yok')+'<br>Yedek: '+(backup.map(esc).join(', ')||'Yok')+'</div></div><span>›</span></div></div></button>'
-    +'<label>Davet linki<input id="userInviteLink" readonly value="'+esc(link)+'"></label>'
-    +'<div class="btn-row"><button class="btn secondary" id="copyUserInvite">Linki kopyala</button><button class="btn secondary" id="shareUserInvite">Paylaş</button></div>'
-    +'<button class="btn full" id="saveUserSettings">Bilgileri kaydet</button>'
-    +'</div>');
+    +'<label>Kullanıcı adı<input id="editUsername" value="'+esc(user.username||'')+'"></label>';
+  if(!preview){
+    if(!user.inviteToken){user.inviteToken=uid('invite');await put('users',user);}
+    const link=inviteUrl(user);
+    body+='<label>E-posta<input id="editEmail" type="email" value="'+esc(user.email||'')+'"></label><label>Yeni şifre<input id="editPassword" type="password" placeholder="Değiştirmek istemiyorsan boş bırak"></label>';
+    body+='<label>Davet linki<input id="userInviteLink" readonly value="'+esc(link)+'"></label><div class="btn-row"><button class="btn secondary" id="copyUserInvite">Linki kopyala</button><button class="btn secondary" id="shareUserInvite">Paylaş</button></div>';
+  }
+  body+='<button class="card shelf-permissions-card" id="editUserShelves" style="box-shadow:none;text-align:left"><div class="card-pad"><div class="simple-row"><div><strong>Raf yetkileri</strong><div class="meta">Ana: '+(primary.map(esc).join(', ')||'Yok')+'<br>Yedek: '+(backup.map(esc).join(', ')||'Yok')+'</div></div><span>›</span></div></div></button><button class="btn full" id="saveUserSettings">Bilgileri kaydet</button></div>';
+  openModal('Kullanıcı bilgileri',body);
   document.getElementById('editUserShelves').onclick=()=>assignUserShelvesModal(data,user.id);
-  document.getElementById('copyUserInvite').onclick=async()=>{
-    await navigator.clipboard.writeText(link);
-    document.getElementById('copyUserInvite').textContent='✓ Kopyalandı';
-  };
-  document.getElementById('shareUserInvite').onclick=async()=>{
-    if(navigator.share) await navigator.share({title:'EMİGRO Raf Kontrol',text:'Giriş bağlantın',url:link});
-    else {await navigator.clipboard.writeText(link);alert('Davet linki kopyalandı.');}
-  };
+  if(!preview){
+    const link=inviteUrl(user);
+    document.getElementById('copyUserInvite').onclick=async()=>{await navigator.clipboard.writeText(link);document.getElementById('copyUserInvite').textContent='✓ Kopyalandı';};
+    document.getElementById('shareUserInvite').onclick=async()=>{if(navigator.share) await navigator.share({title:'EMİGRO Raf Kontrol',text:'Giriş bağlantın',url:link});else {await navigator.clipboard.writeText(link);alert('Davet linki kopyalandı.');}};
+  }
   document.getElementById('saveUserSettings').onclick=async()=>{
     const username=(document.getElementById('editUsername').value||user.username).trim().toLowerCase();
-    const email=document.getElementById('editEmail').value.trim();
-    const pass=document.getElementById('editPassword').value;
     try{
-      if(user.authId){
-        const remote=await rafAuth('update_user',{id:user.authId,username,email:email||null,password:pass||undefined});
-        user.authId=remote.user?.id||user.authId;
-      }else{
-        if(!pass){alert('Bu kullanıcı için henüz giriş hesabı yok. İlk şifreyi girin.');return;}
-        const remote=await rafAuth('create_user',{app_user_id:user.id,name:user.name,username,password:pass,email:email||null,role:user.role});
-        user.authId=remote.user?.id||null;
+      if(!preview){
+        const email=document.getElementById('editEmail').value.trim();
+        const pass=document.getElementById('editPassword').value;
+        if(user.authId){const remote=await rafAuth('update_user',{id:user.authId,username,email:email||null,password:pass||undefined});user.authId=remote.user?.id||user.authId;}
+        else if(pass){const remote=await rafAuth('create_user',{app_user_id:user.id,name:user.name,username,password:pass,email:email||null,role:user.role});user.authId=remote.user?.id||null;}
+        user.email=email;
       }
-      user.username=username;
-      user.email=email;
-      await put('users',user);
-      closeModal();
-      render();
+      user.username=username;await put('users',user);closeModal();render();
     }catch(e){alert(e.message||'Kullanıcı kaydedilemedi.');}
   };
 }
