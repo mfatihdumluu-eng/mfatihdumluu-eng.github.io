@@ -753,8 +753,8 @@ function writeoffsView(data){
   const previousRows=writeoffRowsForMonth(data,previous);
   const previousStats=writeoffStats(previousRows);
   const totalChange=pctChange(currentStats.total,previousStats.total);
-  const expiredChange=pctChange(currentStats.expired,previousStats.expired);
-  const damagedChange=pctChange(currentStats.damaged,previousStats.damaged);
+  const expiredChange=currentStats.expiredPct-previousStats.expiredPct;
+  const damagedChange=currentStats.damagedPct-previousStats.damagedPct;
   const comparisonRows=months.map(m=>{
     const rows=writeoffRowsForMonth(data,m);
     const s=writeoffStats(rows);
