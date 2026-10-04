@@ -216,7 +216,23 @@ async function ensureRemoteSeeded(){
   if(records.length) await rafData('batch_seed',{records});
 }
 
-const today=()=>new Date().toISOString().slice(0,10);
+function localDateKey(value=new Date()){
+  const d=value instanceof Date?value:new Date(value);
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+function localMonthKey(value=new Date()){
+  const d=value instanceof Date?value:new Date(value);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function localDateTimeLabel(value){
+  if(!value) return '-';
+  const d=value instanceof Date?value:new Date(value);
+  return d.toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+const today=()=>localDateKey(new Date());
 const timeNow=()=>new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
 const uid=(p='id')=>p+'_'+Math.random().toString(36).slice(2,9);
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
@@ -607,7 +623,7 @@ function isWriteoffIssue(i){return i&&['expired','damaged'].includes(i.type);}
 function writeoffMonth(i){
   if(i.writeoffMonth) return i.writeoffMonth;
   const d=i.finalApprovedAt?new Date(i.finalApprovedAt):i.ts?new Date(i.ts):new Date();
-  return d.toISOString().slice(0,7);
+  return localMonthKey(d);
 }
 function writeoffApprovalHtml(i){
   if(!isWriteoffIssue(i)) return '';
@@ -616,7 +632,7 @@ function writeoffApprovalHtml(i){
   return '<div class="writeoff-approvals">'+mgr+adm+'</div>';
 }
 function monthKeyFromDate(d){
-  return d.toISOString().slice(0,7);
+  return localMonthKey(d);
 }
 function previousMonthKey(month){
   const [y,m]=month.split('-').map(Number);
@@ -664,42 +680,53 @@ function writeoffCardHtml(data,i){
       +'<button class="btn '+(i.accountingPostedAt?'success':'secondary')+' writeoff-accounting" data-id="'+i.id+'">'+(i.accountingPostedAt?'✓ Muhasebeye işlendi':'Muhasebeye işlendi olarak işaretle')+'</button>'
     +'</div></div></article>';
 }
+function accountingOperationDate(i){
+  return localDateTimeLabel(i.accountingPostedAt||i.finalApprovedAt||i.ts);
+}
+function accountingExportRows(data,month){
+  return writeoffRowsForMonth(data,month).filter(i=>['expired','damaged'].includes(i.type)).map(i=>{
+    const p=data.products.find(x=>x.id===i.productId);
+    return {barcode:String(p?.barcode||''),name:String(p?.name||'Ürün'),qty:Number(i.qty)||0,unit:String(i.unit||''),date:accountingOperationDate(i)};
+  });
+}
 function buildWriteoffPdf(data,month){
   if(!window.jspdf?.jsPDF) throw new Error('PDF modülü yüklenemedi.');
-  const rows=writeoffRowsForMonth(data,month);
-  const stats=writeoffStats(rows);
+  const rows=accountingExportRows(data,month);
   const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
   let y=16;
-  doc.setFontSize(16);doc.text('EMIGRO - Stok & Muhasebe Fire Raporu',14,y);
+  doc.setFontSize(16);doc.text('EMIGRO - Muhasebe Fire Listesi',14,y);
   y+=8;doc.setFontSize(11);doc.text(monthLabel(month),14,y);
-  y+=7;doc.text('Toplam kayıt: '+stats.total+' | THT: '+stats.expired+' ('+stats.expiredPct+'%) | Hasarlı: '+stats.damaged+' ('+stats.damagedPct+'%)',14,y);
-  y+=6;doc.text('Toplam miktar: '+stats.qtyText,14,y);
-  y+=8;doc.setFontSize(9);
-  rows.forEach((i,idx)=>{
-    const p=data.products.find(x=>x.id===i.productId);
-    const s=data.shelves.find(x=>x.id===i.shelfId);
-    const line=(idx+1)+'. '+(p?.name||'Ürün')+' | '+(STATUS[i.type]?.label||i.type)+' | '+(i.qty??0)+' '+(i.unit||'')+' | '+(s?.name||p?.shelfCode||'-')+' M'+(p?.meter??'-')+' K'+(p?.level??'-')+' S'+(p?.position??'-');
-    const wrapped=doc.splitTextToSize(line,180);
-    if(y+wrapped.length*5>282){doc.addPage();y=15;}
-    doc.text(wrapped,14,y);y+=wrapped.length*5+2;
+  y+=9;doc.setFontSize(9);
+  doc.text('Barkod',14,y);doc.text('Ürün',52,y);doc.text('Adet / Miktar',128,y);doc.text('İşlem Tarihi',158,y);
+  y+=3;doc.line(14,y,196,y);y+=6;
+  rows.forEach(r=>{
+    const name=doc.splitTextToSize(r.name,70);
+    const qty=String(r.qty)+(r.unit?' '+r.unit:'');
+    const needed=Math.max(1,name.length)*5;
+    if(y+needed>282){doc.addPage();y=16;doc.setFontSize(9);doc.text('Barkod',14,y);doc.text('Ürün',52,y);doc.text('Adet / Miktar',128,y);doc.text('İşlem Tarihi',158,y);y+=7;}
+    doc.text(r.barcode||'-',14,y);doc.text(name,52,y);doc.text(qty,128,y);doc.text(r.date,158,y);
+    y+=needed+2;
   });
+  if(!rows.length){doc.text('Bu ay muhasebeye gönderilecek kayıt yok.',14,y);}
   return doc;
 }
+
 async function shareWriteoffReport(data,month){
   const doc=buildWriteoffPdf(data,month);
   const blob=doc.output('blob');
-  const file=new File([blob],'emigro-fire-'+month+'.pdf',{type:'application/pdf'});
-  const rows=writeoffRowsForMonth(data,month);
-  const stats=writeoffStats(rows);
-  const subject='EMIGRO Fire / Iskarta Raporu - '+monthLabel(month);
-  const body='Toplam kayıt: '+stats.total+'%0ATHT geçmiş: '+stats.expired+' ('+stats.expiredPct+'%25)%0AHasarlı: '+stats.damaged+' ('+stats.damagedPct+'%25)%0AToplam miktar: '+encodeURIComponent(stats.qtyText);
+  const file=new File([blob],'emigro-muhasebe-'+month+'.pdf',{type:'application/pdf'});
+  const rows=accountingExportRows(data,month);
+  const subject='EMIGRO Muhasebe Fire Listesi - '+monthLabel(month);
+  const lines=['Barkod | Ürün | Adet/Miktar | İşlem Tarihi',...rows.map(r=>(r.barcode||'-')+' | '+r.name+' | '+r.qty+(r.unit?' '+r.unit:'')+' | '+r.date)];
+  const body=lines.join('\n');
   if(navigator.share&&navigator.canShare?.({files:[file]})){
-    await navigator.share({title:subject,text:'Aylık stok ve muhasebe fire raporu',files:[file]});
+    await navigator.share({title:subject,text:body,files:[file]});
     return;
   }
-  doc.save('emigro-fire-'+month+'.pdf');
-  location.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+body;
+  doc.save('emigro-muhasebe-'+month+'.pdf');
+  location.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
 }
+
 function writeoffsView(data){
   if(!['manager','superadmin'].includes(currentRole)) return '<div class="card empty">Bu ekran için yetkiniz yok.</div>';
   const current=today().slice(0,7);
@@ -1378,7 +1405,7 @@ async function finalizeWriteoffIfReady(issue){
   if(issue.managerApprovedAt&&issue.adminApprovedAt){
     issue.writeoffFinalized=true;
     issue.finalApprovedAt=Date.now();
-    issue.writeoffMonth=new Date(issue.finalApprovedAt).toISOString().slice(0,7);
+    issue.writeoffMonth=localMonthKey(issue.finalApprovedAt);
     issue.state='resolved';
     issue.resolvedAt=issue.finalApprovedAt;
     issue.resolvedTime=timeNow();
