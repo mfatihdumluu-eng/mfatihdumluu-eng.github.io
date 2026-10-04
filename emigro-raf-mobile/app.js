@@ -721,6 +721,54 @@ function productsView(data){
     +'<div class="card"><div class="card-pad form-grid"><label>Ürün / barkod ara<input id="globalProductSearch" placeholder="Ürün adı veya barkod yaz" autocomplete="off"></label>'
     +'<div id="globalProductResults" class="search-results"><div class="sub">Aramaya başla. Ürün kartında raf ve sorumlular görünür.</div></div></div></div>';
 }
+function employeeProductSearchModal(data){
+  openModal('Ürün ara','<div class="form-grid"><label>Ürün adı / barkod<input id="employeeSearchInput" placeholder="Yazmaya başla" autocomplete="off"></label><div id="employeeSearchResults" class="search-results"><div class="sub">Ürün adı veya barkod yaz.</div></div></div>');
+  const input=document.getElementById('employeeSearchInput');
+  input.oninput=()=>{
+    const rows=productSearchRows(data,input.value);
+    const box=document.getElementById('employeeSearchResults');
+    box.innerHTML=rows.length?rows.map(p=>productSearchCard(data,p,false)).join(''):'<div class="sub">Eşleşen ürün bulunamadı.</div>';
+    box.querySelectorAll('.open-product').forEach(b=>b.onclick=()=>productDetailModal(data,b.dataset.product));
+  };
+}
+
+let barcodeTestIndex=0;
+function barcodeScannerModal(data){
+  const products=data.products.filter(p=>p.active);
+  openModal('Barkod oku','<div class="form-grid"><div class="barcode-camera"><div class="barcode-frame"></div><div class="sub">Kamerayı barkoda tut.</div></div><video id="barcodeVideo" playsinline muted style="width:100%;border-radius:18px;display:none"></video><button class="btn full" id="testBarcodeScan">Test barkod okut</button><div class="sub">Test modunda her okutma farklı bir ürün kartı açar. Gerçek kullanımda barkod eşleşmesi yapılır.</div></div>');
+  let stream=null,stopped=false;
+  const cleanup=()=>{stopped=true;if(stream) stream.getTracks().forEach(t=>t.stop());};
+  const oldClose=document.getElementById('modalClose').onclick;
+  document.getElementById('modalClose').onclick=()=>{cleanup();closeModal();document.getElementById('modalClose').onclick=oldClose;};
+  const openProduct=p=>{cleanup();closeModal();setTimeout(()=>productDetailModal(data,p.id),40);};
+  document.getElementById('testBarcodeScan').onclick=()=>{
+    if(!products.length){alert('Ürün bulunamadı.');return;}
+    barcodeTestIndex=(barcodeTestIndex+1)%products.length;
+    openProduct(products[barcodeTestIndex]);
+  };
+  if(!currentUser?.preview&&navigator.mediaDevices?.getUserMedia&&'BarcodeDetector' in window){
+    navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}}).then(async s=>{
+      stream=s;
+      const v=document.getElementById('barcodeVideo');
+      if(!v) return;
+      v.srcObject=s;v.style.display='block';await v.play();
+      const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});
+      const tick=async()=>{
+        if(stopped) return;
+        try{
+          const codes=await detector.detect(v);
+          if(codes.length){
+            const raw=String(codes[0].rawValue||'');
+            const p=data.products.find(x=>String(x.barcode||'')===raw);
+            if(p){openProduct(p);return;}
+          }
+        }catch(e){}
+        if(!stopped) requestAnimationFrame(tick);
+      };
+      tick();
+    }).catch(()=>{});
+  }
+}
 function productDetailModal(data,productId){
   const p=data.products.find(x=>x.id===productId);
   if(!p) return;
@@ -730,7 +778,9 @@ function productDetailModal(data,productId){
   const editable=['manager','superadmin'].includes(currentRole);
   if(!editable){
     openModal('Ürün kartı','<div class="form-grid"><div><strong>'+esc(p.name)+'</strong><div class="meta">'+esc(p.barcode||'Barkod yok')+' · '+esc(p.unit||'')+'</div></div>'
-      +'<div class="card" style="box-shadow:none"><div class="card-pad"><b>Konum Kodu:</b> '+esc(p.locationCode||'-')+'<br><b>Raf:</b> '+esc(s?.name||p.shelfCode||'Raf yok')+(p.meter!=null?' · Metre '+esc(p.meter):'')+(p.level!=null?' · Kat '+esc(p.level):'')+(p.position!=null?' · Sıra '+esc(p.position):'')+'<br><b>Ana sorumlu:</b> '+esc(owner?.name||'Atanmamış')+(backup?'<br><b>Yedek:</b> '+esc(backup.name):'')+'</div></div></div>');
+      +'<div class="card" style="box-shadow:none"><div class="card-pad"><b>Konum Kodu:</b> '+esc(p.locationCode||'-')+'<br><b>Raf:</b> '+esc(s?.name||p.shelfCode||'Raf yok')+(p.meter!=null?' · Metre '+esc(p.meter):'')+(p.level!=null?' · Kat '+esc(p.level):'')+(p.position!=null?' · Sıra '+esc(p.position):'')+'<br><b>Ana sorumlu:</b> '+esc(owner?.name||'Atanmamış')+(backup?'<br><b>Yedek:</b> '+esc(backup.name):'')+'</div></div>'
+      +(currentRole==='employee'?'<button class="btn danger full product-detail-problem" data-product="'+p.id+'" data-shelf="'+p.shelfId+'">⚠ Sorun bildir</button>':'')
+      +'</div>');
     return;
   }
   const shelfOptions=data.shelves.filter(x=>x.active).map(x=>'<option value="'+x.id+'" '+(x.id===p.shelfId?'selected':'')+'>'+esc(x.name)+'</option>').join('');
