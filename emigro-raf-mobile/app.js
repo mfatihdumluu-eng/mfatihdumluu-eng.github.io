@@ -880,6 +880,67 @@ async function saveCheck(product,shelfId,status,extra){
     await put('issues',issue);
   }
 }
+function assignUserShelvesModal(data,userId){
+  const user=data.users.find(u=>u.id===userId);
+  if(!user) return;
+
+  const currentPrimary=data.assignments.filter(a=>a.userId===userId&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
+  const currentBackup=data.assignments.filter(a=>a.userId===userId&&a.active&&a.assignmentType==='backup').map(a=>a.shelfId);
+
+  const freeShelves=data.shelves.filter(s=>{
+    if(!s.active) return false;
+    const owner=shelfOwner(data,s.id);
+    return !owner || owner.id===userId;
+  });
+
+  const backupEligible=data.shelves.filter(s=>{
+    if(!s.active) return false;
+    const owner=shelfOwner(data,s.id);
+    const backup=shelfBackup(data,s.id);
+    return owner && owner.id!==userId && (!backup || backup.id===userId);
+  });
+
+  const primaryOptions=freeShelves.map(s=>{
+    const selected=currentPrimary.includes(s.id)?'selected':'';
+    return '<option value="'+s.id+'" '+selected+'>'+esc(s.name)+(shelfOwner(data,s.id)?.id===userId?' — mevcut':' — boş')+'</option>';
+  }).join('');
+
+  const backupOptions=backupEligible.map(s=>{
+    const selected=currentBackup.includes(s.id)?'selected':'';
+    const owner=shelfOwner(data,s.id);
+    return '<option value="'+s.id+'" '+selected+'>'+esc(s.name)+' — ana: '+esc(owner?.name||'')+'</option>';
+  }).join('');
+
+  openModal('Raf sorumluları',
+    '<div class="form-grid">'
+    +'<div><strong>'+esc(user.name)+'</strong><div class="sub">Bu kullanıcıya boş rafları ana sorumlu olarak atayabilirsin. Dolu raflar burada görünmez.</div></div>'
+    +'<label>Ana sorumlu rafları<select id="userPrimaryShelves" multiple size="6">'+(primaryOptions||'<option disabled>Boş raf yok</option>')+'</select></label>'
+    +'<label>Yedek olacağı raflar <span class="sub">(isteğe bağlı)</span><select id="userBackupShelves" multiple size="5">'+(backupOptions||'<option disabled>Yedek atanabilecek raf yok</option>')+'</select></label>'
+    +'<button class="btn full" id="saveUserShelfAssignments">Kaydet</button>'
+    +'</div>');
+
+  document.getElementById('saveUserShelfAssignments').onclick=async()=>{
+    const primaryIds=[...document.getElementById('userPrimaryShelves').selectedOptions].map(o=>o.value);
+    const backupIds=[...document.getElementById('userBackupShelves').selectedOptions].map(o=>o.value);
+
+    const existing=data.assignments.filter(a=>a.userId===userId&&a.active);
+    for(const a of existing){
+      a.active=false;
+      await put('assignments',a);
+    }
+
+    for(const shelfId of primaryIds){
+      await put('assignments',{id:uid('a'),userId,shelfId,assignmentType:'primary',active:true});
+    }
+    for(const shelfId of backupIds){
+      await put('assignments',{id:uid('a'),userId,shelfId,assignmentType:'backup',active:true});
+    }
+
+    closeModal();
+    render();
+  };
+}
+
 function assignShelfModal(data,shelfId){
   const shelf=data.shelves.find(s=>s.id===shelfId);
   if(!shelf) return;
@@ -1038,11 +1099,12 @@ async function userDetailModal(data,userId){
     +'<div><strong>'+esc(user.name)+'</strong><div class="sub">'+esc(ROLE_NAMES[user.role]||user.role)+'</div></div>'
     +'<label>Kullanıcı adı<input id="editUsername" value="'+esc(user.username)+'"></label>'
     +'<label>Yeni şifre<input id="editPassword" type="password" placeholder="Değiştirmek istemiyorsan boş bırak"></label>'
-    +'<div class="card" style="box-shadow:none"><div class="card-pad"><strong>Raf yetkileri</strong><div class="meta">Ana: '+(primary.map(esc).join(', ')||'Yok')+'<br>Yedek: '+(backup.map(esc).join(', ')||'Yok')+'</div></div></div>'
+    +'<button class="card shelf-permissions-card" id="editUserShelves" style="box-shadow:none;text-align:left"><div class="card-pad"><div class="simple-row"><div><strong>Raf yetkileri</strong><div class="meta">Ana: '+(primary.map(esc).join(', ')||'Yok')+'<br>Yedek: '+(backup.map(esc).join(', ')||'Yok')+'</div></div><span>›</span></div></div></button>'
     +'<label>Davet linki<input id="userInviteLink" readonly value="'+esc(link)+'"></label>'
     +'<div class="btn-row"><button class="btn secondary" id="copyUserInvite">Linki kopyala</button><button class="btn secondary" id="shareUserInvite">Paylaş</button></div>'
     +'<button class="btn full" id="saveUserSettings">Bilgileri kaydet</button>'
     +'</div>');
+  document.getElementById('editUserShelves').onclick=()=>assignUserShelvesModal(data,user.id);
   document.getElementById('copyUserInvite').onclick=async()=>{
     await navigator.clipboard.writeText(link);
     document.getElementById('copyUserInvite').textContent='✓ Kopyalandı';
