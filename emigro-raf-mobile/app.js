@@ -575,6 +575,7 @@ function shelvesView(data){
       +'<div class="owner-link">👤 Ana sorumlu: '+esc(owner?.name||'Atanmamış')+'</div>'
       +'<div class="owner-link backup-person">↪ Yedek: '+esc(backup?.name||'Yok')+'</div>'
       +(canManageShelf?'<button class="btn secondary assign-shelf-user" data-shelf="'+selected.id+'">Sorumlu Ata</button>':'')
+      +(canManageProducts&&selected.approved!==true?'<button class="btn success approve-shelf" data-shelf="'+selected.id+'">✓ Rafı Onayla</button>':'')
       +(canManageProducts?'<button class="btn full add-product" data-shelf="'+selected.id+'">+ Bu rafa ürün ekle</button>':'')
       +'</div></div>'
       +(ps.length?ps.map(p=>productCardHtml(data,p,true)).join(''):'<div class="card empty">Bu rafta henüz ürün yok.</div>');
@@ -588,7 +589,7 @@ function shelvesView(data){
       const owner=shelfOwner(data,s.id);
       return '<button class="card shelf-select-card" data-shelf="'+s.id+'"><div class="card-pad">'
         +'<strong>'+esc(s.name)+'</strong>'
-        +'<div class="meta">'+esc(s.department)+' · '+esc(s.location)+'<br>'+count+' ürün<br>Ana: '+esc(owner?.name||'Atanmamış')+'</div>'
+        +'<div class="meta">'+esc(s.department)+' · '+esc(s.location)+'<br>'+count+' ürün<br>Ana: '+esc(owner?.name||'Atanmamış')+'<br>'+(s.approved===true?'✓ Onaylı':'⚠ Onaylanmamış')+'</div>'
         +'</div></button>';
     }).join('')
     +'</div>';
@@ -647,12 +648,15 @@ function productDetailModal(data,productId){
 async function systemUserChooser(data){
   if(!isSystemAdmin()) return;
   let accounts=[];
-  try{
-    const out=await rafAuth('list_users');
-    accounts=(out.users||[]).filter(a=>a.role!=='system_admin');
-  }catch(e){
-    openModal('Kullanıcılar','<div class="card empty">Kullanıcılar yüklenemedi.</div>');
-    return;
+  if(currentUser?.preview){
+    accounts=data.users.filter(u=>u.active).map(u=>({app_user_id:u.id,username:u.username,name:u.name,role:u.role,active:u.active}));
+  }else{
+    try{
+      const out=await rafAuth('list_users');
+      accounts=(out.users||[]).filter(a=>a.role!=='system_admin');
+    }catch(e){
+      accounts=data.users.filter(u=>u.active).map(u=>({app_user_id:u.id,username:u.username,name:u.name,role:u.role,active:u.active}));
+    }
   }
   const rows=accounts.map(a=>{
     const local=data.users.find(u=>u.id===a.app_user_id)||data.users.find(u=>u.username===a.username);
@@ -678,6 +682,7 @@ async function systemUserChooser(data){
     render();
   });
 }
+
 async function systemUsersView(data){
   if(!isSystemAdmin()) return '<div class="card empty">Yetkiniz yok.</div>';
   let accounts=[];
@@ -1058,6 +1063,15 @@ function bindActions(data){
   });
   document.querySelectorAll('.add-product').forEach(b=>b.onclick=()=>productModal(b.dataset.shelf));
   document.querySelectorAll('.assign-shelf-user').forEach(b=>b.onclick=()=>assignShelfModal(data,b.dataset.shelf));
+  document.querySelectorAll('.approve-shelf').forEach(b=>b.onclick=async()=>{
+    const shelf=data.shelves.find(s=>s.id===b.dataset.shelf);
+    if(!shelf) return;
+    shelf.approved=true;
+    shelf.approvedAt=Date.now();
+    shelf.approvedBy=activeAppUserId()||'manager';
+    await put('shelves',shelf);
+    render();
+  });
   document.getElementById('addShelf')?.addEventListener('click',shelfModal);
   document.getElementById('addUser')?.addEventListener('click',()=>userModal(data));
   document.getElementById('sendNotification')?.addEventListener('click',()=>notificationModal(data));
