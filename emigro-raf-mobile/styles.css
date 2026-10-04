@@ -177,3 +177,17 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 .product-info-card{width:100%;text-align:left;border:0;color:inherit;margin-bottom:10px}
 .product-info-card:active{transform:scale(.99)}
 .product-location-line{font-size:13px;color:#667085;margin-top:5px}
+
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#eef1f4}
+.auth-card{width:min(430px,100%);background:#fff;border-radius:28px;padding:28px;box-shadow:0 24px 70px rgba(15,23,42,.14)}
+.auth-brand{font-size:15px;font-weight:950;letter-spacing:1.8px;color:#111827}
+.auth-subtitle{font-size:13px;color:#6b7280;margin-top:3px;margin-bottom:28px}
+.auth-card h1{font-size:30px;margin:0 0 8px;color:#111827}
+.auth-card p{color:#6b7280;margin:0 0 22px;line-height:1.45}
+.auth-card label{display:grid;gap:7px;font-weight:800;color:#374151;margin-bottom:14px}
+.auth-card input{width:100%;box-sizing:border-box;border:1px solid #d4dae2;border-radius:16px;padding:15px 16px;font:inherit;background:#fff}
+.auth-card input:focus{outline:3px solid rgba(10,132,255,.16);border-color:#0a84ff}
+.auth-link{display:block;margin:16px auto 0;border:0;background:none;color:#1769aa;font-weight:850;font-size:14px}
+.auth-message{min-height:22px;margin-top:14px;color:#a21d1d;font-size:13px;line-height:1.4}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.system-user-pill{border:0;border-radius:999px;background:#111827;color:#fff;padding:9px 12px;font-weight:850}
