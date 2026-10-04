@@ -1,5 +1,5 @@
 const DB_NAME='raf';
-const DB_VERSION=1;
+const DB_VERSION=2;
 const ROLE_NAMES={employee:'Çalışan',warehouse:'Depo Sorumlusu',manager:'Mağaza Müdürü',superadmin:'Süper Admin'};
 const STATUS={
   ok:{label:'OK',cls:'ok'},
@@ -17,7 +17,7 @@ function openDB(){
     const req=indexedDB.open(DB_NAME,DB_VERSION);
     req.onupgradeneeded=()=>{
       const db=req.result;
-      const stores=['users','shelves','products','assignments','dailyChecks','issues','settings'];
+      const stores=['users','shelves','products','assignments','dailyChecks','issues','settings','notifications'];
       stores.forEach(s=>{if(!db.objectStoreNames.contains(s)) db.createObjectStore(s,{keyPath:'id'});});
     };
     req.onsuccess=()=>resolve(req.result);
@@ -88,10 +88,10 @@ async function seed(){
 }
 
 async function snapshot(){
-  const [users,shelves,products,assignments,dailyChecks,issues,settings]=await Promise.all(
-    ['users','shelves','products','assignments','dailyChecks','issues','settings'].map(all)
+  const [users,shelves,products,assignments,dailyChecks,issues,settings,notifications]=await Promise.all(
+    ['users','shelves','products','assignments','dailyChecks','issues','settings','notifications'].map(all)
   );
-  return {users,shelves,products,assignments,dailyChecks,issues,settings:settings[0]||{deadline:'12:00'}};
+  return {users,shelves,products,assignments,dailyChecks,issues,notifications,settings:settings[0]||{deadline:'12:00'}};
 }
 function todaysChecks(data){return data.dailyChecks.filter(c=>c.date===today());}
 function shelfProgress(data,shelfId){
@@ -108,10 +108,10 @@ function afterDeadline(settings){
 
 function navFor(role){
   if(role==='employee') return [
-    ['home','⌂','Bugün'],['issues','!','Sorunlar'],['performance','★','Performans'],['profile','●','Profil']
+    ['home','⌂','Bugün'],['notifications','🔔','Bildirim'],['issues','!','Sorunlar'],['performance','★','Performans']
   ];
   if(role==='warehouse') return [
-    ['home','⌂','Depo'],['issues','!','Bekleyen'],['history','≡','Geçmiş'],['profile','●','Profil']
+    ['home','⌂','Depo'],['notifications','🔔','Bildirim'],['issues','!','Bekleyen'],['history','≡','Geçmiş']
   ];
   if(role==='manager') return [
     ['home','⌂','Özet'],['issues','!','Hatalar'],['shelves','▦','Raflar'],['people','♟','Personel']
@@ -137,6 +137,7 @@ async function render(){
   else if(currentView==='people') app.innerHTML=peopleView(data);
   else if(currentView==='performance') app.innerHTML=performanceView(data);
   else if(currentView==='history') app.innerHTML=historyView(data);
+  else if(currentView==='notifications') app.innerHTML=notificationsView(data);
   else app.innerHTML=profileView(data);
   bindActions(data);
 }
@@ -158,7 +159,7 @@ function employeeHome(data){
     <div class="hero-row"><div><div class="eyebrow">Bugünkü görev</div><h1>Rafları kontrol et</h1><p>Her ürüne OK veya sorun durumu ver.</p></div><div class="score">${pct}%</div></div>
     <div class="progress"><span style="width:${pct}%"></span></div>
   </section>
-  <div class="notice">⏰ Günlük raf kontrolleri <b>12:00'ye kadar</b> tamamlanmalı. Eksik raflar yönetime otomatik bildirilir.</div>
+  ${employeeReminderBanner(data,shelves)}
   <div class="section-title"><h2>Raflarım</h2><small>${done}/${shelves.length} tamamlandı</small></div>
   ${shelves.map(s=>shelfCard(data,s)).join('')}
   `;
@@ -177,17 +178,46 @@ function shelfCard(data,shelf){
       return `<div class="product">
         <div class="product-name">${esc(p.name)}</div>
         ${c?`<div class="product-state">${STATUS[c.status]?.label||c.status}${c.qty!=null?' · '+c.qty+' '+esc(c.unit||p.unit):''}${c.expiry?' · '+esc(c.expiry):''}</div>`:
-        `<div class="product-actions">
+        `<div class="product-actions primary-actions">
           <button class="ok check-btn" data-product="${p.id}" data-shelf="${shelf.id}" data-status="ok">✓ OK</button>
-          <button class="warn check-btn" data-product="${p.id}" data-shelf="${shelf.id}" data-status="expiring">Yakın</button>
-          <button class="danger check-btn" data-product="${p.id}" data-shelf="${shelf.id}" data-status="expired">Geçmiş</button>
-          <button class="low check-btn" data-product="${p.id}" data-shelf="${shelf.id}" data-status="low">Stok az</button>
-          <button class="missing check-btn" data-product="${p.id}" data-shelf="${shelf.id}" data-status="missing">Rafta yok</button>
-          <button class="danger check-btn" data-product="${p.id}" data-shelf="${shelf.id}" data-status="damaged">Hasarlı</button>
+          <button class="danger problem-btn" data-product="${p.id}" data-shelf="${shelf.id}">⚠ Sorun bildir</button>
         </div>`}
       </div>`;
     }).join('')}
   </article>`;
+}
+function employeeReminderBanner(data,shelves){
+  const checks=todaysChecks(data);
+  const missing=[];
+  shelves.forEach(s=>{
+    data.products.filter(p=>p.shelfId===s.id&&p.active&&p.required).forEach(p=>{
+      if(!checks.some(c=>c.productId===p.id)) missing.push({shelf:s,product:p});
+    });
+  });
+  const direct=(data.notifications||[]).filter(n=>n.targetUserId==='u_emp'&&!n.read);
+  if(!missing.length&&!direct.length) return '<div class="notice" style="background:#e8f7ef;border-color:#a8dfc2;color:#0f6d43"><b>✓ Şu ana kadar gözden kaçan kontrol görünmüyor.</b></div>';
+  const parts=[];
+  if(direct.length) parts.push('<b>🔔 '+direct.length+' yönetici bildirimin var.</b>');
+  if(missing.length) parts.push('<b>⚠ '+missing.length+' ürün henüz kontrol edilmedi.</b> Bildirim ekranından nerede olduklarını görebilirsin.');
+  return '<button class="notice notice-button open-notifications">'+parts.join('<br>')+'</button>';
+}
+function notificationsView(data){
+  const targetUser=currentRole==='employee'?'u_emp':currentRole==='warehouse'?'u_wh':null;
+  const direct=(data.notifications||[]).filter(n=>!targetUser||n.targetUserId===targetUser).sort((a,b)=>b.ts-a.ts);
+  const cards=[];
+  if(currentRole==='employee'){
+    const assigned=data.assignments.filter(a=>a.userId==='u_emp'&&a.active).map(a=>a.shelfId);
+    const checks=todaysChecks(data);
+    data.shelves.filter(s=>assigned.includes(s.id)&&s.active).forEach(s=>{
+      const missed=data.products.filter(p=>p.shelfId===s.id&&p.active&&p.required&&!checks.some(c=>c.productId===p.id));
+      if(missed.length) cards.push('<article class="card reminder-card"><div class="card-pad"><span class="badge warn">Kontrol bekliyor</span><h3>'+esc(s.name)+'</h3><div class="meta">'+esc(s.location)+'<br><b>'+missed.length+' ürün gözden kaçmış olabilir:</b><br>'+missed.map(p=>'• '+esc(p.name)).join('<br>')+'</div><button class="btn full go-shelf" data-shelf="'+s.id+'">Bu rafı kontrol et</button></div></article>');
+    });
+  }
+  direct.forEach(n=>{
+    const s=data.shelves.find(x=>x.id===n.shelfId);
+    cards.push('<article class="card admin-note"><div class="card-pad"><span class="badge blue">Yönetici uyarısı</span><h3>'+esc(n.title||'Kontrol uyarısı')+'</h3><div class="meta">'+esc(n.message||'')+(s?'<br><b>Raf: '+esc(s.name)+'</b>':'')+'<br>'+esc(n.time||'')+'</div>'+(s&&currentRole==='employee'?'<button class="btn full go-shelf" data-shelf="'+s.id+'">Rafa git</button>':'')+'</div></article>');
+  });
+  return '<div class="section-title"><h2>Bildirimler</h2><small>'+cards.length+' kayıt</small></div>'+(cards.join('')||'<div class="card empty">Yeni bildirim yok.</div>');
 }
 function warehouseHome(data){
   const missing=data.issues.filter(i=>i.type==='missing'&&issueOpen(i));
@@ -215,6 +245,7 @@ function managerHome(data,isAdmin){
     <div class="progress"><span style="width:${activeShelves.length?Math.round(done/activeShelves.length*100):0}%"></span></div>
   </section>
   ${overdue?`<div class="notice" style="background:#fde9e9;border-color:#f3aaaa;color:#9f1d1d"><b>🔴 ${un.length} raf 12:00'ye kadar kontrol edilmedi.</b><br>Yönetim aksiyonu gerekiyor.</div>`:''}
+  ${isAdmin?'<button class="btn full" id="sendNotification" style="margin-bottom:12px">🔔 Personele uyarı gönder</button>':''}
   <div class="grid">
     <div class="metric"><b>${done}/${activeShelves.length}</b><span>Raf tamamlandı</span></div>
     <div class="metric"><b>${issues.length}</b><span>Açık sorun</span></div>
@@ -291,31 +322,17 @@ function openModal(title,body){
 function closeModal(){document.getElementById('modal').close();}
 
 function bindActions(data){
+  document.querySelectorAll('.open-notifications').forEach(b=>b.onclick=()=>{currentView='notifications';render();});
+  document.querySelectorAll('.go-shelf').forEach(b=>b.onclick=()=>{currentView='home';render().then(()=>setTimeout(()=>document.querySelector('[data-shelf-card="'+b.dataset.shelf+'"]')?.scrollIntoView({behavior:'smooth',block:'start'}),50));});
+  document.querySelectorAll('.problem-btn').forEach(b=>b.onclick=()=>{
+    const p=data.products.find(x=>x.id===b.dataset.product);
+    openModal('Sorun bildir','<div class="problem-sheet"><div><strong>'+esc(p.name)+'</strong><div class="sub">Sorun türünü seç</div></div><button class="issue-choice warn" data-status="expiring">🟡 Tarihi yaklaşıyor</button><button class="issue-choice danger" data-status="expired">🔴 Tarihi geçmiş</button><button class="issue-choice low" data-status="low">🟠 Stok az</button><button class="issue-choice missing" data-status="missing">⚫ Rafta yok</button><button class="issue-choice danger" data-status="damaged">❌ Hasarlı / bozuk</button></div>');
+    document.querySelectorAll('.issue-choice').forEach(x=>x.onclick=()=>showIssueForm(data,p,b.dataset.shelf,x.dataset.status));
+  });
   document.querySelectorAll('.check-btn').forEach(b=>b.onclick=async()=>{
     const p=data.products.find(x=>x.id===b.dataset.product);
-    const st=b.dataset.status;
-    if(st==='ok'){
-      await saveCheck(p,b.dataset.shelf,st,{});
-      render(); return;
-    }
-    const needsExpiry=['expiring','expired'].includes(st);
-    openModal(STATUS[st].label,`
-      <div class="form-grid">
-        <div><strong>${esc(p.name)}</strong><div class="sub">Sorun bilgilerini gir</div></div>
-        ${needsExpiry?'<label>Son kullanma tarihi<input id="fExpiry" type="date" required></label>':''}
-        <label>Miktar<input id="fQty" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0" required></label>
-        <label>Birim<select id="fUnit"><option value="adet">Adet</option><option value="kg">Kg</option><option value="koli">Koli</option><option value="paket">Paket</option><option value="şişe">Şişe</option><option value="kasa">Kasa</option></select></label>
-        <button class="btn full" id="saveIssue">Bildirimi kaydet</button>
-      </div>`);
-    document.getElementById('saveIssue').onclick=async()=>{
-      const qty=Number(document.getElementById('fQty').value);
-      const unit=document.getElementById('fUnit').value;
-      const expiry=needsExpiry?document.getElementById('fExpiry').value:null;
-      if(!Number.isFinite(qty)||qty<0){alert('Miktar girin.');return;}
-      if(needsExpiry&&!expiry){alert('Son kullanma tarihini girin.');return;}
-      await saveCheck(p,b.dataset.shelf,st,{qty,unit,expiry});
-      closeModal(); render();
-    };
+    await saveCheck(p,b.dataset.shelf,'ok',{});
+    render();
   });
   document.querySelectorAll('.wh-found').forEach(b=>b.onclick=async()=>{
     const i=data.issues.find(x=>x.id===b.dataset.id);
@@ -331,8 +348,38 @@ function bindActions(data){
   document.querySelectorAll('.add-product').forEach(b=>b.onclick=()=>productModal(b.dataset.shelf));
   document.getElementById('addShelf')?.addEventListener('click',shelfModal);
   document.getElementById('addUser')?.addEventListener('click',()=>userModal(data));
+  document.getElementById('sendNotification')?.addEventListener('click',()=>notificationModal(data));
 }
 
+function showIssueForm(data,p,shelfId,st){
+  const needsExpiry=['expiring','expired'].includes(st);
+  openModal(STATUS[st].label,`
+    <div class="form-grid">
+      <div><strong>${esc(p.name)}</strong><div class="sub">Sorun bilgilerini gir</div></div>
+      ${needsExpiry?'<label>Son kullanma tarihi<input id="fExpiry" type="date" required></label>':''}
+      <label>Miktar<input id="fQty" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0" required></label>
+      <label>Birim<select id="fUnit"><option value="adet">Adet</option><option value="kg">Kg</option><option value="koli">Koli</option><option value="paket">Paket</option><option value="şişe">Şişe</option><option value="kasa">Kasa</option></select></label>
+      <button class="btn full" id="saveIssue">Bildirimi kaydet</button>
+    </div>`);
+  document.getElementById('saveIssue').onclick=async()=>{
+    const qty=Number(document.getElementById('fQty').value);
+    const unit=document.getElementById('fUnit').value;
+    const expiry=needsExpiry?document.getElementById('fExpiry').value:null;
+    if(!Number.isFinite(qty)||qty<0){alert('Miktar girin.');return;}
+    if(needsExpiry&&!expiry){alert('Son kullanma tarihini girin.');return;}
+    await saveCheck(p,shelfId,st,{qty,unit,expiry});
+    closeModal(); render();
+  };
+}
+function notificationModal(data){
+  const targets=data.users.filter(u=>u.active&&(u.role==='employee'||u.role==='warehouse'));
+  const shelfOpts='<option value="">Raf seçmeden genel uyarı</option>'+data.shelves.filter(s=>s.active).map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('');
+  openModal('Personele uyarı gönder','<div class="form-grid"><label>Kime?<select id="nTarget">'+targets.map(u=>'<option value="'+u.id+'">'+esc(u.name)+' · '+ROLE_NAMES[u.role]+'</option>').join('')+'</select></label><label>Raf<select id="nShelf">'+shelfOpts+'</select></label><label>Başlık<input id="nTitle" value="Kontrol uyarısı"></label><label>Mesaj<input id="nMessage" placeholder="Örn. Dranken 02 üst bölümünü tekrar kontrol et"></label><button class="btn full" id="saveNotification">Uyarıyı gönder</button></div>');
+  document.getElementById('saveNotification').onclick=async()=>{
+    await put('notifications',{id:uid('n'),targetUserId:document.getElementById('nTarget').value,shelfId:document.getElementById('nShelf').value||null,title:document.getElementById('nTitle').value||'Kontrol uyarısı',message:document.getElementById('nMessage').value||'Lütfen belirtilen alanı kontrol edin.',read:false,ts:Date.now(),time:timeNow(),sentBy:'u_admin'});
+    closeModal();render();
+  };
+}
 async function saveCheck(product,shelfId,status,extra){
   const check={id:uid('c'),date:today(),ts:Date.now(),time:timeNow(),productId:product.id,shelfId,status,reportedBy:'u_emp',...extra};
   await put('dailyChecks',check);
