@@ -13,6 +13,8 @@ const STATUS={
 };
 let currentRole='employee';
 let currentView='home';
+let issueUserFilter='all';
+let issueTypeFilter='all';
 
 function openDB(){
   return new Promise((resolve,reject)=>{
@@ -349,9 +351,40 @@ function issueCard(data,i,warehouseMode=false){
 function issuesView(data){
   let issues=data.issues.filter(issueOpen);
   if(currentRole==='warehouse') issues=issues.filter(i=>i.type==='missing');
-  return `<div class="section-title"><h2>Hata / Sorunlar</h2><small>${issues.length} açık</small></div>
-    ${issues.length?issues.map(i=>issueCard(data,i,currentRole==='warehouse')).join(''):'<div class="card empty">Açık sorun yok.</div>'}`;
+
+  if(currentRole==='superadmin'){
+    if(issueUserFilter!=='all') issues=issues.filter(i=>i.reportedBy===issueUserFilter);
+    if(issueTypeFilter!=='all') issues=issues.filter(i=>i.type===issueTypeFilter);
+
+    const employeeOptions=data.users
+      .filter(u=>u.active&&u.role==='employee')
+      .map(u=>'<option value="'+u.id+'" '+(issueUserFilter===u.id?'selected':'')+'>'+esc(u.name)+'</option>')
+      .join('');
+
+    const typeOptions=[
+      ['all','Tüm sorunlar'],
+      ['expiring','Tarihi yaklaşıyor'],
+      ['expired','Tarihi geçmiş'],
+      ['low','Stok az'],
+      ['missing','Rafta yok'],
+      ['damaged','Hasarlı / bozuk'],
+      ['label_missing','Raf etiketi yok'],
+      ['label_wrong','Raf etiketi yanlış']
+    ].map(([v,l])=>'<option value="'+v+'" '+(issueTypeFilter===v?'selected':'')+'>'+l+'</option>').join('');
+
+    return '<div class="section-title"><h2>Hata / Sorunlar</h2><small>'+issues.length+' açık</small></div>'
+      +'<div class="filter-card">'
+      +'<label>Kullanıcı<select id="issueUserFilter"><option value="all">Tüm kullanıcılar</option>'+employeeOptions+'</select></label>'
+      +'<label>Sorun türü<select id="issueTypeFilter">'+typeOptions+'</select></label>'
+      +'<button class="btn secondary full" id="clearIssueFilters">Filtreleri temizle</button>'
+      +'</div>'
+      +(issues.length?issues.map(i=>issueCard(data,i,false)).join(''):'<div class="card empty">Bu filtreye uygun açık sorun yok.</div>');
+  }
+
+  return '<div class="section-title"><h2>Hata / Sorunlar</h2><small>'+issues.length+' açık</small></div>'
+    +(issues.length?issues.map(i=>issueCard(data,i,currentRole==='warehouse')).join(''):'<div class="card empty">Açık sorun yok.</div>');
 }
+
 function shelvesView(data){
   const canEdit=['manager','superadmin'].includes(currentRole);
   return `
@@ -398,6 +431,11 @@ function openModal(title,body){
 function closeModal(){document.getElementById('modal').close();}
 
 function bindActions(data){
+  const userFilter=document.getElementById('issueUserFilter');
+  if(userFilter) userFilter.onchange=()=>{issueUserFilter=userFilter.value;render();};
+  const typeFilter=document.getElementById('issueTypeFilter');
+  if(typeFilter) typeFilter.onchange=()=>{issueTypeFilter=typeFilter.value;render();};
+  document.getElementById('clearIssueFilters')?.addEventListener('click',()=>{issueUserFilter='all';issueTypeFilter='all';render();});
   document.querySelectorAll('.open-notifications').forEach(b=>b.onclick=()=>{currentView='notifications';render();});
   document.querySelectorAll('.performance-user').forEach(b=>b.onclick=()=>monthlyPerformanceModal(data,b.dataset.user));
   document.querySelectorAll('.go-shelf').forEach(b=>b.onclick=()=>{currentView='home';render().then(()=>setTimeout(()=>document.querySelector('[data-shelf-card="'+b.dataset.shelf+'"]')?.scrollIntoView({behavior:'smooth',block:'start'}),50));});
@@ -463,22 +501,34 @@ function bindActions(data){
 function showMultiIssueForm(data,p,shelfId){
   openModal('Sorun bildir',
     '<div class="form-grid">'
-    +'<div><strong>'+esc(p.name)+'</strong><div class="sub">Birden fazla sorun seçebilirsin.</div></div>'
-    +'<label class="check-row"><input type="checkbox" name="issueType" value="expiring"> 🟡 Tarihi yaklaşıyor</label>'
-    +'<label class="check-row"><input type="checkbox" name="issueType" value="expired"> 🔴 Tarihi geçmiş</label>'
-    +'<label class="check-row"><input type="checkbox" name="issueType" value="low"> 🟠 Stok az</label>'
-    +'<label class="check-row"><input type="checkbox" name="issueType" value="missing"> ⚫ Rafta yok</label>'
-    +'<label class="check-row"><input type="checkbox" name="issueType" value="damaged"> ❌ Hasarlı / bozuk</label>'
-    +'<label class="check-row"><input type="checkbox" name="issueType" value="label_missing"> 🏷️ Raf etiketi yok</label>'
-    +'<label class="check-row"><input type="checkbox" name="issueType" value="label_wrong"> ⚠️ Raf etiketi yanlış</label>'
-    +'<label>Son kullanma tarihi <span class="sub">(tarih sorunu varsa)</span><input id="multiExpiry" type="date"></label>'
+    +'<div><strong>'+esc(p.name)+'</strong><div class="sub">Aynı üründe farklı gruplardan birden fazla sorun seçebilirsin.</div></div>'
+    +'<div class="issue-group"><div class="issue-group-title">Tarih durumu <span>birini seç</span></div>'
+    +'<label class="check-row"><input class="issue-select" type="radio" name="dateIssue" value="expiring"> <span class="dot warn-dot"></span> Tarihi yaklaşıyor</label>'
+    +'<label class="check-row"><input class="issue-select" type="radio" name="dateIssue" value="expired"> <span class="dot danger-dot"></span> Tarihi geçmiş</label>'
+    +'<button type="button" class="mini-clear clear-radio" data-name="dateIssue">Seçimi kaldır</button></div>'
+    +'<div class="issue-group"><div class="issue-group-title">Stok durumu <span>birini seç</span></div>'
+    +'<label class="check-row"><input class="issue-select" type="radio" name="stockIssue" value="low"> <span class="dot orange-dot"></span> Stok az</label>'
+    +'<label class="check-row"><input class="issue-select" type="radio" name="stockIssue" value="missing"> <span class="dot dark-dot"></span> Rafta yok</label>'
+    +'<button type="button" class="mini-clear clear-radio" data-name="stockIssue">Seçimi kaldır</button></div>'
+    +'<div class="issue-group"><div class="issue-group-title">Diğer sorunlar <span>birden fazla olabilir</span></div>'
+    +'<label class="check-row"><input class="issue-select" type="checkbox" value="damaged"> Hasarlı / bozuk</label>'
+    +'<label class="check-row"><input class="issue-select" type="checkbox" value="label_missing"> Raf etiketi yok</label>'
+    +'<label class="check-row"><input class="issue-select" type="checkbox" value="label_wrong"> Raf etiketi yanlış</label></div>'
+    +'<label>Son kullanma tarihi <span class="sub">(tarih sorunu seçildiyse zorunlu)</span><input id="multiExpiry" type="date"></label>'
     +'<label>Miktar<input id="multiQty" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></label>'
     +'<label>Birim<select id="multiUnit"><option value="adet">Adet</option><option value="kg">Kg</option><option value="koli">Koli</option><option value="paket">Paket</option><option value="şişe">Şişe</option><option value="kasa">Kasa</option></select></label>'
     +'<label>Not <span class="sub">(isteğe bağlı)</span><input id="multiNote" placeholder="Örn. etiket farklı fiyat gösteriyor"></label>'
     +'<button class="btn full" id="saveMultiIssue">Sorunları bildir</button>'
     +'</div>');
+
+  document.querySelectorAll('.clear-radio').forEach(btn=>{
+    btn.onclick=()=>{
+      document.querySelectorAll('input[name="'+btn.dataset.name+'"]').forEach(x=>x.checked=false);
+    };
+  });
+
   document.getElementById('saveMultiIssue').onclick=async()=>{
-    const selected=[...document.querySelectorAll('input[name="issueType"]:checked')].map(x=>x.value);
+    const selected=[...document.querySelectorAll('.issue-select:checked')].map(x=>x.value);
     if(!selected.length){alert('En az bir sorun seçin.');return;}
     const hasDate=selected.some(x=>x==='expiring'||x==='expired');
     const expiry=document.getElementById('multiExpiry').value;
@@ -487,9 +537,19 @@ function showMultiIssueForm(data,p,shelfId){
     const qty=qtyRaw===''?null:Number(qtyRaw);
     const unit=document.getElementById('multiUnit').value;
     const note=document.getElementById('multiNote').value||'';
-    await put('dailyChecks',{id:uid('c'),date:today(),ts:Date.now(),time:timeNow(),productId:p.id,shelfId,status:'problem',reportedBy:'u_emp',problemTypes:selected});
+
+    await put('dailyChecks',{
+      id:uid('c'),date:today(),ts:Date.now(),time:timeNow(),
+      productId:p.id,shelfId,status:'problem',reportedBy:'u_emp',problemTypes:selected
+    });
+
     for(const type of selected){
-      await put('issues',{id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),productId:p.id,shelfId,type,state:'reported',reportedBy:'u_emp',qty,unit,expiry:(type==='expiring'||type==='expired')?expiry:null,note,visibility:type.startsWith('label_')?['manager','superadmin']:['warehouse','manager','superadmin']});
+      await put('issues',{
+        id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),
+        productId:p.id,shelfId,type,state:'reported',reportedBy:'u_emp',
+        qty,unit,expiry:(type==='expiring'||type==='expired')?expiry:null,note,
+        visibility:type.startsWith('label_')?['manager','superadmin']:['warehouse','manager','superadmin']
+      });
     }
     closeModal();
     render();
