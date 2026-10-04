@@ -1,6 +1,6 @@
 const DB_NAME='raf';
 const DB_VERSION=2;
-const ROLE_NAMES={employee:'Çalışan',warehouse:'Depo Sorumlusu',manager:'Mağaza Müdürü',superadmin:'Süper Admin'};
+const ROLE_NAMES={employee:'Çalışan',cashier:'Kasa Kullanıcısı',warehouse:'Depo Sorumlusu',manager:'Mağaza Müdürü',superadmin:'Süper Admin'};
 const STATUS={
   ok:{label:'OK',cls:'ok'},
   expiring:{label:'Tarihi yaklaşıyor',cls:'warn'},
@@ -9,7 +9,11 @@ const STATUS={
   missing:{label:'Rafta yok',cls:'dark'},
   damaged:{label:'Hasarlı/bozuk',cls:'danger'},
   label_missing:{label:'Raf etiketi yok',cls:'warn'},
-  label_wrong:{label:'Raf etiketi yanlış',cls:'danger'}
+  label_wrong:{label:'Raf etiketi yanlış',cls:'danger'},
+  cash_price_wrong:{label:'Fiyat yanlış',cls:'danger'},
+  cash_not_scanning:{label:'Kasada çıkmıyor / barkod okunmuyor',cls:'dark'},
+  cash_discount_missing:{label:'İndirim uygulanmıyor',cls:'warn'},
+  cash_barcode_mismatch:{label:'Ürün / barkod eşleşmiyor',cls:'danger'}
 };
 let currentRole='employee';
 let currentView='home';
@@ -77,6 +81,7 @@ async function seed(){
   if(users.length) return;
   const demoUsers=[
     {id:'u_emp',name:'Ahmet Yılmaz',username:'ahmet',password:'1234',role:'employee',active:true},
+    {id:'u_cash',name:'Elif Demir',username:'elifkasa',password:'1234',role:'cashier',active:true},
     {id:'u_wh',name:'Mustafa Kaya',username:'mustafa',password:'1234',role:'warehouse',active:true},
     {id:'u_mgr',name:'Selin Demir',username:'selin',password:'1234',role:'manager',active:true},
     {id:'u_admin',name:'Fatih Dumlu',username:'admin',password:'admin123',role:'superadmin',active:true},
@@ -133,6 +138,9 @@ function navFor(role){
   if(role==='employee') return [
     ['home','home','Bugün'],['notifications','bell','Bildirim'],['issues','alert','Sorunlar'],['performance','chart','Performans']
   ];
+  if(role==='cashier') return [
+    ['home','alert','Sorun Bildir']
+  ];
   if(role==='warehouse') return [
     ['home','box','Depo'],['notifications','bell','Bildirim'],['issues','alert','Bekleyen'],['history','clock','Geçmiş']
   ];
@@ -168,6 +176,7 @@ async function render(){
 
 async function homeView(data){
   if(currentRole==='employee') return employeeHome(data);
+  if(currentRole==='cashier') return cashierHome(data);
   if(currentRole==='warehouse') return warehouseHome(data);
   if(currentRole==='manager') return managerHome(data,false);
   return managerHome(data,true);
@@ -291,6 +300,31 @@ function notificationsView(data){
   });
   return '<div class="section-title"><h2>Bildirimler</h2><small>'+cards.length+' kayıt</small></div>'+(cards.join('')||'<div class="card empty">Yeni bildirim yok.</div>');
 }
+
+function cashierHome(data){
+  const products=data.products.filter(p=>p.active).sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+  const recent=data.issues.filter(i=>i.reportedBy==='u_cash').sort((a,b)=>b.ts-a.ts).slice(0,5);
+  const options=products.map(p=>{
+    const s=data.shelves.find(x=>x.id===p.shelfId);
+    return '<option value="'+p.id+'">'+esc(p.name)+(s?' — '+esc(s.name):'')+'</option>';
+  }).join('');
+  return '<section class="hero">'
+    +'<div class="eyebrow">Kasa kullanıcısı</div><h1>Ürün sorunu bildir</h1>'
+    +'<p>Ürünü listeden seç ve kasada yaşanan sorunu gönder.</p></section>'
+    +'<div class="card"><div class="card-pad form-grid">'
+    +'<label>Ürün<select id="cashProduct"><option value="">Ürün seç</option>'+options+'</select></label>'
+    +'<div class="issue-group"><div class="issue-group-title">Sorun türü <span>birini seç</span></div>'
+    +'<label class="check-row"><input type="radio" name="cashIssue" value="cash_price_wrong"> Fiyat yanlış</label>'
+    +'<label class="check-row"><input type="radio" name="cashIssue" value="cash_not_scanning"> Kasada çıkmıyor / barkod okunmuyor</label>'
+    +'<label class="check-row"><input type="radio" name="cashIssue" value="cash_discount_missing"> İndirim uygulanmıyor</label>'
+    +'<label class="check-row"><input type="radio" name="cashIssue" value="cash_barcode_mismatch"> Ürün / barkod eşleşmiyor</label>'
+    +'</div>'
+    +'<label>Not <span class="sub">(isteğe bağlı)</span><input id="cashNote" placeholder="Örn. rafta 2,49 €, kasada 2,99 €"></label>'
+    +'<button class="btn danger full" id="sendCashIssue">Sorunu gönder</button>'
+    +'</div></div>'
+    +'<div class="section-title"><h2>Son bildirdiklerim</h2><small>'+recent.length+' kayıt</small></div>'
+    +(recent.length?recent.map(i=>issueCard(data,i,false)).join(''):'<div class="card empty">Henüz kasa sorunu bildirilmedi.</div>');
+}
 function warehouseHome(data){
   const missing=data.issues.filter(i=>i.type==='missing'&&issueOpen(i));
   const waiting=missing.filter(i=>i.state==='reported');
@@ -334,7 +368,11 @@ function managerHome(data,isAdmin){
   ${un.length?`<div class="section-title"><h2>${afterDeadline(data.settings)?'Yapılmayan / geciken':'Henüz tamamlanmayan'}</h2><small>${un.length} raf</small></div>`:''
   }
   <div class="section-title"><h2>Hata ekranı</h2><small>${issues.length} açık</small></div>
-  ${isAdmin?'<div class="filter-card admin-home-filter"><label>Kullanıcı<select id="homeIssueUserFilter"><option value="all">Tüm kullanıcılar</option>'+data.users.filter(u=>u.active&&u.role==='employee').map(u=>'<option value="'+u.id+'" '+(issueUserFilter===u.id?'selected':'')+'>'+esc(u.name)+'</option>').join('')+'</select></label><label>Sorun türü<select id="homeIssueTypeFilter">'+[['all','Tüm sorunlar'],['unchecked','Kontrol edilmemiş raflar'],['expiring','Tarihi yaklaşıyor'],['expired','Tarihi geçmiş'],['low','Stok az'],['missing','Rafta yok'],['damaged','Hasarlı / bozuk'],['label_missing','Raf etiketi yok'],['label_wrong','Raf etiketi yanlış']].map(([v,l])=>'<option value="'+v+'" '+(issueTypeFilter===v?'selected':'')+'>'+l+'</option>').join('')+'</select></label><button class="btn secondary full" id="homeClearIssueFilters">Filtreleri temizle</button></div>':''}
+  ${isAdmin?'<div class="filter-card admin-home-filter"><label>Kullanıcı<select id="homeIssueUserFilter"><option value="all">Tüm kullanıcılar</option>'+data.users.filter(u=>u.active&&['employee','cashier'].includes(u.role)).map(u=>'<option value="'+u.id+'" '+(issueUserFilter===u.id?'selected':'')+'>'+esc(u.name)+'</option>').join('')+'</select></label><label>Sorun türü<select id="homeIssueTypeFilter">'+[['all','Tüm sorunlar'],['unchecked','Kontrol edilmemiş raflar'],['expiring','Tarihi yaklaşıyor'],['expired','Tarihi geçmiş'],['low','Stok az'],['missing','Rafta yok'],['damaged','Hasarlı / bozuk'],['label_missing','Raf etiketi yok'],['label_wrong','Raf etiketi yanlış'],
+      ['cash_price_wrong','Fiyat yanlış'],
+      ['cash_not_scanning','Kasada çıkmıyor / barkod okunmuyor'],
+      ['cash_discount_missing','İndirim uygulanmıyor'],
+      ['cash_barcode_mismatch','Ürün / barkod eşleşmiyor']].map(([v,l])=>'<option value="'+v+'" '+(issueTypeFilter===v?'selected':'')+'>'+l+'</option>').join('')+'</select></label><button class="btn secondary full" id="homeClearIssueFilters">Filtreleri temizle</button></div>':''}
   ${issues.filter(i=>!isAdmin||((issueUserFilter==='all'||i.reportedBy===issueUserFilter)&&(issueTypeFilter==='all'||i.type===issueTypeFilter))).slice(0,6).map(i=>issueCard(data,i,false)).join('')||'<div class="card empty">Bu filtreye uygun açık sorun yok.</div>'}
   `;
 }
@@ -355,6 +393,11 @@ function issueCard(data,i,warehouseMode=false){
 }
 function issuesView(data){
   let issues=data.issues.filter(issueOpen);
+  if(currentRole==='employee'){
+    const shelfIds=data.assignments.filter(a=>a.userId==='u_emp'&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
+    issues=issues.filter(i=>shelfIds.includes(i.shelfId));
+  }
+  if(currentRole==='cashier') issues=issues.filter(i=>i.reportedBy==='u_cash');
   if(currentRole==='warehouse') issues=issues.filter(i=>i.type==='missing');
 
   if(currentRole==='superadmin'&&issueTypeFilter==='unchecked'){
@@ -503,6 +546,35 @@ function bindActions(data){
       closeModal();
       render();
     };
+  });
+  document.getElementById('sendCashIssue')?.addEventListener('click',async()=>{
+    const productId=document.getElementById('cashProduct').value;
+    const type=document.querySelector('input[name="cashIssue"]:checked')?.value;
+    if(!productId){alert('Ürün seçin.');return;}
+    if(!type){alert('Sorun türünü seçin.');return;}
+    const p=data.products.find(x=>x.id===productId);
+    if(!p) return;
+    const owner=shelfOwner(data,p.shelfId);
+    const note=document.getElementById('cashNote').value||'';
+    const issue={
+      id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),
+      productId:p.id,shelfId:p.shelfId,type,state:'reported',
+      reportedBy:'u_cash',source:'cashier',note,
+      assignedToUserId:owner?.id||null,
+      visibility:['employee','manager','superadmin']
+    };
+    await put('issues',issue);
+    if(owner){
+      await put('notifications',{
+        id:uid('n'),ts:Date.now(),date:today(),time:timeNow(),
+        targetUserId:owner.id,shelfId:p.shelfId,
+        title:'Kasadan ürün sorunu',
+        message:p.name+' · '+(STATUS[type]?.label||type)+(note?' · '+note:''),
+        read:false,closed:false,sourceIssueId:issue.id
+      });
+    }
+    alert('Sorun raf sorumlusuna ve yönetime gönderildi.');
+    render();
   });
   document.querySelectorAll('.problem-btn').forEach(b=>b.onclick=()=>{
     const p=data.products.find(x=>x.id===b.dataset.product);
@@ -905,7 +977,7 @@ function userModal(data){
     +'<label>Ad soyad<input id="uName"></label>'
     +'<label>Kullanıcı adı<input id="uLogin" autocapitalize="none"></label>'
     +'<label>Şifre<input id="uPass" type="password"></label>'
-    +'<label>Rol<select id="uRole"><option value="employee">Çalışan</option><option value="warehouse">Depo Sorumlusu</option><option value="manager">Mağaza Müdürü</option><option value="superadmin">Süper Admin</option></select></label>'
+    +'<label>Rol<select id="uRole"><option value="employee">Çalışan</option><option value="cashier">Kasa Kullanıcısı</option><option value="warehouse">Depo Sorumlusu</option><option value="manager">Mağaza Müdürü</option><option value="superadmin">Süper Admin</option></select></label>'
     +'<div id="employeeShelfArea">'
       +'<div class="issue-group-title">Raf atama tipi</div>'
       +'<label class="check-row"><input type="radio" name="assignmentMode" value="primary" checked> Ana sorumlu olarak ata</label>'
