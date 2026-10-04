@@ -798,7 +798,7 @@ function barcodeScannerModal(data){
     if(!navigator.mediaDevices?.getUserMedia){status.textContent='Bu cihazda kamera erişimi desteklenmiyor.';return;}
     try{
       stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
-      if(stopped)return;
+      if(stopped){stream.getTracks().forEach(t=>t.stop());return;}
       video.srcObject=stream;await video.play();
       status.textContent='Kamera açık. Barkodu çerçeveye getir.';
       if('BarcodeDetector' in window){
@@ -1117,11 +1117,16 @@ function profileView(data){
 }
 
 function openModal(title,body){
+  const dialog=document.getElementById('modal');
   document.getElementById('modalTitle').textContent=title;
   document.getElementById('modalBody').innerHTML=body;
-  document.getElementById('modal').showModal();
+  if(!dialog.open) dialog.showModal();
+  dialog.scrollTop=0;
 }
-function closeModal(){document.getElementById('modal').close();}
+function closeModal(){
+  const dialog=document.getElementById('modal');
+  if(dialog.open) dialog.close();
+}
 
 function productSearchRows(data,query){
   const q=(query||'').trim().toLocaleLowerCase('tr');
