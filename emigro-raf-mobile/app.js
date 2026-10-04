@@ -50,6 +50,25 @@ const today=()=>new Date().toISOString().slice(0,10);
 const timeNow=()=>new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
 const uid=(p='id')=>p+'_'+Math.random().toString(36).slice(2,9);
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function icon(name,size=20){
+  const paths={
+    home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.8V21h14V9.8"/><path d="M9 21v-7h6v7"/>',
+    bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
+    alert:'<circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><path d="M12 17h.01"/>',
+    chart:'<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/>',
+    box:'<path d="M4 7 12 3l8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7"/><path d="M12 11v10"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    note:'<path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+    shelves:'<path d="M4 5h16M4 12h16M4 19h16"/><path d="M6 3v4M10 3v4M14 10v4M18 10v4M7 17v4M13 17v4"/>',
+    users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    check:'<path d="m5 12 4 4L19 6"/>',
+    test:'<path d="M9 3h6"/><path d="M10 3v5l-5.5 9.2A2.5 2.5 0 0 0 6.6 21h10.8a2.5 2.5 0 0 0 2.1-3.8L14 8V3"/><path d="M8 15h8"/>',
+    print:'<path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/>',
+    external:'<path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6"/>'
+  };
+  return '<svg class="sf-icon" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[name]||paths.alert)+'</svg>';
+}
+
 
 async function seed(){
   const users=await all('users');
@@ -110,21 +129,21 @@ function afterDeadline(settings){
 
 function navFor(role){
   if(role==='employee') return [
-    ['home','⌂','Bugün'],['notifications','🔔','Bildirim'],['issues','!','Sorunlar'],['performance','★','Performans']
+    ['home','home','Bugün'],['notifications','bell','Bildirim'],['issues','alert','Sorunlar'],['performance','chart','Performans']
   ];
   if(role==='warehouse') return [
-    ['home','⌂','Depo'],['notifications','🔔','Bildirim'],['issues','!','Bekleyen'],['history','≡','Geçmiş']
+    ['home','box','Depo'],['notifications','bell','Bildirim'],['issues','alert','Bekleyen'],['history','clock','Geçmiş']
   ];
   if(role==='manager') return [
-    ['home','⌂','Özet'],['issues','!','Hatalar'],['shelves','▦','Raflar'],['people','♟','Personel']
+    ['home','home','Özet'],['issues','alert','Hatalar'],['shelves','shelves','Raflar'],['people','users','Personel']
   ];
   return [
-    ['home','⌂','Panel'],['issues','!','Hatalar'],['adminnotes','✎','Notlar'],['shelves','▦','Raflar'],['people','♟','Kullanıcı']
+    ['home','home','Panel'],['issues','alert','Hatalar'],['adminnotes','note','Notlar'],['shelves','shelves','Raflar'],['people','users','Kullanıcı']
   ];
 }
 function renderNav(){
   const nav=document.getElementById('bottomNav');
-  nav.innerHTML=navFor(currentRole).map(([v,ic,t])=>`<button data-view="${v}" class="${v===currentView?'active':''}"><span>${ic}</span>${t}</button>`).join('');
+  nav.innerHTML=navFor(currentRole).map(([v,ic,t])=>`<button data-view="${v}" class="${v===currentView?'active':''}"><span>${icon(ic,21)}</span>${t}</button>`).join('');
   nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{currentView=b.dataset.view;render();});
 }
 
@@ -163,6 +182,7 @@ function employeeHome(data){
     <div class="progress"><span style="width:${pct}%"></span></div>
   </section>
   ${employeeReminderBanner(data,shelves)}
+  <a class="tool-card" href="https://emigro-a4-prijs.floot.app" target="_blank" rel="noopener"><span class="tool-icon">${icon('print',22)}</span><span><strong>A4 Hazırla</strong><small>Fiyat afişi oluştur</small></span><span class="tool-open">${icon('external',18)}</span></a>
   <div class="section-title"><h2>Raflarım</h2><small>${done}/${shelves.length} tamamlandı</small></div>
   ${shelves.map(s=>shelfCard(data,s)).join('')}
   `;
@@ -291,7 +311,7 @@ function managerHome(data,isAdmin){
     <div class="progress"><span style="width:${activeShelves.length?Math.round(done/activeShelves.length*100):0}%"></span></div>
   </section>
   ${overdue?`<div class="notice" style="background:#fde9e9;border-color:#f3aaaa;color:#9f1d1d"><b>🔴 ${un.length} raf 12:00'ye kadar kontrol edilmedi.</b><br>Yönetim aksiyonu gerekiyor.</div>`:''}
-  ${isAdmin?'<div class="btn-row" style="margin:0 0 12px"><button class="btn" id="sendNotification">🔔 Uyarı gönder</button><button class="btn secondary" id="openTestCenter">🧪 Test Merkezi</button></div>':''}
+  ${isAdmin?'<div class="btn-row admin-actions" style="margin:0 0 12px"><button class="btn" id="sendNotification">'+icon('bell',18)+'<span>Uyarı gönder</span></button><button class="btn secondary" id="openTestCenter">'+icon('test',18)+'<span>Test Merkezi</span></button></div>':''}
   <div class="grid">
     <div class="metric"><b>${done}/${activeShelves.length}</b><span>Raf tamamlandı</span></div>
     <div class="metric"><b>${issues.length}</b><span>Açık sorun</span></div>
@@ -320,6 +340,9 @@ function issueCard(data,i,warehouseMode=false){
   if(warehouseMode&&i.state==='reported'){
     action=`<div class="btn-row"><button class="btn success wh-found" data-id="${i.id}">Depoda var</button><button class="btn danger wh-none" data-id="${i.id}">Depoda yok</button></div>`;
   }
+  if(['manager','superadmin'].includes(currentRole)&&issueOpen(i)){
+    action+=`<div class="btn-row"><button class="btn success resolve-issue" data-id="${i.id}">${icon('check',17)}<span>Yapıldı / Onayla</span></button></div>`;
+  }
   return `<article class="card ${cls}"><div class="card-pad"><div><strong>${esc(p?.name||'Ürün')}</strong>
   <div class="meta"><b>${STATUS[i.type]?.label||i.type}</b>${i.qty!=null?' · '+i.qty+' '+esc(i.unit||''):''}${i.expiry?' · SKT '+esc(i.expiry):''}<br>${esc(s?.name||'')} · ${esc(u?.name||'')} · ${esc(i.time||'')}</div>${action}</div><span class="badge ${STATUS[i.type]?.cls||'dark'}">${i.state==='reported'?'Yeni':i.state==='warehouse_found'?'Bulundu':i.state==='warehouse_none'?'Depoda yok':'Açık'}</span></div></article>`;
 }
@@ -345,7 +368,7 @@ function peopleView(data){
   if(!['manager','superadmin'].includes(currentRole)) return '<div class="card empty">Bu alan için yetkiniz yok.</div>';
   return `
   <div class="section-title"><h2>${currentRole==='superadmin'?'Kullanıcı Yönetimi':'Personel'}</h2>${currentRole==='superadmin'?'<button class="btn" id="addUser">+ Kullanıcı</button>':''}</div>
-  ${data.users.map(u=>`<div class="card"><div class="card-pad user-row"><div class="row-left"><div class="avatar">${esc(u.name.charAt(0))}</div><div><strong>${esc(u.name)}</strong><div class="meta">@${esc(u.username)} · ${ROLE_NAMES[u.role]}</div></div></div><span class="badge ${u.active?'ok':'dark'}">${u.active?'Aktif':'Pasif'}</span></div></div>`).join('')}
+  ${data.users.map(u=>`<button class="card user-card performance-user" data-user="${u.id}"><div class="card-pad user-row"><div class="row-left"><div class="avatar">${esc(u.name.charAt(0))}</div><div><strong>${esc(u.name)}</strong><div class="meta">@${esc(u.username)} · ${ROLE_NAMES[u.role]}</div></div></div><div class="user-card-right"><span class="badge ${u.active?'ok':'dark'}">${u.active?'Aktif':'Pasif'}</span>${icon('chart',18)}</div></div></button>`).join('')}
   `;
 }
 function performanceView(data){
@@ -407,6 +430,16 @@ function bindActions(data){
   document.querySelectorAll('.check-btn').forEach(b=>b.onclick=async()=>{
     const p=data.products.find(x=>x.id===b.dataset.product);
     await saveCheck(p,b.dataset.shelf,'ok',{});
+    render();
+  });
+  document.querySelectorAll('.resolve-issue').forEach(b=>b.onclick=async()=>{
+    const i=data.issues.find(x=>x.id===b.dataset.id);
+    if(!i) return;
+    i.state='resolved';
+    i.resolvedAt=Date.now();
+    i.resolvedTime=timeNow();
+    i.resolvedBy=currentRole==='superadmin'?'u_admin':'u_mgr';
+    await put('issues',i);
     render();
   });
   document.querySelectorAll('.wh-found').forEach(b=>b.onclick=async()=>{
