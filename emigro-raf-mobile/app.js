@@ -20,6 +20,7 @@ let currentView='home';
 let issueUserFilter='all';
 let issueTypeFilter='all';
 let selectedShelfId=null;
+let selectedSystemUserId=null;
 let currentUser=null;
 let viewAsUserId=null;
 const RAF_AUTH_URL='https://hroarfuwpfsqilsijwpp.supabase.co/functions/v1/raf-auth';
@@ -261,8 +262,16 @@ function navFor(role){
 }
 function renderNav(){
   const nav=document.getElementById('bottomNav');
-  nav.innerHTML=navFor(currentRole).map(([v,ic,t])=>`<button data-view="${v}" class="${v===currentView?'active':''}"><span>${icon(ic,21)}</span>${t}</button>`).join('');
-  nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{currentView=b.dataset.view;render();});
+  const items=[...navFor(currentRole)];
+  if(isSystemAdmin()&&!viewAsUserId){
+    items.push(['sysusers','users','Kullanıcılar']);
+  }
+  nav.innerHTML=items.map(([v,ic,t])=>`<button data-view="${v}" class="${v===currentView?'active':''}"><span>${icon(ic,21)}</span>${t}</button>`).join('');
+  nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    currentView=b.dataset.view;
+    if(currentView!=='sysuserdetail') selectedSystemUserId=null;
+    render();
+  });
 }
 
 async function render(){
@@ -275,6 +284,8 @@ async function render(){
   else if(currentView==='shelves') app.innerHTML=shelvesView(data);
   else if(currentView==='products') app.innerHTML=productsView(data);
   else if(currentView==='system'&&isSystemAdmin()) app.innerHTML=await systemView(data);
+  else if(currentView==='sysusers'&&isSystemAdmin()) app.innerHTML=await systemUsersView(data);
+  else if(currentView==='sysuserdetail'&&isSystemAdmin()) app.innerHTML=systemUserDetailView(data,selectedSystemUserId);
   else if(currentView==='people') app.innerHTML=peopleView(data);
   else if(currentView==='performance') app.innerHTML=performanceView(data);
   else if(currentView==='history') app.innerHTML=historyView(data);
@@ -641,6 +652,55 @@ function productDetailModal(data,productId){
     render();
   };
 }
+async function systemUsersView(data){
+  if(!isSystemAdmin()) return '<div class="card empty">Yetkiniz yok.</div>';
+  let accounts=[];
+  try{
+    const out=await rafAuth('list_users');
+    accounts=(out.users||[]).filter(a=>a.role!=='system_admin');
+  }catch(e){}
+  const cards=accounts.map(a=>{
+    const local=data.users.find(u=>u.id===a.app_user_id)||data.users.find(u=>u.username===a.username);
+    const role=ROLE_NAMES[a.role]||a.role;
+    const shelfCount=local?data.assignments.filter(x=>x.userId===local.id&&x.active&&x.assignmentType!=='backup').length:0;
+    const todayChecks=local?data.dailyChecks.filter(x=>x.reportedBy===local.id&&x.date===today()).length:0;
+    const openIssues=local?data.issues.filter(x=>issueOpen(x)&&(x.reportedBy===local.id||x.assignedToUserId===local.id)).length:0;
+    return '<button class="card system-user-card open-system-user" data-user="'+esc(local?.id||a.app_user_id||'')+'">'
+      +'<div class="card-pad user-row"><div class="row-left"><div class="avatar">'+esc((a.name||a.username||'?').charAt(0))+'</div><div><strong>'+esc(a.name||a.username)+'</strong><div class="meta">@'+esc(a.username)+' · '+esc(role)+'<br>'+shelfCount+' raf · bugün '+todayChecks+' kontrol · '+openIssues+' açık kayıt</div></div></div><span>›</span></div>'
+      +'</button>';
+  }).join('');
+  return '<section class="hero"><div class="eyebrow">Sistem Yönetici</div><h1>Kullanıcılar</h1><p>Bir kullanıcıya dokun; görevleri ve yaptığı işlemler doğrudan açılsın.</p></section>'
+    +'<div class="section-title"><h2>Kullanıcılar</h2><small>'+accounts.length+' hesap</small></div>'
+    +(cards||'<div class="card empty">Kullanıcı bulunamadı.</div>');
+}
+
+function systemUserDetailView(data,userId){
+  const u=data.users.find(x=>x.id===userId);
+  if(!u) return '<button class="back-home-btn" id="backSystemUsers">← Kullanıcılara dön</button><div class="card empty">Bu giriş hesabının uygulama kullanıcı kaydı henüz bağlı değil.</div>';
+  const primaryIds=data.assignments.filter(a=>a.userId===u.id&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
+  const backupIds=data.assignments.filter(a=>a.userId===u.id&&a.active&&a.assignmentType==='backup').map(a=>a.shelfId);
+  const primary=primaryIds.map(id=>data.shelves.find(s=>s.id===id)).filter(Boolean);
+  const backup=backupIds.map(id=>data.shelves.find(s=>s.id===id)).filter(Boolean);
+  const checks=data.dailyChecks.filter(x=>x.reportedBy===u.id).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const todayChecks=checks.filter(x=>x.date===today());
+  const ownIssues=data.issues.filter(x=>x.reportedBy===u.id||x.assignedToUserId===u.id).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const open=ownIssues.filter(issueOpen);
+  const done=ownIssues.filter(i=>!issueOpen(i));
+  const notes=(data.notifications||[]).filter(n=>n.targetUserId===u.id).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const taskCards=primary.length?primary.map(s=>{
+    const pg=shelfProgress(data,s.id);
+    return '<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>'+esc(s.name)+'</strong><div class="meta">'+pg.done+'/'+pg.total+' ürün kontrol edildi</div></div><span class="badge '+(pg.complete?'ok':'dark')+'">'+(pg.complete?'Tamamlandı':'Bekliyor')+'</span></div></div></div>';
+  }).join(''):'<div class="card empty">Ana sorumlu olduğu raf yok.</div>';
+  const activity=[...checks.map(x=>({ts:x.ts||0,text:'Kontrol · '+(data.products.find(p=>p.id===x.productId)?.name||'Ürün')+' · '+(x.status==='ok'?'OK':'Sorun')})),...ownIssues.map(i=>({ts:i.ts||0,text:'Sorun · '+(STATUS[i.type]?.label||i.type)+' · '+(data.products.find(p=>p.id===i.productId)?.name||'Ürün')})),...notes.filter(n=>n.closed).map(n=>({ts:n.closedAt||n.ts||0,text:'Bildirim tamamlandı · '+(n.title||n.message||'')}))].sort((a,b)=>b.ts-a.ts).slice(0,12);
+  return '<button class="back-home-btn" id="backSystemUsers">← Kullanıcılara dön</button>'
+    +'<section class="hero"><div class="eyebrow">'+esc(ROLE_NAMES[u.role]||u.role)+'</div><h1>'+esc(u.name)+'</h1><p>@'+esc(u.username||'')+' · görev ve hareket özeti</p></section>'
+    +'<div class="grid"><div class="metric"><b>'+primary.length+'</b><span>Ana raf</span></div><div class="metric"><b>'+todayChecks.length+'</b><span>Bugünkü kontrol</span></div><div class="metric"><b>'+open.length+'</b><span>Açık sorun</span></div><div class="metric"><b>'+done.length+'</b><span>Tamamlanan</span></div></div>'
+    +'<div class="btn-row" style="margin:12px 0"><button class="btn view-user-screen" data-user="'+u.id+'">Kullanıcının ekranını aç</button><button class="btn secondary edit-user" data-user="'+u.id+'">Hesap / Şifre</button></div>'
+    +'<div class="section-title"><h2>Görevleri</h2><small>'+primary.length+' ana · '+backup.length+' yedek</small></div>'+taskCards
+    +(backup.length?'<div class="card"><div class="card-pad"><strong>Yedek olduğu raflar</strong><div class="meta">'+backup.map(s=>esc(s.name)).join('<br>')+'</div></div></div>':'')
+    +'<div class="section-title"><h2>Son yaptığı işlemler</h2><small>'+activity.length+' kayıt</small></div>'
+    +(activity.length?activity.map(a=>'<div class="card"><div class="card-pad"><div class="meta">'+esc(a.text)+'</div></div></div>').join(''):'<div class="card empty">Henüz işlem yok.</div>');
+}
 async function systemView(data){
   if(!isSystemAdmin()) return '<div class="card empty">Yetkiniz yok.</div>';
   let accounts=[];
@@ -860,6 +920,17 @@ function bindActions(data){
   document.querySelectorAll('.open-notifications').forEach(b=>b.onclick=()=>{currentView='notifications';render();});
   document.querySelectorAll('.performance-user').forEach(b=>b.onclick=()=>monthlyPerformanceModal(data,b.dataset.user));
   document.querySelectorAll('.edit-user').forEach(b=>b.onclick=()=>userDetailModal(data,b.dataset.user));
+  document.querySelectorAll('.open-system-user').forEach(b=>b.onclick=()=>{
+    selectedSystemUserId=b.dataset.user;
+    currentView='sysuserdetail';
+    render();
+  });
+  document.getElementById('backSystemUsers')?.addEventListener('click',()=>{
+    selectedSystemUserId=null;
+    currentView='sysusers';
+    render();
+  });
+
   document.querySelectorAll('.view-user-screen').forEach(b=>b.onclick=()=>{
     const u=data.users.find(x=>x.id===b.dataset.user);
     if(!u) return;
