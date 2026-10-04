@@ -1053,7 +1053,7 @@ function systemUserDetailView(data,userId){
   return '<button class="back-home-btn" id="backSystemUsers">← Kullanıcılara dön</button>'
     +'<section class="hero"><div class="eyebrow">'+esc(ROLE_NAMES[u.role]||u.role)+'</div><h1>'+esc(u.name)+'</h1><p>@'+esc(u.username||'')+' · görev ve hareket özeti</p></section>'
     +'<div class="grid"><div class="metric"><b>'+primary.length+'</b><span>Ana raf</span></div><div class="metric"><b>'+todayChecks.length+'</b><span>Bugünkü kontrol</span></div><div class="metric"><b>'+open.length+'</b><span>Açık sorun</span></div><div class="metric"><b>'+done.length+'</b><span>Tamamlanan</span></div></div>'
-    +'<div class="btn-row" style="margin:12px 0"><button class="btn view-user-screen" data-user="'+u.id+'">Kullanıcının ekranını aç</button><button class="btn secondary edit-user" data-user="'+u.id+'">Hesap / Şifre</button></div>'
+    +'<div class="btn-row" style="margin:12px 0"><button class="btn view-user-screen" data-user="'+u.id+'">Kullanıcının ekranını aç</button><button class="btn secondary edit-user" data-user="'+u.id+'">Hesap bilgileri</button></div>'
     +'<div class="section-title"><h2>Görevleri</h2><small>'+primary.length+' ana · '+backup.length+' yedek</small></div>'+taskCards
     +(backup.length?'<div class="card"><div class="card-pad"><strong>Yedek olduğu raflar</strong><div class="meta">'+backup.map(s=>esc(s.name)).join('<br>')+'</div></div></div>':'')
     +'<div class="section-title"><h2>Son yaptığı işlemler</h2><small>'+activity.length+' kayıt</small></div>'
@@ -1063,11 +1063,15 @@ async function systemView(data){
   if(!isSystemAdmin()) return '<div class="card empty">Yetkiniz yok.</div>';
   let accounts=[];
   let loadError='';
-  try{
-    const out=await rafAuth('list_users');
-    accounts=out.users||[];
-  }catch(e){
-    loadError=e.message||'Hesaplar yüklenemedi.';
+  if(currentUser?.preview){
+    accounts=data.users.filter(u=>u.active).map(u=>({app_user_id:u.id,username:u.username,name:u.name,email:u.email||'',role:u.role,active:u.active}));
+  }else{
+    try{
+      const out=await rafAuth('list_users');
+      accounts=out.users||[];
+    }catch(e){
+      loadError=e.message||'Hesaplar yüklenemedi.';
+    }
   }
   const cards=accounts.map(a=>{
     const local=data.users.find(u=>u.id===a.app_user_id)||data.users.find(u=>u.username===a.username);
@@ -1079,7 +1083,7 @@ async function systemView(data){
       +(a.email?'<div class="account-detail"><b>E-posta:</b> '+esc(a.email)+'</div>':'')
       +'<div class="account-detail"><b>Uygulama kullanıcısı:</b> '+(local?esc(local.name)+' ('+esc(local.id)+')':'Bağlantı yok')+'</div>'
       +'<div class="btn-row">'
-      +(local?'<button class="btn secondary edit-user" data-user="'+local.id+'">Bilgiler / Şifre</button>':'')
+      +(local?'<button class="btn secondary edit-user" data-user="'+local.id+'">Bilgiler</button>':'')
       +(canView?'<button class="btn view-user-screen" data-user="'+local.id+'">Ekranını gör</button>':'')
       +'</div>'
       +'</div></div>';
