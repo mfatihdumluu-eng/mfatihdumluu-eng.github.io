@@ -20,6 +20,63 @@ let currentView='home';
 let issueUserFilter='all';
 let issueTypeFilter='all';
 let selectedShelfId=null;
+let currentUser=null;
+let viewAsUserId=null;
+const RAF_AUTH_URL='https://hroarfuwpfsqilsijwpp.supabase.co/functions/v1/raf-auth';
+
+function authToken(){return localStorage.getItem('raf_auth_token')||'';}
+function activeAppUserId(){return viewAsUserId||currentUser?.app_user_id||null;}
+function isSystemAdmin(){return currentUser?.role==='system_admin';}
+async function rafAuth(action,payload={}){
+  const res=await fetch(RAF_AUTH_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action,token:authToken(),...payload})
+  });
+  const out=await res.json().catch(()=>({ok:false,error:'Sunucu yanıtı okunamadı.'}));
+  if(!res.ok&&out.ok!==true) throw new Error(out.error||'İşlem başarısız.');
+  return out;
+}
+function showAuth(){
+  document.getElementById('authScreen').style.display='flex';
+  document.getElementById('mainApp').style.display='none';
+}
+function showApp(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  const sys=document.getElementById('systemUserButton');
+  if(sys) sys.style.display=isSystemAdmin()?'inline-flex':'none';
+}
+function setEffectiveUser(user){
+  currentUser=user;
+  viewAsUserId=null;
+  currentRole=user.role==='system_admin'?'superadmin':user.role;
+  currentView=user.role==='system_admin'?'system':'home';
+}
+async function initAuth(){
+  await seed();
+  const resetToken=new URLSearchParams(location.search).get('reset');
+  if(resetToken){
+    document.getElementById('loginPanel').style.display='none';
+    document.getElementById('resetPanel').style.display='block';
+    showAuth();
+    return;
+  }
+  const token=authToken();
+  if(token){
+    try{
+      const out=await rafAuth('session');
+      if(out.ok&&out.user){
+        setEffectiveUser(out.user);
+        showApp();
+        await render();
+        return;
+      }
+    }catch(e){}
+    localStorage.removeItem('raf_auth_token');
+  }
+  showAuth();
+}
 
 function openDB(){
   return new Promise((resolve,reject)=>{
