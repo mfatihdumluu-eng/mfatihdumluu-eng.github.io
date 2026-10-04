@@ -175,13 +175,13 @@ function shelfCard(data,shelf){
     </div>
     ${pr.map(p=>{
       const c=checks.filter(x=>x.productId===p.id).sort((a,b)=>b.ts-a.ts)[0];
+      if(c) return '';
       return `<div class="product">
         <div class="product-name">${esc(p.name)}</div>
-        ${c?`<div class="product-state">${STATUS[c.status]?.label||c.status}${c.qty!=null?' · '+c.qty+' '+esc(c.unit||p.unit):''}${c.expiry?' · '+esc(c.expiry):''}</div>`:
-        `<div class="product-actions primary-actions">
+        <div class="product-actions primary-actions">
           <button class="ok check-btn" data-product="${p.id}" data-shelf="${shelf.id}" data-status="ok">✓ OK</button>
           <button class="danger problem-btn" data-product="${p.id}" data-shelf="${shelf.id}">⚠ Sorun bildir</button>
-        </div>`}
+        </div>
       </div>`;
     }).join('')}
   </article>`;
@@ -194,7 +194,7 @@ function employeeReminderBanner(data,shelves){
       if(!checks.some(c=>c.productId===p.id)) missing.push({shelf:s,product:p});
     });
   });
-  const direct=(data.notifications||[]).filter(n=>n.targetUserId==='u_emp'&&!n.read);
+  const direct=(data.notifications||[]).filter(n=>n.targetUserId==='u_emp'&&!n.closed);
   if(!missing.length&&!direct.length) return '<div class="notice" style="background:#e8f7ef;border-color:#a8dfc2;color:#0f6d43"><b>✓ Şu ana kadar gözden kaçan kontrol görünmüyor.</b></div>';
   const parts=[];
   if(direct.length) parts.push('<b>🔔 '+direct.length+' yönetici bildirimin var.</b>');
@@ -203,7 +203,7 @@ function employeeReminderBanner(data,shelves){
 }
 function notificationsView(data){
   const targetUser=currentRole==='employee'?'u_emp':currentRole==='warehouse'?'u_wh':null;
-  const direct=(data.notifications||[]).filter(n=>!targetUser||n.targetUserId===targetUser).sort((a,b)=>b.ts-a.ts);
+  const direct=(data.notifications||[]).filter(n=>(!targetUser||n.targetUserId===targetUser)&&!n.closed).sort((a,b)=>b.ts-a.ts);
   const cards=[];
   if(currentRole==='employee'){
     const assigned=data.assignments.filter(a=>a.userId==='u_emp'&&a.active).map(a=>a.shelfId);
@@ -215,7 +215,7 @@ function notificationsView(data){
   }
   direct.forEach(n=>{
     const s=data.shelves.find(x=>x.id===n.shelfId);
-    cards.push('<article class="card admin-note"><div class="card-pad"><span class="badge blue">Yönetici uyarısı</span><h3>'+esc(n.title||'Kontrol uyarısı')+'</h3><div class="meta">'+esc(n.message||'')+(s?'<br><b>Raf: '+esc(s.name)+'</b>':'')+'<br>'+esc(n.time||'')+'</div>'+(s&&currentRole==='employee'?'<button class="btn full go-shelf" data-shelf="'+s.id+'">Rafa git</button>':'')+'</div></article>');
+    cards.push('<article class="card admin-note"><div class="card-pad"><span class="badge blue">Yönetici uyarısı</span><h3>'+esc(n.title||'Kontrol uyarısı')+'</h3><div class="meta">'+esc(n.message||'')+(s?'<br><b>Raf: '+esc(s.name)+'</b>':'')+'<br>'+esc(n.time||'')+(n.note?'<br><b>Not:</b> '+esc(n.note):'')+'</div>'+(s&&currentRole==='employee'?'<button class="btn full go-shelf" data-shelf="'+s.id+'">Rafa git</button>':'')+'<div class="btn-row"><button class="btn success close-note" data-id="'+n.id+'">✓ Baktım / Tamamladım</button><button class="btn secondary note-note" data-id="'+n.id+'">Not ekle</button></div></div></article>');
   });
   return '<div class="section-title"><h2>Bildirimler</h2><small>'+cards.length+' kayıt</small></div>'+(cards.join('')||'<div class="card empty">Yeni bildirim yok.</div>');
 }
@@ -324,6 +324,28 @@ function closeModal(){document.getElementById('modal').close();}
 function bindActions(data){
   document.querySelectorAll('.open-notifications').forEach(b=>b.onclick=()=>{currentView='notifications';render();});
   document.querySelectorAll('.go-shelf').forEach(b=>b.onclick=()=>{currentView='home';render().then(()=>setTimeout(()=>document.querySelector('[data-shelf-card="'+b.dataset.shelf+'"]')?.scrollIntoView({behavior:'smooth',block:'start'}),50));});
+  document.querySelectorAll('.close-note').forEach(b=>b.onclick=async()=>{
+    const n=(data.notifications||[]).find(x=>x.id===b.dataset.id);
+    if(!n) return;
+    n.read=true;
+    n.closed=true;
+    n.closedAt=Date.now();
+    n.closedTime=timeNow();
+    await put('notifications',n);
+    render();
+  });
+  document.querySelectorAll('.note-note').forEach(b=>b.onclick=()=>{
+    const n=(data.notifications||[]).find(x=>x.id===b.dataset.id);
+    if(!n) return;
+    openModal('Not ekle','<div class="form-grid"><label>Not<input id="noteText" value="'+esc(n.note||'')+'" placeholder="Kısa not yaz"></label><button class="btn full" id="saveNote">Notu kaydet</button></div>');
+    document.getElementById('saveNote').onclick=async()=>{
+      n.note=document.getElementById('noteText').value||'';
+      n.noteAt=Date.now();
+      await put('notifications',n);
+      closeModal();
+      render();
+    };
+  });
   document.querySelectorAll('.problem-btn').forEach(b=>b.onclick=()=>{
     const p=data.products.find(x=>x.id===b.dataset.product);
     openModal('Sorun bildir','<div class="problem-sheet"><div><strong>'+esc(p.name)+'</strong><div class="sub">Sorun türünü seç</div></div><button class="issue-choice warn" data-status="expiring">🟡 Tarihi yaklaşıyor</button><button class="issue-choice danger" data-status="expired">🔴 Tarihi geçmiş</button><button class="issue-choice low" data-status="low">🟠 Stok az</button><button class="issue-choice missing" data-status="missing">⚫ Rafta yok</button><button class="issue-choice danger" data-status="damaged">❌ Hasarlı / bozuk</button></div>');
