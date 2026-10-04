@@ -652,6 +652,40 @@ function productDetailModal(data,productId){
     render();
   };
 }
+async function systemUserChooser(data){
+  if(!isSystemAdmin()) return;
+  let accounts=[];
+  try{
+    const out=await rafAuth('list_users');
+    accounts=(out.users||[]).filter(a=>a.role!=='system_admin');
+  }catch(e){
+    openModal('Kullanıcılar','<div class="card empty">Kullanıcılar yüklenemedi.</div>');
+    return;
+  }
+  const rows=accounts.map(a=>{
+    const local=data.users.find(u=>u.id===a.app_user_id)||data.users.find(u=>u.username===a.username);
+    if(!local) return '<div class="card"><div class="card-pad"><strong>'+esc(a.name||a.username)+'</strong><div class="meta">@'+esc(a.username)+' · uygulama kaydı bağlı değil</div></div></div>';
+    return '<button class="card system-switch-user" data-user="'+local.id+'"><div class="card-pad user-row"><div class="row-left"><div class="avatar">'+esc((a.name||a.username||'?').charAt(0))+'</div><div><strong>'+esc(a.name||a.username)+'</strong><div class="meta">@'+esc(a.username)+' · '+esc(ROLE_NAMES[local.role]||local.role)+'</div></div></div><span>›</span></div></button>';
+  }).join('');
+  const body='<div class="form-grid"><button class="btn secondary full system-back-admin">Sistem Yönetici ekranına dön</button>'+(rows||'<div class="card empty">Kullanıcı bulunamadı.</div>')+'</div>';
+  openModal('Kullanıcı seç',body);
+  document.querySelectorAll('.system-switch-user').forEach(b=>b.onclick=()=>{
+    const u=data.users.find(x=>x.id===b.dataset.user);
+    if(!u) return;
+    viewAsUserId=u.id;
+    currentRole=u.role;
+    currentView='home';
+    closeModal();
+    render();
+  });
+  document.querySelector('.system-back-admin')?.addEventListener('click',()=>{
+    viewAsUserId=null;
+    currentRole='superadmin';
+    currentView='system';
+    closeModal();
+    render();
+  });
+}
 async function systemUsersView(data){
   if(!isSystemAdmin()) return '<div class="card empty">Yetkiniz yok.</div>';
   let accounts=[];
@@ -1632,12 +1666,10 @@ document.getElementById('logoutButton').onclick=async()=>{
   showAuth();
 };
 
-document.getElementById('systemUserButton').onclick=()=>{
+document.getElementById('systemUserButton').onclick=async()=>{
   if(!isSystemAdmin()) return;
-  viewAsUserId=null;
-  currentRole='superadmin';
-  currentView='system';
-  render();
+  const data=await snapshot();
+  await systemUserChooser(data);
 };
 
 initAuth();
