@@ -224,3 +224,10 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 .product-location-hero b{font-size:11px;color:#6b7280}
 .product-location-hero span{font-size:16px;font-weight:900;color:#111827}
 @media(max-width:380px){.product-location-hero{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.product-card-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.product-card-actions .btn{width:100%}
+.employee-detail-nav{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:66px;z-index:5;background:rgba(238,241,244,.94);backdrop-filter:blur(8px);padding:6px 0}
+.meter-control-card{scroll-margin-top:120px}
+#meterListAnchor{scroll-margin-top:120px}
+.product-location-hero.compact{margin:10px 0}
