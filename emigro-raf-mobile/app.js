@@ -298,12 +298,14 @@ function employeeHome(data){
   const prog=shelves.map(s=>shelfProgress(data,s.id));
   const done=prog.filter(p=>p.complete).length;
   const pct=shelves.length?Math.round(done/shelves.length*100):0;
+  const pending=shelves.filter(s=>s.approved!==true);
   return `
   <section class="hero">
     <div class="hero-row"><div><div class="eyebrow">Bugünkü görev</div><h1>Rafları kontrol et</h1><p>Her ürüne OK veya sorun durumu ver.</p></div><div class="score">${pct}%</div></div>
     <div class="progress"><span style="width:${pct}%"></span></div>
   </section>
   ${employeeReminderBanner(data,shelves)}
+  ${pending.length?`<div class="section-title"><h2>Onaylanmamış Raflar</h2><small>${pending.length} raf</small></div>${pending.map(s=>`<div class="notice pending-shelf"><b>Onay bekliyor:</b> ${esc(s.name)}<br><span>${esc(s.location||'')}</span></div>`).join('')}`:''}
   <a class="tool-card" href="https://emigro-a4-prijs.floot.app" target="_blank" rel="noopener"><span class="tool-icon">${icon('print',22)}</span><span><strong>A4 Hazırla</strong><small>Fiyat afişi oluştur</small></span><span class="tool-open">${icon('external',18)}</span></a>
   <div class="section-title"><h2>Raflarım</h2><small>${done}/${shelves.length} tamamlandı</small></div>
   ${shelves.map(s=>shelfCard(data,s)).join('')}
@@ -316,7 +318,7 @@ function shelfCard(data,shelf){
   return `<article class="card">
     <div class="card-pad shelf-head">
       <div><div class="shelf-title">${esc(shelf.name)}</div><div class="sub">${esc(shelf.location)} · ${progress.done}/${progress.total} ürün</div></div>
-      <span class="badge ${progress.complete?'ok':'dark'}">${progress.complete?'Tamamlandı':'Kontrol et'}</span>
+      <span class="badge ${shelf.approved!==true?'warn':progress.complete?'ok':'dark'}">${shelf.approved!==true?'Onaylanmamış':progress.complete?'Tamamlandı':'Kontrol et'}</span>
     </div>
     ${pr.map(p=>{
       const c=checks.filter(x=>x.productId===p.id).sort((a,b)=>b.ts-a.ts)[0];
