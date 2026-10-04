@@ -9,16 +9,44 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="app-shell">
+  <section class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-brand">EMİGRO</div>
+      <div class="auth-subtitle">Raf & Tarih Kontrol</div>
+      <div id="loginPanel">
+        <h1>Giriş yap</h1>
+        <p>Size tanımlanan kullanıcı adı ve şifreyle devam edin.</p>
+        <label>Kullanıcı adı<input id="loginUsername" autocomplete="username" autocapitalize="none"></label>
+        <label>Şifre<input id="loginPassword" type="password" autocomplete="current-password"></label>
+        <button class="btn full" id="loginButton">Giriş yap</button>
+        <button class="auth-link" id="forgotPassword">Şifremi unuttum</button>
+        <div class="auth-message" id="authMessage"></div>
+      </div>
+      <div id="resetPanel" style="display:none">
+        <h1>Yeni şifre oluştur</h1>
+        <p>Yeni şifrenizi belirleyin.</p>
+        <label>Yeni şifre<input id="resetPassword" type="password" autocomplete="new-password"></label>
+        <label>Yeni şifre tekrar<input id="resetPassword2" type="password" autocomplete="new-password"></label>
+        <button class="btn full" id="resetPasswordButton">Şifreyi değiştir</button>
+        <div class="auth-message" id="resetMessage"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="app-shell" id="mainApp" style="display:none">
     <header class="topbar">
       <div>
         <div class="brand">EMİGRO</div>
         <div class="subtitle">Raf & Tarih Kontrol</div>
       </div>
-      <button class="icon-btn" id="resetDemo" aria-label="Demo verilerini sıfırla">↻</button>
+      <div class="topbar-actions">
+        <button class="system-user-pill" id="systemUserButton" style="display:none">Sistem</button>
+        <button class="icon-btn" id="logoutButton" aria-label="Çıkış">⇥</button>
+        <button class="icon-btn" id="resetDemo" style="display:none" aria-label="Demo verilerini sıfırla">↻</button>
+      </div>
     </header>
 
-    <section class="role-switch">
+    <section class="role-switch" id="roleSwitch" style="display:none">
       <div class="role-label">Demo rolü</div>
       <div class="role-tabs" id="roleTabs">
         <button data-role="employee" class="active">Çalışan</button>
