@@ -233,7 +233,8 @@ function icon(name,size=20){
     check:'<path d="m5 12 4 4L19 6"/>',
     test:'<path d="M9 3h6"/><path d="M10 3v5l-5.5 9.2A2.5 2.5 0 0 0 6.6 21h10.8a2.5 2.5 0 0 0 2.1-3.8L14 8V3"/><path d="M8 15h8"/>',
     print:'<path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/>',
-    external:'<path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6"/>'
+    external:'<path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6"/>',
+    scan:'<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M7 12h10"/><path d="M9 9v6M12 9v6M15 9v6"/>'
   };
   return '<svg class="sf-icon" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[name]||paths.alert)+'</svg>';
 }
@@ -299,19 +300,19 @@ function afterDeadline(settings){
 
 function navFor(role){
   if(role==='employee') return [
-    ['home','home','Bugün'],['products','box','Ürünler'],['notifications','bell','Bildirim'],['issues','alert','Sorunlar'],['performance','chart','Performans']
+    ['home','home','Bugün'],['products','box','Ürünler'],['scanner','scan','Barkod'],['notifications','bell','Bildirim'],['issues','alert','Sorunlar'],['performance','chart','Performans']
   ];
   if(role==='cashier') return [
-    ['home','alert','Sorun Bildir'],['products','box','Ürünler']
+    ['home','alert','Sorun Bildir'],['products','box','Ürünler'],['scanner','scan','Barkod']
   ];
   if(role==='warehouse') return [
-    ['home','box','Depo'],['products','box','Ürünler'],['notifications','bell','Bildirim'],['issues','alert','Bekleyen'],['history','clock','Geçmiş']
+    ['home','box','Depo'],['products','box','Ürünler'],['scanner','scan','Barkod'],['notifications','bell','Bildirim'],['issues','alert','Bekleyen'],['history','clock','Geçmiş']
   ];
   if(role==='manager') return [
-    ['home','home','Özet'],['products','box','Ürünler'],['issues','alert','Hatalar'],['shelves','shelves','Raflar']
+    ['home','home','Özet'],['products','box','Ürünler'],['scanner','scan','Barkod'],['issues','alert','Hatalar'],['shelves','shelves','Raflar']
   ];
   return [
-    ['home','home','Panel'],['products','box','Ürünler'],['issues','alert','Hatalar'],['adminnotes','note','Notlar'],['shelves','shelves','Raflar']
+    ['home','home','Panel'],['products','box','Ürünler'],['scanner','scan','Barkod'],['issues','alert','Hatalar'],['adminnotes','note','Notlar'],['shelves','shelves','Raflar']
   ];
 }
 function renderNav(){
@@ -337,6 +338,7 @@ async function render(){
   else if(currentView==='issues') app.innerHTML=issuesView(data);
   else if(currentView==='shelves') app.innerHTML=shelvesView(data);
   else if(currentView==='products') app.innerHTML=productsView(data);
+  else if(currentView==='scanner') app.innerHTML=scannerView(data);
   else if(currentView==='system'&&isSystemAdmin()) app.innerHTML=await systemView(data);
   else if(currentView==='sysusers'&&isSystemAdmin()) app.innerHTML=await systemUsersView(data);
   else if(currentView==='sysuserdetail'&&isSystemAdmin()) app.innerHTML=systemUserDetailView(data,selectedSystemUserId);
@@ -718,7 +720,7 @@ function productCardHtml(data,p,openable=true){
 }
 function productsView(data){
   return '<div class="section-title"><h2>Ürünler</h2><small>'+data.products.filter(p=>p.active).length+' ürün</small></div>'
-    +'<div class="card"><div class="card-pad form-grid"><label>Ürün / barkod ara<input id="globalProductSearch" placeholder="Ürün adı veya barkod yaz" autocomplete="off"></label>'
+    +'<div class="card"><div class="card-pad form-grid"><div class="btn-row"><button class="btn secondary full open-barcode-camera">'+icon('scan',18)+' Barkod oku</button></div><label>Ürün / barkod ara<input id="globalProductSearch" placeholder="Ürün adı veya barkod yaz" autocomplete="off"></label>'
     +'<div id="globalProductResults" class="search-results"><div class="sub">Aramaya başla. Ürün kartında raf ve sorumlular görünür.</div></div></div></div>';
 }
 function employeeProductSearchModal(data){
