@@ -315,10 +315,10 @@ function managerHome(data,isAdmin){
   ${overdue?`<div class="notice" style="background:#fde9e9;border-color:#f3aaaa;color:#9f1d1d"><b>🔴 ${un.length} raf 12:00'ye kadar kontrol edilmedi.</b><br>Yönetim aksiyonu gerekiyor.</div>`:''}
   ${isAdmin?'<div class="btn-row admin-actions" style="margin:0 0 12px"><button class="btn" id="sendNotification">'+icon('bell',18)+'<span>Uyarı gönder</span></button><button class="btn secondary" id="openTestCenter">'+icon('test',18)+'<span>Test Merkezi</span></button></div>':''}
   <div class="grid">
-    <div class="metric"><b>${done}/${activeShelves.length}</b><span>Raf tamamlandı</span></div>
-    <div class="metric"><b>${issues.length}</b><span>Açık sorun</span></div>
-    <div class="metric"><b>${issues.filter(i=>i.type==='expired').length}</b><span>Tarihi geçmiş</span></div>
-    <div class="metric"><b>${issues.filter(i=>i.type==='expiring').length}</b><span>Tarihi yaklaşan</span></div>
+    <button class="metric metric-link dashboard-filter" data-filter="unchecked"><b>${done}/${activeShelves.length}</b><span>Raf tamamlandı</span><small>${activeShelves.length-done} raf kaldı</small></button>
+    <button class="metric metric-link dashboard-filter" data-filter="all"><b>${issues.length}</b><span>Açık sorun</span><small>Tümünü gör</small></button>
+    <button class="metric metric-link dashboard-filter" data-filter="expired"><b>${issues.filter(i=>i.type==='expired').length}</b><span>Tarihi geçmiş</span><small>Filtreli gör</small></button>
+    <button class="metric metric-link dashboard-filter" data-filter="expiring"><b>${issues.filter(i=>i.type==='expiring').length}</b><span>Tarihi yaklaşan</span><small>Filtreli gör</small></button>
   </div>
   <div class="section-title"><h2>Bugün yapılacaklar</h2><small>${activeShelves.length-done} raf kaldı</small></div>
   ${activeShelves.map(s=>{
@@ -330,7 +330,7 @@ function managerHome(data,isAdmin){
   ${un.length?`<div class="section-title"><h2>${afterDeadline(data.settings)?'Yapılmayan / geciken':'Henüz tamamlanmayan'}</h2><small>${un.length} raf</small></div>`:''
   }
   <div class="section-title"><h2>Hata ekranı</h2><small>${issues.length} açık</small></div>
-  ${isAdmin?'<div class="filter-card admin-home-filter"><label>Kullanıcı<select id="homeIssueUserFilter"><option value="all">Tüm kullanıcılar</option>'+data.users.filter(u=>u.active&&u.role==='employee').map(u=>'<option value="'+u.id+'" '+(issueUserFilter===u.id?'selected':'')+'>'+esc(u.name)+'</option>').join('')+'</select></label><label>Sorun türü<select id="homeIssueTypeFilter">'+[['all','Tüm sorunlar'],['expiring','Tarihi yaklaşıyor'],['expired','Tarihi geçmiş'],['low','Stok az'],['missing','Rafta yok'],['damaged','Hasarlı / bozuk'],['label_missing','Raf etiketi yok'],['label_wrong','Raf etiketi yanlış']].map(([v,l])=>'<option value="'+v+'" '+(issueTypeFilter===v?'selected':'')+'>'+l+'</option>').join('')+'</select></label><button class="btn secondary full" id="homeClearIssueFilters">Filtreleri temizle</button></div>':''}
+  ${isAdmin?'<div class="filter-card admin-home-filter"><label>Kullanıcı<select id="homeIssueUserFilter"><option value="all">Tüm kullanıcılar</option>'+data.users.filter(u=>u.active&&u.role==='employee').map(u=>'<option value="'+u.id+'" '+(issueUserFilter===u.id?'selected':'')+'>'+esc(u.name)+'</option>').join('')+'</select></label><label>Sorun türü<select id="homeIssueTypeFilter">'+[['all','Tüm sorunlar'],['unchecked','Kontrol edilmemiş raflar'],['expiring','Tarihi yaklaşıyor'],['expired','Tarihi geçmiş'],['low','Stok az'],['missing','Rafta yok'],['damaged','Hasarlı / bozuk'],['label_missing','Raf etiketi yok'],['label_wrong','Raf etiketi yanlış']].map(([v,l])=>'<option value="'+v+'" '+(issueTypeFilter===v?'selected':'')+'>'+l+'</option>').join('')+'</select></label><button class="btn secondary full" id="homeClearIssueFilters">Filtreleri temizle</button></div>':''}
   ${issues.filter(i=>!isAdmin||((issueUserFilter==='all'||i.reportedBy===issueUserFilter)&&(issueTypeFilter==='all'||i.type===issueTypeFilter))).slice(0,6).map(i=>issueCard(data,i,false)).join('')||'<div class="card empty">Bu filtreye uygun açık sorun yok.</div>'}
   `;
 }
@@ -353,6 +353,18 @@ function issuesView(data){
   let issues=data.issues.filter(issueOpen);
   if(currentRole==='warehouse') issues=issues.filter(i=>i.type==='missing');
 
+  if(currentRole==='superadmin'&&issueTypeFilter==='unchecked'){
+    const shelves=data.shelves.filter(s=>s.active&&!shelfProgress(data,s.id).complete);
+    const cards=shelves.map(s=>{
+      const pg=shelfProgress(data,s.id);
+      const owner=shelfOwner(data,s.id);
+      return '<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>'+esc(s.name)+'</strong><div class="meta">'+pg.done+'/'+pg.total+' ürün kontrol edildi · '+Math.max(0,pg.total-pg.done)+' kaldı'+(owner?'<br>Sorumlu: '+esc(owner.name):'')+'</div></div><span class="badge '+(afterDeadline(data.settings)?'danger':'dark')+'">'+(afterDeadline(data.settings)?'Gecikti':'Bekliyor')+'</span></div></div></div>';
+    }).join('');
+    return '<div class="section-title"><h2>Kontrol edilmemiş raflar</h2><small>'+shelves.length+' raf</small></div>'
+      +'<button class="btn secondary full" id="backToAllIssues" style="margin-bottom:12px">Tüm sorunlara dön</button>'
+      +(cards||'<div class="card empty">Kontrol bekleyen raf yok.</div>');
+  }
+
   if(currentRole==='superadmin'){
     if(issueUserFilter!=='all') issues=issues.filter(i=>i.reportedBy===issueUserFilter);
     if(issueTypeFilter!=='all') issues=issues.filter(i=>i.type===issueTypeFilter);
@@ -364,6 +376,7 @@ function issuesView(data){
 
     const typeOptions=[
       ['all','Tüm sorunlar'],
+      ['unchecked','Kontrol edilmemiş raflar'],
       ['expiring','Tarihi yaklaşıyor'],
       ['expired','Tarihi geçmiş'],
       ['low','Stok az'],
@@ -432,6 +445,17 @@ function openModal(title,body){
 function closeModal(){document.getElementById('modal').close();}
 
 function bindActions(data){
+  document.querySelectorAll('.dashboard-filter').forEach(b=>b.onclick=()=>{
+    issueUserFilter='all';
+    issueTypeFilter=b.dataset.filter||'all';
+    currentView='issues';
+    render();
+  });
+  document.getElementById('backToAllIssues')?.addEventListener('click',()=>{
+    issueTypeFilter='all';
+    currentView='issues';
+    render();
+  });
   const userFilter=document.getElementById('issueUserFilter');
   if(userFilter) userFilter.onchange=()=>{issueUserFilter=userFilter.value;render();};
   const typeFilter=document.getElementById('issueTypeFilter');
