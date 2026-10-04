@@ -677,6 +677,10 @@ function comparisonBadge(value){
   if(value===0) return '<span class="badge dark">0%</span>';
   return '<span class="badge '+(value>0?'danger':'ok')+'">'+(value>0?'↑ ':'↓ ')+Math.abs(value)+'%</span>';
 }
+function comparisonPointBadge(value){
+  if(value===0) return '<span class="badge dark">0 puan</span>';
+  return '<span class="badge '+(value>0?'danger':'ok')+'">'+(value>0?'↑ ':'↓ ')+Math.abs(value)+' puan</span>';
+}
 function writeoffRowsForMonth(data,month){
   return data.issues.filter(i=>i.writeoffFinalized&&writeoffMonth(i)===month).sort((a,b)=>(b.finalApprovedAt||b.ts||0)-(a.finalApprovedAt||a.ts||0));
 }
@@ -688,7 +692,7 @@ function writeoffCardHtml(data,i){
   const adm=data.users.find(x=>x.id===i.adminApprovedBy);
   return '<article class="card writeoff-card"><div class="card-pad">'
     +'<div class="simple-row"><div><strong>'+esc(p?.name||'Ürün')+'</strong><div class="meta">'+esc(p?.barcode||'Barkod yok')+' · '+esc(STATUS[i.type]?.label||i.type)+'</div></div><span class="badge danger">'+esc(String(i.qty??0))+' '+esc(i.unit||'')+'</span></div>'
-    +'<div class="meta"><b>Konum:</b> '+esc(s?.name||p?.shelfCode||'-')+(p?.meter!=null?' · Metre '+esc(p.meter):'')+(p?.level!=null?' · Kat '+esc(p.level):'')+(p?.position!=null?' · Sıra '+esc(p.position):'')+(p?.locationCode?'<br>'+esc(p.locationCode):'')+'<br><b>Bildiren:</b> '+esc(reporter?.name||'')+(i.expiry?'<br><b>SKT:</b> '+esc(i.expiry):'')+'</div>'
+    +'<div class="meta"><b>Konum:</b> '+esc(s?.name||p?.shelfCode||'-')+(p?.meter!=null?' · Metre '+esc(p.meter):'')+(p?.level!=null?' · Kat '+esc(p.level):'')+(p?.position!=null?' · Sıra '+esc(p.position):'')+(p?.locationCode?'<br>'+esc(p.locationCode):'')+'<br><b>Bildiren:</b> '+esc(reporter?.name||'')+(i.expiry?'<br><b>SKT:</b> '+esc(i.expiry):'')+'<br><b>İşlem tarihi:</b> '+esc(accountingOperationDate(i))+'</div>'
     +'<div class="approval-audit"><span>Müdür: '+esc(mgr?.name||'Onaylandı')+' · '+esc(i.managerApprovedTime||'')+'</span><span>Admin: '+esc(adm?.name||'Onaylandı')+' · '+esc(i.adminApprovedTime||'')+'</span></div>'
     +'<div class="writeoff-process">'
       +'<button class="btn '+(i.stockDeductedAt?'success':'secondary')+' writeoff-stock" data-id="'+i.id+'">'+(i.stockDeductedAt?'✓ Stoktan düşüldü':'Stoktan düşüldü olarak işaretle')+'</button>'
@@ -775,7 +779,7 @@ function writeoffsView(data){
   }).join('');
   return '<section class="hero"><div class="eyebrow">Aylık Fire / Iskarta</div><h1>Stok & Muhasebe</h1><p>Her ayın 1’inde yeni dönem otomatik başlar. Güncel ay açık, eski aylar kapalı tutulur.</p></section>'
     +'<div class="section-title"><h2>Bu ay</h2><small>'+esc(monthLabel(current))+'</small></div>'
-    +'<div class="comparison-cards"><div class="metric"><b>'+currentStats.total+'</b><span>Toplam sorun</span>'+comparisonBadge(totalChange)+'</div><div class="metric"><b>'+currentStats.expiredPct+'%</b><span>THT geçmiş oranı</span>'+comparisonBadge(expiredChange)+'</div><div class="metric"><b>'+currentStats.damagedPct+'%</b><span>Hasarlı oranı</span>'+comparisonBadge(damagedChange)+'</div></div>'
+    +'<div class="comparison-cards"><div class="metric"><b>'+currentStats.total+'</b><span>Toplam sorun</span>'+comparisonBadge(totalChange)+'</div><div class="metric"><b>'+currentStats.expiredPct+'%</b><span>THT geçmiş oranı</span>'+comparisonPointBadge(expiredChange)+'</div><div class="metric"><b>'+currentStats.damagedPct+'%</b><span>Hasarlı oranı</span>'+comparisonPointBadge(damagedChange)+'</div></div>'
     +'<div class="card"><div class="card-pad"><div class="section-title" style="margin-top:0"><h2>Aylık kıyaslama</h2><small>kayıt bazlı oran</small></div><div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>Ay</th><th>Toplam</th><th>THT</th><th>Hasarlı</th></tr></thead><tbody>'+comparisonRows+'</tbody></table></div></div></div>'
     +'<div class="section-title"><h2>Aylık raporlar</h2><small>'+months.length+' ay</small></div>'
     +accordions;
@@ -1872,11 +1876,11 @@ async function createScenario(data,type){
   if(['expiring','expired','low','missing','damaged','label_missing','label_wrong'].includes(type)){
     const extra={qty:2,unit:p.unit||'adet'};
     if(type==='expiring'){
-      extra.expiry=new Date(Date.now()+5*86400000).toISOString().slice(0,10);
+      extra.expiry=localDateKey(new Date(Date.now()+5*86400000));
       extra.qty=8;
     }
     if(type==='expired'){
-      extra.expiry=new Date(Date.now()-2*86400000).toISOString().slice(0,10);
+      extra.expiry=localDateKey(new Date(Date.now()-2*86400000));
       extra.qty=4;
     }
     if(type==='low') extra.qty=3;
