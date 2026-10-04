@@ -1386,6 +1386,14 @@ async function finalizeWriteoffIfReady(issue){
   }
 }
 function bindActions(data){
+  document.querySelectorAll('.writeoff-pdf').forEach(b=>b.onclick=()=>{
+    try{buildWriteoffPdf(data,b.dataset.month).save('emigro-fire-'+b.dataset.month+'.pdf');}
+    catch(e){alert(e.message||'PDF oluşturulamadı.');}
+  });
+  document.querySelectorAll('.writeoff-mail').forEach(b=>b.onclick=async()=>{
+    try{await shareWriteoffReport(data,b.dataset.month);}
+    catch(e){if(e?.name!=='AbortError') alert(e.message||'Rapor paylaşılamadı.');}
+  });
   document.getElementById('writeoffMonthFilter')?.addEventListener('change',e=>{window.writeoffMonthFilter=e.target.value;render();});
   document.querySelectorAll('.approve-writeoff-manager').forEach(b=>b.onclick=async()=>{
     const i=data.issues.find(x=>x.id===b.dataset.id);
