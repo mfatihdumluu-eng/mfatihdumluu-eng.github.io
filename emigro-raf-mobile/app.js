@@ -1597,6 +1597,8 @@ function showMultiIssueForm(data,p,shelfId){
     if(hasDate&&!expiry){alert('Tarih sorunu için son kullanma tarihini girin.');return;}
     const qtyRaw=document.getElementById('multiQty').value;
     const qty=qtyRaw===''?null:Number(qtyRaw);
+    const needsWriteoff=selected.some(x=>x==='expired'||x==='damaged');
+    if(needsWriteoff&&(qty==null||qty<=0)){alert('Tarihi geçmiş veya hasarlı ürün için düşülecek miktarı girin.');return;}
     const unit=document.getElementById('multiUnit').value;
     const note=document.getElementById('multiNote').value||'';
 
@@ -1606,10 +1608,17 @@ function showMultiIssueForm(data,p,shelfId){
     });
 
     for(const type of selected){
+      const writeoff=['expired','damaged'].includes(type);
       await put('issues',{
         id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),
         productId:p.id,shelfId,type,state:'reported',reportedBy:activeAppUserId(),
         qty,unit,expiry:(type==='expiring'||type==='expired')?expiry:null,note,
+        writeoffRequired:writeoff,
+        managerApprovedAt:null,managerApprovedBy:null,managerApprovedTime:null,
+        adminApprovedAt:null,adminApprovedBy:null,adminApprovedTime:null,
+        writeoffFinalized:false,writeoffMonth:null,
+        stockDeductedAt:null,stockDeductedBy:null,
+        accountingPostedAt:null,accountingPostedBy:null,
         visibility:type.startsWith('label_')?['manager','superadmin']:['warehouse','manager','superadmin']
       });
     }
@@ -1773,7 +1782,8 @@ async function saveCheck(product,shelfId,status,extra){
   const check={id:uid('c'),date:today(),ts:Date.now(),time:timeNow(),productId:product.id,shelfId,status,reportedBy:activeAppUserId(),...extra};
   await put('dailyChecks',check);
   if(status!=='ok'){
-    const issue={id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),productId:product.id,shelfId,type:status,state:'reported',reportedBy:activeAppUserId(),qty:extra.qty??null,unit:extra.unit||product.unit,expiry:extra.expiry||null,visibility:['warehouse','manager','superadmin']};
+    const writeoff=['expired','damaged'].includes(status);
+    const issue={id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),productId:product.id,shelfId,type:status,state:'reported',reportedBy:activeAppUserId(),qty:extra.qty??null,unit:extra.unit||product.unit,expiry:extra.expiry||null,writeoffRequired:writeoff,managerApprovedAt:null,managerApprovedBy:null,managerApprovedTime:null,adminApprovedAt:null,adminApprovedBy:null,adminApprovedTime:null,writeoffFinalized:false,writeoffMonth:null,stockDeductedAt:null,stockDeductedBy:null,accountingPostedAt:null,accountingPostedBy:null,visibility:['warehouse','manager','superadmin']};
     await put('issues',issue);
   }
 }
