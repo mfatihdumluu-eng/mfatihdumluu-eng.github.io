@@ -615,36 +615,130 @@ function writeoffApprovalHtml(i){
   const adm=i.adminApprovedAt?'<span class="badge ok">Admin ✓</span>':'<span class="badge warn">Admin bekliyor</span>';
   return '<div class="writeoff-approvals">'+mgr+adm+'</div>';
 }
-function writeoffsView(data){
-  if(!['manager','superadmin'].includes(currentRole)) return '<div class="card empty">Bu ekran için yetkiniz yok.</div>';
-  const months=[...new Set(data.issues.filter(i=>i.writeoffFinalized).map(writeoffMonth))].sort().reverse();
-  const selected=(window.writeoffMonthFilter&&months.includes(window.writeoffMonthFilter))?window.writeoffMonthFilter:(months[0]||today().slice(0,7));
-  window.writeoffMonthFilter=selected;
-  const rows=data.issues.filter(i=>i.writeoffFinalized&&writeoffMonth(i)===selected).sort((a,b)=>(b.finalApprovedAt||b.ts||0)-(a.finalApprovedAt||a.ts||0));
-  const totalQty=rows.reduce((s,i)=>s+(Number(i.qty)||0),0);
-  const stockPending=rows.filter(i=>!i.stockDeductedAt).length;
-  const accountingPending=rows.filter(i=>!i.accountingPostedAt).length;
-  const monthOptions=(months.length?months:[selected]).map(m=>'<option value="'+m+'" '+(m===selected?'selected':'')+'>'+m+'</option>').join('');
-  const cards=rows.map(i=>{
+function monthKeyFromDate(d){
+  return d.toISOString().slice(0,7);
+}
+function previousMonthKey(month){
+  const [y,m]=month.split('-').map(Number);
+  return monthKeyFromDate(new Date(y,m-2,1));
+}
+function monthLabel(month){
+  const [y,m]=month.split('-').map(Number);
+  return new Intl.DateTimeFormat('tr-TR',{month:'long',year:'numeric'}).format(new Date(y,m-1,1));
+}
+function writeoffStats(rows){
+  const total=rows.length;
+  const expired=rows.filter(i=>i.type==='expired').length;
+  const damaged=rows.filter(i=>i.type==='damaged').length;
+  const expiredPct=total?Math.round(expired/total*100):0;
+  const damagedPct=total?Math.round(damaged/total*100):0;
+  const byUnit={};
+  rows.forEach(i=>{const u=i.unit||'adet';byUnit[u]=(byUnit[u]||0)+(Number(i.qty)||0);});
+  const qtyText=Object.entries(byUnit).map(([u,v])=>v+' '+u).join(' · ')||'0';
+  return {total,expired,damaged,expiredPct,damagedPct,qtyText};
+}
+function pctChange(current,previous){
+  if(previous===0) return current===0?0:null;
+  return Math.round((current-previous)/previous*100);
+}
+function comparisonBadge(value){
+  if(value===null) return '<span class="badge dark">Yeni</span>';
+  if(value===0) return '<span class="badge dark">0%</span>';
+  return '<span class="badge '+(value>0?'danger':'ok')+'">'+(value>0?'↑ ':'↓ ')+Math.abs(value)+'%</span>';
+}
+function writeoffRowsForMonth(data,month){
+  return data.issues.filter(i=>i.writeoffFinalized&&writeoffMonth(i)===month).sort((a,b)=>(b.finalApprovedAt||b.ts||0)-(a.finalApprovedAt||a.ts||0));
+}
+function writeoffCardHtml(data,i){
+  const p=data.products.find(x=>x.id===i.productId);
+  const s=data.shelves.find(x=>x.id===i.shelfId);
+  const reporter=data.users.find(x=>x.id===i.reportedBy);
+  const mgr=data.users.find(x=>x.id===i.managerApprovedBy);
+  const adm=data.users.find(x=>x.id===i.adminApprovedBy);
+  return '<article class="card writeoff-card"><div class="card-pad">'
+    +'<div class="simple-row"><div><strong>'+esc(p?.name||'Ürün')+'</strong><div class="meta">'+esc(p?.barcode||'Barkod yok')+' · '+esc(STATUS[i.type]?.label||i.type)+'</div></div><span class="badge danger">'+esc(String(i.qty??0))+' '+esc(i.unit||'')+'</span></div>'
+    +'<div class="meta"><b>Konum:</b> '+esc(s?.name||p?.shelfCode||'-')+(p?.meter!=null?' · Metre '+esc(p.meter):'')+(p?.level!=null?' · Kat '+esc(p.level):'')+(p?.position!=null?' · Sıra '+esc(p.position):'')+(p?.locationCode?'<br>'+esc(p.locationCode):'')+'<br><b>Bildiren:</b> '+esc(reporter?.name||'')+(i.expiry?'<br><b>SKT:</b> '+esc(i.expiry):'')+'</div>'
+    +'<div class="approval-audit"><span>Müdür: '+esc(mgr?.name||'Onaylandı')+' · '+esc(i.managerApprovedTime||'')+'</span><span>Admin: '+esc(adm?.name||'Onaylandı')+' · '+esc(i.adminApprovedTime||'')+'</span></div>'
+    +'<div class="writeoff-process">'
+      +'<button class="btn '+(i.stockDeductedAt?'success':'secondary')+' writeoff-stock" data-id="'+i.id+'">'+(i.stockDeductedAt?'✓ Stoktan düşüldü':'Stoktan düşüldü olarak işaretle')+'</button>'
+      +'<button class="btn '+(i.accountingPostedAt?'success':'secondary')+' writeoff-accounting" data-id="'+i.id+'">'+(i.accountingPostedAt?'✓ Muhasebeye işlendi':'Muhasebeye işlendi olarak işaretle')+'</button>'
+    +'</div></div></article>';
+}
+function buildWriteoffPdf(data,month){
+  if(!window.jspdf?.jsPDF) throw new Error('PDF modülü yüklenemedi.');
+  const rows=writeoffRowsForMonth(data,month);
+  const stats=writeoffStats(rows);
+  const doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
+  let y=16;
+  doc.setFontSize(16);doc.text('EMIGRO - Stok & Muhasebe Fire Raporu',14,y);
+  y+=8;doc.setFontSize(11);doc.text(monthLabel(month),14,y);
+  y+=7;doc.text('Toplam kayıt: '+stats.total+' | THT: '+stats.expired+' ('+stats.expiredPct+'%) | Hasarlı: '+stats.damaged+' ('+stats.damagedPct+'%)',14,y);
+  y+=6;doc.text('Toplam miktar: '+stats.qtyText,14,y);
+  y+=8;doc.setFontSize(9);
+  rows.forEach((i,idx)=>{
     const p=data.products.find(x=>x.id===i.productId);
     const s=data.shelves.find(x=>x.id===i.shelfId);
-    const reporter=data.users.find(x=>x.id===i.reportedBy);
-    const mgr=data.users.find(x=>x.id===i.managerApprovedBy);
-    const adm=data.users.find(x=>x.id===i.adminApprovedBy);
-    return '<article class="card writeoff-card"><div class="card-pad">'
-      +'<div class="simple-row"><div><strong>'+esc(p?.name||'Ürün')+'</strong><div class="meta">'+esc(p?.barcode||'Barkod yok')+' · '+esc(STATUS[i.type]?.label||i.type)+'</div></div><span class="badge danger">'+esc(String(i.qty??0))+' '+esc(i.unit||'')+'</span></div>'
-      +'<div class="meta"><b>Konum:</b> '+esc(s?.name||p?.shelfCode||'-')+(p?.meter!=null?' · Metre '+esc(p.meter):'')+(p?.level!=null?' · Kat '+esc(p.level):'')+(p?.position!=null?' · Sıra '+esc(p.position):'')+(p?.locationCode?'<br>'+esc(p.locationCode):'')+'<br><b>Bildiren:</b> '+esc(reporter?.name||'')+(i.expiry?'<br><b>SKT:</b> '+esc(i.expiry):'')+'</div>'
-      +'<div class="approval-audit"><span>Müdür: '+esc(mgr?.name||'Onaylandı')+' · '+esc(i.managerApprovedTime||'')+'</span><span>Admin: '+esc(adm?.name||'Onaylandı')+' · '+esc(i.adminApprovedTime||'')+'</span></div>'
-      +'<div class="writeoff-process">'
-        +'<button class="btn '+(i.stockDeductedAt?'success':'secondary')+' writeoff-stock" data-id="'+i.id+'">'+(i.stockDeductedAt?'✓ Stoktan düşüldü':'Stoktan düşüldü olarak işaretle')+'</button>'
-        +'<button class="btn '+(i.accountingPostedAt?'success':'secondary')+' writeoff-accounting" data-id="'+i.id+'">'+(i.accountingPostedAt?'✓ Muhasebeye işlendi':'Muhasebeye işlendi olarak işaretle')+'</button>'
-      +'</div>'
-      +'</div></article>';
-  }).join('');
-  return '<section class="hero"><div class="eyebrow">Aylık Fire / Iskarta</div><h1>Stok & Muhasebe</h1><p>Yalnızca mağaza müdürü ve admin tarafından birlikte onaylanan tarihi geçmiş ve hasarlı ürünler burada listelenir.</p></section>'
-    +'<div class="card"><div class="card-pad form-grid"><label>Ay<select id="writeoffMonthFilter">'+monthOptions+'</select></label><div class="grid"><div class="metric"><b>'+rows.length+'</b><span>Kayıt</span></div><div class="metric"><b>'+totalQty+'</b><span>Toplam miktar</span></div><div class="metric"><b>'+stockPending+'</b><span>Stok bekliyor</span></div><div class="metric"><b>'+accountingPending+'</b><span>Muhasebe bekliyor</span></div></div></div></div>'
-    +(cards||'<div class="card empty">Bu ay için onaylanmış fire / ıskarta kaydı yok.</div>');
+    const line=(idx+1)+'. '+(p?.name||'Ürün')+' | '+(STATUS[i.type]?.label||i.type)+' | '+(i.qty??0)+' '+(i.unit||'')+' | '+(s?.name||p?.shelfCode||'-')+' M'+(p?.meter??'-')+' K'+(p?.level??'-')+' S'+(p?.position??'-');
+    const wrapped=doc.splitTextToSize(line,180);
+    if(y+wrapped.length*5>282){doc.addPage();y=15;}
+    doc.text(wrapped,14,y);y+=wrapped.length*5+2;
+  });
+  return doc;
 }
+async function shareWriteoffReport(data,month){
+  const doc=buildWriteoffPdf(data,month);
+  const blob=doc.output('blob');
+  const file=new File([blob],'emigro-fire-'+month+'.pdf',{type:'application/pdf'});
+  const rows=writeoffRowsForMonth(data,month);
+  const stats=writeoffStats(rows);
+  const subject='EMIGRO Fire / Iskarta Raporu - '+monthLabel(month);
+  const body='Toplam kayıt: '+stats.total+'%0ATHT geçmiş: '+stats.expired+' ('+stats.expiredPct+'%25)%0AHasarlı: '+stats.damaged+' ('+stats.damagedPct+'%25)%0AToplam miktar: '+encodeURIComponent(stats.qtyText);
+  if(navigator.share&&navigator.canShare?.({files:[file]})){
+    await navigator.share({title:subject,text:'Aylık stok ve muhasebe fire raporu',files:[file]});
+    return;
+  }
+  doc.save('emigro-fire-'+month+'.pdf');
+  location.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+body;
+}
+function writeoffsView(data){
+  if(!['manager','superadmin'].includes(currentRole)) return '<div class="card empty">Bu ekran için yetkiniz yok.</div>';
+  const current=today().slice(0,7);
+  const historical=[...new Set(data.issues.filter(i=>i.writeoffFinalized).map(writeoffMonth))];
+  const months=[current,...historical.filter(m=>m!==current).sort().reverse()];
+  const currentRows=writeoffRowsForMonth(data,current);
+  const currentStats=writeoffStats(currentRows);
+  const previous=previousMonthKey(current);
+  const previousRows=writeoffRowsForMonth(data,previous);
+  const previousStats=writeoffStats(previousRows);
+  const totalChange=pctChange(currentStats.total,previousStats.total);
+  const expiredChange=pctChange(currentStats.expired,previousStats.expired);
+  const damagedChange=pctChange(currentStats.damaged,previousStats.damaged);
+  const comparisonRows=months.map(m=>{
+    const rows=writeoffRowsForMonth(data,m);
+    const s=writeoffStats(rows);
+    return '<tr><td>'+esc(monthLabel(m))+'</td><td>'+s.total+'</td><td>'+s.expired+' · '+s.expiredPct+'%</td><td>'+s.damaged+' · '+s.damagedPct+'%</td></tr>';
+  }).join('');
+  const accordions=months.map((m,idx)=>{
+    const rows=writeoffRowsForMonth(data,m);
+    const s=writeoffStats(rows);
+    const isCurrent=m===current;
+    const stockPending=rows.filter(i=>!i.stockDeductedAt).length;
+    const accountingPending=rows.filter(i=>!i.accountingPostedAt).length;
+    return '<details class="month-accordion" '+(isCurrent?'open':'')+'><summary><span><strong>'+esc(monthLabel(m))+'</strong><small>'+s.total+' kayıt · THT '+s.expiredPct+'% · Hasarlı '+s.damagedPct+'%</small></span><span class="badge '+(isCurrent?'blue':'dark')+'">'+(isCurrent?'Güncel':'Geçmiş')+'</span></summary>'
+      +'<div class="month-accordion-body">'
+      +'<div class="report-actions"><button class="btn secondary writeoff-pdf" data-month="'+m+'">PDF oluştur</button><button class="btn writeoff-mail" data-month="'+m+'">Mail / Paylaş</button></div>'
+      +'<div class="grid"><div class="metric"><b>'+s.total+'</b><span>Kayıt</span></div><div class="metric"><b>'+s.qtyText+'</b><span>Miktar</span></div><div class="metric"><b>'+stockPending+'</b><span>Stok bekliyor</span></div><div class="metric"><b>'+accountingPending+'</b><span>Muhasebe bekliyor</span></div></div>'
+      +(rows.length?rows.map(i=>writeoffCardHtml(data,i)).join(''):'<div class="card empty">Bu ay için onaylanmış fire / ıskarta kaydı yok.</div>')
+      +'</div></details>';
+  }).join('');
+  return '<section class="hero"><div class="eyebrow">Aylık Fire / Iskarta</div><h1>Stok & Muhasebe</h1><p>Her ayın 1’inde yeni dönem otomatik başlar. Güncel ay açık, eski aylar kapalı tutulur.</p></section>'
+    +'<div class="section-title"><h2>Bu ay</h2><small>'+esc(monthLabel(current))+'</small></div>'
+    +'<div class="comparison-cards"><div class="metric"><b>'+currentStats.total+'</b><span>Toplam sorun</span>'+comparisonBadge(totalChange)+'</div><div class="metric"><b>'+currentStats.expiredPct+'%</b><span>THT geçmiş oranı</span>'+comparisonBadge(expiredChange)+'</div><div class="metric"><b>'+currentStats.damagedPct+'%</b><span>Hasarlı oranı</span>'+comparisonBadge(damagedChange)+'</div></div>'
+    +'<div class="card"><div class="card-pad"><div class="section-title" style="margin-top:0"><h2>Aylık kıyaslama</h2><small>kayıt bazlı oran</small></div><div class="comparison-table-wrap"><table class="comparison-table"><thead><tr><th>Ay</th><th>Toplam</th><th>THT</th><th>Hasarlı</th></tr></thead><tbody>'+comparisonRows+'</tbody></table></div></div></div>'
+    +'<div class="section-title"><h2>Aylık raporlar</h2><small>'+months.length+' ay</small></div>'
+    +accordions;
+}
+
 function issueCard(data,i,warehouseMode=false){
   const p=data.products.find(x=>x.id===i.productId);
   const s=data.shelves.find(x=>x.id===i.shelfId);
