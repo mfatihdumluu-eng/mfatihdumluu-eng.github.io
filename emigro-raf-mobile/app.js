@@ -652,14 +652,24 @@ function issueCard(data,i,warehouseMode=false){
   const cls=i.type==='expired'?'alert':i.type==='expiring'?'alert warnline':i.type==='low'?'alert orangeline':'alert';
   let action='';
   if(warehouseMode&&i.state==='reported'){
-    action=`<div class="btn-row"><button class="btn success wh-found" data-id="${i.id}">Depoda var</button><button class="btn danger wh-none" data-id="${i.id}">Depoda yok</button></div>`;
+    action='<div class="btn-row"><button class="btn success wh-found" data-id="'+i.id+'">Depoda var</button><button class="btn danger wh-none" data-id="'+i.id+'">Depoda yok</button></div>';
   }
-  if(['manager','superadmin'].includes(currentRole)&&issueOpen(i)){
-    action+=`<div class="btn-row"><button class="btn success resolve-issue" data-id="${i.id}">${icon('check',17)}<span>Yapıldı / Onayla</span></button></div>`;
+  if(isWriteoffIssue(i)&&issueOpen(i)){
+    action+=writeoffApprovalHtml(i);
+    if(currentRole==='manager'&&!i.managerApprovedAt){
+      action+='<div class="btn-row"><button class="btn success approve-writeoff-manager" data-id="'+i.id+'">'+icon('check',17)+'<span>Mağaza Müdürü Onayı</span></button></div>';
+    }
+    if(currentRole==='superadmin'&&!i.adminApprovedAt){
+      action+='<div class="btn-row"><button class="btn success approve-writeoff-admin" data-id="'+i.id+'">'+icon('check',17)+'<span>Admin Onayı</span></button></div>';
+    }
+  }else if(['manager','superadmin'].includes(currentRole)&&issueOpen(i)){
+    action+='<div class="btn-row"><button class="btn success resolve-issue" data-id="'+i.id+'">'+icon('check',17)+'<span>Yapıldı / Onayla</span></button></div>';
   }
-  return `<article class="card ${cls}"><div class="card-pad"><div><strong>${esc(p?.name||'Ürün')}</strong>
-  <div class="meta"><b>${STATUS[i.type]?.label||i.type}</b>${i.qty!=null?' · '+i.qty+' '+esc(i.unit||''):''}${i.expiry?' · SKT '+esc(i.expiry):''}<br>${esc(s?.name||p?.shelfCode||'')}${p?.meter!=null?' · Metre '+esc(p.meter):''}${p?.level!=null?' · Kat '+esc(p.level):''}${p?.position!=null?' · Sıra '+esc(p.position):''}${p?.locationCode?'<br>Konum: '+esc(p.locationCode):''}<br>${esc(u?.name||'')} · ${esc(i.time||'')}</div>${action}</div><span class="badge ${STATUS[i.type]?.cls||'dark'}">${i.state==='reported'?'Yeni':i.state==='warehouse_found'?'Bulundu':i.state==='warehouse_none'?'Depoda yok':'Açık'}</span></div></article>`;
+  const statusLabel=i.writeoffFinalized?'Stok/Muhasebe':i.state==='reported'?'Yeni':i.state==='warehouse_found'?'Bulundu':i.state==='warehouse_none'?'Depoda yok':'Açık';
+  return '<article class="card '+cls+'"><div class="card-pad"><div><strong>'+esc(p?.name||'Ürün')+'</strong>'
+    +'<div class="meta"><b>'+esc(STATUS[i.type]?.label||i.type)+'</b>'+(i.qty!=null?' · '+esc(i.qty)+' '+esc(i.unit||''):'')+(i.expiry?' · SKT '+esc(i.expiry):'')+'<br>'+esc(s?.name||p?.shelfCode||'')+(p?.meter!=null?' · Metre '+esc(p.meter):'')+(p?.level!=null?' · Kat '+esc(p.level):'')+(p?.position!=null?' · Sıra '+esc(p.position):'')+(p?.locationCode?'<br>Konum: '+esc(p.locationCode):'')+'<br>'+esc(u?.name||'')+' · '+esc(i.time||'')+'</div>'+action+'</div><span class="badge '+(STATUS[i.type]?.cls||'dark')+'">'+statusLabel+'</span></div></article>';
 }
+
 function issuesView(data){
   let issues=data.issues.filter(issueOpen);
   if(currentRole==='employee'){
