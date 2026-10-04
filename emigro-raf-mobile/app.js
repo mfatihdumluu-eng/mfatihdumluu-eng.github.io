@@ -493,7 +493,114 @@ function openModal(title,body){
 }
 function closeModal(){document.getElementById('modal').close();}
 
+function productSearchRows(data,query){
+  const q=(query||'').trim().toLocaleLowerCase('tr');
+  if(!q) return [];
+  return data.products.filter(p=>p.active&&(p.name.toLocaleLowerCase('tr').includes(q)||String(p.barcode||'').includes(q))).slice(0,20);
+}
+function productSearchCard(data,p,selectable=false){
+  const s=data.shelves.find(x=>x.id===p.shelfId);
+  const owner=s?shelfOwner(data,s.id):null;
+  const backup=s?shelfBackup(data,s.id):null;
+  return '<button class="product-search-row '+(selectable?'select-cash-product':'')+'" '+(selectable?'data-product="'+p.id+'"':'type="button"')+'>'
+    +'<strong>'+esc(p.name)+'</strong>'
+    +'<span>'+esc(p.barcode||'Barkod yok')+' · '+esc(s?.name||'Raf yok')+'</span>'
+    +'<span>Ana: '+esc(owner?.name||'Atanmamış')+(backup?' · Yedek: '+esc(backup.name):'')+'</span>'
+    +'</button>';
+}
+function excelImportModal(data){
+  openModal('Excel ile ürün / raf yükle',
+    '<div class="form-grid">'
+    +'<div class="sub">Excel sütunları: <b>Raf</b>, <b>Bölüm</b>, <b>Konum</b>, <b>Ürün</b>, <b>Barkod</b>, <b>Birim</b>. Aynı raf adı tekrar edebilir; ürünler o rafa eklenir.</div>'
+    +'<input id="excelFile" type="file" accept=".xlsx,.xls,.csv">'
+    +'<button class="btn secondary full" id="downloadExcelTemplate">Excel şablonu indir</button>'
+    +'<button class="btn full" id="processExcelImport">Dosyayı yükle</button>'
+    +'<div id="excelImportStatus" class="sub"></div>'
+    +'</div>');
+
+  document.getElementById('downloadExcelTemplate').onclick=()=>{
+    if(typeof XLSX==='undefined'){alert('Excel modülü yüklenemedi.');return;}
+    const ws=XLSX.utils.json_to_sheet([
+      {Raf:'Dranken 01','Bölüm':'İçecek',Konum:'Gang 1 - Sol','Ürün':'Coca Cola 1.5L',Barkod:'871000001',Birim:'adet'},
+      {Raf:'Dranken 01','Bölüm':'İçecek',Konum:'Gang 1 - Sol','Ürün':'Fanta Orange 1.5L',Barkod:'871000002',Birim:'adet'}
+    ]);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Ürünler');
+    XLSX.writeFile(wb,'emigro_raf_urun_sablonu.xlsx');
+  };
+
+  document.getElementById('processExcelImport').onclick=async()=>{
+    const file=document.getElementById('excelFile').files[0];
+    const status=document.getElementById('excelImportStatus');
+    if(!file){alert('Excel dosyası seçin.');return;}
+    if(typeof XLSX==='undefined'){alert('Excel modülü yüklenemedi.');return;}
+    status.textContent='Dosya okunuyor...';
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+    let shelfCount=0,productCount=0;
+    const shelfCache=[...data.shelves];
+    const existingProducts=[...data.products];
+    for(const row of rows){
+      const shelfName=String(row.Raf||row.raf||row.Shelf||row.shelf||'').trim();
+      const productName=String(row['Ürün']||row.Urun||row.urun||row.Product||row.product||'').trim();
+      if(!shelfName||!productName) continue;
+      let shelf=shelfCache.find(s=>s.name.trim().toLocaleLowerCase('tr')===shelfName.toLocaleLowerCase('tr'));
+      if(!shelf){
+        shelf={id:uid('s'),name:shelfName,department:String(row['Bölüm']||row.Bolum||row.bolum||'-'),location:String(row.Konum||row.konum||'-'),active:true};
+        await put('shelves',shelf);
+        shelfCache.push(shelf);
+        shelfCount++;
+      }
+      const barcode=String(row.Barkod||row.barkod||row.Barcode||row.barcode||'').trim();
+      const exists=existingProducts.some(p=>(barcode&&String(p.barcode)===barcode)||(p.shelfId===shelf.id&&p.name.trim().toLocaleLowerCase('tr')===productName.toLocaleLowerCase('tr')));
+      if(exists) continue;
+      const product={id:uid('p'),shelfId:shelf.id,name:productName,barcode,unit:String(row.Birim||row.birim||row.Unit||row.unit||'adet'),required:true,active:true};
+      await put('products',product);
+      existingProducts.push(product);
+      productCount++;
+    }
+    status.textContent=shelfCount+' yeni raf, '+productCount+' yeni ürün eklendi.';
+    setTimeout(()=>{closeModal();render();},800);
+  };
+}
 function bindActions(data){
+  document.getElementById('importExcel')?.addEventListener('click',()=>excelImportModal(data));
+
+  const adminSearch=document.getElementById('adminProductSearch');
+  if(adminSearch){
+    adminSearch.oninput=()=>{
+      const rows=productSearchRows(data,adminSearch.value);
+      document.getElementById('adminProductResults').innerHTML=rows.length
+        ?rows.map(p=>productSearchCard(data,p,false)).join('')
+        :'<div class="sub">Eşleşen ürün bulunamadı.</div>';
+    };
+  }
+
+  const cashSearch=document.getElementById('cashProductSearch');
+  if(cashSearch){
+    cashSearch.oninput=()=>{
+      const rows=productSearchRows(data,cashSearch.value);
+      document.getElementById('cashProduct').value='';
+      document.getElementById('cashSelectedProduct').style.display='none';
+      document.getElementById('cashProductResults').innerHTML=rows.length
+        ?rows.map(p=>productSearchCard(data,p,true)).join('')
+        :'<div class="sub">Eşleşen ürün bulunamadı.</div>';
+      document.querySelectorAll('.select-cash-product').forEach(b=>b.onclick=()=>{
+        const p=data.products.find(x=>x.id===b.dataset.product);
+        if(!p) return;
+        const s=data.shelves.find(x=>x.id===p.shelfId);
+        const owner=s?shelfOwner(data,s.id):null;
+        document.getElementById('cashProduct').value=p.id;
+        document.getElementById('cashProductSearch').value=p.name;
+        document.getElementById('cashProductResults').innerHTML='';
+        const sel=document.getElementById('cashSelectedProduct');
+        sel.style.display='block';
+        sel.innerHTML='<strong>'+esc(p.name)+'</strong><div class="meta">'+esc(s?.name||'Raf yok')+' · Sorumlu: '+esc(owner?.name||'Atanmamış')+'</div>';
+      });
+    };
+  }
   document.getElementById('backAdminHome')?.addEventListener('click',()=>{
     issueUserFilter='all';
     issueTypeFilter='all';
