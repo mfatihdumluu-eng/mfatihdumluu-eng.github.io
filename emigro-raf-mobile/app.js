@@ -1296,6 +1296,7 @@ function bindActions(data){
   document.querySelectorAll('.approve-writeoff-manager').forEach(b=>b.onclick=async()=>{
     const i=data.issues.find(x=>x.id===b.dataset.id);
     if(!i||currentRole!=='manager') return;
+    if(!(Number(i.qty)>0)){alert('Onay için fire / ıskarta miktarı girilmiş olmalı.');return;}
     i.managerApprovedAt=Date.now();i.managerApprovedBy=activeAppUserId();i.managerApprovedTime=timeNow();
     await finalizeWriteoffIfReady(i);
     await put('issues',i);
@@ -1304,6 +1305,7 @@ function bindActions(data){
   document.querySelectorAll('.approve-writeoff-admin').forEach(b=>b.onclick=async()=>{
     const i=data.issues.find(x=>x.id===b.dataset.id);
     if(!i||currentRole!=='superadmin') return;
+    if(!(Number(i.qty)>0)){alert('Onay için fire / ıskarta miktarı girilmiş olmalı.');return;}
     i.adminApprovedAt=Date.now();i.adminApprovedBy=activeAppUserId();i.adminApprovedTime=timeNow();
     await finalizeWriteoffIfReady(i);
     await put('issues',i);
@@ -1587,7 +1589,7 @@ function showMultiIssueForm(data,p,shelfId){
     +'<div class="issue-group"><div class="issue-group-title">Diğer sorunlar <span>opsiyonel</span></div>'
     +'<label class="check-row"><input class="issue-select" type="checkbox" value="damaged"> Hasarlı / bozuk</label></div>'
 
-    +'<label>Miktar<input id="multiQty" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></label>'
+    +'<label>Miktar <span class="sub">(tarihi geçmiş / hasarlı için zorunlu)</span><input id="multiQty" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></label>'
     +'<label>Birim<select id="multiUnit"><option value="adet">Adet</option><option value="kg">Kg</option><option value="koli">Koli</option><option value="paket">Paket</option><option value="şişe">Şişe</option><option value="kasa">Kasa</option></select></label>'
     +'<label>Not <span class="sub">(isteğe bağlı)</span><input id="multiNote" placeholder="Örn. etiket farklı fiyat gösteriyor"></label>'
     +'<button class="btn full" id="saveMultiIssue">Sorunları bildir</button>'
