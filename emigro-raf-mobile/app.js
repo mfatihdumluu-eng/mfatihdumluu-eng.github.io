@@ -274,7 +274,7 @@ async function render(){
   else if(currentView==='issues') app.innerHTML=issuesView(data);
   else if(currentView==='shelves') app.innerHTML=shelvesView(data);
   else if(currentView==='products') app.innerHTML=productsView(data);
-  else if(currentView==='system'&&isSystemAdmin()) app.innerHTML=systemView(data);
+  else if(currentView==='system'&&isSystemAdmin()) app.innerHTML=await systemView(data);
   else if(currentView==='people') app.innerHTML=peopleView(data);
   else if(currentView==='performance') app.innerHTML=performanceView(data);
   else if(currentView==='history') app.innerHTML=historyView(data);
@@ -641,12 +641,37 @@ function productDetailModal(data,productId){
     render();
   };
 }
-function systemView(data){
+async function systemView(data){
   if(!isSystemAdmin()) return '<div class="card empty">Yetkiniz yok.</div>';
-  return '<section class="hero"><div class="eyebrow">Sistem Yönetici</div><h1>Gizli yönetim ekranı</h1><p>Tüm kullanıcıları yönetebilir ve kullanıcı ekranlarını bire bir görüntüleyebilirsin.</p></section>'
-    +'<div class="section-title"><h2>Kullanıcılar</h2><button class="btn" id="addUser">+ Kullanıcı</button></div>'
-    +data.users.map(u=>'<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>'+esc(u.name)+'</strong><div class="meta">@'+esc(u.username)+' · '+esc(ROLE_NAMES[u.role]||u.role)+'</div></div><span class="badge '+(u.active?'ok':'dark')+'">'+(u.active?'Aktif':'Pasif')+'</span></div><div class="btn-row"><button class="btn secondary edit-user" data-user="'+u.id+'">Bilgiler / Şifre</button><button class="btn view-user-screen" data-user="'+u.id+'">Ekranını gör</button></div></div></div>').join('');
+  let accounts=[];
+  let loadError='';
+  try{
+    const out=await rafAuth('list_users');
+    accounts=out.users||[];
+  }catch(e){
+    loadError=e.message||'Hesaplar yüklenemedi.';
+  }
+  const cards=accounts.map(a=>{
+    const local=data.users.find(u=>u.id===a.app_user_id)||data.users.find(u=>u.username===a.username);
+    const roleLabel=ROLE_NAMES[a.role]||a.role;
+    const canView=!!local && a.role!=='system_admin';
+    return '<div class="card"><div class="card-pad">'
+      +'<div class="simple-row"><div><strong>'+esc(a.name||a.username)+'</strong><div class="meta">@'+esc(a.username)+' · '+esc(roleLabel)+'</div></div><span class="badge '+(a.active?'ok':'dark')+'">'+(a.active?'Aktif':'Pasif')+'</span></div>'
+      +'<div class="account-detail"><b>Giriş hesabı:</b> Var</div>'
+      +(a.email?'<div class="account-detail"><b>E-posta:</b> '+esc(a.email)+'</div>':'')
+      +'<div class="account-detail"><b>Uygulama kullanıcısı:</b> '+(local?esc(local.name)+' ('+esc(local.id)+')':'Bağlantı yok')+'</div>'
+      +'<div class="btn-row">'
+      +(local?'<button class="btn secondary edit-user" data-user="'+local.id+'">Bilgiler / Şifre</button>':'')
+      +(canView?'<button class="btn view-user-screen" data-user="'+local.id+'">Ekranını gör</button>':'')
+      +'</div>'
+      +'</div></div>';
+  }).join('');
+  return '<section class="hero"><div class="eyebrow">Sistem Yönetici</div><h1>Tüm kullanıcı hesapları</h1><p>Merkezi giriş sistemindeki bütün hesapları sadece sen görebilirsin.</p></section>'
+    +'<div class="section-title"><h2>Hesaplar</h2><div class="shelf-admin-actions"><span class="badge dark">'+accounts.length+' hesap</span><button class="btn" id="addUser">+ Kullanıcı</button></div></div>'
+    +(loadError?'<div class="notice" style="background:#fde9e9;border-color:#f3aaaa;color:#9f1d1d">'+esc(loadError)+'</div>':'')
+    +(cards||'<div class="card empty">Merkezi giriş sisteminde kullanıcı bulunamadı.</div>');
 }
+
 function peopleView(data){
   if(!['manager','superadmin'].includes(currentRole)) return '<div class="card empty">Bu alan için yetkiniz yok.</div>';
   return `
