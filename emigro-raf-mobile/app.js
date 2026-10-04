@@ -508,28 +508,49 @@ function showMultiIssueForm(data,p,shelfId){
   openModal('Sorun bildir',
     '<div class="form-grid">'
     +'<div><strong>'+esc(p.name)+'</strong><div class="sub">Aynı üründe farklı gruplardan birden fazla sorun seçebilirsin.</div></div>'
+
     +'<div class="issue-group"><div class="issue-group-title">Tarih durumu <span>birini seç</span></div>'
     +'<label class="check-row"><input class="issue-select" type="radio" name="dateIssue" value="expiring"> <span class="dot warn-dot"></span> Tarihi yaklaşıyor</label>'
     +'<label class="check-row"><input class="issue-select" type="radio" name="dateIssue" value="expired"> <span class="dot danger-dot"></span> Tarihi geçmiş</label>'
-    +'<button type="button" class="mini-clear clear-radio" data-name="dateIssue">Seçimi kaldır</button></div>'
+    +'<button type="button" class="mini-clear clear-radio" data-name="dateIssue">Seçimi kaldır</button>'
+    +'<div id="expiryWrap" class="conditional-field" style="display:none"><label>Son kullanma tarihi<input id="multiExpiry" type="date"></label></div>'
+    +'</div>'
+
     +'<div class="issue-group"><div class="issue-group-title">Stok durumu <span>birini seç</span></div>'
     +'<label class="check-row"><input class="issue-select" type="radio" name="stockIssue" value="low"> <span class="dot orange-dot"></span> Stok az</label>'
     +'<label class="check-row"><input class="issue-select" type="radio" name="stockIssue" value="missing"> <span class="dot dark-dot"></span> Rafta yok</label>'
     +'<button type="button" class="mini-clear clear-radio" data-name="stockIssue">Seçimi kaldır</button></div>'
-    +'<div class="issue-group"><div class="issue-group-title">Diğer sorunlar <span>birden fazla olabilir</span></div>'
-    +'<label class="check-row"><input class="issue-select" type="checkbox" value="damaged"> Hasarlı / bozuk</label>'
-    +'<label class="check-row"><input class="issue-select" type="checkbox" value="label_missing"> Raf etiketi yok</label>'
-    +'<label class="check-row"><input class="issue-select" type="checkbox" value="label_wrong"> Raf etiketi yanlış</label></div>'
-    +'<label>Son kullanma tarihi <span class="sub">(tarih sorunu seçildiyse zorunlu)</span><input id="multiExpiry" type="date"></label>'
+
+    +'<div class="issue-group"><div class="issue-group-title">Raf etiketi <span>birini seç</span></div>'
+    +'<label class="check-row"><input class="issue-select" type="radio" name="labelIssue" value="label_missing"> Raf etiketi yok</label>'
+    +'<label class="check-row"><input class="issue-select" type="radio" name="labelIssue" value="label_wrong"> Raf etiketi yanlış</label>'
+    +'<button type="button" class="mini-clear clear-radio" data-name="labelIssue">Seçimi kaldır</button></div>'
+
+    +'<div class="issue-group"><div class="issue-group-title">Diğer sorunlar <span>opsiyonel</span></div>'
+    +'<label class="check-row"><input class="issue-select" type="checkbox" value="damaged"> Hasarlı / bozuk</label></div>'
+
     +'<label>Miktar<input id="multiQty" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></label>'
     +'<label>Birim<select id="multiUnit"><option value="adet">Adet</option><option value="kg">Kg</option><option value="koli">Koli</option><option value="paket">Paket</option><option value="şişe">Şişe</option><option value="kasa">Kasa</option></select></label>'
     +'<label>Not <span class="sub">(isteğe bağlı)</span><input id="multiNote" placeholder="Örn. etiket farklı fiyat gösteriyor"></label>'
     +'<button class="btn full" id="saveMultiIssue">Sorunları bildir</button>'
     +'</div>');
 
+  const expiryWrap=document.getElementById('expiryWrap');
+  const dateRadios=[...document.querySelectorAll('input[name="dateIssue"]')];
+  const refreshExpiry=()=>{
+    const selected=dateRadios.some(x=>x.checked);
+    expiryWrap.style.display=selected?'block':'none';
+    if(!selected){
+      const input=document.getElementById('multiExpiry');
+      if(input) input.value='';
+    }
+  };
+  dateRadios.forEach(r=>r.onchange=refreshExpiry);
+
   document.querySelectorAll('.clear-radio').forEach(btn=>{
     btn.onclick=()=>{
       document.querySelectorAll('input[name="'+btn.dataset.name+'"]').forEach(x=>x.checked=false);
+      if(btn.dataset.name==='dateIssue') refreshExpiry();
     };
   });
 
@@ -537,7 +558,7 @@ function showMultiIssueForm(data,p,shelfId){
     const selected=[...document.querySelectorAll('.issue-select:checked')].map(x=>x.value);
     if(!selected.length){alert('En az bir sorun seçin.');return;}
     const hasDate=selected.some(x=>x==='expiring'||x==='expired');
-    const expiry=document.getElementById('multiExpiry').value;
+    const expiry=hasDate?document.getElementById('multiExpiry').value:null;
     if(hasDate&&!expiry){alert('Tarih sorunu için son kullanma tarihini girin.');return;}
     const qtyRaw=document.getElementById('multiQty').value;
     const qty=qtyRaw===''?null:Number(qtyRaw);
