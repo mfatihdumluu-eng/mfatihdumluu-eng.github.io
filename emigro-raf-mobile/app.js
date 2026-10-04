@@ -302,17 +302,15 @@ function notificationsView(data){
 }
 
 function cashierHome(data){
-  const products=data.products.filter(p=>p.active).sort((a,b)=>a.name.localeCompare(b.name,'tr'));
   const recent=data.issues.filter(i=>i.reportedBy==='u_cash').sort((a,b)=>b.ts-a.ts).slice(0,5);
-  const options=products.map(p=>{
-    const s=data.shelves.find(x=>x.id===p.shelfId);
-    return '<option value="'+p.id+'">'+esc(p.name)+(s?' — '+esc(s.name):'')+'</option>';
-  }).join('');
   return '<section class="hero">'
     +'<div class="eyebrow">Kasa kullanıcısı</div><h1>Ürün sorunu bildir</h1>'
-    +'<p>Ürünü listeden seç ve kasada yaşanan sorunu gönder.</p></section>'
+    +'<p>Ürün adı veya barkod ara. Raf ve sorumlu otomatik bulunur.</p></section>'
     +'<div class="card"><div class="card-pad form-grid">'
-    +'<label>Ürün<select id="cashProduct"><option value="">Ürün seç</option>'+options+'</select></label>'
+    +'<label>Ürün ara<input id="cashProductSearch" placeholder="Ürün adı veya barkod yaz" autocomplete="off"></label>'
+    +'<input type="hidden" id="cashProduct" value="">'
+    +'<div id="cashProductResults" class="search-results"><div class="sub">Aramaya başla.</div></div>'
+    +'<div id="cashSelectedProduct" class="selected-product" style="display:none"></div>'
     +'<div class="issue-group"><div class="issue-group-title">Sorun türü <span>birini seç</span></div>'
     +'<label class="check-row"><input type="radio" name="cashIssue" value="cash_price_wrong"> Fiyat yanlış</label>'
     +'<label class="check-row"><input type="radio" name="cashIssue" value="cash_not_scanning"> Kasada çıkmıyor / barkod okunmuyor</label>'
@@ -325,6 +323,7 @@ function cashierHome(data){
     +'<div class="section-title"><h2>Son bildirdiklerim</h2><small>'+recent.length+' kayıt</small></div>'
     +(recent.length?recent.map(i=>issueCard(data,i,false)).join(''):'<div class="card empty">Henüz kasa sorunu bildirilmedi.</div>');
 }
+
 function warehouseHome(data){
   const missing=data.issues.filter(i=>i.type==='missing'&&issueOpen(i));
   const waiting=missing.filter(i=>i.state==='reported');
@@ -451,7 +450,8 @@ function issuesView(data){
 function shelvesView(data){
   const canEdit=currentRole==='superadmin';
   return `
-  <div class="section-title"><h2>Raf Yönetimi</h2>${canEdit?'<button class="btn" id="addShelf">+ Raf</button>':''}</div>
+  <div class="section-title"><h2>Raf Yönetimi</h2>${canEdit?'<div class="shelf-admin-actions"><button class="btn secondary" id="importExcel">Excel Yükle</button><button class="btn" id="addShelf">+ Raf</button></div>':''}</div>
+  ${canEdit?'<div class="card"><div class="card-pad form-grid"><label>Ürün / barkod ara<input id="adminProductSearch" placeholder="Ürün adı veya barkod yaz"></label><div id="adminProductResults" class="search-results"><div class="sub">Arama yaptığında ürünün rafı, ana sorumlusu ve yedeği burada görünür.</div></div></div></div>':''}
   ${data.shelves.filter(s=>s.active).map(s=>{
     const ps=data.products.filter(p=>p.shelfId===s.id&&p.active);
     return `<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>${esc(s.name)}</strong><div class="meta">${esc(s.department)} · ${esc(s.location)}<br>${ps.length} ürün tanımlı</div>${shelfOwner(data,s.id)?`<button class="owner-link performance-user" data-user="${shelfOwner(data,s.id).id}">👤 Ana sorumlu: ${esc(shelfOwner(data,s.id).name)}</button>`:'<div class="owner-link muted">Ana sorumlu atanmamış</div>'}${shelfBackup(data,s.id)?`<div class="owner-link backup-person">↪ Yedek: ${esc(shelfBackup(data,s.id).name)}</div>`:'<div class="owner-link muted">Yedek tanımlanmamış</div>'}</div>${canEdit?`<div class="shelf-admin-actions"><button class="btn secondary add-product" data-shelf="${s.id}">+ Ürün</button><button class="btn secondary assign-shelf-user" data-shelf="${s.id}">Sorumlu Ata</button></div>`:''}</div></div>
