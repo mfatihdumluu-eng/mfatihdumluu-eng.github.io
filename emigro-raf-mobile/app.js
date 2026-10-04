@@ -591,6 +591,12 @@ function productDetailModal(data,productId){
     render();
   };
 }
+function systemView(data){
+  if(!isSystemAdmin()) return '<div class="card empty">Yetkiniz yok.</div>';
+  return '<section class="hero"><div class="eyebrow">Sistem Yönetici</div><h1>Gizli yönetim ekranı</h1><p>Tüm kullanıcıları yönetebilir ve kullanıcı ekranlarını bire bir görüntüleyebilirsin.</p></section>'
+    +'<div class="section-title"><h2>Kullanıcılar</h2><button class="btn" id="addUser">+ Kullanıcı</button></div>'
+    +data.users.map(u=>'<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>'+esc(u.name)+'</strong><div class="meta">@'+esc(u.username)+' · '+esc(ROLE_NAMES[u.role]||u.role)+'</div></div><span class="badge '+(u.active?'ok':'dark')+'">'+(u.active?'Aktif':'Pasif')+'</span></div><div class="btn-row"><button class="btn secondary edit-user" data-user="'+u.id+'">Bilgiler / Şifre</button><button class="btn view-user-screen" data-user="'+u.id+'">Ekranını gör</button></div></div></div>').join('');
+}
 function peopleView(data){
   if(!['manager','superadmin'].includes(currentRole)) return '<div class="card empty">Bu alan için yetkiniz yok.</div>';
   return `
@@ -779,6 +785,14 @@ function bindActions(data){
   document.querySelectorAll('.open-notifications').forEach(b=>b.onclick=()=>{currentView='notifications';render();});
   document.querySelectorAll('.performance-user').forEach(b=>b.onclick=()=>monthlyPerformanceModal(data,b.dataset.user));
   document.querySelectorAll('.edit-user').forEach(b=>b.onclick=()=>userDetailModal(data,b.dataset.user));
+  document.querySelectorAll('.view-user-screen').forEach(b=>b.onclick=()=>{
+    const u=data.users.find(x=>x.id===b.dataset.user);
+    if(!u) return;
+    viewAsUserId=u.id;
+    currentRole=u.role;
+    currentView='home';
+    render();
+  });
   document.querySelectorAll('.go-shelf').forEach(b=>b.onclick=()=>{currentView='home';render().then(()=>setTimeout(()=>document.querySelector('[data-shelf-card="'+b.dataset.shelf+'"]')?.scrollIntoView({behavior:'smooth',block:'start'}),50));});
   document.querySelectorAll('.close-note').forEach(b=>b.onclick=async()=>{
     const n=(data.notifications||[]).find(x=>x.id===b.dataset.id);
