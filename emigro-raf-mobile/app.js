@@ -626,7 +626,7 @@ function shelvesView(data){
   const activeShelves=data.shelves.filter(s=>s.active);
   const selected=selectedShelfId?data.shelves.find(s=>s.id===selectedShelfId&&s.active):null;
   if(selected){
-    const ps=data.products.filter(p=>p.shelfId===selected.id&&p.active).sort((x,y)=>x.name.localeCompare(y.name,'tr'));
+    const ps=data.products.filter(p=>p.shelfId===selected.id&&p.active).sort((x,y)=>(x.meter||0)-(y.meter||0)||(x.level||0)-(y.level||0)||(x.position||0)-(y.position||0)||x.name.localeCompare(y.name,'tr'));
     const owner=shelfOwner(data,selected.id);
     const backup=shelfBackup(data,selected.id);
     return '<button class="back-home-btn" id="backShelfList">← Raflara dön</button>'
@@ -1105,7 +1105,7 @@ function bindActions(data){
         id:uid('n'),ts:Date.now(),date:today(),time:timeNow(),
         targetUserId:owner.id,shelfId:p.shelfId,
         title:'Kasadan ürün sorunu',
-        message:p.name+' · '+(STATUS[type]?.label||type)+(note?' · '+note:''),
+        message:p.name+' · '+(STATUS[type]?.label||type)+' · '+(p.locationCode||((data.shelves.find(s=>s.id===p.shelfId)?.name||'Raf')+(p.meter!=null?' M'+p.meter:'')+(p.level!=null?' K'+p.level:'')+(p.position!=null?' S'+p.position:'')))+(note?' · '+note:''),
         read:false,closed:false,sourceIssueId:issue.id
       });
     }
@@ -1114,7 +1114,7 @@ function bindActions(data){
         id:uid('n'),ts:Date.now(),date:today(),time:timeNow(),
         targetUserId:admin.id,shelfId:p.shelfId,
         title:'Kasadan ürün sorunu',
-        message:p.name+' · '+(STATUS[type]?.label||type)+(owner?' · Sorumlu: '+owner.name:' · Sorumlu atanmamış')+(note?' · '+note:''),
+        message:p.name+' · '+(STATUS[type]?.label||type)+' · '+(p.locationCode||((data.shelves.find(s=>s.id===p.shelfId)?.name||'Raf')+(p.meter!=null?' M'+p.meter:'')+(p.level!=null?' K'+p.level:'')+(p.position!=null?' S'+p.position:'')))+(owner?' · Sorumlu: '+owner.name:' · Sorumlu atanmamış')+(note?' · '+note:''),
         read:false,closed:false,sourceIssueId:issue.id
       });
     }
@@ -1532,8 +1532,38 @@ function shelfModal(){
   document.getElementById('saveShelf').onclick=async()=>{await put('shelves',{id:uid('s'),name:document.getElementById('sName').value||'Yeni Raf',department:document.getElementById('sDept').value||'-',location:document.getElementById('sLoc').value||'-',approved:false,active:true});closeModal();render();};
 }
 function productModal(shelfId){
-  openModal('Rafa ürün ekle',`<div class="form-grid"><label>Ürün adı<input id="pName"></label><label>Barkod<input id="pBarcode" inputmode="numeric"></label><label>Birim<select id="pUnit"><option>adet</option><option>kg</option><option>koli</option><option>paket</option><option>şişe</option><option>kasa</option></select></label><button class="btn full" id="saveProduct">Ürünü ekle</button></div>`);
-  document.getElementById('saveProduct').onclick=async()=>{await put('products',{id:uid('p'),shelfId,name:document.getElementById('pName').value||'Yeni ürün',barcode:document.getElementById('pBarcode').value,unit:document.getElementById('pUnit').value,required:true,active:true});closeModal();render();};
+  openModal('Rafa ürün ekle',
+    '<div class="form-grid">'
+    +'<label>Ürün adı<input id="pName"></label>'
+    +'<label>Barkod<input id="pBarcode" inputmode="numeric"></label>'
+    +'<label>Birim<select id="pUnit"><option>Paket</option><option>Adet</option><option>Koli</option><option>Şişe</option><option>Kasa</option><option>kg</option></select></label>'
+    +'<div class="location-grid"><label>Metre<input id="pMeter" type="number" min="1" inputmode="numeric"></label><label>Kat<input id="pLevel" type="number" min="1" inputmode="numeric"></label><label>Sıra<input id="pPosition" type="number" min="1" inputmode="numeric"></label></div>'
+    +'<label>Ürün genişliği (cm)<input id="pWidth" type="number" step="0.1" min="0" inputmode="decimal"></label>'
+    +'<label>Başlangıç (cm)<input id="pStart" type="number" step="0.1" min="0" inputmode="decimal"></label>'
+    +'<label>Bitiş (cm)<input id="pEnd" type="number" step="0.1" min="0" inputmode="decimal"></label>'
+    +'<button class="btn full" id="saveProduct">Ürünü ekle</button>'
+    +'</div>');
+  document.getElementById('saveProduct').onclick=async()=>{
+    const data=await snapshot();
+    const shelf=data.shelves.find(s=>s.id===shelfId);
+    const meter=Number(document.getElementById('pMeter').value||0)||null;
+    const level=Number(document.getElementById('pLevel').value||0)||null;
+    const position=Number(document.getElementById('pPosition').value||0)||null;
+    const shelfCode=shelf?.code||shelf?.name||'';
+    const locationCode=(shelfCode&&meter&&level&&position)?shelfCode+'-M'+String(meter).padStart(2,'0')+'-K'+String(level).padStart(2,'0')+'-S'+String(position).padStart(2,'0'):'';
+    await put('products',{
+      id:uid('p'),shelfId,shelfCode,
+      name:document.getElementById('pName').value||'Yeni ürün',
+      barcode:document.getElementById('pBarcode').value,
+      unit:document.getElementById('pUnit').value,
+      meter,level,position,locationCode,
+      widthCm:Number(document.getElementById('pWidth').value||0)||null,
+      startCm:Number(document.getElementById('pStart').value||0),
+      endCm:Number(document.getElementById('pEnd').value||0),
+      meterFillCm:null,required:true,active:true
+    });
+    closeModal();render();
+  };
 }
 
 function inviteUrl(user){
