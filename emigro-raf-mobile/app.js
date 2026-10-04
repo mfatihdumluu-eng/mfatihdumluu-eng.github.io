@@ -1528,9 +1528,19 @@ function assignShelfModal(data,shelfId){
   };
 }
 function shelfModal(){
-  openModal('Yeni Raf',`<div class="form-grid"><label>Raf adı<input id="sName" placeholder="Dranken 03"></label><label>Bölüm<input id="sDept" placeholder="İçecek"></label><label>Konum<input id="sLoc" placeholder="Gang 2 - Sol"></label><button class="btn full" id="saveShelf">Rafı oluştur</button></div>`);
-  document.getElementById('saveShelf').onclick=async()=>{await put('shelves',{id:uid('s'),name:document.getElementById('sName').value||'Yeni Raf',department:document.getElementById('sDept').value||'-',location:document.getElementById('sLoc').value||'-',approved:false,active:true});closeModal();render();};
+  openModal('Yeni Raf',
+    '<div class="form-grid">'
+    +'<label>Raf Kodu<input id="sCode" placeholder="Örn. F1" autocapitalize="characters"></label>'
+    +'<label>Bölüm<input id="sDept" placeholder="Örn. Bakliyat"></label>'
+    +'<button class="btn full" id="saveShelf">Rafı oluştur</button>'
+    +'</div>');
+  document.getElementById('saveShelf').onclick=async()=>{
+    const code=(document.getElementById('sCode').value||'Yeni Raf').trim().toUpperCase();
+    await put('shelves',{id:uid('s'),code,name:code,department:document.getElementById('sDept').value||'-',location:'Raf '+code,approved:false,active:true});
+    closeModal();render();
+  };
 }
+
 function productModal(shelfId){
   openModal('Rafa ürün ekle',
     '<div class="form-grid">'
