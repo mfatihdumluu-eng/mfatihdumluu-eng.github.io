@@ -400,21 +400,32 @@ function employeeShelfDetail(data,shelf){
   const levels=[...new Set(meterProducts.map(p=>p.level).filter(v=>v!=null))].sort((a,b)=>a-b);
   const levelProducts=employeeLevel==='all'?meterProducts:meterProducts.filter(p=>String(p.level)===String(employeeLevel));
   const positions=[...new Set(levelProducts.map(p=>p.position).filter(v=>v!=null))].sort((a,b)=>a-b);
-  let filtered=employeePosition==='all'?levelProducts:levelProducts.filter(p=>String(p.position)===String(employeePosition));
+  const filtered=employeePosition==='all'?levelProducts:levelProducts.filter(p=>String(p.position)===String(employeePosition));
   const checks=todaysChecks(data);
-  const unchecked=filtered.filter(p=>!checks.some(x=>x.productId===p.id&&x.shelfId===shelf.id));
-  const meterOpts='<option value="all">Tüm metreler</option>'+meters.map(v=>'<option value="'+v+'" '+(String(employeeMeter)===String(v)?'selected':'')+'>Metre '+v+'</option>').join('');
+  const meterStatus=meters.map(m=>{
+    const products=allProducts.filter(p=>String(p.meter)===String(m));
+    const done=products.filter(p=>checks.some(x=>x.productId===p.id&&x.shelfId===shelf.id)).length;
+    return {meter:m,total:products.length,done,complete:products.length>0&&done===products.length};
+  });
+  const selectedMeterStatus=employeeMeter==='all'?null:meterStatus.find(x=>String(x.meter)===String(employeeMeter));
+  const meterOpts='<option value="all">Metre seç</option>'+meters.map(v=>'<option value="'+v+'" '+(String(employeeMeter)===String(v)?'selected':'')+'>Metre '+v+'</option>').join('');
   const levelOpts='<option value="all">Tüm katlar</option>'+levels.map(v=>'<option value="'+v+'" '+(String(employeeLevel)===String(v)?'selected':'')+'>Kat '+v+'</option>').join('');
   const posOpts='<option value="all">Tüm sıralar</option>'+positions.map(v=>'<option value="'+v+'" '+(String(employeePosition)===String(v)?'selected':'')+'>Sıra '+v+'</option>').join('');
-  const label=(employeeMeter==='all'?'Tüm raf':'Metre '+employeeMeter)+(employeeLevel==='all'?'':' · Kat '+employeeLevel)+(employeePosition==='all'?'':' · Sıra '+employeePosition);
+  const meterCards=meterStatus.map(m=>'<button class="meter-status-card employee-select-meter '+(String(employeeMeter)===String(m.meter)?'active':'')+'" data-meter="'+m.meter+'"><strong>Metre '+m.meter+'</strong><span>'+m.done+'/'+m.total+' ürün</span><span class="badge '+(m.complete?'ok':'dark')+'">'+(m.complete?'Tamamlandı':'Bekliyor')+'</span></button>').join('');
   return '<button class="back-home-btn" id="backEmployeeShelves">← Raflarıma dön</button>'
-    +'<div class="section-title"><h2>'+esc(shelf.name)+'</h2><small>'+filtered.length+' ürün</small></div>'
+    +'<div class="section-title"><h2>'+esc(shelf.name)+'</h2><small>'+allProducts.length+' ürün</small></div>'
+    +'<div class="section-title"><h2>Metreler</h2><small>'+meters.length+' bölüm</small></div>'
+    +'<div class="meter-status-grid">'+meterCards+'</div>'
     +'<div class="card"><div class="card-pad form-grid">'
-    +'<div class="filter-triple"><label>Metre<select id="employeeMeterFilter">'+meterOpts+'</select></label><label>Kat<select id="employeeLevelFilter">'+levelOpts+'</select></label><label>Sıra<select id="employeePositionFilter">'+posOpts+'</select></label></div>'
+    +'<div class="filter-triple"><label>Metre<select id="employeeMeterFilter">'+meterOpts+'</select></label><label>Kat<select id="employeeLevelFilter" '+(employeeMeter==='all'?'disabled':'')+'>'+levelOpts+'</select></label><label>Sıra<select id="employeePositionFilter" '+(employeeMeter==='all'?'disabled':'')+'>'+posOpts+'</select></label></div>'
     +'<div class="btn-row"><button class="btn secondary employee-product-search">Ürün ara</button><button class="btn secondary employee-barcode-scan">Barkod oku</button></div>'
-    +(unchecked.length?'<button class="btn success full approve-location" data-shelf="'+shelf.id+'">✓ '+esc(label)+' — sorun yok, onayla ('+unchecked.length+')</button>':'<div class="notice" style="background:#e8f7ef;border-color:#a8dfc2;color:#0f6d43"><b>✓ Bu seçim bugün kontrol edildi.</b></div>')
+    +(employeeMeter==='all'
+      ?'<div class="notice"><b>Önce bir metre seç.</b><br>Toplu onay yalnızca tek bir metre için yapılabilir.</div>'
+      :selectedMeterStatus?.complete
+        ?'<div class="notice" style="background:#e8f7ef;border-color:#a8dfc2;color:#0f6d43"><b>✓ Metre '+esc(employeeMeter)+' bugün tamamen onaylandı.</b></div>'
+        :'<button class="btn success full approve-meter" data-shelf="'+shelf.id+'" data-meter="'+employeeMeter+'">✓ Metre '+esc(employeeMeter)+' — tamamını sorun yok diye onayla</button>')
     +'</div></div>'
-    +'<div class="section-title"><h2>Bu bölümdeki ürünler</h2><small>'+filtered.length+'</small></div>'
+    +'<div class="section-title"><h2>'+ (employeeMeter==='all'?'Tüm ürünler':'Metre '+esc(employeeMeter)+' ürünleri') +'</h2><small>'+filtered.length+'</small></div>'
     +(filtered.length?filtered.map(p=>productCardHtml(data,p,true)).join(''):'<div class="card empty">Bu seçimde ürün yok.</div>');
 }
 
@@ -1082,12 +1093,17 @@ function bindActions(data){
   if(positionFilter) positionFilter.onchange=()=>{employeePosition=positionFilter.value;render();};
   document.querySelectorAll('.employee-product-search').forEach(b=>b.onclick=()=>employeeProductSearchModal(data));
   document.querySelectorAll('.employee-barcode-scan').forEach(b=>b.onclick=()=>barcodeScannerModal(data));
-  document.querySelectorAll('.approve-location').forEach(b=>b.onclick=async()=>{
+  document.querySelectorAll('.employee-select-meter').forEach(b=>b.onclick=()=>{
+    employeeMeter=b.dataset.meter;
+    employeeLevel='all';
+    employeePosition='all';
+    render();
+  });
+  document.querySelectorAll('.approve-meter').forEach(b=>b.onclick=async()=>{
     const shelfId=b.dataset.shelf;
-    let list=data.products.filter(p=>p.shelfId===shelfId&&p.active&&p.required);
-    if(employeeMeter!=='all') list=list.filter(p=>String(p.meter)===String(employeeMeter));
-    if(employeeLevel!=='all') list=list.filter(p=>String(p.level)===String(employeeLevel));
-    if(employeePosition!=='all') list=list.filter(p=>String(p.position)===String(employeePosition));
+    const meter=b.dataset.meter;
+    if(!meter||meter==='all'){alert('Önce bir metre seçin.');return;}
+    const list=data.products.filter(p=>p.shelfId===shelfId&&p.active&&p.required&&String(p.meter)===String(meter));
     const checks=todaysChecks(data);
     const unchecked=list.filter(p=>!checks.some(x=>x.productId===p.id&&x.shelfId===shelfId));
     for(const p of unchecked) await saveCheck(p,shelfId,'ok',{bulk:true,meter:p.meter,level:p.level,position:p.position});
