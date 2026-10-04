@@ -98,10 +98,10 @@ async function seed(){
     {id:'p8',shelfId:'s4',name:'Ayran 1L',barcode:'871000008',unit:'adet',required:true,active:true}
   ];
   const assignments=[
-    {id:'a1',userId:'u_emp',shelfId:'s1',active:true},
-    {id:'a2',userId:'u_emp',shelfId:'s2',active:true},
-    {id:'a3',userId:'u_emp',shelfId:'s3',active:true},
-    {id:'a4',userId:'u_emp',shelfId:'s4',active:true}
+    {id:'a1',userId:'u_emp',shelfId:'s1',assignmentType:'primary',active:true},
+    {id:'a2',userId:'u_emp',shelfId:'s2',assignmentType:'primary',active:true},
+    {id:'a3',userId:'u_emp',shelfId:'s3',assignmentType:'primary',active:true},
+    {id:'a4',userId:'u_emp',shelfId:'s4',assignmentType:'primary',active:true}
   ];
   for(const x of demoUsers) await put('users',x);
   for(const x of shelves) await put('shelves',x);
@@ -173,7 +173,7 @@ async function homeView(data){
   return managerHome(data,true);
 }
 function employeeHome(data){
-  const assigned=data.assignments.filter(a=>a.userId==='u_emp'&&a.active).map(a=>a.shelfId);
+  const assigned=data.assignments.filter(a=>a.userId==='u_emp'&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
   const shelves=data.shelves.filter(s=>assigned.includes(s.id)&&s.active);
   const prog=shelves.map(s=>shelfProgress(data,s.id));
   const done=prog.filter(p=>p.complete).length;
@@ -228,7 +228,11 @@ function employeeReminderBanner(data,shelves){
 }
 
 function shelfOwner(data,shelfId){
-  const a=data.assignments.find(x=>x.shelfId===shelfId&&x.active);
+  const a=data.assignments.find(x=>x.shelfId===shelfId&&x.active&&x.assignmentType!=='backup');
+  return a?data.users.find(u=>u.id===a.userId):null;
+}
+function shelfBackup(data,shelfId){
+  const a=data.assignments.find(x=>x.shelfId===shelfId&&x.active&&x.assignmentType==='backup');
   return a?data.users.find(u=>u.id===a.userId):null;
 }
 function adminNotesView(data){
@@ -254,7 +258,7 @@ function monthlyPerformanceModal(data,userId){
   const u=data.users.find(x=>x.id===userId);
   if(!u) return;
   const month=today().slice(0,7);
-  const shelfIds=data.assignments.filter(a=>a.userId===userId&&a.active).map(a=>a.shelfId);
+  const shelfIds=data.assignments.filter(a=>a.userId===userId&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
   const checks=data.dailyChecks.filter(x=>x.date?.startsWith(month)&&shelfIds.includes(x.shelfId));
   const issues=data.issues.filter(x=>x.date?.startsWith(month)&&x.reportedBy===userId);
   const expectedProducts=data.products.filter(p=>shelfIds.includes(p.shelfId)&&p.active&&p.required).length;
@@ -274,7 +278,7 @@ function notificationsView(data){
   const direct=(data.notifications||[]).filter(n=>(!targetUser||n.targetUserId===targetUser)&&!n.closed).sort((a,b)=>b.ts-a.ts);
   const cards=[];
   if(currentRole==='employee'){
-    const assigned=data.assignments.filter(a=>a.userId==='u_emp'&&a.active).map(a=>a.shelfId);
+    const assigned=data.assignments.filter(a=>a.userId==='u_emp'&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
     const checks=todaysChecks(data);
     data.shelves.filter(s=>assigned.includes(s.id)&&s.active).forEach(s=>{
       const missed=data.products.filter(p=>p.shelfId===s.id&&p.active&&p.required&&!checks.some(c=>c.productId===p.id));
@@ -402,12 +406,12 @@ function issuesView(data){
 }
 
 function shelvesView(data){
-  const canEdit=['manager','superadmin'].includes(currentRole);
+  const canEdit=currentRole==='superadmin';
   return `
   <div class="section-title"><h2>Raf Yönetimi</h2>${canEdit?'<button class="btn" id="addShelf">+ Raf</button>':''}</div>
   ${data.shelves.filter(s=>s.active).map(s=>{
     const ps=data.products.filter(p=>p.shelfId===s.id&&p.active);
-    return `<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>${esc(s.name)}</strong><div class="meta">${esc(s.department)} · ${esc(s.location)}<br>${ps.length} ürün tanımlı</div>${shelfOwner(data,s.id)?`<button class="owner-link performance-user" data-user="${shelfOwner(data,s.id).id}">👤 ${esc(shelfOwner(data,s.id).name)}</button>`:'<div class="owner-link muted">Sorumlu atanmamış</div>'}</div>${canEdit?`<button class="btn secondary add-product" data-shelf="${s.id}">+ Ürün</button>`:''}</div></div>
+    return `<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>${esc(s.name)}</strong><div class="meta">${esc(s.department)} · ${esc(s.location)}<br>${ps.length} ürün tanımlı</div>${shelfOwner(data,s.id)?`<button class="owner-link performance-user" data-user="${shelfOwner(data,s.id).id}">👤 Ana sorumlu: ${esc(shelfOwner(data,s.id).name)}</button>`:'<div class="owner-link muted">Ana sorumlu atanmamış</div>'}${shelfBackup(data,s.id)?`<div class="owner-link backup-person">↪ Yedek: ${esc(shelfBackup(data,s.id).name)}</div>`:'<div class="owner-link muted">Yedek tanımlanmamış</div>'}</div>${canEdit?`<div class="shelf-admin-actions"><button class="btn secondary add-product" data-shelf="${s.id}">+ Ürün</button><button class="btn secondary assign-shelf-user" data-shelf="${s.id}">Sorumlu Ata</button></div>`:''}</div></div>
     ${ps.slice(0,4).map(p=>`<div class="product"><div class="product-name">${esc(p.name)}</div><div class="sub">${esc(p.unit)} · ${esc(p.barcode||'')}</div></div>`).join('')}
     ${ps.length>4?`<div class="product sub">+${ps.length-4} ürün daha</div>`:''}</div>`;
   }).join('')}
@@ -421,7 +425,7 @@ function peopleView(data){
   `;
 }
 function performanceView(data){
-  const assigned=data.assignments.filter(a=>a.userId==='u_emp'&&a.active).map(a=>a.shelfId);
+  const assigned=data.assignments.filter(a=>a.userId==='u_emp'&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
   const shelves=data.shelves.filter(s=>assigned.includes(s.id));
   const done=shelves.filter(s=>shelfProgress(data,s.id).complete).length;
   const pct=shelves.length?Math.round(done/shelves.length*100):0;
@@ -530,6 +534,7 @@ function bindActions(data){
     const i=data.issues.find(x=>x.id===b.dataset.id); i.state='warehouse_none';i.warehouseAt=Date.now(); await put('issues',i); render();
   });
   document.querySelectorAll('.add-product').forEach(b=>b.onclick=()=>productModal(b.dataset.shelf));
+  document.querySelectorAll('.assign-shelf-user').forEach(b=>b.onclick=()=>assignShelfModal(data,b.dataset.shelf));
   document.getElementById('addShelf')?.addEventListener('click',shelfModal);
   document.getElementById('addUser')?.addEventListener('click',()=>userModal(data));
   document.getElementById('sendNotification')?.addEventListener('click',()=>notificationModal(data));
@@ -802,6 +807,38 @@ async function saveCheck(product,shelfId,status,extra){
     await put('issues',issue);
   }
 }
+function assignShelfModal(data,shelfId){
+  const shelf=data.shelves.find(s=>s.id===shelfId);
+  if(!shelf) return;
+  const employees=data.users.filter(u=>u.active&&u.role==='employee');
+  const owner=shelfOwner(data,shelfId);
+  const backup=shelfBackup(data,shelfId);
+  const makeOptions=(selectedId,emptyLabel)=>{
+    let html='<option value="">'+emptyLabel+'</option>';
+    html+=employees.map(u=>'<option value="'+u.id+'" '+(u.id===selectedId?'selected':'')+'>'+esc(u.name)+'</option>').join('');
+    return html;
+  };
+  const body='<div class="form-grid">'
+    +'<div><strong>'+esc(shelf.name)+'</strong><div class="sub">Ana sorumlu günlük kontrolden sorumludur. Yedek kişi şimdilik yalnızca yedek olarak kayıt edilir.</div></div>'
+    +'<label>Ana sorumlu<select id="primaryShelfUser">'+makeOptions(owner?.id,'Ana sorumlu seç')+'</select></label>'
+    +'<label>Yedek kişi <span class="sub">(isteğe bağlı)</span><select id="backupShelfUser">'+makeOptions(backup?.id,'Yedek yok')+'</select></label>'
+    +'<button class="btn full" id="saveShelfUsers">Kaydet</button></div>';
+  openModal('Raf sorumluları',body);
+  document.getElementById('saveShelfUsers').onclick=async()=>{
+    const primaryId=document.getElementById('primaryShelfUser').value;
+    const backupId=document.getElementById('backupShelfUser').value;
+    if(!primaryId){alert('Ana sorumlu seçin.');return;}
+    if(backupId&&backupId===primaryId){alert('Ana sorumlu ile yedek kişi aynı olamaz.');return;}
+    for(const a of data.assignments.filter(a=>a.shelfId===shelfId&&a.active)){
+      a.active=false;
+      await put('assignments',a);
+    }
+    await put('assignments',{id:uid('a'),userId:primaryId,shelfId,assignmentType:'primary',active:true});
+    if(backupId) await put('assignments',{id:uid('a'),userId:backupId,shelfId,assignmentType:'backup',active:true});
+    closeModal();
+    render();
+  };
+}
 function shelfModal(){
   openModal('Yeni Raf',`<div class="form-grid"><label>Raf adı<input id="sName" placeholder="Dranken 03"></label><label>Bölüm<input id="sDept" placeholder="İçecek"></label><label>Konum<input id="sLoc" placeholder="Gang 2 - Sol"></label><button class="btn full" id="saveShelf">Rafı oluştur</button></div>`);
   document.getElementById('saveShelf').onclick=async()=>{await put('shelves',{id:uid('s'),name:document.getElementById('sName').value||'Yeni Raf',department:document.getElementById('sDept').value||'-',location:document.getElementById('sLoc').value||'-',active:true});closeModal();render();};
@@ -817,7 +854,7 @@ function userModal(data){
     const id=uid('u'); const role=document.getElementById('uRole').value;
     await put('users',{id,name:document.getElementById('uName').value||'Yeni Kullanıcı',username:document.getElementById('uLogin').value||uid('user'),password:document.getElementById('uPass').value||'1234',role,active:true});
     if(role==='employee'){
-      [...document.getElementById('uShelves').selectedOptions].forEach(async o=>await put('assignments',{id:uid('a'),userId:id,shelfId:o.value,active:true}));
+      [...document.getElementById('uShelves').selectedOptions].forEach(async o=>await put('assignments',{id:uid('a'),userId:id,shelfId:o.value,assignmentType:'primary',active:true}));
     }
     closeModal();render();
   };
