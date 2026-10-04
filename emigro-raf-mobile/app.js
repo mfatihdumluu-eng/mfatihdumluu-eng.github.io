@@ -719,17 +719,25 @@ function productCardHtml(data,p,openable=true){
   const owner=s?shelfOwner(data,s.id):null;
   const backup=s?shelfBackup(data,s.id):null;
   const editable=['manager','superadmin'].includes(currentRole);
-  const tag=openable?'button':'div';
-  const attrs=openable?' class="card product-info-card open-product" data-product="'+p.id+'"':' class="card product-info-card"';
-  return '<'+tag+attrs+'><div class="card-pad">'
+  const actionLabel=currentRole==='employee'?'⚠ Sorun bildir':currentRole==='cashier'?'⚠ Kasa sorunu bildir':currentRole==='superadmin'?'Düzenle':'Admine bilgi ver';
+  const actionClass=['employee','cashier'].includes(currentRole)?'danger':'secondary';
+  return '<article class="card product-info-card">'
+    +'<div class="card-pad">'
     +'<div class="simple-row"><div><strong>'+esc(p.name)+'</strong><div class="meta">'+esc(p.barcode||'Barkod yok')+' · '+esc(p.unit||'')+'</div></div>'
-    +(editable?'<span class="badge blue">Düzenle</span>':'<span class="badge dark">Görüntüle</span>')+'</div>'
+    +(editable?'<span class="badge blue">Yönetilebilir</span>':'<span class="badge dark">Ürün</span>')+'</div>'
+    +'<div class="product-location-hero compact">'
+      +'<div><b>Raf</b><span>'+esc(s?.name||p.shelfCode||'-')+'</span></div>'
+      +'<div><b>Metre</b><span>'+esc(p.meter??'-')+'</span></div>'
+      +'<div><b>Kat</b><span>'+esc(p.level??'-')+'</span></div>'
+      +'<div><b>Sıra</b><span>'+esc(p.position??'-')+'</span></div>'
+    +'</div>'
     +'<div class="product-location-line"><b>Konum:</b> '+esc(p.locationCode||'-')+'</div>'
-    +'<div class="product-location-line"><b>Raf:</b> '+esc(s?.name||p.shelfCode||'Raf yok')+(p.meter!=null?' · Metre '+esc(p.meter):'')+(p.level!=null?' · Kat '+esc(p.level):'')+(p.position!=null?' · Sıra '+esc(p.position):'')+'</div>'
-    +'<div class="product-location-line"><b>Ana sorumlu:</b> '+esc(owner?.name||'Atanmamış')+'</div>'
+    +'<div class="product-location-line"><b>Raf sorumlusu:</b> '+esc(owner?.name||'Atanmamış')+'</div>'
     +(backup?'<div class="product-location-line"><b>Yedek:</b> '+esc(backup.name)+'</div>':'')
-    +'</div></'+tag+'>';
+    +(openable?'<div class="product-card-actions"><button class="btn secondary product-card-detail" data-product="'+p.id+'">Detay</button><button class="btn '+actionClass+' product-card-action" data-product="'+p.id+'">'+actionLabel+'</button></div>':'')
+    +'</div></article>';
 }
+
 function scannerView(data){
   return '<section class="hero"><div class="eyebrow">Barkod</div><h1>Ürünü okut</h1><p>Kamerayı barkoda tut. Ürün bulunduğunda kartı otomatik açılır.</p></section>'
     +'<div class="card"><div class="card-pad form-grid">'
@@ -1106,6 +1114,13 @@ function excelImportModal(data){
 }
 
 function bindActions(data){
+  document.querySelectorAll('.product-card-detail').forEach(b=>b.onclick=()=>productDetailModal(data,b.dataset.product));
+  document.querySelectorAll('.product-card-action').forEach(b=>b.onclick=()=>{
+    const p=data.products.find(x=>x.id===b.dataset.product);
+    if(!p) return;
+    if(currentRole==='superadmin'){productDetailModal(data,p.id);return;}
+    openProductAction(data,p);
+  });
   document.querySelectorAll('.open-barcode-camera').forEach(b=>b.onclick=()=>barcodeScannerModal(data));
   document.getElementById('manualBarcodeFind')?.addEventListener('click',()=>{
     const raw=document.getElementById('manualBarcodeInput').value.trim();
