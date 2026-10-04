@@ -1261,8 +1261,7 @@ function productModal(shelfId){
 }
 
 function inviteUrl(user){
-  const token=user.inviteToken||user.id;
-  return location.origin+location.pathname+'?invite='+encodeURIComponent(token);
+  return location.origin+location.pathname+'?login='+encodeURIComponent(user.username||'');
 }
 function shelfAssignmentOption(data,s,mode){
   const owner=shelfOwner(data,s.id);
@@ -1315,6 +1314,7 @@ function userModal(data){
     '<div class="form-grid">'
     +'<label>Ad soyad<input id="uName"></label>'
     +'<label>Kullanıcı adı<input id="uLogin" autocapitalize="none"></label>'
+    +'<label>E-posta <span class="sub">(isteğe bağlı)</span><input id="uEmail" type="email"></label>'
     +'<label>Şifre<input id="uPass" type="password"></label>'
     +'<label>Rol<select id="uRole"><option value="employee">Çalışan</option><option value="cashier">Kasa Kullanıcısı</option><option value="warehouse">Depo Sorumlusu</option><option value="manager">Mağaza Müdürü</option><option value="superadmin">Süper Admin</option></select></label>'
     +'<div id="employeeShelfArea">'
@@ -1340,24 +1340,24 @@ function userModal(data){
   document.getElementById('saveUser').onclick=async()=>{
     const id=uid('u');
     const role=roleEl.value;
-    const user={
-      id,
-      name:document.getElementById('uName').value||'Yeni Kullanıcı',
-      username:document.getElementById('uLogin').value||uid('user'),
-      password:document.getElementById('uPass').value||'1234',
-      role,
-      active:true,
-      inviteToken:uid('invite')
-    };
-    await put('users',user);
-    if(role==='employee'){
-      const mode=document.querySelector('input[name="assignmentMode"]:checked')?.value||'primary';
-      const selected=[...document.getElementById('uShelves').selectedOptions];
-      for(const o of selected){
-        await put('assignments',{id:uid('a'),userId:id,shelfId:o.value,assignmentType:mode,active:true});
+    const name=document.getElementById('uName').value||'Yeni Kullanıcı';
+    const username=(document.getElementById('uLogin').value||uid('user')).trim().toLowerCase();
+    const password=document.getElementById('uPass').value;
+    const email=document.getElementById('uEmail').value.trim();
+    if(password.length<4){alert('Şifre en az 4 karakter olmalı.');return;}
+    try{
+      const remote=await rafAuth('create_user',{app_user_id:id,name,username,password,email:email||null,role});
+      const user={id,name,username,email:email||'',role,active:true,authId:remote.user?.id||null,inviteToken:uid('invite')};
+      await put('users',user);
+      if(role==='employee'){
+        const mode=document.querySelector('input[name="assignmentMode"]:checked')?.value||'primary';
+        const selected=[...document.getElementById('uShelves').selectedOptions];
+        for(const o of selected){
+          await put('assignments',{id:uid('a'),userId:id,shelfId:o.value,assignmentType:mode,active:true});
+        }
       }
-    }
-    showInviteModal(user);
+      showInviteModal(user);
+    }catch(e){alert(e.message||'Kullanıcı oluşturulamadı.');}
   };
 }
 async function userDetailModal(data,userId){
@@ -1376,6 +1376,7 @@ async function userDetailModal(data,userId){
     '<div class="form-grid">'
     +'<div><strong>'+esc(user.name)+'</strong><div class="sub">'+esc(ROLE_NAMES[user.role]||user.role)+'</div></div>'
     +'<label>Kullanıcı adı<input id="editUsername" value="'+esc(user.username)+'"></label>'
+    +'<label>E-posta<input id="editEmail" type="email" value="'+esc(user.email||'')+'"></label>'
     +'<label>Yeni şifre<input id="editPassword" type="password" placeholder="Değiştirmek istemiyorsan boş bırak"></label>'
     +'<button class="card shelf-permissions-card" id="editUserShelves" style="box-shadow:none;text-align:left"><div class="card-pad"><div class="simple-row"><div><strong>Raf yetkileri</strong><div class="meta">Ana: '+(primary.map(esc).join(', ')||'Yok')+'<br>Yedek: '+(backup.map(esc).join(', ')||'Yok')+'</div></div><span>›</span></div></div></button>'
     +'<label>Davet linki<input id="userInviteLink" readonly value="'+esc(link)+'"></label>'
@@ -1392,12 +1393,24 @@ async function userDetailModal(data,userId){
     else {await navigator.clipboard.writeText(link);alert('Davet linki kopyalandı.');}
   };
   document.getElementById('saveUserSettings').onclick=async()=>{
-    user.username=document.getElementById('editUsername').value||user.username;
+    const username=(document.getElementById('editUsername').value||user.username).trim().toLowerCase();
+    const email=document.getElementById('editEmail').value.trim();
     const pass=document.getElementById('editPassword').value;
-    if(pass) user.password=pass;
-    await put('users',user);
-    closeModal();
-    render();
+    try{
+      if(user.authId){
+        const remote=await rafAuth('update_user',{id:user.authId,username,email:email||null,password:pass||undefined});
+        user.authId=remote.user?.id||user.authId;
+      }else{
+        if(!pass){alert('Bu kullanıcı için henüz giriş hesabı yok. İlk şifreyi girin.');return;}
+        const remote=await rafAuth('create_user',{app_user_id:user.id,name:user.name,username,password:pass,email:email||null,role:user.role});
+        user.authId=remote.user?.id||null;
+      }
+      user.username=username;
+      user.email=email;
+      await put('users',user);
+      closeModal();
+      render();
+    }catch(e){alert(e.message||'Kullanıcı kaydedilemedi.');}
   };
 }
 
