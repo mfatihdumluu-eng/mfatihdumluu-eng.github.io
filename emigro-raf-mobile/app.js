@@ -19,6 +19,7 @@ let currentRole='employee';
 let currentView='home';
 let issueUserFilter='all';
 let issueTypeFilter='all';
+let selectedShelfId=null;
 
 function openDB(){
   return new Promise((resolve,reject)=>{
@@ -136,19 +137,19 @@ function afterDeadline(settings){
 
 function navFor(role){
   if(role==='employee') return [
-    ['home','home','Bugün'],['notifications','bell','Bildirim'],['issues','alert','Sorunlar'],['performance','chart','Performans']
+    ['home','home','Bugün'],['products','box','Ürünler'],['notifications','bell','Bildirim'],['issues','alert','Sorunlar'],['performance','chart','Performans']
   ];
   if(role==='cashier') return [
-    ['home','alert','Sorun Bildir']
+    ['home','alert','Sorun Bildir'],['products','box','Ürünler']
   ];
   if(role==='warehouse') return [
-    ['home','box','Depo'],['notifications','bell','Bildirim'],['issues','alert','Bekleyen'],['history','clock','Geçmiş']
+    ['home','box','Depo'],['products','box','Ürünler'],['notifications','bell','Bildirim'],['issues','alert','Bekleyen'],['history','clock','Geçmiş']
   ];
   if(role==='manager') return [
-    ['home','home','Özet'],['issues','alert','Hatalar'],['shelves','shelves','Raflar'],['people','users','Personel']
+    ['home','home','Özet'],['products','box','Ürünler'],['issues','alert','Hatalar'],['shelves','shelves','Raflar'],['people','users','Personel']
   ];
   return [
-    ['home','home','Panel'],['issues','alert','Hatalar'],['adminnotes','note','Notlar'],['shelves','shelves','Raflar'],['people','users','Kullanıcı']
+    ['home','home','Panel'],['products','box','Ürünler'],['issues','alert','Hatalar'],['adminnotes','note','Notlar'],['shelves','shelves','Raflar'],['people','users','Kullanıcı']
   ];
 }
 function renderNav(){
@@ -165,6 +166,7 @@ async function render(){
   if(currentView==='home') app.innerHTML=await homeView(data);
   else if(currentView==='issues') app.innerHTML=issuesView(data);
   else if(currentView==='shelves') app.innerHTML=shelvesView(data);
+  else if(currentView==='products') app.innerHTML=productsView(data);
   else if(currentView==='people') app.innerHTML=peopleView(data);
   else if(currentView==='performance') app.innerHTML=performanceView(data);
   else if(currentView==='history') app.innerHTML=historyView(data);
