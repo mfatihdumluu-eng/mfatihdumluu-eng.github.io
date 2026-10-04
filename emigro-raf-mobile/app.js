@@ -605,7 +605,8 @@ function productCardHtml(data,p,openable=true){
   return '<'+tag+attrs+'><div class="card-pad">'
     +'<div class="simple-row"><div><strong>'+esc(p.name)+'</strong><div class="meta">'+esc(p.barcode||'Barkod yok')+' · '+esc(p.unit||'')+'</div></div>'
     +(editable?'<span class="badge blue">Düzenle</span>':'<span class="badge dark">Görüntüle</span>')+'</div>'
-    +'<div class="product-location-line"><b>Raf:</b> '+esc(s?.name||'Raf yok')+'</div>'
+    +'<div class="product-location-line"><b>Konum:</b> '+esc(p.locationCode||'-')+'</div>'
+    +'<div class="product-location-line"><b>Raf:</b> '+esc(s?.name||p.shelfCode||'Raf yok')+(p.meter!=null?' · Metre '+esc(p.meter):'')+(p.level!=null?' · Kat '+esc(p.level):'')+(p.position!=null?' · Sıra '+esc(p.position):'')+'</div>'
     +'<div class="product-location-line"><b>Ana sorumlu:</b> '+esc(owner?.name||'Atanmamış')+'</div>'
     +(backup?'<div class="product-location-line"><b>Yedek:</b> '+esc(backup.name)+'</div>':'')
     +'</div></'+tag+'>';
@@ -624,7 +625,7 @@ function productDetailModal(data,productId){
   const editable=['manager','superadmin'].includes(currentRole);
   if(!editable){
     openModal('Ürün kartı','<div class="form-grid"><div><strong>'+esc(p.name)+'</strong><div class="meta">'+esc(p.barcode||'Barkod yok')+' · '+esc(p.unit||'')+'</div></div>'
-      +'<div class="card" style="box-shadow:none"><div class="card-pad"><b>Raf:</b> '+esc(s?.name||'Raf yok')+'<br><b>Ana sorumlu:</b> '+esc(owner?.name||'Atanmamış')+(backup?'<br><b>Yedek:</b> '+esc(backup.name):'')+'</div></div></div>');
+      +'<div class="card" style="box-shadow:none"><div class="card-pad"><b>Konum Kodu:</b> '+esc(p.locationCode||'-')+'<br><b>Raf:</b> '+esc(s?.name||p.shelfCode||'Raf yok')+(p.meter!=null?' · Metre '+esc(p.meter):'')+(p.level!=null?' · Kat '+esc(p.level):'')+(p.position!=null?' · Sıra '+esc(p.position):'')+'<br><b>Ana sorumlu:</b> '+esc(owner?.name||'Atanmamış')+(backup?'<br><b>Yedek:</b> '+esc(backup.name):'')+'</div></div></div>');
     return;
   }
   const shelfOptions=data.shelves.filter(x=>x.active).map(x=>'<option value="'+x.id+'" '+(x.id===p.shelfId?'selected':'')+'>'+esc(x.name)+'</option>').join('');
@@ -633,6 +634,10 @@ function productDetailModal(data,productId){
     +'<label>Barkod<input id="editProductBarcode" value="'+esc(p.barcode||'')+'"></label>'
     +'<label>Birim<select id="editProductUnit">'+['adet','kg','koli','paket','şişe','kasa'].map(u=>'<option '+(u===p.unit?'selected':'')+'>'+u+'</option>').join('')+'</select></label>'
     +'<label>Raf<select id="editProductShelf">'+shelfOptions+'</select></label>'
+    +'<label>Metre<input id="editProductMeter" type="number" value="'+esc(p.meter??'')+'"></label>'
+    +'<label>Kat<input id="editProductLevel" type="number" value="'+esc(p.level??'')+'"></label>'
+    +'<label>Sıra<input id="editProductPosition" type="number" value="'+esc(p.position??'')+'"></label>'
+    +'<label>Konum Kodu<input id="editProductLocationCode" value="'+esc(p.locationCode||'')+'"></label>'
     +'<div class="card" style="box-shadow:none"><div class="card-pad"><b>Ana sorumlu:</b> '+esc(owner?.name||'Atanmamış')+(backup?'<br><b>Yedek:</b> '+esc(backup.name):'')+'</div></div>'
     +'<button class="btn full" id="saveProductEdit">Ürünü kaydet</button></div>');
   document.getElementById('saveProductEdit').onclick=async()=>{
@@ -640,6 +645,10 @@ function productDetailModal(data,productId){
     p.barcode=document.getElementById('editProductBarcode').value||'';
     p.unit=document.getElementById('editProductUnit').value;
     p.shelfId=document.getElementById('editProductShelf').value;
+    p.meter=Number(document.getElementById('editProductMeter').value||0)||null;
+    p.level=Number(document.getElementById('editProductLevel').value||0)||null;
+    p.position=Number(document.getElementById('editProductPosition').value||0)||null;
+    p.locationCode=document.getElementById('editProductLocationCode').value||'';
     await put('products',p);
     closeModal();
     render();
@@ -808,7 +817,8 @@ function productSearchCard(data,p,selectable=false){
   const cls=selectable?'select-cash-product':'open-product';
   return '<button class="product-search-row '+cls+'" data-product="'+p.id+'">'
     +'<strong>'+esc(p.name)+'</strong>'
-    +'<span>'+esc(p.barcode||'Barkod yok')+' · '+esc(s?.name||'Raf yok')+'</span>'
+    +'<span>'+esc(p.barcode||'Barkod yok')+' · '+esc(s?.name||p.shelfCode||'Raf yok')+(p.meter!=null?' · M'+esc(p.meter):'')+(p.level!=null?' · K'+esc(p.level):'')+(p.position!=null?' · S'+esc(p.position):'')+'</span>'
+    +(p.locationCode?'<span>Konum: '+esc(p.locationCode)+'</span>':'')
     +'<span>Ana: '+esc(owner?.name||'Atanmamış')+(backup?' · Yedek: '+esc(backup.name):'')+'</span>'
     +'</button>';
 }
@@ -917,7 +927,7 @@ function bindActions(data){
         document.getElementById('cashProductResults').innerHTML='';
         const sel=document.getElementById('cashSelectedProduct');
         sel.style.display='block';
-        sel.innerHTML='<strong>'+esc(p.name)+'</strong><div class="meta">'+esc(s?.name||'Raf yok')+' · Sorumlu: '+esc(owner?.name||'Atanmamış')+'</div>';
+        sel.innerHTML='<strong>'+esc(p.name)+'</strong><div class="meta">'+esc(s?.name||p.shelfCode||'Raf yok')+(p.meter!=null?' · Metre '+esc(p.meter):'')+(p.level!=null?' · Kat '+esc(p.level):'')+(p.position!=null?' · Sıra '+esc(p.position):'')+(p.locationCode?'<br>Konum: '+esc(p.locationCode):'')+'<br>Sorumlu: '+esc(owner?.name||'Atanmamış')+'</div>';
       });
     };
   }
