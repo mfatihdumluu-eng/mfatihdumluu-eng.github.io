@@ -1603,7 +1603,12 @@ async function userDetailModal(data,userId){
 document.getElementById('roleTabs').addEventListener('click',e=>{
   if(!isSystemAdmin()) return;
   const b=e.target.closest('button[data-role]'); if(!b)return;
-  currentRole=b.dataset.role; currentView='home'; render();
+  const role=b.dataset.role;
+  const roleUserMap={employee:'u_emp',cashier:'u_cash',warehouse:'u_wh',manager:'u_mgr',superadmin:'u_admin'};
+  viewAsUserId=roleUserMap[role]||null;
+  currentRole=role;
+  currentView='home';
+  render();
 });
 document.getElementById('modalClose').onclick=closeModal;
 document.getElementById('resetDemo').onclick=async()=>{if(isSystemAdmin()&&confirm('Demo verileri sıfırlansın mı?')){await clearAll();await seed();render();}};
