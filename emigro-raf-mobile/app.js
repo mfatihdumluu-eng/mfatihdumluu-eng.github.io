@@ -825,9 +825,9 @@ function productSearchCard(data,p,selectable=false){
 function excelImportModal(data){
   openModal('Excel ile ürün / raf yükle',
     '<div class="form-grid">'
-    +'<div class="sub">Excel sütunları: <b>Raf</b>, <b>Bölüm</b>, <b>Konum</b>, <b>Ürün</b>, <b>Barkod</b>, <b>Birim</b>. Aynı raf adı tekrar edebilir; ürünler o rafa eklenir.</div>'
-    +'<input id="excelFile" type="file" accept=".xlsx,.xls,.csv">'
-    +'<button class="btn secondary full" id="downloadExcelTemplate">Excel şablonu indir</button>'
+    +'<div class="sub">Bu sistem artık sabit EMİGRO raf şablonunu kullanır: <b>Raf Kodu, Bölüm, Metre, Kat, Sıra, Konum Kodu, Ürün, Barkod, Birim, Ürün Genişliği (cm), Başlangıç (cm), Bitiş (cm), 1 m Doluluk (cm)</b>.</div>'
+    +'<input id="excelFile" type="file" accept=".xlsx,.xls">'
+    +'<button class="btn secondary full" id="downloadExcelTemplate">Boş şablonu indir</button>'
     +'<button class="btn full" id="processExcelImport">Dosyayı yükle</button>'
     +'<div id="excelImportStatus" class="sub"></div>'
     +'</div>');
@@ -835,8 +835,7 @@ function excelImportModal(data){
   document.getElementById('downloadExcelTemplate').onclick=()=>{
     if(typeof XLSX==='undefined'){alert('Excel modülü yüklenemedi.');return;}
     const ws=XLSX.utils.json_to_sheet([
-      {Raf:'Dranken 01','Bölüm':'İçecek',Konum:'Gang 1 - Sol','Ürün':'Coca Cola 1.5L',Barkod:'871000001',Birim:'adet'},
-      {Raf:'Dranken 01','Bölüm':'İçecek',Konum:'Gang 1 - Sol','Ürün':'Fanta Orange 1.5L',Barkod:'871000002',Birim:'adet'}
+      {'Raf Kodu':'A1','Bölüm':'Bakliyat Bölümü 1','Metre':1,'Kat':1,'Sıra':1,'Konum Kodu':'A1-M01-K01-S01','Ürün':'Örnek Ürün','Barkod':'8690000000000','Birim':'Paket','Ürün Genişliği (cm)':12,'Başlangıç (cm)':0,'Bitiş (cm)':12,'1 m Doluluk (cm)':96}
     ]);
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'Ürünler');
@@ -851,34 +850,55 @@ function excelImportModal(data){
     status.textContent='Dosya okunuyor...';
     const buf=await file.arrayBuffer();
     const wb=XLSX.read(buf,{type:'array'});
-    const ws=wb.Sheets[wb.SheetNames[0]];
+    const ws=wb.Sheets['Ürünler']||wb.Sheets[wb.SheetNames[0]];
     const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
-    let shelfCount=0,productCount=0;
+    const required=['Raf Kodu','Bölüm','Metre','Kat','Sıra','Konum Kodu','Ürün','Barkod','Birim','Ürün Genişliği (cm)','Başlangıç (cm)','Bitiş (cm)','1 m Doluluk (cm)'];
+    const first=rows[0]||{};
+    const missing=required.filter(k=>!(k in first));
+    if(missing.length){status.textContent='Eksik sütunlar: '+missing.join(', ');return;}
+    let shelfCount=0,productCount=0,updatedCount=0;
     const shelfCache=[...data.shelves];
-    const existingProducts=[...data.products];
+    const productCache=[...data.products];
     for(const row of rows){
-      const shelfName=String(row.Raf||row.raf||row.Shelf||row.shelf||'').trim();
-      const productName=String(row['Ürün']||row.Urun||row.urun||row.Product||row.product||'').trim();
-      if(!shelfName||!productName) continue;
-      let shelf=shelfCache.find(s=>s.name.trim().toLocaleLowerCase('tr')===shelfName.toLocaleLowerCase('tr'));
+      const shelfCode=String(row['Raf Kodu']||'').trim();
+      const productName=String(row['Ürün']||'').trim();
+      const barcode=String(row['Barkod']||'').trim();
+      if(!shelfCode||!productName) continue;
+      let shelf=shelfCache.find(s=>String(s.code||s.name).trim().toLocaleLowerCase('tr')===shelfCode.toLocaleLowerCase('tr'));
       if(!shelf){
-        shelf={id:uid('s'),name:shelfName,department:String(row['Bölüm']||row.Bolum||row.bolum||'-'),location:String(row.Konum||row.konum||'-'),approved:false,active:true};
+        shelf={id:uid('s'),code:shelfCode,name:shelfCode,department:String(row['Bölüm']||'-'),location:'Raf '+shelfCode,approved:false,active:true};
         await put('shelves',shelf);
         shelfCache.push(shelf);
         shelfCount++;
+      }else{
+        shelf.code=shelfCode;
+        shelf.department=String(row['Bölüm']||shelf.department||'-');
+        await put('shelves',shelf);
       }
-      const barcode=String(row.Barkod||row.barkod||row.Barcode||row.barcode||'').trim();
-      const exists=existingProducts.some(p=>(barcode&&String(p.barcode)===barcode)||(p.shelfId===shelf.id&&p.name.trim().toLocaleLowerCase('tr')===productName.toLocaleLowerCase('tr')));
-      if(exists) continue;
-      const product={id:uid('p'),shelfId:shelf.id,name:productName,barcode,unit:String(row.Birim||row.birim||row.Unit||row.unit||'adet'),required:true,active:true};
-      await put('products',product);
-      existingProducts.push(product);
-      productCount++;
+      let product=productCache.find(p=>barcode&&String(p.barcode||'')===barcode);
+      const payload={
+        shelfId:shelf.id,shelfCode,name:productName,barcode,unit:String(row['Birim']||'adet'),
+        meter:Number(row['Metre']||0)||null,level:Number(row['Kat']||0)||null,position:Number(row['Sıra']||0)||null,
+        locationCode:String(row['Konum Kodu']||''),widthCm:Number(row['Ürün Genişliği (cm)']||0)||null,
+        startCm:Number(row['Başlangıç (cm)']||0),endCm:Number(row['Bitiş (cm)']||0),meterFillCm:Number(row['1 m Doluluk (cm)']||0),
+        required:true,active:true
+      };
+      if(product){
+        Object.assign(product,payload);
+        await put('products',product);
+        updatedCount++;
+      }else{
+        product={id:uid('p'),...payload};
+        await put('products',product);
+        productCache.push(product);
+        productCount++;
+      }
     }
-    status.textContent=shelfCount+' yeni raf, '+productCount+' yeni ürün eklendi.';
-    setTimeout(()=>{closeModal();render();},800);
+    status.textContent=shelfCount+' yeni raf, '+productCount+' yeni ürün, '+updatedCount+' güncellenen ürün.';
+    setTimeout(()=>{closeModal();selectedShelfId=null;render();},900);
   };
 }
+
 function bindActions(data){
   document.querySelectorAll('.shelf-select-card').forEach(b=>b.onclick=()=>{selectedShelfId=b.dataset.shelf;render();});
   document.getElementById('backShelfList')?.addEventListener('click',()=>{selectedShelfId=null;render();});
