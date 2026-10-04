@@ -134,6 +134,7 @@ async function initAuth(){
   currentRole='superadmin';
   currentView='system';
   document.getElementById('authScreen').style.display='none';
+  const logout=document.getElementById('logoutButton'); if(logout) logout.style.display='none';
   showApp();
   await render();
 }
@@ -534,23 +535,11 @@ function notificationsView(data){
 
 function cashierHome(data){
   const recent=data.issues.filter(i=>i.reportedBy===activeAppUserId()).sort((a,b)=>b.ts-a.ts).slice(0,5);
-  return '<section class="hero">'
-    +'<div class="eyebrow">Kasa kullanıcısı</div><h1>Ürün sorunu bildir</h1>'
-    +'<p>Ürün adı veya barkod ara. Raf ve sorumlu otomatik bulunur.</p></section>'
+  return '<section class="hero"><div class="eyebrow">Kasa kullanıcısı</div><h1>Ürün sorunu bildir</h1><p>Ürünü yaz veya barkodu okut. Ürün kartı açıldığında kasa sorununu seç.</p></section>'
     +'<div class="card"><div class="card-pad form-grid">'
-    +'<div class="btn-row"><button class="btn secondary full open-barcode-camera">'+icon('scan',18)+' Barkod okut</button></div>'
+    +'<button class="btn full open-barcode-camera">'+icon('scan',18)+' Barkod okut</button>'
     +'<label>Ürün ara<input id="cashProductSearch" placeholder="Ürün adı veya barkod yaz" autocomplete="off"></label>'
-    +'<input type="hidden" id="cashProduct" value="">'
-    +'<div id="cashProductResults" class="search-results"><div class="sub">Aramaya başla.</div></div>'
-    +'<div id="cashSelectedProduct" class="selected-product" style="display:none"></div>'
-    +'<div class="issue-group"><div class="issue-group-title">Sorun türü <span>birini seç</span></div>'
-    +'<label class="check-row"><input type="radio" name="cashIssue" value="cash_price_wrong"> Fiyat yanlış</label>'
-    +'<label class="check-row"><input type="radio" name="cashIssue" value="cash_not_scanning"> Kasada çıkmıyor / barkod okunmuyor</label>'
-    +'<label class="check-row"><input type="radio" name="cashIssue" value="cash_discount_missing"> İndirim uygulanmıyor</label>'
-    +'<label class="check-row"><input type="radio" name="cashIssue" value="cash_barcode_mismatch"> Ürün / barkod eşleşmiyor</label>'
-    +'</div>'
-    +'<label>Not <span class="sub">(isteğe bağlı)</span><input id="cashNote" placeholder="Örn. rafta 2,49 €, kasada 2,99 €"></label>'
-    +'<button class="btn danger full" id="sendCashIssue">Sorunu gönder</button>'
+    +'<div id="cashProductResults" class="search-results"><div class="sub">Ürün yazınca sonucu seç; kart açılacak.</div></div>'
     +'</div></div>'
     +'<div class="section-title"><h2>Son bildirdiklerim</h2><small>'+recent.length+' kayıt</small></div>'
     +(recent.length?recent.map(i=>issueCard(data,i,false)).join(''):'<div class="card empty">Henüz kasa sorunu bildirilmedi.</div>');
@@ -719,8 +708,9 @@ function productCardHtml(data,p,openable=true){
   const owner=s?shelfOwner(data,s.id):null;
   const backup=s?shelfBackup(data,s.id):null;
   const editable=['manager','superadmin'].includes(currentRole);
-  const actionLabel=currentRole==='employee'?'⚠ Sorun bildir':currentRole==='cashier'?'⚠ Kasa sorunu bildir':currentRole==='superadmin'?'Düzenle':'Admine bilgi ver';
-  const actionClass=['employee','cashier'].includes(currentRole)?'danger':'secondary';
+  const employeeOwns=currentRole==='employee'&&owner?.id===activeAppUserId();
+  const actionLabel=employeeOwns?'⚠ Sorun bildir':currentRole==='cashier'?'⚠ Kasa sorunu bildir':currentRole==='superadmin'?'Düzenle':'Admine bilgi ver';
+  const actionClass=(employeeOwns||currentRole==='cashier')?'danger':'secondary';
   return '<article class="card product-info-card">'
     +'<div class="card-pad">'
     +'<div class="simple-row"><div><strong>'+esc(p.name)+'</strong><div class="meta">'+esc(p.barcode||'Barkod yok')+' · '+esc(p.unit||'')+'</div></div>'
@@ -847,13 +837,38 @@ function barcodeScannerModal(data){
   start();
 }
 
+function openProductAction(data,p){
+  if(!p) return;
+  if(currentRole==='employee'){
+    const owner=shelfOwner(data,p.shelfId);
+    if(owner?.id===activeAppUserId()){
+      try{closeModal();}catch(e){}
+      setTimeout(()=>showMultiIssueForm(data,p,p.shelfId),40);
+    }else{
+      adminInfoModal(data,p);
+    }
+    return;
+  }
+  if(currentRole==='cashier'){
+    cashierIssueModal(data,p);
+    return;
+  }
+  if(currentRole==='superadmin'){
+    productDetailModal(data,p.id);
+    return;
+  }
+  adminInfoModal(data,p);
+}
 function productDetailModal(data,productId){
   const p=data.products.find(x=>x.id===productId);
   if(!p) return;
+  const s0=data.shelves.find(x=>x.id===p.shelfId);
+  const owner0=s0?shelfOwner(data,s0.id):null;
+  const employeeOwns=currentRole==='employee'&&owner0?.id===activeAppUserId();
   const editable=['manager','superadmin'].includes(currentRole);
-  const actionLabel=currentRole==='employee'?'⚠ Sorun bildir':currentRole==='cashier'?'⚠ Kasa sorunu bildir':'Admine bilgi ver';
+  const actionLabel=employeeOwns?'⚠ Sorun bildir':currentRole==='cashier'?'⚠ Kasa sorunu bildir':'Admine bilgi ver';
   if(!editable){
-    openModal('Ürün kartı','<div class="form-grid"><div><strong>'+esc(p.name)+'</strong><div class="meta">'+esc(p.barcode||'Barkod yok')+' · '+esc(p.unit||'')+'</div></div>'+productLocationHtml(data,p)+'<button class="btn '+(['employee','cashier'].includes(currentRole)?'danger':'secondary')+' full" id="productCardAction">'+actionLabel+'</button></div>');
+    openModal('Ürün kartı','<div class="form-grid"><div><strong>'+esc(p.name)+'</strong><div class="meta">'+esc(p.barcode||'Barkod yok')+' · '+esc(p.unit||'')+'</div></div>'+productLocationHtml(data,p)+'<button class="btn '+((employeeOwns||currentRole==='cashier')?'danger':'secondary')+' full" id="productCardAction">'+actionLabel+'</button></div>');
     document.getElementById('productCardAction').onclick=()=>openProductAction(data,p);
     return;
   }
@@ -928,10 +943,16 @@ async function systemUserChooser(data){
 async function systemUsersView(data){
   if(!isSystemAdmin()) return '<div class="card empty">Yetkiniz yok.</div>';
   let accounts=[];
-  try{
-    const out=await rafAuth('list_users');
-    accounts=(out.users||[]).filter(a=>a.role!=='system_admin');
-  }catch(e){}
+  if(currentUser?.preview){
+    accounts=data.users.filter(u=>u.active).map(u=>({app_user_id:u.id,username:u.username,name:u.name,role:u.role,active:u.active}));
+  }else{
+    try{
+      const out=await rafAuth('list_users');
+      accounts=(out.users||[]).filter(a=>a.role!=='system_admin');
+    }catch(e){
+      accounts=data.users.filter(u=>u.active).map(u=>({app_user_id:u.id,username:u.username,name:u.name,role:u.role,active:u.active}));
+    }
+  }
   const cards=accounts.map(a=>{
     const local=data.users.find(u=>u.id===a.app_user_id)||data.users.find(u=>u.username===a.username);
     const role=ROLE_NAMES[a.role]||a.role;
@@ -1221,8 +1242,6 @@ function bindActions(data){
   if(cashSearch){
     cashSearch.oninput=()=>{
       const rows=productSearchRows(data,cashSearch.value);
-      document.getElementById('cashProduct').value='';
-      document.getElementById('cashSelectedProduct').style.display='none';
       document.getElementById('cashProductResults').innerHTML=rows.length
         ?rows.map(p=>productSearchCard(data,p,true)).join('')
         :'<div class="sub">Eşleşen ürün bulunamadı.</div>';
@@ -1304,44 +1323,6 @@ function bindActions(data){
       closeModal();
       render();
     };
-  });
-  document.getElementById('sendCashIssue')?.addEventListener('click',async()=>{
-    const productId=document.getElementById('cashProduct').value;
-    const type=document.querySelector('input[name="cashIssue"]:checked')?.value;
-    if(!productId){alert('Ürün seçin.');return;}
-    if(!type){alert('Sorun türünü seçin.');return;}
-    const p=data.products.find(x=>x.id===productId);
-    if(!p) return;
-    const owner=shelfOwner(data,p.shelfId);
-    const note=document.getElementById('cashNote').value||'';
-    const issue={
-      id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),
-      productId:p.id,shelfId:p.shelfId,type,state:'reported',
-      reportedBy:activeAppUserId(),source:'cashier',note,
-      assignedToUserId:owner?.id||null,
-      visibility:['employee','manager','superadmin']
-    };
-    await put('issues',issue);
-    if(owner){
-      await put('notifications',{
-        id:uid('n'),ts:Date.now(),date:today(),time:timeNow(),
-        targetUserId:owner.id,shelfId:p.shelfId,
-        title:'Kasadan ürün sorunu',
-        message:p.name+' · '+(STATUS[type]?.label||type)+' · '+(p.locationCode||((data.shelves.find(s=>s.id===p.shelfId)?.name||'Raf')+(p.meter!=null?' M'+p.meter:'')+(p.level!=null?' K'+p.level:'')+(p.position!=null?' S'+p.position:'')))+(note?' · '+note:''),
-        read:false,closed:false,sourceIssueId:issue.id
-      });
-    }
-    for(const admin of data.users.filter(u=>u.active&&u.role==='superadmin')){
-      await put('notifications',{
-        id:uid('n'),ts:Date.now(),date:today(),time:timeNow(),
-        targetUserId:admin.id,shelfId:p.shelfId,
-        title:'Kasadan ürün sorunu',
-        message:p.name+' · '+(STATUS[type]?.label||type)+' · '+(p.locationCode||((data.shelves.find(s=>s.id===p.shelfId)?.name||'Raf')+(p.meter!=null?' M'+p.meter:'')+(p.level!=null?' K'+p.level:'')+(p.position!=null?' S'+p.position:'')))+(owner?' · Sorumlu: '+owner.name:' · Sorumlu atanmamış')+(note?' · '+note:''),
-        read:false,closed:false,sourceIssueId:issue.id
-      });
-    }
-    alert('Sorun raf sorumlusuna ve admine gönderildi.');
-    render();
   });
   document.querySelectorAll('.problem-btn').forEach(b=>b.onclick=()=>{
     const p=data.products.find(x=>x.id===b.dataset.product);
