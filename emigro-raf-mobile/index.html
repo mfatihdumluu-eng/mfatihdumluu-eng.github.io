@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#111827" />
+  <title>EMİGRO Raf Kontrol</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand">EMİGRO</div>
+        <div class="subtitle">Raf & Tarih Kontrol</div>
+      </div>
+      <button class="icon-btn" id="resetDemo" aria-label="Demo verilerini sıfırla">↻</button>
+    </header>
+
+    <section class="role-switch">
+      <div class="role-label">Demo rolü</div>
+      <div class="role-tabs" id="roleTabs">
+        <button data-role="employee" class="active">Çalışan</button>
+        <button data-role="warehouse">Depo</button>
+        <button data-role="manager">Mağaza</button>
+        <button data-role="superadmin">Admin</button>
+      </div>
+    </section>
+
+    <main id="app"></main>
+
+    <nav class="bottom-nav" id="bottomNav"></nav>
+  </div>
+
+  <dialog id="modal">
+    <div class="modal-head">
+      <strong id="modalTitle">Detay</strong>
+      <button class="icon-btn" id="modalClose">✕</button>
+    </div>
+    <div id="modalBody"></div>
+  </dialog>
+
+  <script src="./app.js"></script>
+</body>
+</html>
