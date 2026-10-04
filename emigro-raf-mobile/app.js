@@ -1055,6 +1055,39 @@ function excelImportModal(data){
 }
 
 function bindActions(data){
+  document.querySelectorAll('.employee-open-shelf').forEach(b=>b.onclick=()=>{
+    employeeShelfId=b.dataset.shelf;
+    employeeMeter='all';employeeLevel='all';employeePosition='all';
+    render();
+  });
+  document.getElementById('backEmployeeShelves')?.addEventListener('click',()=>{
+    employeeShelfId=null;employeeMeter='all';employeeLevel='all';employeePosition='all';render();
+  });
+  const meterFilter=document.getElementById('employeeMeterFilter');
+  if(meterFilter) meterFilter.onchange=()=>{employeeMeter=meterFilter.value;employeeLevel='all';employeePosition='all';render();};
+  const levelFilter=document.getElementById('employeeLevelFilter');
+  if(levelFilter) levelFilter.onchange=()=>{employeeLevel=levelFilter.value;employeePosition='all';render();};
+  const positionFilter=document.getElementById('employeePositionFilter');
+  if(positionFilter) positionFilter.onchange=()=>{employeePosition=positionFilter.value;render();};
+  document.querySelectorAll('.employee-product-search').forEach(b=>b.onclick=()=>employeeProductSearchModal(data));
+  document.querySelectorAll('.employee-barcode-scan').forEach(b=>b.onclick=()=>barcodeScannerModal(data));
+  document.querySelectorAll('.approve-location').forEach(b=>b.onclick=async()=>{
+    const shelfId=b.dataset.shelf;
+    let list=data.products.filter(p=>p.shelfId===shelfId&&p.active&&p.required);
+    if(employeeMeter!=='all') list=list.filter(p=>String(p.meter)===String(employeeMeter));
+    if(employeeLevel!=='all') list=list.filter(p=>String(p.level)===String(employeeLevel));
+    if(employeePosition!=='all') list=list.filter(p=>String(p.position)===String(employeePosition));
+    const checks=todaysChecks(data);
+    const unchecked=list.filter(p=>!checks.some(x=>x.productId===p.id&&x.shelfId===shelfId));
+    for(const p of unchecked) await saveCheck(p,shelfId,'ok',{bulk:true,meter:p.meter,level:p.level,position:p.position});
+    render();
+  });
+  document.querySelectorAll('.product-detail-problem').forEach(b=>b.onclick=()=>{
+    const p=data.products.find(x=>x.id===b.dataset.product);
+    if(!p)return;
+    closeModal();
+    setTimeout(()=>showMultiIssueForm(data,p,b.dataset.shelf),40);
+  });
   document.querySelectorAll('.shelf-select-card').forEach(b=>b.onclick=()=>{selectedShelfId=b.dataset.shelf;render();});
   document.getElementById('backShelfList')?.addEventListener('click',()=>{selectedShelfId=null;render();});
 
