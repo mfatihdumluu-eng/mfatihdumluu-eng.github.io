@@ -153,3 +153,6 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 
 .back-home-btn{display:inline-flex;align-items:center;gap:7px;border:0;background:none;color:#1769aa;font-weight:850;padding:2px 0 8px}
 .back-home-btn:active{opacity:.65}
+
+.shelf-admin-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+.backup-person{color:#6b7280}
