@@ -718,6 +718,15 @@ function productCardHtml(data,p,openable=true){
     +(backup?'<div class="product-location-line"><b>Yedek:</b> '+esc(backup.name)+'</div>':'')
     +'</div></'+tag+'>';
 }
+function scannerView(data){
+  return '<section class="hero"><div class="eyebrow">Barkod</div><h1>Ürünü okut</h1><p>Kamerayı barkoda tut. Ürün bulunduğunda kartı otomatik açılır.</p></section>'
+    +'<div class="card"><div class="card-pad form-grid">'
+    +'<button class="btn full open-barcode-camera">'+icon('scan',20)+' Kamerayı aç</button>'
+    +'<label>Barkodu elle gir<input id="manualBarcodeInput" inputmode="numeric" placeholder="Barkod numarası"></label>'
+    +'<button class="btn secondary full" id="manualBarcodeFind">Ürünü bul</button>'
+    +'<div class="sub">Kamera tüm kullanıcılarda kullanılabilir. İşlem yetkisi kullanıcı rolüne göre değişir.</div>'
+    +'</div></div>';
+}
 function productsView(data){
   return '<div class="section-title"><h2>Ürünler</h2><small>'+data.products.filter(p=>p.active).length+' ürün</small></div>'
     +'<div class="card"><div class="card-pad form-grid"><div class="btn-row"><button class="btn secondary full open-barcode-camera">'+icon('scan',18)+' Barkod oku</button></div><label>Ürün / barkod ara<input id="globalProductSearch" placeholder="Ürün adı veya barkod yaz" autocomplete="off"></label>'
