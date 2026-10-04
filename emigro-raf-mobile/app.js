@@ -450,17 +450,88 @@ function issuesView(data){
 }
 
 function shelvesView(data){
-  const canEdit=currentRole==='superadmin';
-  return `
-  <div class="section-title"><h2>Raf Yönetimi</h2>${canEdit?'<div class="shelf-admin-actions"><button class="btn secondary" id="importExcel">Excel Yükle</button><button class="btn" id="addShelf">+ Raf</button></div>':''}</div>
-  ${canEdit?'<div class="card"><div class="card-pad form-grid"><label>Ürün / barkod ara<input id="adminProductSearch" placeholder="Ürün adı veya barkod yaz"></label><div id="adminProductResults" class="search-results"><div class="sub">Arama yaptığında ürünün rafı, ana sorumlusu ve yedeği burada görünür.</div></div></div></div>':''}
-  ${data.shelves.filter(s=>s.active).map(s=>{
-    const ps=data.products.filter(p=>p.shelfId===s.id&&p.active);
-    return `<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>${esc(s.name)}</strong><div class="meta">${esc(s.department)} · ${esc(s.location)}<br>${ps.length} ürün tanımlı</div>${shelfOwner(data,s.id)?`<button class="owner-link performance-user" data-user="${shelfOwner(data,s.id).id}">👤 Ana sorumlu: ${esc(shelfOwner(data,s.id).name)}</button>`:'<div class="owner-link muted">Ana sorumlu atanmamış</div>'}${shelfBackup(data,s.id)?`<div class="owner-link backup-person">↪ Yedek: ${esc(shelfBackup(data,s.id).name)}</div>`:'<div class="owner-link muted">Yedek tanımlanmamış</div>'}</div>${canEdit?`<div class="shelf-admin-actions"><button class="btn secondary add-product" data-shelf="${s.id}">+ Ürün</button><button class="btn secondary assign-shelf-user" data-shelf="${s.id}">Sorumlu Ata</button></div>`:''}</div></div>
-    ${ps.slice(0,4).map(p=>`<div class="product"><div class="product-name">${esc(p.name)}</div><div class="sub">${esc(p.unit)} · ${esc(p.barcode||'')}</div></div>`).join('')}
-    ${ps.length>4?`<div class="product sub">+${ps.length-4} ürün daha</div>`:''}</div>`;
-  }).join('')}
-  `;
+  const canManageShelf=currentRole==='superadmin';
+  const canManageProducts=['manager','superadmin'].includes(currentRole);
+  const activeShelves=data.shelves.filter(s=>s.active);
+  const selected=selectedShelfId?data.shelves.find(s=>s.id===selectedShelfId&&s.active):null;
+  if(selected){
+    const ps=data.products.filter(p=>p.shelfId===selected.id&&p.active).sort((x,y)=>x.name.localeCompare(y.name,'tr'));
+    const owner=shelfOwner(data,selected.id);
+    const backup=shelfBackup(data,selected.id);
+    return '<button class="back-home-btn" id="backShelfList">← Raflara dön</button>'
+      +'<div class="section-title"><h2>'+esc(selected.name)+'</h2><small>'+ps.length+' ürün</small></div>'
+      +'<div class="card"><div class="card-pad"><div class="meta">'+esc(selected.department)+' · '+esc(selected.location)+'</div>'
+      +'<div class="owner-link">👤 Ana sorumlu: '+esc(owner?.name||'Atanmamış')+'</div>'
+      +'<div class="owner-link backup-person">↪ Yedek: '+esc(backup?.name||'Yok')+'</div>'
+      +(canManageShelf?'<button class="btn secondary assign-shelf-user" data-shelf="'+selected.id+'">Sorumlu Ata</button>':'')
+      +(canManageProducts?'<button class="btn full add-product" data-shelf="'+selected.id+'">+ Bu rafa ürün ekle</button>':'')
+      +'</div></div>'
+      +(ps.length?ps.map(p=>productCardHtml(data,p,true)).join(''):'<div class="card empty">Bu rafta henüz ürün yok.</div>');
+  }
+  return '<div class="section-title"><h2>Raflar</h2>'
+    +(canManageShelf?'<div class="shelf-admin-actions"><button class="btn secondary" id="importExcel">Excel Yükle</button><button class="btn" id="addShelf">+ Raf</button></div>':'')
+    +'</div>'
+    +'<div class="shelf-grid">'
+    +activeShelves.map(s=>{
+      const count=data.products.filter(p=>p.shelfId===s.id&&p.active).length;
+      const owner=shelfOwner(data,s.id);
+      return '<button class="card shelf-select-card" data-shelf="'+s.id+'"><div class="card-pad">'
+        +'<strong>'+esc(s.name)+'</strong>'
+        +'<div class="meta">'+esc(s.department)+' · '+esc(s.location)+'<br>'+count+' ürün<br>Ana: '+esc(owner?.name||'Atanmamış')+'</div>'
+        +'</div></button>';
+    }).join('')
+    +'</div>';
+}
+
+function productCardHtml(data,p,openable=true){
+  const s=data.shelves.find(x=>x.id===p.shelfId);
+  const owner=s?shelfOwner(data,s.id):null;
+  const backup=s?shelfBackup(data,s.id):null;
+  const editable=['manager','superadmin'].includes(currentRole);
+  const tag=openable?'button':'div';
+  const attrs=openable?' class="card product-info-card open-product" data-product="'+p.id+'"':' class="card product-info-card"';
+  return '<'+tag+attrs+'><div class="card-pad">'
+    +'<div class="simple-row"><div><strong>'+esc(p.name)+'</strong><div class="meta">'+esc(p.barcode||'Barkod yok')+' · '+esc(p.unit||'')+'</div></div>'
+    +(editable?'<span class="badge blue">Düzenle</span>':'<span class="badge dark">Görüntüle</span>')+'</div>'
+    +'<div class="product-location-line"><b>Raf:</b> '+esc(s?.name||'Raf yok')+'</div>'
+    +'<div class="product-location-line"><b>Ana sorumlu:</b> '+esc(owner?.name||'Atanmamış')+'</div>'
+    +(backup?'<div class="product-location-line"><b>Yedek:</b> '+esc(backup.name)+'</div>':'')
+    +'</div></'+tag+'>';
+}
+function productsView(data){
+  return '<div class="section-title"><h2>Ürünler</h2><small>'+data.products.filter(p=>p.active).length+' ürün</small></div>'
+    +'<div class="card"><div class="card-pad form-grid"><label>Ürün / barkod ara<input id="globalProductSearch" placeholder="Ürün adı veya barkod yaz" autocomplete="off"></label>'
+    +'<div id="globalProductResults" class="search-results"><div class="sub">Aramaya başla. Ürün kartında raf ve sorumlular görünür.</div></div></div></div>';
+}
+function productDetailModal(data,productId){
+  const p=data.products.find(x=>x.id===productId);
+  if(!p) return;
+  const s=data.shelves.find(x=>x.id===p.shelfId);
+  const owner=s?shelfOwner(data,s.id):null;
+  const backup=s?shelfBackup(data,s.id):null;
+  const editable=['manager','superadmin'].includes(currentRole);
+  if(!editable){
+    openModal('Ürün kartı','<div class="form-grid"><div><strong>'+esc(p.name)+'</strong><div class="meta">'+esc(p.barcode||'Barkod yok')+' · '+esc(p.unit||'')+'</div></div>'
+      +'<div class="card" style="box-shadow:none"><div class="card-pad"><b>Raf:</b> '+esc(s?.name||'Raf yok')+'<br><b>Ana sorumlu:</b> '+esc(owner?.name||'Atanmamış')+(backup?'<br><b>Yedek:</b> '+esc(backup.name):'')+'</div></div></div>');
+    return;
+  }
+  const shelfOptions=data.shelves.filter(x=>x.active).map(x=>'<option value="'+x.id+'" '+(x.id===p.shelfId?'selected':'')+'>'+esc(x.name)+'</option>').join('');
+  openModal('Ürün kartı','<div class="form-grid">'
+    +'<label>Ürün adı<input id="editProductName" value="'+esc(p.name)+'"></label>'
+    +'<label>Barkod<input id="editProductBarcode" value="'+esc(p.barcode||'')+'"></label>'
+    +'<label>Birim<select id="editProductUnit">'+['adet','kg','koli','paket','şişe','kasa'].map(u=>'<option '+(u===p.unit?'selected':'')+'>'+u+'</option>').join('')+'</select></label>'
+    +'<label>Raf<select id="editProductShelf">'+shelfOptions+'</select></label>'
+    +'<div class="card" style="box-shadow:none"><div class="card-pad"><b>Ana sorumlu:</b> '+esc(owner?.name||'Atanmamış')+(backup?'<br><b>Yedek:</b> '+esc(backup.name):'')+'</div></div>'
+    +'<button class="btn full" id="saveProductEdit">Ürünü kaydet</button></div>');
+  document.getElementById('saveProductEdit').onclick=async()=>{
+    p.name=document.getElementById('editProductName').value||p.name;
+    p.barcode=document.getElementById('editProductBarcode').value||'';
+    p.unit=document.getElementById('editProductUnit').value;
+    p.shelfId=document.getElementById('editProductShelf').value;
+    await put('products',p);
+    closeModal();
+    render();
+  };
 }
 function peopleView(data){
   if(!['manager','superadmin'].includes(currentRole)) return '<div class="card empty">Bu alan için yetkiniz yok.</div>';
