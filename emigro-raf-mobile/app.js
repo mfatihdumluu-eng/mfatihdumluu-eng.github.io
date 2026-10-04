@@ -559,6 +559,31 @@ function showMultiIssueForm(data,p,shelfId){
     +'<button class="btn full" id="saveMultiIssue">Sorunları bildir</button>'
     +'</div>');
 
+  document.querySelectorAll('.check-row').forEach(row=>{
+    row.onclick=(e)=>{
+      const input=row.querySelector('input.issue-select');
+      if(!input) return;
+      e.preventDefault();
+
+      if(input.type==='radio'){
+        const wasChecked=input.checked;
+        document.querySelectorAll('input[name="'+input.name+'"]').forEach(x=>x.checked=false);
+        input.checked=!wasChecked;
+      }else{
+        input.checked=!input.checked;
+      }
+
+      row.classList.toggle('selected',input.checked);
+      if(input.name){
+        document.querySelectorAll('input[name="'+input.name+'"]').forEach(x=>{
+          x.closest('.check-row')?.classList.toggle('selected',x.checked);
+        });
+      }
+
+      if(input.name==='dateIssue') refreshExpiry();
+    };
+  });
+
   const expiryWrap=document.getElementById('expiryWrap');
   const dateRadios=[...document.querySelectorAll('input[name="dateIssue"]')];
   const refreshExpiry=()=>{
@@ -573,7 +598,10 @@ function showMultiIssueForm(data,p,shelfId){
 
   document.querySelectorAll('.clear-radio').forEach(btn=>{
     btn.onclick=()=>{
-      document.querySelectorAll('input[name="'+btn.dataset.name+'"]').forEach(x=>x.checked=false);
+      document.querySelectorAll('input[name="'+btn.dataset.name+'"]').forEach(x=>{
+        x.checked=false;
+        x.closest('.check-row')?.classList.remove('selected');
+      });
       if(btn.dataset.name==='dateIssue') refreshExpiry();
     };
   });
