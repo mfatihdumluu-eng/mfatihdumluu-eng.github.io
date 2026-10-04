@@ -680,7 +680,16 @@ function bindActions(data){
         read:false,closed:false,sourceIssueId:issue.id
       });
     }
-    alert('Sorun raf sorumlusuna ve yönetime gönderildi.');
+    for(const admin of data.users.filter(u=>u.active&&u.role==='superadmin')){
+      await put('notifications',{
+        id:uid('n'),ts:Date.now(),date:today(),time:timeNow(),
+        targetUserId:admin.id,shelfId:p.shelfId,
+        title:'Kasadan ürün sorunu',
+        message:p.name+' · '+(STATUS[type]?.label||type)+(owner?' · Sorumlu: '+owner.name:' · Sorumlu atanmamış')+(note?' · '+note:''),
+        read:false,closed:false,sourceIssueId:issue.id
+      });
+    }
+    alert('Sorun raf sorumlusuna ve admine gönderildi.');
     render();
   });
   document.querySelectorAll('.problem-btn').forEach(b=>b.onclick=()=>{
