@@ -575,7 +575,8 @@ function productSearchCard(data,p,selectable=false){
   const s=data.shelves.find(x=>x.id===p.shelfId);
   const owner=s?shelfOwner(data,s.id):null;
   const backup=s?shelfBackup(data,s.id):null;
-  return '<button class="product-search-row '+(selectable?'select-cash-product':'')+'" '+(selectable?'data-product="'+p.id+'"':'type="button"')+'>'
+  const cls=selectable?'select-cash-product':'open-product';
+  return '<button class="product-search-row '+cls+'" data-product="'+p.id+'">'
     +'<strong>'+esc(p.name)+'</strong>'
     +'<span>'+esc(p.barcode||'Barkod yok')+' · '+esc(s?.name||'Raf yok')+'</span>'
     +'<span>Ana: '+esc(owner?.name||'Atanmamış')+(backup?' · Yedek: '+esc(backup.name):'')+'</span>'
@@ -639,6 +640,21 @@ function excelImportModal(data){
   };
 }
 function bindActions(data){
+  document.querySelectorAll('.shelf-select-card').forEach(b=>b.onclick=()=>{selectedShelfId=b.dataset.shelf;render();});
+  document.getElementById('backShelfList')?.addEventListener('click',()=>{selectedShelfId=null;render();});
+
+  const globalSearch=document.getElementById('globalProductSearch');
+  if(globalSearch){
+    globalSearch.oninput=()=>{
+      const rows=productSearchRows(data,globalSearch.value);
+      document.getElementById('globalProductResults').innerHTML=rows.length
+        ?rows.map(p=>productSearchCard(data,p,false)).join('')
+        :'<div class="sub">Eşleşen ürün bulunamadı.</div>';
+      document.querySelectorAll('.open-product').forEach(b=>b.onclick=()=>productDetailModal(data,b.dataset.product));
+    };
+  }
+  document.querySelectorAll('.open-product').forEach(b=>b.onclick=()=>productDetailModal(data,b.dataset.product));
+
   document.getElementById('importExcel')?.addEventListener('click',()=>excelImportModal(data));
 
   const adminSearch=document.getElementById('adminProductSearch');
@@ -648,6 +664,7 @@ function bindActions(data){
       document.getElementById('adminProductResults').innerHTML=rows.length
         ?rows.map(p=>productSearchCard(data,p,false)).join('')
         :'<div class="sub">Eşleşen ürün bulunamadı.</div>';
+      document.querySelectorAll('#adminProductResults .open-product').forEach(b=>b.onclick=()=>productDetailModal(data,b.dataset.product));
     };
   }
 
