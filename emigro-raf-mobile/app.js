@@ -421,7 +421,7 @@ function peopleView(data){
   if(!['manager','superadmin'].includes(currentRole)) return '<div class="card empty">Bu alan için yetkiniz yok.</div>';
   return `
   <div class="section-title"><h2>${currentRole==='superadmin'?'Kullanıcı Yönetimi':'Personel'}</h2>${currentRole==='superadmin'?'<button class="btn" id="addUser">+ Kullanıcı</button>':''}</div>
-  ${data.users.map(u=>`<button class="card user-card performance-user" data-user="${u.id}"><div class="card-pad user-row"><div class="row-left"><div class="avatar">${esc(u.name.charAt(0))}</div><div><strong>${esc(u.name)}</strong><div class="meta">@${esc(u.username)} · ${ROLE_NAMES[u.role]}</div></div></div><div class="user-card-right"><span class="badge ${u.active?'ok':'dark'}">${u.active?'Aktif':'Pasif'}</span>${icon('chart',18)}</div></div></button>`).join('')}
+  ${data.users.map(u=>`<button class="card user-card ${currentRole==='superadmin'?'edit-user':'performance-user'}" data-user="${u.id}"><div class="card-pad user-row"><div class="row-left"><div class="avatar">${esc(u.name.charAt(0))}</div><div><strong>${esc(u.name)}</strong><div class="meta">@${esc(u.username)} · ${ROLE_NAMES[u.role]}</div></div></div><div class="user-card-right"><span class="badge ${u.active?'ok':'dark'}">${u.active?'Aktif':'Pasif'}</span>${icon(currentRole==='superadmin'?'users':'chart',18)}</div></div></button>`).join('')}
   `;
 }
 function performanceView(data){
@@ -480,6 +480,7 @@ function bindActions(data){
   document.getElementById('homeClearIssueFilters')?.addEventListener('click',()=>{issueUserFilter='all';issueTypeFilter='all';render();});
   document.querySelectorAll('.open-notifications').forEach(b=>b.onclick=()=>{currentView='notifications';render();});
   document.querySelectorAll('.performance-user').forEach(b=>b.onclick=()=>monthlyPerformanceModal(data,b.dataset.user));
+  document.querySelectorAll('.edit-user').forEach(b=>b.onclick=()=>userDetailModal(data,b.dataset.user));
   document.querySelectorAll('.go-shelf').forEach(b=>b.onclick=()=>{currentView='home';render().then(()=>setTimeout(()=>document.querySelector('[data-shelf-card="'+b.dataset.shelf+'"]')?.scrollIntoView({behavior:'smooth',block:'start'}),50));});
   document.querySelectorAll('.close-note').forEach(b=>b.onclick=async()=>{
     const n=(data.notifications||[]).find(x=>x.id===b.dataset.id);
@@ -847,16 +848,144 @@ function productModal(shelfId){
   openModal('Rafa ürün ekle',`<div class="form-grid"><label>Ürün adı<input id="pName"></label><label>Barkod<input id="pBarcode" inputmode="numeric"></label><label>Birim<select id="pUnit"><option>adet</option><option>kg</option><option>koli</option><option>paket</option><option>şişe</option><option>kasa</option></select></label><button class="btn full" id="saveProduct">Ürünü ekle</button></div>`);
   document.getElementById('saveProduct').onclick=async()=>{await put('products',{id:uid('p'),shelfId,name:document.getElementById('pName').value||'Yeni ürün',barcode:document.getElementById('pBarcode').value,unit:document.getElementById('pUnit').value,required:true,active:true});closeModal();render();};
 }
-function userModal(data){
-  const shelfOpts=data.shelves.filter(s=>s.active).map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
-  openModal('Yeni Kullanıcı',`<div class="form-grid"><label>Ad soyad<input id="uName"></label><label>Kullanıcı adı<input id="uLogin" autocapitalize="none"></label><label>Şifre<input id="uPass" type="password"></label><label>Rol<select id="uRole"><option value="employee">Çalışan</option><option value="warehouse">Depo Sorumlusu</option><option value="manager">Mağaza Müdürü</option><option value="superadmin">Süper Admin</option></select></label><label>Sorumlu raflar<select id="uShelves" multiple size="5">${shelfOpts}</select></label><button class="btn full" id="saveUser">Kullanıcı oluştur</button></div>`);
-  document.getElementById('saveUser').onclick=async()=>{
-    const id=uid('u'); const role=document.getElementById('uRole').value;
-    await put('users',{id,name:document.getElementById('uName').value||'Yeni Kullanıcı',username:document.getElementById('uLogin').value||uid('user'),password:document.getElementById('uPass').value||'1234',role,active:true});
-    if(role==='employee'){
-      [...document.getElementById('uShelves').selectedOptions].forEach(async o=>await put('assignments',{id:uid('a'),userId:id,shelfId:o.value,assignmentType:'primary',active:true}));
+
+function inviteUrl(user){
+  const token=user.inviteToken||user.id;
+  return location.origin+location.pathname+'?invite='+encodeURIComponent(token);
+}
+function shelfAssignmentOption(data,s,mode){
+  const owner=shelfOwner(data,s.id);
+  const backup=shelfBackup(data,s.id);
+  let disabled=false;
+  let note='';
+  if(mode==='primary'){
+    disabled=!!owner;
+    note=owner?' — '+owner.name:'';
+  }else{
+    disabled=!owner||!!backup;
+    if(!owner) note=' — önce ana sorumlu gerekli';
+    else if(backup) note=' — yedek: '+backup.name;
+    else note=' — ana: '+owner.name;
+  }
+  return '<option value="'+s.id+'" '+(disabled?'disabled':'')+'>'+esc(s.name+note)+'</option>';
+}
+function refreshUserShelfOptions(data){
+  const select=document.getElementById('uShelves');
+  if(!select) return;
+  const mode=document.querySelector('input[name="assignmentMode"]:checked')?.value||'primary';
+  select.innerHTML=data.shelves.filter(s=>s.active).map(s=>shelfAssignmentOption(data,s,mode)).join('');
+  document.getElementById('assignmentHelp').textContent=mode==='primary'
+    ?'Ana sorumlusu olan raflar seçilemez.'
+    :'Sadece ana sorumlusu olan ve henüz yedeği bulunmayan raflar seçilebilir.';
+}
+function showInviteModal(user){
+  const link=inviteUrl(user);
+  openModal('Kullanıcı oluşturuldu',
+    '<div class="form-grid">'
+    +'<div class="notice" style="margin:0"><b>'+esc(user.name)+'</b><br>Kullanıcı adı: <b>'+esc(user.username)+'</b></div>'
+    +'<label>Davet linki<input id="inviteLink" readonly value="'+esc(link)+'"></label>'
+    +'<div class="btn-row"><button class="btn full" id="copyInvite">Davet linkini kopyala</button><button class="btn secondary full" id="shareInvite">Paylaş</button></div>'
+    +'<div class="sub">Kullanıcı bu bağlantıdan giriş ekranına ulaşacak. Şifresini ayrıca güvenli şekilde paylaşabilirsin.</div>'
+    +'</div>');
+  document.getElementById('copyInvite').onclick=async()=>{
+    await navigator.clipboard.writeText(link);
+    document.getElementById('copyInvite').textContent='✓ Kopyalandı';
+  };
+  document.getElementById('shareInvite').onclick=async()=>{
+    if(navigator.share) await navigator.share({title:'EMİGRO Raf Kontrol',text:'Giriş bağlantın',url:link});
+    else {
+      await navigator.clipboard.writeText(link);
+      alert('Davet linki kopyalandı.');
     }
-    closeModal();render();
+  };
+}
+function userModal(data){
+  openModal('Yeni Kullanıcı',
+    '<div class="form-grid">'
+    +'<label>Ad soyad<input id="uName"></label>'
+    +'<label>Kullanıcı adı<input id="uLogin" autocapitalize="none"></label>'
+    +'<label>Şifre<input id="uPass" type="password"></label>'
+    +'<label>Rol<select id="uRole"><option value="employee">Çalışan</option><option value="warehouse">Depo Sorumlusu</option><option value="manager">Mağaza Müdürü</option><option value="superadmin">Süper Admin</option></select></label>'
+    +'<div id="employeeShelfArea">'
+      +'<div class="issue-group-title">Raf atama tipi</div>'
+      +'<label class="check-row"><input type="radio" name="assignmentMode" value="primary" checked> Ana sorumlu olarak ata</label>'
+      +'<label class="check-row"><input type="radio" name="assignmentMode" value="backup"> Yedek olarak ata</label>'
+      +'<div class="sub" id="assignmentHelp"></div>'
+      +'<label>Raflar<select id="uShelves" multiple size="6"></select></label>'
+    +'</div>'
+    +'<button class="btn full" id="saveUser">Kullanıcı oluştur ve davet et</button>'
+    +'</div>');
+
+  const roleEl=document.getElementById('uRole');
+  const shelfArea=document.getElementById('employeeShelfArea');
+  const updateRole=()=>{
+    shelfArea.style.display=roleEl.value==='employee'?'grid':'none';
+    refreshUserShelfOptions(data);
+  };
+  roleEl.onchange=updateRole;
+  document.querySelectorAll('input[name="assignmentMode"]').forEach(r=>r.onchange=()=>refreshUserShelfOptions(data));
+  updateRole();
+
+  document.getElementById('saveUser').onclick=async()=>{
+    const id=uid('u');
+    const role=roleEl.value;
+    const user={
+      id,
+      name:document.getElementById('uName').value||'Yeni Kullanıcı',
+      username:document.getElementById('uLogin').value||uid('user'),
+      password:document.getElementById('uPass').value||'1234',
+      role,
+      active:true,
+      inviteToken:uid('invite')
+    };
+    await put('users',user);
+    if(role==='employee'){
+      const mode=document.querySelector('input[name="assignmentMode"]:checked')?.value||'primary';
+      const selected=[...document.getElementById('uShelves').selectedOptions];
+      for(const o of selected){
+        await put('assignments',{id:uid('a'),userId:id,shelfId:o.value,assignmentType:mode,active:true});
+      }
+    }
+    showInviteModal(user);
+  };
+}
+async function userDetailModal(data,userId){
+  const user=data.users.find(u=>u.id===userId);
+  if(!user) return;
+  if(!user.inviteToken){
+    user.inviteToken=uid('invite');
+    await put('users',user);
+  }
+  const primary=data.assignments.filter(a=>a.userId===user.id&&a.active&&a.assignmentType!=='backup')
+    .map(a=>data.shelves.find(s=>s.id===a.shelfId)?.name).filter(Boolean);
+  const backup=data.assignments.filter(a=>a.userId===user.id&&a.active&&a.assignmentType==='backup')
+    .map(a=>data.shelves.find(s=>s.id===a.shelfId)?.name).filter(Boolean);
+  const link=inviteUrl(user);
+  openModal('Kullanıcı bilgileri',
+    '<div class="form-grid">'
+    +'<div><strong>'+esc(user.name)+'</strong><div class="sub">'+esc(ROLE_NAMES[user.role]||user.role)+'</div></div>'
+    +'<label>Kullanıcı adı<input id="editUsername" value="'+esc(user.username)+'"></label>'
+    +'<label>Yeni şifre<input id="editPassword" type="password" placeholder="Değiştirmek istemiyorsan boş bırak"></label>'
+    +'<div class="card" style="box-shadow:none"><div class="card-pad"><strong>Raf yetkileri</strong><div class="meta">Ana: '+(primary.map(esc).join(', ')||'Yok')+'<br>Yedek: '+(backup.map(esc).join(', ')||'Yok')+'</div></div></div>'
+    +'<label>Davet linki<input id="userInviteLink" readonly value="'+esc(link)+'"></label>'
+    +'<div class="btn-row"><button class="btn secondary" id="copyUserInvite">Linki kopyala</button><button class="btn secondary" id="shareUserInvite">Paylaş</button></div>'
+    +'<button class="btn full" id="saveUserSettings">Bilgileri kaydet</button>'
+    +'</div>');
+  document.getElementById('copyUserInvite').onclick=async()=>{
+    await navigator.clipboard.writeText(link);
+    document.getElementById('copyUserInvite').textContent='✓ Kopyalandı';
+  };
+  document.getElementById('shareUserInvite').onclick=async()=>{
+    if(navigator.share) await navigator.share({title:'EMİGRO Raf Kontrol',text:'Giriş bağlantın',url:link});
+    else {await navigator.clipboard.writeText(link);alert('Davet linki kopyalandı.');}
+  };
+  document.getElementById('saveUserSettings').onclick=async()=>{
+    user.username=document.getElementById('editUsername').value||user.username;
+    const pass=document.getElementById('editPassword').value;
+    if(pass) user.password=pass;
+    await put('users',user);
+    closeModal();
+    render();
   };
 }
 
