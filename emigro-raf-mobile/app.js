@@ -49,6 +49,7 @@ function showAuth(){
 }
 function showApp(){
   document.getElementById('authScreen').style.display='none';
+  updateConnectionBanner();
   document.getElementById('mainApp').style.display='block';
   const sys=document.getElementById('systemUserButton');
   if(sys) sys.style.display=isSystemAdmin()?'inline-flex':'none';
@@ -118,6 +119,20 @@ async function ensureBundledCatalog(){
     localStorage.setItem('raf_catalog_version',version);
   }catch(e){console.error('Catalog import failed',e);}
 }
+function updateConnectionBanner(){
+  const el=document.getElementById('connectionBanner');
+  if(!el) return;
+  if(navigator.onLine){
+    el.hidden=true;
+    el.textContent='';
+  }else{
+    el.hidden=false;
+    el.textContent='İnternet bağlantısı yok. Test kayıtları bu cihazda çalışmaya devam eder; dış servisler kullanılamayabilir.';
+  }
+}
+window.addEventListener('online',updateConnectionBanner);
+window.addEventListener('offline',updateConnectionBanner);
+
 async function initAuth(){
   await seed();
   await ensureBundledCatalog();
@@ -1294,17 +1309,40 @@ function profileView(data){
   <div class="card"><div class="card-pad"><strong>Yetki</strong><div class="meta">${currentRole==='employee'?'Sadece atanmış raflarını kontrol eder ve sorun bildirir.':currentRole==='warehouse'?'Rafta yok bildirimlerini doğrular ve depo durumunu bildirir.':currentRole==='manager'?'Raf/ürün tanımlar, tüm kontrolleri ve hataları görür.':'Tüm sistemi, kullanıcıları, şifreleri, roller ve raf atamalarını yönetir.'}</div></div></div>`;
 }
 
+let modalHistoryPushed=false;
 function openModal(title,body){
   const dialog=document.getElementById('modal');
   document.getElementById('modalTitle').textContent=title;
   document.getElementById('modalBody').innerHTML=body;
-  if(!dialog.open) dialog.showModal();
+  if(!dialog.open){
+    dialog.showModal();
+    document.body.classList.add('modal-open');
+    if(!history.state?.emigroModal){
+      history.pushState({...history.state,emigroModal:true},'',location.href);
+      modalHistoryPushed=true;
+    }
+  }
   dialog.scrollTop=0;
 }
-function closeModal(){
+function closeModal(skipHistory=false){
   const dialog=document.getElementById('modal');
   if(dialog.open) dialog.close();
+  document.body.classList.remove('modal-open');
+  if(!skipHistory&&modalHistoryPushed&&history.state?.emigroModal){
+    modalHistoryPushed=false;
+    history.back();
+  }else if(skipHistory){
+    modalHistoryPushed=false;
+  }
 }
+window.addEventListener('popstate',()=>{
+  const dialog=document.getElementById('modal');
+  if(dialog?.open) closeModal(true);
+});
+document.getElementById('modal')?.addEventListener('cancel',e=>{
+  e.preventDefault();
+  closeModal();
+});
 
 function productSearchRows(data,query){
   const q=(query||'').trim().toLocaleLowerCase('tr');
