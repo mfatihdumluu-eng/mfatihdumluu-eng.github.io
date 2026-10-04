@@ -163,3 +163,10 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 .shelf-permissions-card{width:100%;border:1px solid var(--line);background:#fff;color:inherit}
 .shelf-permissions-card .simple-row>span{font-size:30px;line-height:1;color:#7b8492}
 .shelf-permissions-card:active{transform:scale(.99)}
+
+.search-results{display:grid;gap:8px}
+.product-search-row{width:100%;border:1px solid var(--line);background:#fff;border-radius:16px;padding:12px 14px;text-align:left;display:grid;gap:4px;color:inherit}
+.product-search-row strong{font-size:15px}
+.product-search-row span{font-size:12px;color:#6b7280}
+.product-search-row:active{transform:scale(.99)}
+.selected-product{border:1px solid #a7d1ff;background:#eef6ff;border-radius:16px;padding:12px 14px}
