@@ -122,3 +122,14 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 .check-row input{width:auto;margin:0}
 .performance-profile .metric{box-shadow:none;border:1px solid var(--line)}
 .bottom-nav{grid-template-columns:repeat(auto-fit,minmax(56px,1fr))}
+
+.sf-icon{display:inline-block;vertical-align:middle;flex:none}
+.bottom-nav button span{display:flex;align-items:center;justify-content:center;height:22px;margin-bottom:3px}
+.admin-actions .btn,.resolve-issue{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.user-card{width:100%;border:0;text-align:left;color:inherit}
+.user-card-right{display:flex;align-items:center;gap:9px}
+.tool-card{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text);background:#fff;border-radius:16px;padding:14px;box-shadow:var(--shadow);margin-bottom:12px}
+.tool-card .tool-icon{width:42px;height:42px;border-radius:12px;background:#eef2f7;display:grid;place-items:center}
+.tool-card strong{display:block;font-size:14px}
+.tool-card small{display:block;color:var(--muted);margin-top:2px;font-size:11px}
+.tool-card .tool-open{margin-left:auto;color:#6b7280;display:flex}
