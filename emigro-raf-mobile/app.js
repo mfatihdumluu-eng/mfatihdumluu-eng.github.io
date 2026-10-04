@@ -21,6 +21,10 @@ let issueUserFilter='all';
 let issueTypeFilter='all';
 let selectedShelfId=null;
 let selectedSystemUserId=null;
+let employeeShelfId=null;
+let employeeMeter='all';
+let employeeLevel='all';
+let employeePosition='all';
 let currentUser=null;
 let viewAsUserId=null;
 const RAF_AUTH_URL='https://hroarfuwpfsqilsijwpp.supabase.co/functions/v1/raf-auth';
@@ -355,22 +359,63 @@ async function homeView(data){
 function employeeHome(data){
   const assigned=data.assignments.filter(a=>a.userId===activeAppUserId()&&a.active&&a.assignmentType!=='backup').map(a=>a.shelfId);
   const shelves=data.shelves.filter(s=>assigned.includes(s.id)&&s.active);
+  if(employeeShelfId){
+    const shelf=shelves.find(s=>s.id===employeeShelfId);
+    if(shelf) return employeeShelfDetail(data,shelf);
+    employeeShelfId=null;
+  }
   const prog=shelves.map(s=>shelfProgress(data,s.id));
   const done=prog.filter(p=>p.complete).length;
   const pct=shelves.length?Math.round(done/shelves.length*100):0;
   const pending=shelves.filter(s=>s.approved!==true);
   return `
   <section class="hero">
-    <div class="hero-row"><div><div class="eyebrow">Bugünkü görev</div><h1>Rafları kontrol et</h1><p>Her ürüne OK veya sorun durumu ver.</p></div><div class="score">${pct}%</div></div>
+    <div class="hero-row"><div><div class="eyebrow">Bugünkü görev</div><h1>Rafları kontrol et</h1><p>Rafa gir, metre/kat/sıra seç ve bölümü topluca onayla.</p></div><div class="score">${pct}%</div></div>
     <div class="progress"><span style="width:${pct}%"></span></div>
   </section>
   ${employeeReminderBanner(data,shelves)}
   ${pending.length?`<div class="section-title"><h2>Onaylanmamış Raflar</h2><small>${pending.length} raf</small></div>${pending.map(s=>`<div class="notice pending-shelf"><b>Onay bekliyor:</b> ${esc(s.name)}<br><span>${esc(s.location||'')}</span></div>`).join('')}`:''}
-  <a class="tool-card" href="https://emigro-a4-prijs.floot.app" target="_blank" rel="noopener"><span class="tool-icon">${icon('print',22)}</span><span><strong>A4 Hazırla</strong><small>Fiyat afişi oluştur</small></span><span class="tool-open">${icon('external',18)}</span></a>
+  <div class="employee-tools">
+    <button class="tool-card employee-product-search"><span class="tool-icon">${icon('box',22)}</span><span><strong>Ürün ara</strong><small>Ad veya barkod ile bul</small></span></button>
+    <button class="tool-card employee-barcode-scan"><span class="tool-icon">${icon('test',22)}</span><span><strong>Barkod oku</strong><small>Ürün kartını aç</small></span></button>
+  </div>
   <div class="section-title"><h2>Raflarım</h2><small>${done}/${shelves.length} tamamlandı</small></div>
-  ${shelves.map(s=>shelfCard(data,s)).join('')}
+  ${shelves.map(s=>employeeShelfTile(data,s)).join('')}
   `;
 }
+
+function employeeShelfTile(data,shelf){
+  const progress=shelfProgress(data,shelf.id);
+  const products=data.products.filter(p=>p.shelfId===shelf.id&&p.active&&p.required);
+  const meters=[...new Set(products.map(p=>p.meter).filter(v=>v!=null))].sort((a,b)=>a-b);
+  return '<button class="card employee-open-shelf" data-shelf="'+shelf.id+'"><div class="card-pad shelf-head"><div><div class="shelf-title">'+esc(shelf.name)+'</div><div class="sub">'+products.length+' ürün · '+meters.length+' metre · '+progress.done+'/'+progress.total+' kontrol</div></div><span class="badge '+(shelf.approved!==true?'warn':progress.complete?'ok':'dark')+'">'+(shelf.approved!==true?'Onaylanmamış':progress.complete?'Tamamlandı':'Aç')+'</span></div></button>';
+}
+
+function employeeShelfDetail(data,shelf){
+  const allProducts=data.products.filter(p=>p.shelfId===shelf.id&&p.active&&p.required).sort((a,b)=>(a.meter||0)-(b.meter||0)||(a.level||0)-(b.level||0)||(a.position||0)-(b.position||0));
+  const meters=[...new Set(allProducts.map(p=>p.meter).filter(v=>v!=null))].sort((a,b)=>a-b);
+  const meterProducts=employeeMeter==='all'?allProducts:allProducts.filter(p=>String(p.meter)===String(employeeMeter));
+  const levels=[...new Set(meterProducts.map(p=>p.level).filter(v=>v!=null))].sort((a,b)=>a-b);
+  const levelProducts=employeeLevel==='all'?meterProducts:meterProducts.filter(p=>String(p.level)===String(employeeLevel));
+  const positions=[...new Set(levelProducts.map(p=>p.position).filter(v=>v!=null))].sort((a,b)=>a-b);
+  let filtered=employeePosition==='all'?levelProducts:levelProducts.filter(p=>String(p.position)===String(employeePosition));
+  const checks=todaysChecks(data);
+  const unchecked=filtered.filter(p=>!checks.some(x=>x.productId===p.id&&x.shelfId===shelf.id));
+  const meterOpts='<option value="all">Tüm metreler</option>'+meters.map(v=>'<option value="'+v+'" '+(String(employeeMeter)===String(v)?'selected':'')+'>Metre '+v+'</option>').join('');
+  const levelOpts='<option value="all">Tüm katlar</option>'+levels.map(v=>'<option value="'+v+'" '+(String(employeeLevel)===String(v)?'selected':'')+'>Kat '+v+'</option>').join('');
+  const posOpts='<option value="all">Tüm sıralar</option>'+positions.map(v=>'<option value="'+v+'" '+(String(employeePosition)===String(v)?'selected':'')+'>Sıra '+v+'</option>').join('');
+  const label=(employeeMeter==='all'?'Tüm raf':'Metre '+employeeMeter)+(employeeLevel==='all'?'':' · Kat '+employeeLevel)+(employeePosition==='all'?'':' · Sıra '+employeePosition);
+  return '<button class="back-home-btn" id="backEmployeeShelves">← Raflarıma dön</button>'
+    +'<div class="section-title"><h2>'+esc(shelf.name)+'</h2><small>'+filtered.length+' ürün</small></div>'
+    +'<div class="card"><div class="card-pad form-grid">'
+    +'<div class="filter-triple"><label>Metre<select id="employeeMeterFilter">'+meterOpts+'</select></label><label>Kat<select id="employeeLevelFilter">'+levelOpts+'</select></label><label>Sıra<select id="employeePositionFilter">'+posOpts+'</select></label></div>'
+    +'<div class="btn-row"><button class="btn secondary employee-product-search">Ürün ara</button><button class="btn secondary employee-barcode-scan">Barkod oku</button></div>'
+    +(unchecked.length?'<button class="btn success full approve-location" data-shelf="'+shelf.id+'">✓ '+esc(label)+' — sorun yok, onayla ('+unchecked.length+')</button>':'<div class="notice" style="background:#e8f7ef;border-color:#a8dfc2;color:#0f6d43"><b>✓ Bu seçim bugün kontrol edildi.</b></div>')
+    +'</div></div>'
+    +'<div class="section-title"><h2>Bu bölümdeki ürünler</h2><small>'+filtered.length+'</small></div>'
+    +(filtered.length?filtered.map(p=>productCardHtml(data,p,true)).join(''):'<div class="card empty">Bu seçimde ürün yok.</div>');
+}
+
 function shelfCard(data,shelf){
   const pr=data.products.filter(p=>p.shelfId===shelf.id&&p.active&&p.required);
   const checks=todaysChecks(data).filter(c=>c.shelfId===shelf.id);
