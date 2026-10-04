@@ -1,6 +1,6 @@
 const DB_NAME='raf';
 const DB_VERSION=2;
-const ROLE_NAMES={employee:'Çalışan',cashier:'Kasa Kullanıcısı',warehouse:'Depo Sorumlusu',manager:'Mağaza Müdürü',superadmin:'Süper Admin'};
+const ROLE_NAMES={employee:'Çalışan',cashier:'Kasa Kullanıcısı',warehouse:'Depo Sorumlusu',manager:'Mağaza Müdürü',superadmin:'Süper Admin',system_admin:'Sistem Yönetici'};
 const STATUS={
   ok:{label:'OK',cls:'ok'},
   expiring:{label:'Tarihi yaklaşıyor',cls:'warn'},
@@ -55,7 +55,10 @@ function setEffectiveUser(user){
 }
 async function initAuth(){
   await seed();
-  const resetToken=new URLSearchParams(location.search).get('reset');
+  const params=new URLSearchParams(location.search);
+  const invitedUsername=params.get('login');
+  if(invitedUsername&&document.getElementById('loginUsername')) document.getElementById('loginUsername').value=invitedUsername;
+  const resetToken=params.get('reset');
   if(resetToken){
     document.getElementById('loginPanel').style.display='none';
     document.getElementById('resetPanel').style.display='block';
@@ -138,11 +141,11 @@ async function seed(){
   const users=await all('users');
   if(users.length) return;
   const demoUsers=[
-    {id:'u_emp',name:'Ahmet Yılmaz',username:'ahmet',password:'1234',role:'employee',active:true},
-    {id:'u_cash',name:'Elif Demir',username:'elifkasa',password:'1234',role:'cashier',active:true},
-    {id:'u_wh',name:'Mustafa Kaya',username:'mustafa',password:'1234',role:'warehouse',active:true},
-    {id:'u_mgr',name:'Selin Demir',username:'selin',password:'1234',role:'manager',active:true},
-    {id:'u_admin',name:'Fatih Dumlu',username:'admin',password:'admin123',role:'superadmin',active:true},
+    {id:'u_emp',name:'Ahmet Yılmaz',username:'ahmet',role:'employee',active:true},
+    {id:'u_cash',name:'Elif Demir',username:'elifkasa',role:'cashier',active:true},
+    {id:'u_wh',name:'Mustafa Kaya',username:'mustafa',role:'warehouse',active:true},
+    {id:'u_mgr',name:'Selin Demir',username:'selin',role:'manager',active:true},
+    {id:'u_admin',name:'Fatih Dumlu',username:'fatih',role:'superadmin',active:true},
   ];
   const shelves=[
     {id:'s1',name:'Dranken 01',department:'İçecek',location:'Gang 1 - Sol',active:true},
@@ -1415,9 +1418,82 @@ async function userDetailModal(data,userId){
 }
 
 document.getElementById('roleTabs').addEventListener('click',e=>{
+  if(!isSystemAdmin()) return;
   const b=e.target.closest('button[data-role]'); if(!b)return;
   currentRole=b.dataset.role; currentView='home'; render();
 });
 document.getElementById('modalClose').onclick=closeModal;
-document.getElementById('resetDemo').onclick=async()=>{if(confirm('Demo verileri sıfırlansın mı?')){await clearAll();await seed();render();}};
-seed().then(render);
+document.getElementById('resetDemo').onclick=async()=>{if(isSystemAdmin()&&confirm('Demo verileri sıfırlansın mı?')){await clearAll();await seed();render();}};
+
+document.getElementById('loginButton').onclick=async()=>{
+  const username=document.getElementById('loginUsername').value.trim().toLowerCase();
+  const password=document.getElementById('loginPassword').value;
+  const msg=document.getElementById('authMessage');
+  msg.textContent='Giriş yapılıyor...';
+  try{
+    const out=await rafAuth('login',{username,password});
+    localStorage.setItem('raf_auth_token',out.token);
+    setEffectiveUser(out.user);
+    msg.textContent='';
+    showApp();
+    await render();
+  }catch(e){
+    msg.textContent=e.message||'Giriş yapılamadı.';
+  }
+};
+
+document.getElementById('loginPassword').addEventListener('keydown',e=>{
+  if(e.key==='Enter') document.getElementById('loginButton').click();
+});
+
+document.getElementById('forgotPassword').onclick=async()=>{
+  const username=document.getElementById('loginUsername').value.trim().toLowerCase();
+  const msg=document.getElementById('authMessage');
+  if(!username){msg.textContent='Önce kullanıcı adını yaz.';return;}
+  msg.textContent='İstek gönderiliyor...';
+  try{
+    await rafAuth('forgot',{username});
+    msg.textContent='Hesabın kurtarma e-postası tanımlıysa şifre sıfırlama bağlantısı gönderildi.';
+  }catch(e){
+    msg.textContent=e.message||'İstek gönderilemedi.';
+  }
+};
+
+document.getElementById('resetPasswordButton').onclick=async()=>{
+  const p1=document.getElementById('resetPassword').value;
+  const p2=document.getElementById('resetPassword2').value;
+  const msg=document.getElementById('resetMessage');
+  if(p1!==p2){msg.textContent='Şifreler aynı değil.';return;}
+  const token=new URLSearchParams(location.search).get('reset')||'';
+  msg.textContent='Şifre değiştiriliyor...';
+  try{
+    await rafAuth('reset',{reset_token:token,new_password:p1});
+    history.replaceState({},'',location.pathname);
+    document.getElementById('resetPanel').style.display='none';
+    document.getElementById('loginPanel').style.display='block';
+    msg.textContent='';
+    document.getElementById('authMessage').textContent='Şifre değiştirildi. Yeni şifrenle giriş yapabilirsin.';
+  }catch(e){
+    msg.textContent=e.message||'Şifre değiştirilemedi.';
+  }
+};
+
+document.getElementById('logoutButton').onclick=async()=>{
+  try{await rafAuth('logout');}catch(e){}
+  localStorage.removeItem('raf_auth_token');
+  currentUser=null;
+  viewAsUserId=null;
+  currentRole='employee';
+  currentView='home';
+  showAuth();
+};
+
+document.getElementById('systemUserButton').onclick=()=>{
+  if(!isSystemAdmin()) return;
+  viewAsUserId=null;
+  currentRole='superadmin';
+  currentView='system';
+  render();
+};
+
+initAuth();
