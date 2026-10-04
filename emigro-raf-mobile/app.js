@@ -330,7 +330,8 @@ function managerHome(data,isAdmin){
   ${un.length?`<div class="section-title"><h2>${afterDeadline(data.settings)?'Yapılmayan / geciken':'Henüz tamamlanmayan'}</h2><small>${un.length} raf</small></div>`:''
   }
   <div class="section-title"><h2>Hata ekranı</h2><small>${issues.length} açık</small></div>
-  ${issues.slice(0,4).map(i=>issueCard(data,i,false)).join('')||'<div class="card empty">Açık sorun yok.</div>'}
+  ${isAdmin?'<div class="filter-card admin-home-filter"><label>Kullanıcı<select id="homeIssueUserFilter"><option value="all">Tüm kullanıcılar</option>'+data.users.filter(u=>u.active&&u.role==='employee').map(u=>'<option value="'+u.id+'" '+(issueUserFilter===u.id?'selected':'')+'>'+esc(u.name)+'</option>').join('')+'</select></label><label>Sorun türü<select id="homeIssueTypeFilter">'+[['all','Tüm sorunlar'],['expiring','Tarihi yaklaşıyor'],['expired','Tarihi geçmiş'],['low','Stok az'],['missing','Rafta yok'],['damaged','Hasarlı / bozuk'],['label_missing','Raf etiketi yok'],['label_wrong','Raf etiketi yanlış']].map(([v,l])=>'<option value="'+v+'" '+(issueTypeFilter===v?'selected':'')+'>'+l+'</option>').join('')+'</select></label><button class="btn secondary full" id="homeClearIssueFilters">Filtreleri temizle</button></div>':''}
+  ${issues.filter(i=>!isAdmin||((issueUserFilter==='all'||i.reportedBy===issueUserFilter)&&(issueTypeFilter==='all'||i.type===issueTypeFilter))).slice(0,6).map(i=>issueCard(data,i,false)).join('')||'<div class="card empty">Bu filtreye uygun açık sorun yok.</div>'}
   `;
 }
 function issueCard(data,i,warehouseMode=false){
@@ -436,6 +437,11 @@ function bindActions(data){
   const typeFilter=document.getElementById('issueTypeFilter');
   if(typeFilter) typeFilter.onchange=()=>{issueTypeFilter=typeFilter.value;render();};
   document.getElementById('clearIssueFilters')?.addEventListener('click',()=>{issueUserFilter='all';issueTypeFilter='all';render();});
+  const homeUserFilter=document.getElementById('homeIssueUserFilter');
+  if(homeUserFilter) homeUserFilter.onchange=()=>{issueUserFilter=homeUserFilter.value;render();};
+  const homeTypeFilter=document.getElementById('homeIssueTypeFilter');
+  if(homeTypeFilter) homeTypeFilter.onchange=()=>{issueTypeFilter=homeTypeFilter.value;render();};
+  document.getElementById('homeClearIssueFilters')?.addEventListener('click',()=>{issueUserFilter='all';issueTypeFilter='all';render();});
   document.querySelectorAll('.open-notifications').forEach(b=>b.onclick=()=>{currentView='notifications';render();});
   document.querySelectorAll('.performance-user').forEach(b=>b.onclick=()=>monthlyPerformanceModal(data,b.dataset.user));
   document.querySelectorAll('.go-shelf').forEach(b=>b.onclick=()=>{currentView='home';render().then(()=>setTimeout(()=>document.querySelector('[data-shelf-card="'+b.dataset.shelf+'"]')?.scrollIntoView({behavior:'smooth',block:'start'}),50));});
