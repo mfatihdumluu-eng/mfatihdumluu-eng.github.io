@@ -87,3 +87,20 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 .kpi-line{height:7px;background:#edf0f3;border-radius:10px;margin-top:8px;overflow:hidden}
 .kpi-line span{display:block;height:100%;background:#111827}
 .small-link{border:0;background:none;color:#1769aa;font-size:12px;font-weight:800;padding:0}
+
+.primary-actions{grid-template-columns:1fr 1fr}
+.primary-actions button{min-height:46px;font-size:13px}
+.primary-actions .ok{background:#e9f8f0;border-color:#b7e5cd;color:#0e7548}
+.primary-actions .danger{background:#fff0f0;border-color:#f3b6b6;color:#b42318}
+.notice-button{width:100%;text-align:left;color:#7a4b00;cursor:pointer}
+.problem-sheet{display:grid;gap:9px}
+.problem-sheet>div{margin-bottom:4px}
+.issue-choice{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:14px;text-align:left;font-weight:850;font-size:14px}
+.issue-choice.warn{background:#fff8e7;border-color:#f0d990;color:#8d5e00}
+.issue-choice.danger{background:#fff0f0;border-color:#f2b8b8;color:#a72525}
+.issue-choice.low{background:#fff3e8;border-color:#f0c398;color:#ae5100}
+.issue-choice.missing{background:#f3f4f6;color:#374151}
+.reminder-card{border:2px solid #f1cf69}
+.reminder-card h3,.admin-note h3{margin:10px 0 4px;font-size:17px}
+.reminder-card .btn,.admin-note .btn{margin-top:12px}
+.admin-note{border:2px solid #bfd5f2}
