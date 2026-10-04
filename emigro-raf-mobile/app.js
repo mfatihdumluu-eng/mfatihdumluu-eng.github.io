@@ -523,7 +523,13 @@ function notificationsView(data){
     const checks=todaysChecks(data);
     data.shelves.filter(s=>assigned.includes(s.id)&&s.active).forEach(s=>{
       const missed=data.products.filter(p=>p.shelfId===s.id&&p.active&&p.required&&!checks.some(c=>c.productId===p.id));
-      if(missed.length) cards.push('<article class="card reminder-card"><div class="card-pad"><span class="badge warn">Kontrol bekliyor</span><h3>'+esc(s.name)+'</h3><div class="meta">'+esc(s.location)+'<br><b>'+missed.length+' ürün gözden kaçmış olabilir:</b><br>'+missed.map(p=>'• '+esc(p.name)).join('<br>')+'</div><button class="btn full go-shelf" data-shelf="'+s.id+'">Bu rafı kontrol et</button></div></article>');
+      if(missed.length){
+        const byMeter=[...new Set(missed.map(p=>p.meter).filter(v=>v!=null))].sort((a,b)=>a-b).map(m=>{
+          const count=missed.filter(p=>String(p.meter)===String(m)).length;
+          return 'Metre '+m+': '+count+' ürün';
+        });
+        cards.push('<article class="card reminder-card"><div class="card-pad"><span class="badge warn">Kontrol bekliyor</span><h3>'+esc(s.name)+'</h3><div class="meta">'+esc(s.location)+'<br><b>'+missed.length+' ürün henüz kontrol edilmedi.</b><br>'+byMeter.slice(0,10).map(x=>'• '+esc(x)).join('<br>')+(byMeter.length>10?'<br>+'+(byMeter.length-10)+' metre daha':'')+'</div><button class="btn full go-shelf" data-shelf="'+s.id+'">Bu rafı kontrol et</button></div></article>');
+      }
     });
   }
   direct.forEach(n=>{
@@ -1359,7 +1365,16 @@ function bindActions(data){
     currentView='home';
     render();
   });
-  document.querySelectorAll('.go-shelf').forEach(b=>b.onclick=()=>{currentView='home';render().then(()=>setTimeout(()=>document.querySelector('[data-shelf-card="'+b.dataset.shelf+'"]')?.scrollIntoView({behavior:'smooth',block:'start'}),50));});
+  document.querySelectorAll('.go-shelf').forEach(b=>b.onclick=()=>{
+    currentView='home';
+    if(currentRole==='employee'){
+      employeeShelfId=b.dataset.shelf;
+      employeeMeter='all';employeeLevel='all';employeePosition='all';
+      render();
+    }else{
+      render();
+    }
+  });
   document.querySelectorAll('.close-note').forEach(b=>b.onclick=async()=>{
     const n=(data.notifications||[]).find(x=>x.id===b.dataset.id);
     if(!n) return;
@@ -1432,7 +1447,7 @@ function bindActions(data){
 function showMultiIssueForm(data,p,shelfId){
   openModal('Sorun bildir',
     '<div class="form-grid">'
-    +'<div><strong>'+esc(p.name)+'</strong><div class="sub">Aynı üründe farklı gruplardan birden fazla sorun seçebilirsin.</div></div>'
+    +'<div><strong>'+esc(p.name)+'</strong><div class="sub">'+esc(p.locationCode||'')+(p.meter!=null?' · Metre '+esc(p.meter):'')+(p.level!=null?' · Kat '+esc(p.level):'')+(p.position!=null?' · Sıra '+esc(p.position):'')+'<br>Aynı üründe farklı gruplardan birden fazla sorun seçebilirsin.</div></div>'
 
     +'<div class="issue-group"><div class="issue-group-title">Tarih durumu <span>birini seç</span></div>'
     +'<label class="check-row"><input class="issue-select" type="radio" name="dateIssue" value="expiring"> <span class="dot warn-dot"></span> Tarihi yaklaşıyor</label>'
