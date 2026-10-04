@@ -412,11 +412,11 @@ function employeeShelfDetail(data,shelf){
   const levelOpts='<option value="all">Tüm katlar</option>'+levels.map(v=>'<option value="'+v+'" '+(String(employeeLevel)===String(v)?'selected':'')+'>Kat '+v+'</option>').join('');
   const posOpts='<option value="all">Tüm sıralar</option>'+positions.map(v=>'<option value="'+v+'" '+(String(employeePosition)===String(v)?'selected':'')+'>Sıra '+v+'</option>').join('');
   const meterCards=meterStatus.map(m=>'<button class="meter-status-card employee-select-meter '+(String(employeeMeter)===String(m.meter)?'active':'')+'" data-meter="'+m.meter+'"><strong>Metre '+m.meter+'</strong><span>'+m.done+'/'+m.total+' ürün</span><span class="badge '+(m.complete?'ok':'dark')+'">'+(m.complete?'Tamamlandı':'Bekliyor')+'</span></button>').join('');
-  return '<button class="back-home-btn" id="backEmployeeShelves">← Raflarıma dön</button>'
+  return '<div class="employee-detail-nav"><button class="back-home-btn" id="backEmployeeShelves">← Raflarıma dön</button>'+(employeeMeter!=='all'?'<button class="back-home-btn" id="backToMeters">← Metrelere dön</button>':'')+'</div>'
     +'<div class="section-title"><h2>'+esc(shelf.name)+'</h2><small>'+allProducts.length+' ürün</small></div>'
-    +'<div class="section-title"><h2>Metreler</h2><small>'+meters.length+' bölüm</small></div>'
+    +'<div id="meterListAnchor" class="section-title"><h2>Metreler</h2><small>'+meters.length+' bölüm</small></div>'
     +'<div class="meter-status-grid">'+meterCards+'</div>'
-    +'<div class="card"><div class="card-pad form-grid">'
+    +'<div id="meterControlSection" class="card meter-control-card"><div class="card-pad form-grid">'
     +'<div class="filter-triple"><label>Metre<select id="employeeMeterFilter">'+meterOpts+'</select></label><label>Kat<select id="employeeLevelFilter" '+(employeeMeter==='all'?'disabled':'')+'>'+levelOpts+'</select></label><label>Sıra<select id="employeePositionFilter" '+(employeeMeter==='all'?'disabled':'')+'>'+posOpts+'</select></label></div>'
     +'<div class="btn-row"><button class="btn secondary employee-product-search">Ürün ara</button><button class="btn secondary employee-barcode-scan">Barkod oku</button></div>'
     +(employeeMeter==='all'
@@ -764,6 +764,25 @@ function employeeProductSearchModal(data){
 }
 
 let barcodeTestIndex=0;
+function normalizeBarcode(value){
+  return String(value??'').trim().replace(/\.0+$/,'').replace(/[^0-9A-Za-z]/g,'').toUpperCase();
+}
+function findProductByBarcode(data,value){
+  const raw=normalizeBarcode(value);
+  if(!raw) return null;
+  let p=data.products.find(x=>normalizeBarcode(x.barcode)===raw);
+  if(p) return p;
+  const digits=raw.replace(/\D/g,'');
+  if(!digits) return null;
+  p=data.products.find(x=>{
+    const b=normalizeBarcode(x.barcode).replace(/\D/g,'');
+    if(b===digits) return true;
+    if(b.length===13&&b.startsWith('0')&&b.slice(1)===digits) return true;
+    if(digits.length===13&&digits.startsWith('0')&&digits.slice(1)===b) return true;
+    return false;
+  });
+  return p||null;
+}
 function barcodeScannerModal(data){
   const products=data.products.filter(p=>p.active);
   openModal('Barkod oku','<div class="form-grid"><video id="barcodeVideo" playsinline muted autoplay style="width:100%;border-radius:18px;background:#111;min-height:220px"></video><div id="barcodeStatus" class="sub">Kamera açılıyor...</div><button class="btn secondary full" id="testBarcodeScan">Test: farklı ürün aç</button></div>');
@@ -771,7 +790,7 @@ function barcodeScannerModal(data){
   const cleanup=()=>{stopped=true;if(zxingControls?.stop)zxingControls.stop();if(stream)stream.getTracks().forEach(t=>t.stop());};
   const oldClose=document.getElementById('modalClose').onclick;
   document.getElementById('modalClose').onclick=()=>{cleanup();closeModal();document.getElementById('modalClose').onclick=oldClose;};
-  const openProduct=p=>{cleanup();try{closeModal();}catch(e){}setTimeout(()=>productDetailModal(data,p.id),180);};
+  const openProduct=p=>{if(!p)return;cleanup();try{closeModal();}catch(e){}setTimeout(()=>productDetailModal(data,p.id),220);};
   document.getElementById('testBarcodeScan').onclick=()=>{
     if(!products.length){alert('Ürün bulunamadı.');return;}
     barcodeTestIndex=(barcodeTestIndex+1)%products.length;
