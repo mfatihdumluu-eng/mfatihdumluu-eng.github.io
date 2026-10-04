@@ -561,7 +561,7 @@ function issueCard(data,i,warehouseMode=false){
     action+=`<div class="btn-row"><button class="btn success resolve-issue" data-id="${i.id}">${icon('check',17)}<span>Yapıldı / Onayla</span></button></div>`;
   }
   return `<article class="card ${cls}"><div class="card-pad"><div><strong>${esc(p?.name||'Ürün')}</strong>
-  <div class="meta"><b>${STATUS[i.type]?.label||i.type}</b>${i.qty!=null?' · '+i.qty+' '+esc(i.unit||''):''}${i.expiry?' · SKT '+esc(i.expiry):''}<br>${esc(s?.name||'')} · ${esc(u?.name||'')} · ${esc(i.time||'')}</div>${action}</div><span class="badge ${STATUS[i.type]?.cls||'dark'}">${i.state==='reported'?'Yeni':i.state==='warehouse_found'?'Bulundu':i.state==='warehouse_none'?'Depoda yok':'Açık'}</span></div></article>`;
+  <div class="meta"><b>${STATUS[i.type]?.label||i.type}</b>${i.qty!=null?' · '+i.qty+' '+esc(i.unit||''):''}${i.expiry?' · SKT '+esc(i.expiry):''}<br>${esc(s?.name||p?.shelfCode||'')}${p?.meter!=null?' · Metre '+esc(p.meter):''}${p?.level!=null?' · Kat '+esc(p.level):''}${p?.position!=null?' · Sıra '+esc(p.position):''}${p?.locationCode?'<br>Konum: '+esc(p.locationCode):''}<br>${esc(u?.name||'')} · ${esc(i.time||'')}</div>${action}</div><span class="badge ${STATUS[i.type]?.cls||'dark'}">${i.state==='reported'?'Yeni':i.state==='warehouse_found'?'Bulundu':i.state==='warehouse_none'?'Depoda yok':'Açık'}</span></div></article>`;
 }
 function issuesView(data){
   let issues=data.issues.filter(issueOpen);
