@@ -245,7 +245,7 @@ function managerHome(data,isAdmin){
     <div class="progress"><span style="width:${activeShelves.length?Math.round(done/activeShelves.length*100):0}%"></span></div>
   </section>
   ${overdue?`<div class="notice" style="background:#fde9e9;border-color:#f3aaaa;color:#9f1d1d"><b>🔴 ${un.length} raf 12:00'ye kadar kontrol edilmedi.</b><br>Yönetim aksiyonu gerekiyor.</div>`:''}
-  ${isAdmin?'<button class="btn full" id="sendNotification" style="margin-bottom:12px">🔔 Personele uyarı gönder</button>':''}
+  ${isAdmin?'<div class="btn-row" style="margin:0 0 12px"><button class="btn" id="sendNotification">🔔 Uyarı gönder</button><button class="btn secondary" id="openTestCenter">🧪 Test Merkezi</button></div>':''}
   <div class="grid">
     <div class="metric"><b>${done}/${activeShelves.length}</b><span>Raf tamamlandı</span></div>
     <div class="metric"><b>${issues.length}</b><span>Açık sorun</span></div>
@@ -371,6 +371,7 @@ function bindActions(data){
   document.getElementById('addShelf')?.addEventListener('click',shelfModal);
   document.getElementById('addUser')?.addEventListener('click',()=>userModal(data));
   document.getElementById('sendNotification')?.addEventListener('click',()=>notificationModal(data));
+  document.getElementById('openTestCenter')?.addEventListener('click',()=>testCenterModal(data));
 }
 
 function showIssueForm(data,p,shelfId,st){
@@ -393,6 +394,112 @@ function showIssueForm(data,p,shelfId,st){
     closeModal(); render();
   };
 }
+
+async function createScenario(data,type){
+  const shelf=data.shelves.find(s=>s.id==='s1')||data.shelves[0];
+  const products=data.products.filter(p=>p.shelfId===shelf?.id&&p.active);
+  const p=products[0]||data.products[0];
+  if(!shelf||!p) return;
+
+  if(type==='reset'){
+    const db=await openDB();
+    const tx=db.transaction(['dailyChecks','issues','notifications'],'readwrite');
+    ['dailyChecks','issues','notifications'].forEach(n=>tx.objectStore(n).clear());
+    await new Promise(res=>tx.oncomplete=res);
+    return;
+  }
+
+  if(type==='ok'){
+    await put('dailyChecks',{
+      id:uid('c'),date:today(),ts:Date.now(),time:timeNow(),
+      productId:p.id,shelfId:shelf.id,status:'ok',reportedBy:'u_emp'
+    });
+    return;
+  }
+
+  if(['expiring','expired','low','missing','damaged'].includes(type)){
+    const extra={qty:2,unit:p.unit||'adet'};
+    if(type==='expiring'){
+      extra.expiry=new Date(Date.now()+5*86400000).toISOString().slice(0,10);
+      extra.qty=8;
+    }
+    if(type==='expired'){
+      extra.expiry=new Date(Date.now()-2*86400000).toISOString().slice(0,10);
+      extra.qty=4;
+    }
+    if(type==='low') extra.qty=3;
+    if(type==='missing') extra.qty=0;
+    await saveCheck(p,shelf.id,type,extra);
+    return;
+  }
+
+  if(type==='warehouse_found'||type==='warehouse_none'){
+    const issue={
+      id:uid('i'),date:today(),time:timeNow(),ts:Date.now(),
+      productId:p.id,shelfId:shelf.id,type:'missing',
+      state:type==='warehouse_found'?'warehouse_found':'warehouse_none',
+      reportedBy:'u_emp',qty:0,unit:p.unit||'adet',expiry:null,
+      visibility:['warehouse','manager','superadmin']
+    };
+    if(type==='warehouse_found'){
+      issue.warehouseQty=36;
+      issue.sentQty=12;
+      issue.warehouseAt=Date.now();
+    }
+    await put('issues',issue);
+    return;
+  }
+
+  if(type==='employee_notice'||type==='warehouse_notice'){
+    await put('notifications',{
+      id:uid('n'),
+      targetUserId:type==='employee_notice'?'u_emp':'u_wh',
+      shelfId:shelf.id,
+      title:'Test uyarısı',
+      message:type==='employee_notice'
+        ?'Bu rafın üst bölümünü tekrar kontrol et.'
+        :'Rafta yok bildirilen ürünü depoda kontrol et.',
+      read:false,closed:false,ts:Date.now(),time:timeNow(),sentBy:'u_admin'
+    });
+    return;
+  }
+
+  if(type==='all'){
+    const list=['expiring','expired','low','missing','damaged','warehouse_found','warehouse_none','employee_notice','warehouse_notice'];
+    for(const item of list) await createScenario(data,item);
+  }
+}
+
+function testCenterModal(data){
+  const body=[
+    '<div class="test-grid">',
+    '<button class="test-btn ok" data-test="ok">✓ Sorunsuz kontrol</button>',
+    '<button class="test-btn warn" data-test="expiring">🟡 Tarihi yaklaşan</button>',
+    '<button class="test-btn danger" data-test="expired">🔴 Tarihi geçmiş</button>',
+    '<button class="test-btn low" data-test="low">🟠 Stok az</button>',
+    '<button class="test-btn missing" data-test="missing">⚫ Rafta yok</button>',
+    '<button class="test-btn danger" data-test="damaged">❌ Hasarlı</button>',
+    '<button class="test-btn blue" data-test="warehouse_found">📦 Depoda var</button>',
+    '<button class="test-btn danger" data-test="warehouse_none">🚫 Depoda yok</button>',
+    '<button class="test-btn blue" data-test="employee_notice">🔔 Çalışana uyarı</button>',
+    '<button class="test-btn blue" data-test="warehouse_notice">🔔 Depoya uyarı</button>',
+    '<button class="test-btn fullspan" data-test="all">🧪 Tüm senaryoları oluştur</button>',
+    '<button class="test-btn reset fullspan" data-test="reset">↻ Test kayıtlarını temizle</button>',
+    '</div>',
+    '<div class="sub" style="margin-top:12px">Bu alan sadece test için. Gerçek kullanıma geçerken kaldırılacak.</div>'
+  ].join('');
+
+  openModal('Test Merkezi',body);
+
+  document.querySelectorAll('.test-btn').forEach(b=>{
+    b.onclick=async()=>{
+      await createScenario(data,b.dataset.test);
+      closeModal();
+      render();
+    };
+  });
+}
+
 function notificationModal(data){
   const targets=data.users.filter(u=>u.active&&(u.role==='employee'||u.role==='warehouse'));
   const shelfOpts='<option value="">Raf seçmeden genel uyarı</option>'+data.shelves.filter(s=>s.active).map(s=>'<option value="'+s.id+'">'+esc(s.name)+'</option>').join('');
