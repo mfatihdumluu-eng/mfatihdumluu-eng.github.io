@@ -360,7 +360,8 @@ function issuesView(data){
       const owner=shelfOwner(data,s.id);
       return '<div class="card"><div class="card-pad"><div class="simple-row"><div><strong>'+esc(s.name)+'</strong><div class="meta">'+pg.done+'/'+pg.total+' ürün kontrol edildi · '+Math.max(0,pg.total-pg.done)+' kaldı'+(owner?'<br>Sorumlu: '+esc(owner.name):'')+'</div></div><span class="badge '+(afterDeadline(data.settings)?'danger':'dark')+'">'+(afterDeadline(data.settings)?'Gecikti':'Bekliyor')+'</span></div></div></div>';
     }).join('');
-    return '<div class="section-title"><h2>Kontrol edilmemiş raflar</h2><small>'+shelves.length+' raf</small></div>'
+    return '<button class="back-home-btn" id="backAdminHome">'+icon('home',18)+'<span>Ana ekrana dön</span></button>'
+      +'<div class="section-title"><h2>Kontrol edilmemiş raflar</h2><small>'+shelves.length+' raf</small></div>'
       +'<button class="btn secondary full" id="backToAllIssues" style="margin-bottom:12px">Tüm sorunlara dön</button>'
       +(cards||'<div class="card empty">Kontrol bekleyen raf yok.</div>');
   }
@@ -386,7 +387,8 @@ function issuesView(data){
       ['label_wrong','Raf etiketi yanlış']
     ].map(([v,l])=>'<option value="'+v+'" '+(issueTypeFilter===v?'selected':'')+'>'+l+'</option>').join('');
 
-    return '<div class="section-title"><h2>Hata / Sorunlar</h2><small>'+issues.length+' açık</small></div>'
+    return '<button class="back-home-btn" id="backAdminHome">'+icon('home',18)+'<span>Ana ekrana dön</span></button>'
+      +'<div class="section-title"><h2>Hata / Sorunlar</h2><small>'+issues.length+' açık</small></div>'
       +'<div class="filter-card">'
       +'<label>Kullanıcı<select id="issueUserFilter"><option value="all">Tüm kullanıcılar</option>'+employeeOptions+'</select></label>'
       +'<label>Sorun türü<select id="issueTypeFilter">'+typeOptions+'</select></label>'
@@ -445,6 +447,12 @@ function openModal(title,body){
 function closeModal(){document.getElementById('modal').close();}
 
 function bindActions(data){
+  document.getElementById('backAdminHome')?.addEventListener('click',()=>{
+    issueUserFilter='all';
+    issueTypeFilter='all';
+    currentView='home';
+    render();
+  });
   document.querySelectorAll('.dashboard-filter').forEach(b=>b.onclick=()=>{
     issueUserFilter='all';
     issueTypeFilter=b.dataset.filter||'all';
