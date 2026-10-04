@@ -104,3 +104,14 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 .reminder-card h3,.admin-note h3{margin:10px 0 4px;font-size:17px}
 .reminder-card .btn,.admin-note .btn{margin-top:12px}
 .admin-note{border:2px solid #bfd5f2}
+
+.test-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.test-btn{border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px 10px;text-align:left;font-weight:850;font-size:12px}
+.test-btn.ok{background:#e9f8f0;border-color:#b7e5cd;color:#0e7548}
+.test-btn.warn{background:#fff8e7;border-color:#f0d990;color:#8d5e00}
+.test-btn.danger{background:#fff0f0;border-color:#f2b8b8;color:#a72525}
+.test-btn.low{background:#fff3e8;border-color:#f0c398;color:#ae5100}
+.test-btn.missing{background:#f3f4f6;color:#374151}
+.test-btn.blue{background:#edf5ff;border-color:#bfd5f2;color:#175b9c}
+.test-btn.fullspan{grid-column:1/-1;background:#111827;color:#fff;border-color:#111827;text-align:center}
+.test-btn.reset{background:#eef0f3;color:#374151;border-color:#d9dde3}
