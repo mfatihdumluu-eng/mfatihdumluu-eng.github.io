@@ -159,3 +159,7 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 
 #employeeShelfArea{display:grid;gap:10px}
 #uShelves option:disabled{color:#a0a6ad;background:#f1f2f4}
+
+.shelf-permissions-card{width:100%;border:1px solid var(--line);background:#fff;color:inherit}
+.shelf-permissions-card .simple-row>span{font-size:30px;line-height:1;color:#7b8492}
+.shelf-permissions-card:active{transform:scale(.99)}
