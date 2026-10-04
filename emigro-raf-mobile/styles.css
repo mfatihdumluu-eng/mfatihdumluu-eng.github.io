@@ -191,3 +191,7 @@ dialog .icon-btn{color:#111827;background:#eef0f3}
 .auth-message{min-height:22px;margin-top:14px;color:#a21d1d;font-size:13px;line-height:1.4}
 .topbar-actions{display:flex;align-items:center;gap:8px}
 .system-user-pill{border:0;border-radius:999px;background:#111827;color:#fff;padding:9px 12px;font-weight:850}
+
+.system-user-card{width:100%;border:0;text-align:left;color:inherit}
+.system-user-card .user-row>span{font-size:30px;line-height:1;color:#7b8492}
+.system-user-card:active{transform:scale(.99)}
