@@ -17,8 +17,8 @@
     <nav>
       <button class="nav active" data-view="report"><span>▦</span><b>Rapor</b><em id="alertBadge" class="nav-badge hidden">0</em></button>
       <button class="nav" data-view="tracking"><span>✓</span><b>Görev Takibi</b></button>
-      <button class="nav" data-view="plan"><span>⌗</span><b>Temizlik Planı</b></button>
-      <button class="nav" data-view="cards"><span>▤</span><b>Alan Kartları</b></button>
+      <button class="nav" data-view="plan"><span>⌗</span><b>Market Planı</b></button>
+      <button class="nav" data-view="cards"><span>▤</span><b>Plan Ekranı</b></button>
       <button class="nav" data-view="staff"><span>👤</span><b>Personel</b></button>
       <button class="nav" data-view="notifications"><span>⚠</span><b>Uyarılar</b><em id="warningBadge" class="nav-badge hidden">0</em></button>
       <button class="nav" data-view="history"><span>↺</span><b>Geçmiş</b></button>
@@ -34,6 +34,7 @@
 
     <main class="content">
       <section id="view-report" class="view active">
+        <div id="assignmentAlert" class="alert-panel assignment-alert hidden"></div>
         <div id="alertPanel" class="alert-panel hidden"></div>
 
         <div class="metrics">
@@ -87,7 +88,7 @@
       </section>
 
       <section id="view-cards" class="view">
-        <div class="section-head"><div><h2>Alan Kartları</h2><p>Günlük, haftalık ve aylık görev tanımları.</p></div></div>
+        <div class="section-head"><div><h2>Plan Ekranı</h2><p>Alanların günlük, haftalık ve aylık temizlik rutinleri.</p></div></div>
         <div id="zoneCards" class="zone-cards"></div>
       </section>
 
