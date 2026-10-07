@@ -42,7 +42,7 @@ function applyPlanImage(){
  else{$('#planImg').classList.add('hidden');$('#emptyPlan').classList.remove('hidden')}
 }
 
-function renderAll(){renderPlan();renderCards();renderStaff();renderHistory()}
+function renderAll(){renderReport();renderTracking();renderPlan();renderCards();renderStaff();renderHistory()}
 function renderPlan(){
  const zones=manualZones();$('#zoneCount').textContent=zones.length;
  const ov=$('#zoneOverlay');ov.innerHTML='';ov.style.display=state.showAreas?'block':'none';
@@ -255,3 +255,135 @@ $('#toggleAreasBtn').onclick=()=>{state.showAreas=!state.showAreas;$('#toggleAre
 $('#addStaffBtn').onclick=()=>editStaff(null);$('#refreshBtn').onclick=loadAll;$('#demoBtn').onclick=loadDemoData;
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&state.drawMode)cancelDraw()});
 loadAll();
+state.reportPeriod='today';
+const typeNames={daily:'Günlük',weekly:'Haftalık',monthly:'Aylık'};
+
+function pad2(n){return String(n).padStart(2,'0')}
+function dateKeyLocal(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())}
+function parseDateLocal(v){var p=v.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
+function dayStart(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
+function dayEnd(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate(),23,59,59,999)}
+function addLocalDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x}
+function weekStart(d){var x=dayStart(d),w=x.getDay();return addLocalDays(x,w===0?-6:1-w)}
+function weekEnd(d){return dayEnd(addLocalDays(weekStart(d),6))}
+function monthStart(d){return new Date(d.getFullYear(),d.getMonth(),1)}
+function monthEnd(d){return new Date(d.getFullYear(),d.getMonth()+1,0,23,59,59,999)}
+function shortDate(d){return d.toLocaleDateString('tr-TR',{day:'2-digit',month:'short'})}
+
+function makeTask(zone,card,type,d){
+ return {key:zone.id+':'+type+':'+dateKeyLocal(d),zone:zone,card:card,type:type,date:new Date(d),time:card[type+'_time']||null,primary:staffById(card.primary_staff_id),backup:staffById(card.backup_staff_id),taskText:card[type+'_task']||''}
+}
+function expectedTasks(from,to){
+ var out=[],zones=manualZones();
+ for(var d=dayStart(from);d<=to;d=addLocalDays(d,1)){
+  for(var i=0;i<zones.length;i++){
+   var z=zones[i],c=cardByZone(z.id);if(!c)continue;
+   var dow=d.getDay(),dom=d.getDate();
+   if(c.daily_enabled&&(c.daily_days||[]).includes(dow))out.push(makeTask(z,c,'daily',d));
+   if(c.weekly_enabled&&(c.weekly_days||[]).includes(dow))out.push(makeTask(z,c,'weekly',d));
+   if(c.monthly_enabled&&(c.monthly_days||[]).includes(dom))out.push(makeTask(z,c,'monthly',d));
+  }
+ }
+ return out
+}
+function logForTask(t){return state.logs.find(function(l){return l.slot_key===t.key})}
+function dueAt(t){
+ var d=new Date(t.date),bits=(t.time||'23:59').slice(0,5).split(':').map(Number);
+ d.setHours(bits[0]||0,bits[1]||0,0,0);return d
+}
+function statusFor(t){
+ var l=logForTask(t);
+ if(l&&l.status==='done')return {key:'done',label:'Yapıldı',log:l};
+ if(l&&l.status==='skipped')return {key:'overdue',label:'Yapılmadı',log:l};
+ if(dueAt(t)<new Date())return {key:'overdue',label:'Yapılmadı',log:null};
+ return {key:'pending',label:'Bekliyor',log:null}
+}
+function periodRange(){
+ var n=new Date();
+ if(state.reportPeriod==='week')return [weekStart(n),weekEnd(n)];
+ if(state.reportPeriod==='month')return [monthStart(n),monthEnd(n)];
+ return [dayStart(n),dayEnd(n)]
+}
+function reportRowHtml(t){
+ var st=statusFor(t),l=st.log,who=l?staffById(l.staff_id):t.primary;
+ var proof=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
+ var action=st.key!=='done'?'<button onclick="openComplete(\''+t.key+'\')">Yaptım + Foto</button>':'<button onclick="showPhoto(\''+t.key+'\')">Kanıt</button>';
+ return '<article class="report-row '+st.key+'"><div><h3>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</h3><div class="sub">'+esc(t.taskText||'Görev açıklaması yok')+'</div></div><div><span class="pill">'+shortDate(t.date)+' · '+(t.time?t.time.slice(0,5):'Saat yok')+'</span></div><div><span class="pill">👤 '+esc((who&&who.name)||'Atanmamış')+'</span></div><div><span class="status '+st.key+'">'+st.label+'</span></div><div class="row-actions">'+proof+action+'</div></article>'
+}
+function renderReport(){
+ if(!$('#reportList'))return;
+ var now=new Date(),today=expectedTasks(dayStart(now),dayEnd(now)),done=today.filter(function(t){return statusFor(t).key==='done'}).length,over=today.filter(function(t){return statusFor(t).key==='overdue'}).length;
+ $('#mToday').textContent=today.length;$('#mDone').textContent=done;$('#mOverdue').textContent=over;$('#mStaff').textContent=state.staff.filter(function(p){return p.active}).length;
+ var missed=expectedTasks(monthStart(now),now).filter(function(t){return statusFor(t).key==='overdue'}),ap=$('#alertPanel'),badge=$('#alertBadge');
+ if(missed.length){ap.classList.remove('hidden');ap.innerHTML='<h3>⚠ '+missed.length+' aksayan temizlik var</h3><p>'+missed.slice(0,5).map(function(t){return esc(t.zone.name)+' · '+typeNames[t.type]+' · '+shortDate(t.date)}).join(' • ')+(missed.length>5?' • +'+(missed.length-5)+' daha':'')+'</p>';badge.classList.remove('hidden');badge.textContent=missed.length}else{ap.classList.add('hidden');badge.classList.add('hidden')}
+ var rg=periodRange(),all=expectedTasks(rg[0],rg[1]),filter=$('#reportType').value||'',tasks=filter?all.filter(function(t){return t.type===filter}):all;
+ ['daily','weekly','monthly'].forEach(function(tp){var list=all.filter(function(t){return t.type===tp}),d=list.filter(function(t){return statusFor(t).key==='done'}).length,id='#r'+tp.charAt(0).toUpperCase()+tp.slice(1);$(id).textContent=d+' / '+list.length});
+ $('#reportList').innerHTML=tasks.length?tasks.map(reportRowHtml).join(''):'<div class="sub">Bu dönem için görev yok.</div>'
+}
+function renderTracking(){
+ if(!$('#trackingList'))return;
+ var inp=$('#trackingDate');if(!inp.value)inp.value=dateKeyLocal(new Date());
+ var d=parseDateLocal(inp.value),tasks=expectedTasks(dayStart(d),dayEnd(d));
+ $('#trackingList').innerHTML=tasks.length?tasks.map(function(t){
+  var st=statusFor(t),l=st.log,proof=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
+  var act=st.key!=='done'?'<button onclick="openComplete(\''+t.key+'\')">Yaptım + Foto</button><button onclick="markSkipped(\''+t.key+'\')">Yapılmadı</button>':'<button onclick="showPhoto(\''+t.key+'\')">Fotoğraf</button>';
+  return '<article class="report-row '+st.key+'"><div><h3>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</h3><div class="sub">'+esc(t.taskText||'Görev açıklaması yok')+'</div></div><div><span class="pill">'+(t.time?t.time.slice(0,5):'Saat yok')+'</span></div><div><span class="pill">Asıl: '+esc((t.primary&&t.primary.name)||'—')+'<br>Yedek: '+esc((t.backup&&t.backup.name)||'—')+'</span></div><div><span class="status '+st.key+'">'+st.label+'</span></div><div class="row-actions">'+proof+act+'</div></article>'
+ }).join(''):'<div class="sub">Seçili tarihte görev yok.</div>'
+}
+function taskByKey(key){
+ var p=key.split(':'),z=zoneById(Number(p[0])),c=cardByZone(Number(p[0]));return z&&c?makeTask(z,c,p[1],parseDateLocal(p[2])):null
+}
+window.openComplete=function(key){
+ var t=taskByKey(key);if(!t)return;
+ var choices=[t.primary,t.backup].filter(Boolean).filter(function(p,i,a){return a.findIndex(function(x){return x.id===p.id})===i});
+ if(!choices.length)choices=state.staff.filter(function(p){return p.active});
+ var opts=choices.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
+ openModal('<h2>Temizlik Tamamlandı</h2><form id="completeForm"><div class="form-grid"><div class="field full"><label>Alan / görev</label><div><b>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</b><div class="sub">'+esc(t.taskText)+'</div></div></div><div class="field"><label>Yapan kişi</label><select name="staff_id" required>'+opts+'</select></div><div class="field"><label>Planlanan saat</label><input value="'+(t.time?t.time.slice(0,5):'—')+'" disabled></div><div class="field full"><label>Fotoğraf kanıtı</label><div class="proof-upload">Temizlik sonrası fotoğraf yükleyin.<br><input id="proofFile" type="file" accept="image/*" capture="environment" required></div></div><div class="field full"><label>Not</label><textarea name="note" placeholder="Varsa açıklama..."></textarea></div></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Yaptım Olarak Kaydet</button></div></form>');
+ $('#completeForm').onsubmit=async function(e){
+  e.preventDefault();var fd=new FormData(e.target),file=$('#proofFile').files&&$('#proofFile').files[0];if(!file)return toast('Fotoğraf yüklemek zorunlu');
+  var proof=await compressProof(file),row={slot_key:t.key,schedule_id:null,zone_id:t.zone.id,staff_id:+fd.get('staff_id'),work_date:dateKeyLocal(t.date),status:'done',completed_at:new Date().toISOString(),note:fd.get('note')||'',task_type:t.type,planned_time:t.time,proof_image_data:proof};
+  var res=await db.from('emigro_cleaning_logs').upsert(row,{onConflict:'slot_key'});if(res.error)return toast(res.error.message);closeModal();toast('Fotoğraflı tamamlanma kaydedildi');loadAll()
+ }
+};
+window.markSkipped=async function(key){
+ var t=taskByKey(key);if(!t)return;var note=prompt('Yapılmama nedeni:','');if(note===null)return;
+ var row={slot_key:t.key,schedule_id:null,zone_id:t.zone.id,staff_id:t.card.primary_staff_id||null,work_date:dateKeyLocal(t.date),status:'skipped',completed_at:null,note:note,task_type:t.type,planned_time:t.time,proof_image_data:null};
+ var r=await db.from('emigro_cleaning_logs').upsert(row,{onConflict:'slot_key'});if(r.error)return toast(r.error.message);loadAll()
+};
+window.showPhoto=function(key){var l=state.logs.find(function(x){return x.slot_key===key});if(!l||!l.proof_image_data)return toast('Fotoğraf yok');$('#photoView').src=l.proof_image_data;$('#photoModal').classList.remove('hidden')};
+function compressProof(file){
+ return new Promise(function(resolve,reject){var img=new Image(),url=URL.createObjectURL(file);img.onload=function(){var max=1200,sc=Math.min(1,max/Math.max(img.width,img.height)),w=Math.round(img.width*sc),h=Math.round(img.height*sc),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);resolve(c.toDataURL('image/jpeg',.76))};img.onerror=reject;img.src=url})
+}
+
+function staffStats(id){
+ var now=new Date(),tasks=expectedTasks(monthStart(now),now),primary=tasks.filter(function(t){return String(t.card.primary_staff_id)===String(id)}),done=state.logs.filter(function(l){return l.status==='done'&&String(l.staff_id)===String(id)&&l.work_date>=dateKeyLocal(monthStart(now))&&l.work_date<=dateKeyLocal(now)}).length,miss=primary.filter(function(t){return statusFor(t).key==='overdue'}).length;
+ return {assigned:primary.length,done:done,missed:miss}
+}
+function renderStaff(){
+ if(!$('#staffGrid'))return;
+ $('#staffGrid').innerHTML=state.staff.length?state.staff.map(function(p){
+  var st=staffStats(p.id),primary=manualZones().filter(function(z){return String((cardByZone(z.id)||{}).primary_staff_id)===String(p.id)}),backup=manualZones().filter(function(z){return String((cardByZone(z.id)||{}).backup_staff_id)===String(p.id)});
+  return '<article class="staff-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.role||'Rol belirtilmedi')+'</div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div><div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div><div class="responsibility">'+primary.map(function(z){return '<span>Asıl · '+esc(z.name)+'</span>'}).join('')+backup.map(function(z){return '<span>Yedek · '+esc(z.name)+'</span>'}).join('')+'</div><div class="card-actions"><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button></div></article>'
+ }).join(''):'<div class="sub">Personel eklenmedi.</div>'
+}
+window.openPerson=function(id){
+ var p=staffById(id);if(!p)return;var now=new Date(),all=expectedTasks(monthStart(now),now),primary=all.filter(function(t){return String(t.card.primary_staff_id)===String(id)}),activity=state.logs.filter(function(l){return String(l.staff_id)===String(id)&&l.slot_key&&l.work_date>=dateKeyLocal(monthStart(now))}).sort(function(a,b){return b.work_date.localeCompare(a.work_date)}),pz=manualZones().filter(function(z){return String((cardByZone(z.id)||{}).primary_staff_id)===String(id)}),bz=manualZones().filter(function(z){return String((cardByZone(z.id)||{}).backup_staff_id)===String(id)}),miss=primary.filter(function(t){return statusFor(t).key==='overdue'});
+ var rows=activity.length?activity.map(function(l){var z=zoneById(l.zone_id),photo=l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+l.slot_key+'\')">':'';return '<article class="report-row '+(l.status==='done'?'done':'overdue')+'"><div><h3>'+esc((z&&z.name)||'')+' · '+(typeNames[l.task_type]||'')+'</h3><div class="sub">'+l.work_date+' · '+esc(l.note||'')+'</div></div><div><span class="status '+(l.status==='done'?'done':'overdue')+'">'+(l.status==='done'?'Yapıldı':'Yapılmadı')+'</span></div><div></div><div></div><div class="row-actions">'+photo+'</div></article>'}).join(''):'<div class="sub">Bu ay kayıt yok.</div>';
+ openModal('<h2>'+esc(p.name)+'</h2><div class="people"><div class="person-box"><label>Asıl sorumluluk</label><b>'+ (pz.map(function(z){return esc(z.name)}).join(', ')||'—') +'</b></div><div class="person-box"><label>Yedek sorumluluk</label><b>'+ (bz.map(function(z){return esc(z.name)}).join(', ')||'—') +'</b></div></div><div class="type-summary"><article><span>Bu ay planlanan</span><b>'+primary.length+'</b></article><article><span>Yaptığı</span><b>'+activity.filter(function(x){return x.status==='done'}).length+'</b></article><article><span>Aksayan</span><b>'+miss.length+'</b></article></div><div class="section-head"><div><h2>Bu Ay Aktivite</h2></div></div><div class="report-list">'+rows+'</div>')
+};
+function renderHistory(){
+ if(!$('#historyBody'))return;
+ var logs=state.logs.filter(function(l){return l.slot_key});
+ $('#historyBody').innerHTML=logs.length?logs.map(function(l){var ph=l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+l.slot_key+'\')">':'—';return '<tr><td>'+l.work_date+'</td><td>'+(typeNames[l.task_type]||'—')+'</td><td>'+esc((zoneById(l.zone_id)||{}).name||'')+'</td><td>'+esc((staffById(l.staff_id)||{}).name||'')+'</td><td>'+(l.status==='done'?'Yapıldı':'Yapılmadı')+'</td><td>'+ph+'</td><td>'+esc(l.note||'')+'</td></tr>'}).join(''):'<tr><td colspan="7">Kayıt yok.</td></tr>'
+}
+
+if($('#closePhoto'))$('#closePhoto').onclick=function(){$('#photoModal').classList.add('hidden')};
+if($('#photoModal'))$('#photoModal').onclick=function(e){if(e.target.id==='photoModal')$('#photoModal').classList.add('hidden')};
+if($('#trackingDate'))$('#trackingDate').onchange=renderTracking;
+if($('#reportType'))$('#reportType').onchange=renderReport;
+$$('.period').forEach(function(b){b.onclick=function(){$$('.period').forEach(function(x){x.classList.toggle('active',x===b)});state.reportPeriod=b.dataset.period;renderReport()}});
+$$('.nav').forEach(function(b){b.onclick=function(){
+ $$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});$$('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+b.dataset.view)});
+ var meta={report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],tracking:['Görev Takibi','Fotoğraflı tamamlanma ve aksama takibi.'],plan:['Temizlik Planı','Plan resmini yükle ve alanları tanımla.'],cards:['Alan Kartları','Günlük, haftalık ve aylık görev tanımları.'],staff:['Personel Kartları','Sorumluluk ve performans takibi.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
+ $('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]
+}});
