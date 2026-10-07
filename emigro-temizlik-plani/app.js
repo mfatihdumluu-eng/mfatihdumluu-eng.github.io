@@ -44,7 +44,15 @@ function applyPlanImage(){
  else{$('#planImg').classList.add('hidden');$('#emptyPlan').classList.remove('hidden')}
 }
 
-function renderAll(){renderReport();renderTracking();renderCalendar();renderPlan();renderStaff();renderNotifications();renderHistory()}
+function renderAll(){
+  renderReport();renderTracking();renderCalendar();renderPlan();renderStaff();renderNotifications();renderHistory();
+  var demos=state.zones.filter(function(z){return String(z.code||'').startsWith('DEMO-')});
+  var badge=$('#demoBadge');
+  if(badge){
+    if(demos.length){badge.classList.remove('hidden');badge.textContent='DEMO · '+demos.length+' ALAN'}
+    else badge.classList.add('hidden');
+  }
+}
 function renderPlan(){
  const zones=manualZones();$('#zoneCount').textContent=zones.length;
  const ov=$('#zoneOverlay');ov.innerHTML='';ov.style.display=state.showAreas?'block':'none';
@@ -925,6 +933,11 @@ function initCleaningAdmin(){
 
   window.addEventListener('keydown',function(e){if(e.key==='Escape'&&state.drawMode)cancelDraw()});
   loadAll();
+  var active=document.querySelector('.nav.active');
+  if(active&&active.dataset.view==='tracking'){
+    $('#pageTitle').textContent='Temizlik İşleri';
+    $('#pageSub').textContent='Günlük, haftalık ve aylık işleri sade şekilde takip edin.';
+  }
 }
 initCleaningAdmin();
 
