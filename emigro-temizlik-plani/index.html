@@ -17,6 +17,7 @@
     <nav>
       <button class="nav active" data-view="report"><span>▦</span><b>Rapor</b><em id="alertBadge" class="nav-badge hidden">0</em></button>
       <button class="nav" data-view="tracking"><span>✓</span><b>Görev Takibi</b></button>
+      <button class="nav" data-view="calendar"><span>▣</span><b>Takvim</b></button>
       <button class="nav" data-view="plan"><span>⌗</span><b>Market Planı</b></button>
       <button class="nav" data-view="cards"><span>▤</span><b>Plan Ekranı</b></button>
       <button class="nav" data-view="staff"><span>👤</span><b>Personel</b></button>
@@ -69,6 +70,21 @@
           <input id="trackingDate" type="date">
         </div>
         <div id="trackingList" class="report-list"></div>
+      </section>
+
+      <section id="view-calendar" class="view">
+        <div class="section-head">
+          <div><h2>Temizlik Takvimi</h2><p>Günlük, haftalık ve aylık görevleri personel bazında yönetin.</p></div>
+        </div>
+        <div class="report-toolbar calendar-toolbar">
+          <div class="segmented">
+            <button class="calendar-type active" data-calendar-type="daily">Günlük</button>
+            <button class="calendar-type" data-calendar-type="weekly">Haftalık</button>
+            <button class="calendar-type" data-calendar-type="monthly">Aylık</button>
+          </div>
+          <input id="calendarDate" type="date">
+        </div>
+        <div id="calendarList" class="calendar-list"></div>
       </section>
 
       <section id="view-plan" class="view">
