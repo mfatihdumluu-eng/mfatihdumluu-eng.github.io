@@ -129,7 +129,6 @@ function renderSections(g,a){
    const safeX=b.x+safePad, safeY=b.y+safePad;
    const safeW=Math.max(20,b.w-safePad*2), safeH=Math.max(20,b.h-safePad*2);
 
-   // Keep text away from the divider line.
    let cx=safeX+safeW/2, cy=safeY+safeH/2;
    if(vertical){
      if(i===0) cx-=dividerGap*.12; else cx+=dividerGap*.12;
@@ -137,22 +136,23 @@ function renderSections(g,a){
      if(i===0) cy-=dividerGap*.12; else cy+=dividerGap*.12;
    }
 
-   const numSize=Math.max(9,Math.min(24,safeH*.28,safeW*.20));
-   const nameSize=Math.max(6,Math.min(12,safeH*.16,safeW/Math.max(6,String(q.name).length*.62)));
-   const totalTextH=numSize+nameSize+6;
-   const topY=cy-totalTextH/2+numSize*.72;
+   const numSize=Math.max(9,Math.min(24,safeH*.28,safeW*.16));
+   const nameSize=Math.max(6,Math.min(12,safeH*.18,safeW/Math.max(8,String(q.name).length*.65)));
 
+   const label=svgEl('g',{class:'section-label'});
    const n=svgEl('text',{
-     x:cx,y:topY,'text-anchor':'middle',
-     class:'section-num','font-size':numSize
+     x:cx-8,y:cy,'text-anchor':'end',
+     class:'section-num','font-size':numSize,'dominant-baseline':'middle'
    });
-   n.textContent=q.num;g.append(n);
+   n.textContent=q.num;label.append(n);
 
    const nm=svgEl('text',{
-     x:cx,y:topY+nameSize+8,'text-anchor':'middle',
-     class:'section-name','font-size':nameSize
+     x:cx+8,y:cy,'text-anchor':'start',
+     class:'section-name','font-size':nameSize,'dominant-baseline':'middle'
    });
-   nm.textContent=q.name;g.append(nm);
+   nm.textContent=q.name;label.append(nm);
+
+   g.append(label);
  });
  return true;
 }
