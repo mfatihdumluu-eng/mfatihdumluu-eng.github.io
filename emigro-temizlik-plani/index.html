@@ -80,7 +80,10 @@
         </div>
         <div id="workerNoticeBar" class="worker-notice-bar hidden">
           <div><b>Görev bildirimleri</b><span>15 dk önce ve 2 saat gecikmede uyarı al.</span></div>
-          <button class="primary" onclick="enableWorkerNotifications()">Bildirimleri Aç</button>
+          <div class="worker-notice-actions">
+            <button class="ghost" onclick="testWorkerNotification()">Test Uyarısı</button>
+            <button class="primary" onclick="enableWorkerNotifications()">Bildirimleri Aç</button>
+          </div>
         </div>
         <div class="operation-type-tabs">
           <button class="tracking-type active" data-tracking-type="daily">Günlük</button>
