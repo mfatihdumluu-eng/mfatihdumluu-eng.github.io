@@ -44,7 +44,7 @@ function applyPlanImage(){
  else{$('#planImg').classList.add('hidden');$('#emptyPlan').classList.remove('hidden')}
 }
 
-function renderAll(){renderReport();renderTracking();renderPlan();renderCards();renderStaff();renderNotifications();renderHistory()}
+function renderAll(){renderReport();renderTracking();renderCalendar();renderPlan();renderCards();renderStaff();renderNotifications();renderHistory()}
 function renderPlan(){
  const zones=manualZones();$('#zoneCount').textContent=zones.length;
  const ov=$('#zoneOverlay');ov.innerHTML='';ov.style.display=state.showAreas?'block':'none';
@@ -302,8 +302,21 @@ function monthEnd(d){return new Date(d.getFullYear(),d.getMonth()+1,0,23,59,59,9
 function shortDate(d){return d.toLocaleDateString('tr-TR',{day:'2-digit',month:'short'})}
 
 function makeTask(zone,card,type,d){
- var backupActive=!!card.backup_enabled&&(card.backup_days||[]).includes(d.getDay())&&card.backup_staff_id;
- var primary=staffById(card.primary_staff_id),backup=staffById(card.backup_staff_id);
+ var primaryId=card[type+'_primary_staff_id'];
+ var backupId=card[type+'_backup_staff_id'];
+ // Daily keeps backward compatibility with older assignments.
+ if(type==='daily'){
+   if(!primaryId)primaryId=card.primary_staff_id;
+   if(!backupId)backupId=card.backup_staff_id;
+ }
+ var backupDays=card[type+'_backup_days']||[];
+ if(type==='daily'&&!backupDays.length)backupDays=card.backup_days||[];
+ var backupActive=false;
+ if(backupId){
+   if(type==='monthly')backupActive=backupDays.includes(d.getDate());
+   else backupActive=backupDays.includes(d.getDay());
+ }
+ var primary=staffById(primaryId),backup=staffById(backupId);
  return {
   key:zone.id+':'+type+':'+dateKeyLocal(d),
   zone:zone,card:card,type:type,date:new Date(d),time:card[type+'_time']||null,
@@ -319,9 +332,15 @@ function expectedTasks(from,to){
   for(var i=0;i<zones.length;i++){
    var z=zones[i],c=cardByZone(z.id);if(!c)continue;
    var dow=d.getDay(),dom=d.getDate();
-   if(c.daily_enabled&&(c.daily_days||[]).includes(dow))out.push(makeTask(z,c,'daily',d));
-   if(c.weekly_enabled&&(c.weekly_days||[]).includes(dow))out.push(makeTask(z,c,'weekly',d));
-   if(c.monthly_enabled&&(c.monthly_days||[]).includes(dom))out.push(makeTask(z,c,'monthly',d));
+   if(c.daily_enabled&&(c.daily_days||[]).includes(dow)){
+     var td=makeTask(z,c,'daily',d);if(td.primary||td.backup)out.push(td)
+   }
+   if(c.weekly_enabled&&(c.weekly_days||[]).includes(dow)){
+     var tw=makeTask(z,c,'weekly',d);if(tw.primary||tw.backup)out.push(tw)
+   }
+   if(c.monthly_enabled&&(c.monthly_days||[]).includes(dom)){
+     var tm=makeTask(z,c,'monthly',d);if(tm.primary||tm.backup)out.push(tm)
+   }
   }
  }
  return out
@@ -466,7 +485,8 @@ if($('#reportType'))$('#reportType').onchange=renderReport;
 $$('.period').forEach(function(b){b.onclick=function(){$$('.period').forEach(function(x){x.classList.toggle('active',x===b)});state.reportPeriod=b.dataset.period;renderReport()}});
 $$('.nav').forEach(function(b){b.onclick=function(){
  $$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});$$('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+b.dataset.view)});
- var meta={report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],tracking:['Görev Takibi','Fotoğraflı tamamlanma ve aksama takibi.'],plan:['Temizlik Planı','Plan resmini yükle ve alanları tanımla.'],cards:['Alan Kartları','Günlük, haftalık ve aylık görev tanımları.'],staff:['Personel Kartları','Sorumluluk ve performans takibi.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
+ var meta={report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],tracking:['Görev Takibi','Fotoğraflı tamamlanma ve aksama takibi.'],
+        calendar:['Temizlik Takvimi','Günlük, haftalık ve aylık görev/personel planı.'],plan:['Temizlik Planı','Plan resmini yükle ve alanları tanımla.'],cards:['Alan Kartları','Günlük, haftalık ve aylık görev tanımları.'],staff:['Personel Kartları','Sorumluluk ve performans takibi.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
  $('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]
 }});
 
@@ -525,106 +545,138 @@ window.openZoneAssignee=function(zoneId){
  if(!state.isAdmin)return toast('Kişi atama yetkisi sadece adminde');
  var z=zoneById(zoneId),c=cardByZone(zoneId)||{};
  var staff=state.staff.filter(function(p){return p.active});
- var options='<option value="">Seçiniz</option>'+staff.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
+ var options='<option value="">Atanmadı</option>'+staff.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
 
- openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">PERSONEL ATAMA</span><h2>'+esc((z&&z.name)||'Alan')+'</h2><p>Her gün için yalnızca bir kişi sorumludur. Yedek seçilen günlerde asıl otomatik pasif olur.</p></div>'+
-  '<form id="zoneAssigneeForm">'+
-   '<div class="assignment-person-grid">'+
-    '<div class="field"><label>Asıl temizleyen</label><select name="primary" id="primaryStaffSelect" required>'+options+'</select></div>'+
-    '<div class="field"><label>Yedek temizleyen</label><select name="backup" id="backupStaffSelect">'+options+'</select></div>'+
-   '</div>'+
-   '<div class="day-owner-card"><div class="day-owner-head"><div><b>Haftalık Sorumluluk</b><span>Her gün Asıl veya Yedek seçilir.</span></div><span id="dayOwnerHint" class="backup-status-pill">7 gün Asıl</span></div>'+
-    '<div id="dayOwnerGrid" class="day-owner-grid"></div>'+
-   '</div>'+
-   '<div class="form-actions"><button type="button" class="ghost" onclick="openZoneStatus('+zoneId+')">Geri</button><button class="primary">Atamayı Kaydet</button></div>'+
-  '</form></div>');
-
- var form=$('#zoneAssigneeForm'),primarySel=$('#primaryStaffSelect'),backupSel=$('#backupStaffSelect'),grid=$('#dayOwnerGrid'),hint=$('#dayOwnerHint');
- primarySel.value=c.primary_staff_id||'';
- backupSel.value=c.backup_staff_id||'';
-
- function selectedBackupDays(){return c.backup_enabled?(c.backup_days||[]):[]}
-
- function renderDayOwners(){
-  var primaryId=primarySel.value,backupId=backupSel.value,backupDays=selectedBackupDays();
-  grid.innerHTML=dayNames.map(function(day,i){
-    var useBackup=!!backupId&&backupDays.includes(i);
-    return '<div class="day-owner-row" data-day="'+i+'">'+
-      '<div class="day-name">'+day+'</div>'+
-      '<div class="owner-toggle">'+
-       '<label class="owner-choice '+(!useBackup?'selected':'')+'"><input type="radio" name="owner_'+i+'" value="primary" '+(!useBackup?'checked':'')+'>Asıl</label>'+
-       '<label class="owner-choice '+(useBackup?'selected':'')+' '+(!backupId?'disabled':'')+'"><input type="radio" name="owner_'+i+'" value="backup" '+(useBackup?'checked':'')+' '+(!backupId?'disabled':'')+'>Yedek</label>'+
-      '</div>'+
-      '<div class="day-owner-person">'+(useBackup?esc(staffById(backupId)?.name||'Yedek'):esc(staffById(primaryId)?.name||'Asıl seçilmedi'))+'</div>'+
-    '</div>'
-  }).join('');
-  bindOwnerRadios();
-  updateOwnerHint();
+ function personSelects(type,title){
+  var pval=c[type+'_primary_staff_id']||(type==='daily'?c.primary_staff_id:null)||'';
+  var bval=c[type+'_backup_staff_id']||(type==='daily'?c.backup_staff_id:null)||'';
+  return '<div class="freq-person-head"><div><b>'+title+'</b><span>'+(
+    type==='daily'?'Her gün için sorumlu kişi seçilir.':
+    type==='weekly'?'Haftalık özel temizlik için ayrı sorumlu tanımlayın.':
+    'Aylık özel temizlik için ayrı sorumlu tanımlayın.'
+  )+'</span></div></div>'+
+  '<div class="assignment-person-grid">'+
+   '<div class="field"><label>Asıl temizleyen</label><select id="'+type+'Primary" name="'+type+'_primary">'+options+'</select></div>'+
+   '<div class="field"><label>Yedek temizleyen</label><select id="'+type+'Backup" name="'+type+'_backup">'+options+'</select></div>'+
+  '</div>'+
+  '<input type="hidden" id="'+type+'PrimaryValue" value="'+pval+'"><input type="hidden" id="'+type+'BackupValue" value="'+bval+'">'
  }
 
- function bindOwnerRadios(){
-  grid.querySelectorAll('input[type="radio"]').forEach(function(r){
+ openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">PERSONEL ATAMA</span><h2>'+esc((z&&z.name)||'Alan')+'</h2><p>Günlük, haftalık ve aylık temizliklerde farklı sorumlular tanımlayabilirsiniz.</p></div>'+
+  '<form id="zoneAssigneeForm">'+
+   '<div class="freq-tabs">'+
+    '<button type="button" class="freq-tab active" data-freq="daily">Günlük</button>'+
+    '<button type="button" class="freq-tab" data-freq="weekly">Haftalık</button>'+
+    '<button type="button" class="freq-tab" data-freq="monthly">Aylık</button>'+
+   '</div>'+
+
+   '<section class="freq-panel active" data-freq-panel="daily">'+
+    personSelects('daily','Günlük Temizlik')+
+    '<div class="day-owner-card"><div class="day-owner-head"><div><b>Haftalık Sorumluluk</b><span>Her gün yalnızca Asıl veya Yedek görevli olur.</span></div><span id="dailyOwnerHint" class="backup-status-pill"></span></div>'+
+     '<div id="dailyOwnerGrid" class="day-owner-grid"></div>'+
+    '</div>'+
+   '</section>'+
+
+   '<section class="freq-panel" data-freq-panel="weekly">'+
+    personSelects('weekly','Haftalık Özel Temizlik')+
+    '<div class="special-assignment-card"><div class="special-head"><b>Rutinde Tanımlı Günler</b><span>'+fmtDays(c.weekly_days||[])+'</span></div>'+
+     '<p>Yedek kullanmak istiyorsanız aşağıdan yedeğin devralacağı haftalık günleri seçin.</p>'+
+     '<div class="checks special-day-checks">'+weekdayChecks('weekly_backup_days',c.weekly_backup_days||[])+'</div>'+
+    '</div>'+
+   '</section>'+
+
+   '<section class="freq-panel" data-freq-panel="monthly">'+
+    personSelects('monthly','Aylık Özel Temizlik')+
+    '<div class="special-assignment-card"><div class="special-head"><b>Rutinde Tanımlı Ay Günleri</b><span>'+fmtMonthDays(c.monthly_days||[])+'</span></div>'+
+     '<p>Yedeğin devralacağı ay günlerini seçebilirsiniz.</p>'+
+     '<div class="checks special-day-checks month-special-days">'+monthDayChecks(c.monthly_backup_days||[])+'</div>'+
+    '</div>'+
+   '</section>'+
+
+   '<div class="form-actions"><button type="button" class="ghost" onclick="openZoneStatus('+zoneId+')">Geri</button><button class="primary">Atamaları Kaydet</button></div>'+
+  '</form></div>');
+
+ var form=$('#zoneAssigneeForm');
+
+ ['daily','weekly','monthly'].forEach(function(type){
+   var p=$('#'+type+'Primary'),b=$('#'+type+'Backup');
+   p.value=$('#'+type+'PrimaryValue').value;
+   b.value=$('#'+type+'BackupValue').value;
+   function guard(){
+     if(p.value&&b.value&&p.value===b.value){b.value='';toast('Asıl ve yedek aynı kişi olamaz')}
+   }
+   p.onchange=guard;b.onchange=guard;
+ });
+
+ var dailyGrid=$('#dailyOwnerGrid'),dailyP=$('#dailyPrimary'),dailyB=$('#dailyBackup'),dailyHint=$('#dailyOwnerHint');
+ function dailyBackupDaysFromState(){
+   var d=c.daily_backup_days||[];
+   if(!d.length&&c.backup_enabled)d=c.backup_days||[];
+   return d
+ }
+ function renderDailyOwners(){
+  var bd=dailyBackupDaysFromState();
+  dailyGrid.innerHTML=dayNames.map(function(day,i){
+    var useBackup=!!dailyB.value&&bd.includes(i);
+    return '<div class="day-owner-row" data-day="'+i+'"><div class="day-name">'+day+'</div><div class="owner-toggle">'+
+     '<label class="owner-choice '+(!useBackup?'selected':'')+'"><input type="radio" name="daily_owner_'+i+'" value="primary" '+(!useBackup?'checked':'')+'>Asıl</label>'+
+     '<label class="owner-choice '+(useBackup?'selected':'')+' '+(!dailyB.value?'disabled':'')+'"><input type="radio" name="daily_owner_'+i+'" value="backup" '+(useBackup?'checked':'')+' '+(!dailyB.value?'disabled':'')+'>Yedek</label>'+
+     '</div><div class="day-owner-person">'+(useBackup?esc(staffById(dailyB.value)?.name||'Yedek'):esc(staffById(dailyP.value)?.name||'Asıl seçilmedi'))+'</div></div>'
+  }).join('');
+  dailyGrid.querySelectorAll('input[type="radio"]').forEach(function(r){
     r.onchange=function(){
       var row=r.closest('.day-owner-row');
       row.querySelectorAll('.owner-choice').forEach(function(l){l.classList.remove('selected')});
       r.closest('.owner-choice').classList.add('selected');
-      var who=r.value==='backup'?staffById(backupSel.value):staffById(primarySel.value);
+      var who=r.value==='backup'?staffById(dailyB.value):staffById(dailyP.value);
       row.querySelector('.day-owner-person').textContent=(who&&who.name)||(r.value==='backup'?'Yedek':'Asıl seçilmedi');
-      updateOwnerHint();
+      updateDailyHint()
     }
-  })
- }
-
- function updateOwnerHint(){
-  var backupCount=0;
-  grid.querySelectorAll('.day-owner-row').forEach(function(row){
-    var checked=row.querySelector('input[type="radio"]:checked');
-    if(checked&&checked.value==='backup')backupCount++;
   });
-  hint.textContent=backupCount?((7-backupCount)+' gün Asıl · '+backupCount+' gün Yedek'):'7 gün Asıl';
+  updateDailyHint()
  }
+ function updateDailyHint(){
+   var bc=0;dailyGrid.querySelectorAll('.day-owner-row').forEach(function(row){var x=row.querySelector('input:checked');if(x&&x.value==='backup')bc++});
+   dailyHint.textContent=bc?(7-bc)+' gün Asıl · '+bc+' gün Yedek':'7 gün Asıl'
+ }
+ dailyP.onchange=function(){if(dailyP.value&&dailyB.value===dailyP.value){dailyB.value='';toast('Asıl ve yedek aynı kişi olamaz')}renderDailyOwners()};
+ dailyB.onchange=function(){if(dailyB.value&&dailyP.value===dailyB.value){dailyB.value='';toast('Asıl ve yedek aynı kişi olamaz')}renderDailyOwners()};
+ renderDailyOwners();
 
- primarySel.onchange=function(){
-  if(backupSel.value&&primarySel.value===backupSel.value){backupSel.value='';toast('Asıl ve yedek aynı kişi olamaz')}
-  renderDayOwners()
- };
- backupSel.onchange=function(){
-  if(backupSel.value&&primarySel.value===backupSel.value){backupSel.value='';toast('Asıl ve yedek aynı kişi olamaz')}
-  // Backup changed: existing backup-day pattern is preserved if a backup still exists.
-  renderDayOwners()
- };
-
- renderDayOwners();
+ $$('.freq-tab').forEach(function(btn){
+  btn.onclick=function(){
+   $$('.freq-tab').forEach(function(x){x.classList.toggle('active',x===btn)});
+   $$('.freq-panel').forEach(function(x){x.classList.toggle('active',x.dataset.freqPanel===btn.dataset.freq)})
+  }
+ });
 
  form.onsubmit=async function(e){
   e.preventDefault();
-  var primary=primarySel.value?+primarySel.value:null,backup=backupSel.value?+backupSel.value:null;
-  if(!primary)return toast('Önce asıl temizleyeni seç');
-  if(primary&&backup&&primary===backup)return toast('Asıl ve yedek aynı kişi olamaz');
+  var dailyPrimary=dailyP.value?+dailyP.value:null,dailyBackup=dailyB.value?+dailyB.value:null,dailyBackupDays=[];
+  dailyGrid.querySelectorAll('.day-owner-row').forEach(function(row){var x=row.querySelector('input:checked');if(x&&x.value==='backup')dailyBackupDays.push(Number(row.dataset.day))});
+  if(dailyBackupDays.length&&!dailyBackup)return toast('Günlük yedek günleri var ama yedek kişi seçilmedi');
 
-  var backupDays=[];
-  grid.querySelectorAll('.day-owner-row').forEach(function(row){
-    var checked=row.querySelector('input[type="radio"]:checked');
-    if(checked&&checked.value==='backup')backupDays.push(Number(row.dataset.day));
-  });
-  if(backupDays.length&&!backup)return toast('Yedek günleri seçili ama yedek personel yok');
+  var weeklyPrimary=$('#weeklyPrimary').value?+$('#weeklyPrimary').value:null,weeklyBackup=$('#weeklyBackup').value?+$('#weeklyBackup').value:null;
+  var weeklyBackupDays=[...form.querySelectorAll('input[name="weekly_backup_days"]:checked')].map(function(x){return Number(x.value)});
+  if(weeklyBackupDays.length&&!weeklyBackup)return toast('Haftalık yedek günleri var ama yedek kişi seçilmedi');
+
+  var monthlyPrimary=$('#monthlyPrimary').value?+$('#monthlyPrimary').value:null,monthlyBackup=$('#monthlyBackup').value?+$('#monthlyBackup').value:null;
+  var monthlyBackupDays=[...form.querySelectorAll('input[name="monthly_days"]:checked')].map(function(x){return Number(x.value)});
+  if(monthlyBackupDays.length&&!monthlyBackup)return toast('Aylık yedek günleri var ama yedek kişi seçilmedi');
 
   var row={
-   primary_staff_id:primary,
-   backup_staff_id:backup,
-   backup_enabled:!!backup&&backupDays.length>0,
-   backup_days:backup?backupDays:[],
+   primary_staff_id:dailyPrimary,backup_staff_id:dailyBackup,backup_enabled:!!dailyBackup&&dailyBackupDays.length>0,backup_days:dailyBackupDays,
+   daily_primary_staff_id:dailyPrimary,daily_backup_staff_id:dailyBackup,daily_backup_days:dailyBackupDays,
+   weekly_primary_staff_id:weeklyPrimary,weekly_backup_staff_id:weeklyBackup,weekly_backup_days:weeklyBackupDays,
+   monthly_primary_staff_id:monthlyPrimary,monthly_backup_staff_id:monthlyBackup,monthly_backup_days:monthlyBackupDays,
    updated_at:new Date().toISOString()
   };
-  var q=cardByZone(zoneId)
-    ? db.from('emigro_cleaning_zone_cards').update(row).eq('zone_id',zoneId)
-    : db.from('emigro_cleaning_zone_cards').insert(Object.assign({zone_id:zoneId},row));
+  var q=cardByZone(zoneId)?db.from('emigro_cleaning_zone_cards').update(row).eq('zone_id',zoneId):db.from('emigro_cleaning_zone_cards').insert(Object.assign({zone_id:zoneId},row));
   var r=await q;if(r.error)return toast(r.error.message);
-  toast('Haftalık sorumluluk kaydedildi');await loadAll();openZoneStatus(zoneId)
+  toast('Günlük, haftalık ve aylık sorumlular kaydedildi');await loadAll();openZoneStatus(zoneId)
  };
  var box=$('#modal .modal-box');if(box)box.classList.add('zone-sheet');
 };
-
 window.openWarningForTask=function(key){
  var t=taskByKey(key);if(!t)return;openWarning(t.zone.id,t.type,dateKeyLocal(t.date))
 };
@@ -679,6 +731,49 @@ window.resolveWarning=async function(id){var r=await db.from('emigro_cleaning_no
 if($('#newWarningBtn'))$('#newWarningBtn').onclick=openGeneralWarning;
 $$('.warning-filter').forEach(function(b){b.onclick=function(){$$('.warning-filter').forEach(function(x){x.classList.toggle('active',x===b)});state.warningFilter=b.dataset.warningFilter;renderNotifications()}});
 
+
+function renderStaff(){
+ if(!$('#staffGrid'))return;
+ $('#staffGrid').innerHTML=state.staff.length?state.staff.map(function(p){
+  var st=staffStats(p.id),lines=staffResponsibilityLines(p.id);
+  return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.role||'Rol belirtilmedi')+'</div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
+   '<div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div>'+
+   '<div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
+   '<div class="card-actions"><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button></div></article>'
+ }).join(''):'<div class="sub">Personel eklenmedi.</div>'
+}
+
+state.calendarType='daily';
+
+function renderCalendar(){
+ if(!$('#calendarList'))return;
+ var input=$('#calendarDate');if(!input.value)input.value=dateKeyLocal(new Date());
+ var d=parseDateLocal(input.value),type=state.calendarType,tasks=expectedTasks(dayStart(d),dayEnd(d)).filter(function(t){return t.type===type});
+ $('#calendarList').innerHTML=tasks.length?tasks.map(function(t){
+   var st=statusFor(t),who=t.assigned||t.primary;
+   return '<article class="calendar-card '+st.key+'" onclick="openZoneStatus('+t.zone.id+')"><div><span class="calendar-type-label">'+typeNames[t.type]+'</span><h3>'+esc(t.zone.name)+'</h3><p>'+esc(t.taskText||'Görev açıklaması yok')+'</p></div><div class="calendar-assignee"><label>Görevli</label><b>'+esc((who&&who.name)||'—')+'</b><small>'+(t.backupActive?'Yedek aktif':'Asıl aktif')+'</small></div><div><b class="calendar-time">'+(t.time?t.time.slice(0,5):'—')+'</b><span class="status '+st.key+'">'+st.label+'</span></div></article>'
+ }).join(''):'<div class="calendar-empty">Bu gün için '+typeNames[type].toLowerCase()+' görev ve personel ataması yok.</div>'
+}
+
+function staffResponsibilityLines(personId){
+ var lines=[];
+ manualZones().forEach(function(z){
+   var c=cardByZone(z.id)||{};
+   ['daily','weekly','monthly'].forEach(function(type){
+     var primaryId=c[type+'_primary_staff_id']||(type==='daily'?c.primary_staff_id:null);
+     var backupId=c[type+'_backup_staff_id']||(type==='daily'?c.backup_staff_id:null);
+     var backupDays=c[type+'_backup_days']||[];
+     if(type==='daily'&&!backupDays.length)backupDays=c.backup_days||[];
+     if(String(primaryId||'')===String(personId)){
+       var baseDays=type==='daily'?(c.daily_days||[]):type==='weekly'?(c.weekly_days||[]):(c.monthly_days||[]);
+       var days=baseDays.filter(function(x){return !backupDays.includes(x)});
+       if(days.length)lines.push({zone:z,type:type,role:'Asıl',days:days})
+     }
+     if(String(backupId||'')===String(personId)&&backupDays.length)lines.push({zone:z,type:type,role:'Yedek',days:backupDays})
+   })
+ });
+ return lines
+}
 function initCleaningAdmin(){
   if(!state.isAdmin){
     ['#drawBtn','.upload-btn','#demoBtn','#addStaffBtn'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
@@ -712,6 +807,8 @@ function initCleaningAdmin(){
   if($('#demoBtn')) $('#demoBtn').onclick=loadDemoData;
   if($('#newWarningBtn')) $('#newWarningBtn').onclick=openGeneralWarning;
   if($('#trackingDate')) $('#trackingDate').onchange=renderTracking;
+  if($('#calendarDate')) $('#calendarDate').onchange=renderCalendar;
+  $('.calendar-type').forEach(function(b){b.onclick=function(){$('.calendar-type').forEach(function(x){x.classList.toggle('active',x===b)});state.calendarType=b.dataset.calendarType;renderCalendar()}});
   if($('#reportType')) $('#reportType').onchange=renderReport;
 
   $$('.period').forEach(function(b){
