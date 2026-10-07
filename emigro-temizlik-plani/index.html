@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>EMIGRO Temizlik Takip</title>
+<title>EMIGRO Temizlik Yönetimi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,73 +13,98 @@
 <body>
 <div class="shell">
   <aside class="sidebar">
-    <div class="brand"><div class="brand-mark">E</div><div><b>EMIGRO</b><span>Temizlik Takip</span></div></div>
+    <div class="brand"><div class="brand-mark">E</div><div><b>EMIGRO</b><span>Temizlik Yönetimi</span></div></div>
     <nav>
-      <button class="nav active" data-view="plan">⌗ <span>Temizlik Planı</span></button>
-      <button class="nav" data-view="cards">▦ <span>Alan Kartları</span></button>
-      <button class="nav" data-view="staff">👤 <span>Personel</span></button>
-      <button class="nav" data-view="history">↺ <span>Geçmiş</span></button>
+      <button class="nav active" data-view="report"><span>▦</span><b>Rapor</b><em id="alertBadge" class="nav-badge hidden">0</em></button>
+      <button class="nav" data-view="tracking"><span>✓</span><b>Görev Takibi</b></button>
+      <button class="nav" data-view="plan"><span>⌗</span><b>Temizlik Planı</b></button>
+      <button class="nav" data-view="cards"><span>▤</span><b>Alan Kartları</b></button>
+      <button class="nav" data-view="staff"><span>👤</span><b>Personel</b></button>
+      <button class="nav" data-view="history"><span>↺</span><b>Geçmiş</b></button>
     </nav>
     <div class="sidebar-foot"><span id="dbState">● Bağlanıyor</span></div>
   </aside>
 
   <div class="main">
     <header class="topbar">
-      <div><h1 id="pageTitle">Temizlik Planı</h1><p id="pageSub">Plan resmini yükle, alanları kendin seç ve kartlarını oluştur.</p></div>
-      <div class="top-actions"><button id="demoBtn" class="primary">Demo Veriyi Yükle</button><button id="refreshBtn" class="ghost">Yenile</button></div>
+      <div><h1 id="pageTitle">Admin Raporu</h1><p id="pageSub">Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.</p></div>
+      <div class="top-actions"><button id="demoBtn" class="ghost strong">Demo Veriyi Yükle</button><button id="refreshBtn" class="ghost">Yenile</button></div>
     </header>
 
     <main class="content">
-      <section id="view-plan" class="view active">
-        <div class="upload-card">
-          <div>
-            <h2>Market Planı</h2>
-            <p>PNG veya JPG yükle. Resim aynen korunur; sadece üstünde alan seçimi yapılır.</p>
-          </div>
-          <label class="upload-btn">Resim Yükle<input id="planUpload" type="file" accept="image/png,image/jpeg,image/webp"></label>
+      <section id="view-report" class="view active">
+        <div id="alertPanel" class="alert-panel hidden"></div>
+
+        <div class="metrics">
+          <article class="metric"><span>Bugün Planlanan</span><b id="mToday">0</b><small>Toplam görev</small></article>
+          <article class="metric success"><span>Bugün Yapıldı</span><b id="mDone">0</b><small>Fotoğraflı tamamlanan</small></article>
+          <article class="metric danger"><span>Aksayan</span><b id="mOverdue">0</b><small>Zamanı geçti</small></article>
+          <article class="metric"><span>Aktif Personel</span><b id="mStaff">0</b><small>Temizlik ekibi</small></article>
         </div>
 
+        <div class="report-toolbar">
+          <div class="segmented">
+            <button class="period active" data-period="today">Bugün</button>
+            <button class="period" data-period="week">Bu Hafta</button>
+            <button class="period" data-period="month">Bu Ay</button>
+          </div>
+          <select id="reportType"><option value="">Tüm görev türleri</option><option value="daily">Günlük</option><option value="weekly">Haftalık</option><option value="monthly">Aylık</option></select>
+        </div>
+
+        <div class="type-summary">
+          <article><span>Günlük</span><b id="rDaily">0 / 0</b><small>Yapıldı / Toplam</small></article>
+          <article><span>Haftalık</span><b id="rWeekly">0 / 0</b><small>Yapıldı / Toplam</small></article>
+          <article><span>Aylık</span><b id="rMonthly">0 / 0</b><small>Yapıldı / Toplam</small></article>
+        </div>
+
+        <div class="section-head"><div><h2>Detaylı Rapor</h2><p>Alan, sorumlu, zaman ve kanıt fotoğrafı.</p></div></div>
+        <div id="reportList" class="report-list"></div>
+      </section>
+
+      <section id="view-tracking" class="view">
+        <div class="section-head">
+          <div><h2>Görev Takibi</h2><p>Çalışan “Yaptım” dediğinde fotoğraf ve not ile kayıt oluşur.</p></div>
+          <input id="trackingDate" type="date">
+        </div>
+        <div id="trackingList" class="report-list"></div>
+      </section>
+
+      <section id="view-plan" class="view">
+        <div class="upload-card">
+          <div><h2>Market Planı</h2><p>PNG/JPG yükle. Planın kendisi değiştirilmez.</p></div>
+          <label class="upload-btn">Resim Yükle<input id="planUpload" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        </div>
         <div class="plan-toolbar">
           <button id="drawBtn" class="primary">+ Alan Seç</button>
           <button id="toggleAreasBtn" class="ghost">Alanları Gizle</button>
           <span id="drawStatus">Alan seçmek için “Alan Seç”e bas.</span>
         </div>
-
         <div class="plan-layout">
-          <div class="plan-card">
-            <div id="planStage" class="plan-stage">
-              <div id="emptyPlan" class="empty-plan">Önce plan resmini yükle.</div>
-              <img id="planImg" class="hidden" alt="Market planı">
-              <div id="zoneOverlay" class="zone-overlay"></div>
-              <div id="drawRect" class="draw-rect hidden"></div>
-            </div>
-          </div>
-          <aside class="zones-panel">
-            <div class="panel-head"><b>Tanımlı Alanlar</b><span id="zoneCount">0</span></div>
-            <div id="zoneMiniList"></div>
-          </aside>
+          <div class="plan-card"><div id="planStage" class="plan-stage"><div id="emptyPlan" class="empty-plan">Önce plan resmini yükle.</div><img id="planImg" class="hidden" alt="Market planı"><div id="zoneOverlay" class="zone-overlay"></div><div id="drawRect" class="draw-rect hidden"></div></div></div>
+          <aside class="zones-panel"><div class="panel-head"><b>Tanımlı Alanlar</b><span id="zoneCount">0</span></div><div id="zoneMiniList"></div></aside>
         </div>
       </section>
 
       <section id="view-cards" class="view">
-        <div class="section-head"><div><h2>Alan Kartları</h2><p>Her alanın temizlik zamanları ve sorumluları.</p></div></div>
+        <div class="section-head"><div><h2>Alan Kartları</h2><p>Günlük, haftalık ve aylık görev tanımları.</p></div></div>
         <div id="zoneCards" class="zone-cards"></div>
       </section>
 
       <section id="view-staff" class="view">
-        <div class="section-head"><div><h2>Personel</h2><p>Asıl ve yedek temizleyen olarak atanacak kişiler.</p></div><button id="addStaffBtn" class="primary">+ Personel Ekle</button></div>
+        <div class="section-head"><div><h2>Personel Kartları</h2><p>Sorumluluklar ve performans tek kartta.</p></div><button id="addStaffBtn" class="primary">+ Personel Ekle</button></div>
         <div id="staffGrid" class="staff-grid"></div>
       </section>
 
       <section id="view-history" class="view">
-        <div class="section-head"><div><h2>Geçmiş</h2><p>Tamamlanan temizlik kayıtları.</p></div></div>
-        <div class="table-card"><table><thead><tr><th>Tarih</th><th>Alan</th><th>Personel</th><th>Durum</th><th>Not</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+        <div class="section-head"><div><h2>Geçmiş</h2><p>Tamamlanan temizlikler ve fotoğraf kanıtları.</p></div></div>
+        <div class="table-card"><table><thead><tr><th>Tarih</th><th>Tür</th><th>Alan</th><th>Yapan</th><th>Durum</th><th>Fotoğraf</th><th>Not</th></tr></thead><tbody id="historyBody"></tbody></table></div>
       </section>
     </main>
   </div>
 </div>
 
 <div id="modal" class="modal hidden"><div class="modal-box"><button id="closeModal" class="modal-close">×</button><div id="modalBody"></div></div></div>
+<div id="photoModal" class="modal hidden"><div class="photo-box"><button id="closePhoto" class="modal-close">×</button><img id="photoView" alt="Temizlik fotoğrafı"></div></div>
 <div id="toast" class="toast hidden"></div>
 <script src="./app.js"></script>
 </body>
