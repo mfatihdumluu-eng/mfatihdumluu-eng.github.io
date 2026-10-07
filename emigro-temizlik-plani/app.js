@@ -985,12 +985,12 @@ function renderStaff(){
   return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.role||'Rol belirtilmedi')+'</div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
    '<div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div>'+
    '<div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
-   '<div class="card-actions staff-actions"><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Görev Ata</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView()">Kullanıcı Ekranı</button></div></article>'
+   '<div class="card-actions staff-actions"><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Görev Ata</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
  }).join(''):'<div class="sub">Personel eklenmedi.</div>'
 }
 
-window.openWorkerView=function(){
- var url=location.pathname+'?mode=worker';
+window.openWorkerView=function(id){
+ var url=location.pathname+'?mode=worker'+(id?'&staff='+id:'');
  window.open(url,'_blank');
 };
 
@@ -1075,17 +1075,19 @@ function renderWorkerProfilePicker(){
  var wrap=$('#workerProfilePicker'),box=$('#workerProfileOptions');if(!wrap||!box)return;
  if(state.isAdmin){wrap.classList.add('hidden');return}
  wrap.classList.remove('hidden');
- var order=['Kasa','Raf','Sebze Meyve','Genel Temizlik','Depo'];
  var icons={'Kasa':'🧾','Raf':'🧹','Sebze Meyve':'🥬','Genel Temizlik':'🧽','Depo':'📦'};
- var people=order.map(function(dep){return state.staff.find(function(p){return p.department===dep&&p.active})}).filter(Boolean);
- box.innerHTML=people.map(function(p){
+ var people=state.staff.filter(function(p){return p.active}).sort(function(a,b){
+   var da=a.department||'Diğer',dbb=b.department||'Diğer';
+   return da.localeCompare(dbb,'tr')||a.name.localeCompare(b.name,'tr')
+ });
+ box.innerHTML=people.length?people.map(function(p){
    var active=String(p.id)===String(state.workerStaffId);
    var count=expectedTasks(dayStart(new Date()),dayEnd(new Date())).filter(function(t){return taskAssignedToWorkerFor(t,p.id)}).length;
    return '<button class="worker-profile-option '+(active?'active':'')+'" onclick="selectWorkerProfile('+p.id+')">'+
      '<span class="worker-profile-icon">'+(icons[p.department]||'👤')+'</span>'+
-     '<span><b>'+esc(p.department||p.role||'Personel')+'</b><small>'+esc(p.name)+' · '+count+' görev</small></span>'+
+     '<span><b>'+esc(p.name)+'</b><small>'+esc(p.department||p.role||'Personel')+' · '+count+' görev</small></span>'+
    '</button>'
- }).join('');
+ }).join(''):'<div class="sub">Aktif personel yok.</div>'
 }
 window.selectWorkerProfile=function(id){
  state.workerStaffId=Number(id)||null;
