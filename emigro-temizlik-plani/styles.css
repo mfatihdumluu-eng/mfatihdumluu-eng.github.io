@@ -1026,3 +1026,37 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
   .task-warn-btn{min-height:36px!important}
   .compact-actions{bottom:-14px!important;padding-bottom:max(4px,env(safe-area-inset-bottom))!important}
 }
+
+
+/* WORKER MODE + FIXED TASK TAGS */
+.worker-notice-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:0 0 14px;padding:14px 16px;background:#fff;border:1px solid #dff0e7;
+  border-radius:18px;box-shadow:0 8px 24px rgba(16,24,40,.05)
+}
+.worker-notice-bar b{display:block;font-size:14px;color:#101828}
+.worker-notice-bar span{display:block;margin-top:3px;font-size:12px;color:#667085}
+.worker-notice-bar .primary{min-height:40px!important;padding:9px 12px!important;font-size:12px!important;white-space:nowrap}
+.task-tag-list{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.task-tag-list span{
+  display:inline-flex;align-items:center;min-height:28px;padding:6px 9px;
+  background:#eaf8f1;color:#067647;border-radius:999px;font-size:11px;font-weight:750
+}
+.worker-checklist{display:grid;gap:8px}
+.worker-checklist label{
+  display:flex;align-items:flex-start;gap:10px;padding:11px 12px;background:#f8faf9;
+  border:1px solid #e5ece8;border-radius:13px;color:#101828;font-size:14px;line-height:1.4;cursor:pointer
+}
+.worker-checklist input{width:20px!important;height:20px!important;min-height:20px!important;margin:0!important;padding:0!important;accent-color:#079455}
+.worker-checklist span{flex:1}
+.proof-upload{
+  padding:14px;border:1px dashed #b9c8c0;border-radius:14px;background:#fbfdfc;
+  color:#667085;font-size:13px;line-height:1.5
+}
+.proof-upload input{margin-top:10px}
+@media(max-width:600px){
+ .worker-notice-bar{align-items:flex-start;flex-direction:column}
+ .worker-notice-bar .primary{width:100%!important}
+ .task-tag-list span{font-size:12px}
+ .worker-checklist label{font-size:15px}
+}
