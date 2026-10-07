@@ -488,7 +488,7 @@ function renderTracking(){
    var actions=st.key==='done'
      ? (proof||'<span class="sub">Fotoğraf yok</span>')
      : '<button class="primary compact-btn" onclick="openComplete(\''+t.key+'\')">Yaptım</button>'+(state.isAdmin&&st.key==='overdue'?'<button class="ghost compact-btn" onclick="openWarningForTask(\''+t.key+'\')">Uyar</button>':'');
-   return '<article class="today-task '+st.key+' priority-'+(t.zone.priority||'normal')+'" onclick="openZoneStatus('+t.zone.id+')"><div class="today-task-main"><div class="today-task-top"><span class="calendar-type-label">'+typeNames[t.type]+'</span>'+(t.zone.priority!=='normal'?'<span class="priority-badge '+t.zone.priority+'">'+(t.zone.priority==='critical'?'Kritik':'Yüksek')+'</span>':'')+'</div><h3>'+esc(t.zone.name)+'</h3><p>'+esc(t.taskText||'Görev açıklaması yok')+'</p><div class="today-meta">🕒 '+(t.time?t.time.slice(0,5):'—')+' · 👤 '+esc((who&&who.name)||'Atanmamış')+'</div></div><div class="today-task-actions" onclick="event.stopPropagation()">'+actions+'</div></article>'
+   return '<article class="today-task '+st.key+' priority-'+(t.zone.priority||'normal')+'" onclick="openZoneStatus('+t.zone.id+')"><div class="today-task-main"><div class="today-task-top"><span class="calendar-type-label">'+typeNames[t.type]+'</span>'+(t.zone.priority!=='normal'?'<span class="priority-badge '+t.zone.priority+'">'+(t.zone.priority==='critical'?'Kritik':'Yüksek')+'</span>':'')+'</div><h3>'+esc(t.zone.name)+'</h3><p>'+esc(t.taskText||'Görev açıklaması yok')+'</p>'+(t.tags&&t.tags.length?'<div class="task-tag-list">'+t.tags.map(function(x){return '<span>'+esc(x.label)+'</span>'}).join('')+'</div>':'')+'<div class="today-meta">🕒 '+(t.time?t.time.slice(0,5):'—')+' · 👤 '+esc((who&&who.name)||'Atanmamış')+'</div></div><div class="today-task-actions" onclick="event.stopPropagation()">'+actions+'</div></article>'
  }
  $('#todayOverCount').textContent=groups.overdue.length;$('#todayPendingCount').textContent=groups.pending.length;$('#todayDoneCount').textContent=groups.done.length;
  $('#todayOverdue').innerHTML=groups.overdue.length?groups.overdue.map(item).join(''):'<div class="today-empty">Aksayan iş yok.</div>';
@@ -885,9 +885,10 @@ function renderCalendar(){
  if(!$('#calendarList'))return;
  var input=$('#calendarDate');if(!input.value)input.value=dateKeyLocal(new Date());
  var d=parseDateLocal(input.value),type=state.calendarType,tasks=expectedTasks(dayStart(d),dayEnd(d)).filter(function(t){return t.type===type});
+ if(!state.isAdmin)tasks=tasks.filter(taskAssignedToWorker);
  $('#calendarList').innerHTML=tasks.length?tasks.map(function(t){
    var st=statusFor(t),who=t.assigned||t.primary;
-   return '<article class="calendar-card '+st.key+'" onclick="openZoneStatus('+t.zone.id+')"><div><span class="calendar-type-label">'+typeNames[t.type]+'</span><h3>'+esc(t.zone.name)+'</h3><p>'+esc(t.taskText||'Görev açıklaması yok')+'</p></div><div class="calendar-assignee"><label>Görevli</label><b>'+esc((who&&who.name)||'—')+'</b><small>'+(t.backupActive?'Yedek aktif':'Asıl aktif')+'</small></div><div><b class="calendar-time">'+(t.time?t.time.slice(0,5):'—')+'</b><span class="status '+st.key+'">'+st.label+'</span></div></article>'
+   return '<article class="calendar-card '+st.key+'" onclick="openZoneStatus('+t.zone.id+')"><div><span class="calendar-type-label">'+typeNames[t.type]+'</span><h3>'+esc(t.zone.name)+'</h3><p>'+esc(t.taskText||'Görev açıklaması yok')+'</p>'+(t.tags&&t.tags.length?'<div class="task-tag-list">'+t.tags.map(function(x){return '<span>'+esc(x.label)+'</span>'}).join('')+'</div>':'')+'</div><div class="calendar-assignee"><label>Görevli</label><b>'+esc((who&&who.name)||'—')+'</b><small>'+(t.backupActive?'Yedek aktif':'Asıl aktif')+'</small></div><div><b class="calendar-time">'+(t.time?t.time.slice(0,5):'—')+'</b><span class="status '+st.key+'">'+st.label+'</span></div></article>'
  }).join(''):'<div class="calendar-empty">Bu gün için '+typeNames[type].toLowerCase()+' görev ve personel ataması yok.</div>'
 }
 
@@ -921,7 +922,12 @@ function openManagementView(view){
     notifications:['Uyarılar','Gönderilen uyarılar ve açık bildirimler.'],
     history:['Geçmiş','Tamamlanan ve yapılmayan temizlik kayıtları.']
   }[view];
-  if(meta){$('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]}
+  if(meta){
+        if(!state.isAdmin&&workerById()){
+          $('#pageTitle').textContent=workerById().name;
+          $('#pageSub').textContent=(workerById().department||workerById().role||'Temizlik')+' · '+(b.dataset.view==='calendar'?'Takvimin':'Bugünkü görevlerin');
+        }else{$('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]}
+      }
 }
 
 function workerTasksToday(){
