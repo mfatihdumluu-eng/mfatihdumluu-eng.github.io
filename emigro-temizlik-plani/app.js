@@ -159,6 +159,8 @@ function zoneCardForm(z,c={}){
  return `<h2>${z.id?'Alan Kartı':'Yeni Alan'}</h2><form id="zoneCardForm"><div class="form-grid">
  <div class="field"><label>Alan adı</label><input name="name" required value="${esc(z.name||'')}"></div>
  <div class="field"><label>Renk</label><input name="color" type="color" value="${z.color||'#f47a20'}"></div>
+ <div class="field"><label>Alan önceliği</label><select name="priority"><option value="normal" ${(z.priority||'normal')==='normal'?'selected':''}>Normal</option><option value="high" ${z.priority==='high'?'selected':''}>Yüksek</option><option value="critical" ${z.priority==='critical'?'selected':''}>Kritik</option></select></div>
+ <div class="field"><label>Fotoğraf kanıtı</label><select name="proof_required"><option value="false" ${!z.proof_required?'selected':''}>İsteğe bağlı</option><option value="true" ${z.proof_required?'selected':''}>Zorunlu</option></select></div>
  <div class="field full"><label>Tanım / temizlenecekler</label><textarea name="description">${esc(z.description||'')}</textarea></div>
 
  <div class="field full"><label>Günlük</label><label class="check"><input type="checkbox" name="daily_enabled" ${c.daily_enabled?'checked':''}> Aktif</label><div class="checks">${weekdayChecks('daily_days',c.daily_days||[1,2,3,4,5,6,0])}</div></div>
@@ -176,14 +178,14 @@ function zoneCardForm(z,c={}){
  <div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>`
 }
 function openNewZoneModal(box){
- const z={name:'',description:'',color:'#f47a20',x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),manual:true,active:true};
+ const z={name:'',description:'',color:'#f47a20',priority:'normal',proof_required:false,x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),manual:true,active:true};
  openModal(zoneCardForm(z,{}));bindZoneCardForm(z,true)
 }
 window.openZoneCardModal=id=>{if(!state.isAdmin)return openZoneStatus(id);const z=zoneById(id),c=cardByZone(id)||{};openModal(zoneCardForm(z,c));bindZoneCardForm(z,false,c)};
 function bindZoneCardForm(z,isNew,c={}){
  $('#zoneCardForm').onsubmit=async e=>{
   e.preventDefault();const fd=new FormData(e.target);let zoneId=z.id;
-  const zoneRow={name:fd.get('name'),description:fd.get('description'),color:fd.get('color'),manual:true,active:true,x:z.x,y:z.y,w:z.w,h:z.h,shape:'rect',code:z.code||('MANUAL-'+Date.now())};
+  const zoneRow={name:fd.get('name'),description:fd.get('description'),color:fd.get('color'),priority:fd.get('priority')||'normal',proof_required:fd.get('proof_required')==='true',manual:true,active:true,x:z.x,y:z.y,w:z.w,h:z.h,shape:'rect',code:z.code||('MANUAL-'+Date.now())};
   if(isNew){const {data,error}=await db.from('emigro_cleaning_zones').insert(zoneRow).select().single();if(error)return toast(error.message);zoneId=data.id}
   else{const {error}=await db.from('emigro_cleaning_zones').update(zoneRow).eq('id',z.id);if(error)return toast(error.message)}
   const cardRow={
@@ -219,58 +221,99 @@ window.editStaff=id=>{
 
 
 async function loadDemoData(){
- if(!confirm('Demo verileri yüklensin mi? Mevcut manuel alanlar korunur, demo alanları eklenir/güncellenir.'))return;
- const people=[
-  {name:'Ayşe Demir',role:'Temizlik',phone:'0611111111',active:true},
-  {name:'Mehmet Kaya',role:'Temizlik',phone:'0622222222',active:true},
-  {name:'Fatma Yılmaz',role:'Temizlik',phone:'0633333333',active:true},
-  {name:'Ali Can',role:'Yedek',phone:'0644444444',active:true}
- ];
- const staffIds={};
- for(const p of people){
-   const existing=state.staff.find(x=>x.name===p.name);
-   if(existing){await db.from('emigro_cleaning_staff').update(p).eq('id',existing.id);staffIds[p.name]=existing.id}
-   else{const {data,error}=await db.from('emigro_cleaning_staff').insert(p).select().single();if(error)return toast(error.message);staffIds[p.name]=data.id}
- }
- const zones=[
-  {code:'DEMO-GIRIS',name:'Giriş',description:'Giriş zemini, kapı önü ve cam çevresi.',color:'#8de4a6',x:6,y:75,w:14,h:12,sort_order:101},
-  {code:'DEMO-KASA',name:'Kasa Alanı',description:'Kasa çevresi, bant önü ve müşteri temas alanları.',color:'#ffab68',x:22,y:68,w:18,h:10,sort_order:102},
-  {code:'DEMO-SEBZE',name:'Sebze Reyonu',description:'Sebze standı, zemin ve dökülen ürün kalıntıları.',color:'#ade37f',x:43,y:43,w:20,h:18,sort_order:103},
-  {code:'DEMO-KASAP',name:'Kasap Alanı',description:'Kasap önü, zemin ve yakın temas yüzeyleri.',color:'#f78e92',x:42,y:18,w:22,h:17,sort_order:104},
-  {code:'DEMO-DIPFRIZ',name:'Dipfriz Alanı',description:'Dipfriz dış yüzeyleri, kapak çevresi ve zemin.',color:'#6fbce6',x:67,y:28,w:18,h:18,sort_order:105},
-  {code:'DEMO-RAFLAR',name:'Orta Raflar',description:'Raf önleri, koridor zemini ve raf altları.',color:'#f4d98e',x:56,y:48,w:26,h:25,sort_order:106},
-  {code:'DEMO-NONFOOD',name:'Nonfood',description:'Nonfood koridorları ve raf çevresi.',color:'#cbb9eb',x:8,y:30,w:20,h:25,sort_order:107},
-  {code:'DEMO-MUTFAK',name:'Mutfak',description:'Mutfak tezgah, lavabo, zemin ve çöp alanı.',color:'#ffb29a',x:7,y:7,w:20,h:15,sort_order:108},
-  {code:'DEMO-TUVALET',name:'Tuvalet',description:'Tam hijyen temizliği ve sarf kontrolü.',color:'#d8c8ef',x:28,y:7,w:10,h:12,sort_order:109},
-  {code:'DEMO-DEPO',name:'Depo',description:'Depo zemini, palet çevresi ve geçiş yolları.',color:'#d3bda3',x:70,y:6,w:24,h:18,sort_order:110}
- ];
- const zoneIds={};
- for(const z of zones){
-   const existing=state.zones.find(x=>x.code===z.code);
-   const row={...z,manual:true,active:true,shape:'rect'};
-   if(existing){await db.from('emigro_cleaning_zones').update(row).eq('id',existing.id);zoneIds[z.code]=existing.id}
-   else{const {data,error}=await db.from('emigro_cleaning_zones').insert(row).select().single();if(error)return toast(error.message);zoneIds[z.code]=data.id}
- }
- const cards=[
-  ['DEMO-GIRIS','Ayşe Demir','Ali Can',true,[1,2,3,4,5,6,0],'07:30','Kapı önü, paspas, cam altları ve giriş zemini.',true,[1,4],'13:00','Kapı camları ve köşe temizliği.',true,[1],'08:00','Derin zemin temizliği ve duvar dipleri.'],
-  ['DEMO-KASA','Mehmet Kaya','Fatma Yılmaz',true,[1,2,3,4,5,6,0],'08:00','Kasa önü, bant çevresi ve zemin.',true,[2,5],'15:00','Kasa altları ve kablo çevresi.',true,[1,15],'09:00','Detaylı kasa ve çevre temizliği.'],
-  ['DEMO-SEBZE','Fatma Yılmaz','Ayşe Demir',true,[1,2,3,4,5,6,0],'09:00','Zemin, dökülen ürünler ve stand önleri.',true,[3,6],'16:00','Stand altları ve köşeler.',true,[5,20],'08:30','Derin stand ve kasa altı temizliği.'],
-  ['DEMO-KASAP','Ayşe Demir','Mehmet Kaya',true,[1,2,3,4,5,6,0],'10:00','Kasap önü zemini ve temas yüzeyleri.',true,[2,5],'17:00','Detaylı yüzey ve zemin temizliği.',true,[10,25],'07:00','Derin temizlik ve kenar/köşe işlemleri.'],
-  ['DEMO-DIPFRIZ','Mehmet Kaya','Ali Can',true,[1,2,3,4,5,6,0],'11:00','Kapak çevresi, dış yüzey ve zemin.',true,[4],'14:00','Alt/yan bölgeler ve detay silme.',true,[12],'08:00','Derin dış temizlik ve çevre kontrolü.'],
-  ['DEMO-RAFLAR','Fatma Yılmaz','Ali Can',true,[1,2,3,4,5,6,0],'12:00','Koridor zemini ve görünür raf önleri.',true,[1,3,5],'16:30','Raf altları ve dipler.',true,[1,15,30],'07:30','Tüm raf altı, üstü ve detaylı koridor temizliği.'],
-  ['DEMO-NONFOOD','Ali Can','Ayşe Demir',true,[1,2,3,4,5,6],'13:00','Zemin ve raf önü temizliği.',true,[2,6],'15:30','Raf altları ve köşeler.',true,[8,22],'09:00','Derin temizlik ve duvar dipleri.'],
-  ['DEMO-MUTFAK','Ayşe Demir','Fatma Yılmaz',true,[1,2,3,4,5,6,0],'14:00','Tezgah, lavabo, zemin ve çöp.',true,[1,4],'18:00','Dolap önleri, cihaz çevresi.',true,[1,16],'08:00','Derin mutfak temizliği.'],
-  ['DEMO-TUVALET','Fatma Yılmaz','Ali Can',true,[1,2,3,4,5,6,0],'08:30','Klozet, lavabo, zemin ve sarf kontrolü.',true,[1,3,5],'14:30','Duvar ve temas noktaları.',true,[1,15],'07:30','Derin hijyen temizliği.'],
-  ['DEMO-DEPO','Mehmet Kaya','Ali Can',true,[1,2,3,4,5],'15:00','Geçiş yolları ve zemin.',true,[5],'17:30','Palet altları ve duvar dipleri.',true,[1,20],'08:00','Derin depo temizliği.']
- ];
- for(const c of cards){
-   const [code,prim,backup,de,dd,dt,dtext,we,wd,wt,wtext,me,md,mt,mtext]=c;
-   const row={zone_id:zoneIds[code],primary_staff_id:staffIds[prim],backup_staff_id:staffIds[backup],daily_enabled:de,daily_days:dd,daily_time:dt,weekly_enabled:we,weekly_days:wd,weekly_time:wt,monthly_enabled:me,monthly_days:md,monthly_time:mt,daily_task:dtext,weekly_task:wtext,monthly_task:mtext,updated_at:new Date().toISOString()};
-   const {error}=await db.from('emigro_cleaning_zone_cards').upsert(row,{onConflict:'zone_id'});if(error)return toast(error.message)
- }
- toast('Demo verileri yüklendi');await loadAll();document.querySelector('[data-view="cards"]').click();
-}
+ if(!confirm('Tam demo verileri yüklensin mi? Demo alanları/personeller güncellenir; kendi manuel alanların korunur.'))return;
+ toast('Demo hazırlanıyor...');
+ try{
+  const people=[
+   {name:'Ayşe Demir',role:'Temizlik Personeli',phone:'0611111111',active:true},
+   {name:'Mehmet Kaya',role:'Temizlik Personeli',phone:'0622222222',active:true},
+   {name:'Fatma Yılmaz',role:'Temizlik Personeli',phone:'0633333333',active:true},
+   {name:'Ali Can',role:'Yedek Personel',phone:'0644444444',active:true},
+   {name:'Zeynep Arslan',role:'Hijyen Sorumlusu',phone:'0655555555',active:true}
+  ],staffIds={};
+  for(const p of people){
+   var q=await db.from('emigro_cleaning_staff').select('*').eq('name',p.name).limit(1);
+   if(q.error)throw q.error;
+   if(q.data&&q.data[0]){var u=await db.from('emigro_cleaning_staff').update(p).eq('id',q.data[0].id).select().single();if(u.error)throw u.error;staffIds[p.name]=u.data.id}
+   else{var ins=await db.from('emigro_cleaning_staff').insert(p).select().single();if(ins.error)throw ins.error;staffIds[p.name]=ins.data.id}
+  }
 
+  const zones=[
+   {code:'DEMO-GIRIS',name:'Giriş',description:'Kapı önü, paspas, cam altları ve giriş zemini.',color:'#8de4a6',x:6,y:75,w:14,h:12,sort_order:101,priority:'normal',proof_required:false},
+   {code:'DEMO-KASA',name:'Kasa Alanı',description:'Kasa önü, bant çevresi ve müşteri temas noktaları.',color:'#ffab68',x:22,y:68,w:18,h:10,sort_order:102,priority:'high',proof_required:false},
+   {code:'DEMO-SEBZE',name:'Sebze Reyonu',description:'Stand önü, zemin ve dökülen ürün kalıntıları.',color:'#ade37f',x:43,y:43,w:20,h:18,sort_order:103,priority:'high',proof_required:true},
+   {code:'DEMO-KASAP',name:'Kasap Alanı',description:'Kasap önü, temas yüzeyleri ve zemin.',color:'#f78e92',x:42,y:18,w:22,h:17,sort_order:104,priority:'critical',proof_required:true},
+   {code:'DEMO-DIPFRIZ',name:'Dipfriz Alanı',description:'Kapak çevresi, dış yüzey ve zemin.',color:'#6fbce6',x:67,y:28,w:18,h:18,sort_order:105,priority:'normal',proof_required:false},
+   {code:'DEMO-RAFLAR',name:'Orta Raflar',description:'Koridor zemini, raf önleri ve raf altları.',color:'#f4d98e',x:56,y:48,w:26,h:25,sort_order:106,priority:'normal',proof_required:false},
+   {code:'DEMO-NONFOOD',name:'Nonfood',description:'Nonfood koridorları ve raf çevresi.',color:'#cbb9eb',x:8,y:30,w:20,h:25,sort_order:107,priority:'normal',proof_required:false},
+   {code:'DEMO-MUTFAK',name:'Mutfak',description:'Tezgah, lavabo, zemin ve çöp alanı.',color:'#ffb29a',x:7,y:7,w:20,h:15,sort_order:108,priority:'critical',proof_required:true},
+   {code:'DEMO-TUVALET',name:'Tuvalet',description:'Klozet, lavabo, zemin ve sarf kontrolü.',color:'#d8c8ef',x:28,y:7,w:10,h:12,sort_order:109,priority:'critical',proof_required:true},
+   {code:'DEMO-DEPO',name:'Depo',description:'Geçiş yolları, palet çevresi ve zemin.',color:'#d3bda3',x:70,y:6,w:24,h:18,sort_order:110,priority:'high',proof_required:false}
+  ],zoneIds={};
+  for(const z of zones){
+   var zr=await db.from('emigro_cleaning_zones').upsert(Object.assign({},z,{manual:true,active:true,shape:'rect'}),{onConflict:'code'}).select().single();
+   if(zr.error)throw zr.error;zoneIds[z.code]=zr.data.id;
+  }
+
+  var now=new Date(),dow=now.getDay(),dom=now.getDate();
+  const specs=[
+   ['DEMO-GIRIS','Ayşe Demir','Ali Can','Mehmet Kaya','Zeynep Arslan'],
+   ['DEMO-KASA','Mehmet Kaya','Fatma Yılmaz','Ayşe Demir','Ali Can'],
+   ['DEMO-SEBZE','Fatma Yılmaz','Ayşe Demir','Zeynep Arslan','Mehmet Kaya'],
+   ['DEMO-KASAP','Ayşe Demir','Mehmet Kaya','Zeynep Arslan','Fatma Yılmaz'],
+   ['DEMO-DIPFRIZ','Mehmet Kaya','Ali Can','Fatma Yılmaz','Ayşe Demir'],
+   ['DEMO-RAFLAR','Fatma Yılmaz','Ali Can','Mehmet Kaya','Zeynep Arslan'],
+   ['DEMO-NONFOOD','Ali Can','Ayşe Demir','Mehmet Kaya','Fatma Yılmaz'],
+   ['DEMO-MUTFAK','Ayşe Demir','Fatma Yılmaz','Zeynep Arslan','Ali Can'],
+   ['DEMO-TUVALET','Fatma Yılmaz','Ali Can','Zeynep Arslan','Ayşe Demir'],
+   ['DEMO-DEPO','Mehmet Kaya','Ali Can','Fatma Yılmaz','Zeynep Arslan']
+  ];
+  for(let i=0;i<specs.length;i++){
+   const [code,dPrim,dBack,wPrim,mPrim]=specs[i];
+   const row={
+    zone_id:zoneIds[code],
+    primary_staff_id:staffIds[dPrim],backup_staff_id:staffIds[dBack],backup_enabled:true,backup_days:[2,5],
+    daily_enabled:true,daily_days:[0,1,2,3,4,5,6],daily_time:pad2(7+(i%8))+':'+(i%2?'30':'00'),daily_task:zones[i].description,
+    daily_primary_staff_id:staffIds[dPrim],daily_backup_staff_id:staffIds[dBack],daily_backup_days:[2,5],
+    weekly_enabled:true,weekly_days:[dow],weekly_time:pad2(13+(i%5))+':00',weekly_task:'Haftalık detay temizlik: dipler, köşeler ve temas yüzeyleri.',weekly_primary_staff_id:staffIds[wPrim],weekly_backup_staff_id:staffIds[dBack],weekly_backup_days:i%3===0?[dow]:[],
+    monthly_enabled:i<6,monthly_days:[dom],monthly_time:'08:30',monthly_task:'Aylık derin temizlik ve detay kontrolü.',monthly_primary_staff_id:staffIds[mPrim],monthly_backup_staff_id:staffIds[dBack],monthly_backup_days:i%2===0?[dom]:[],
+    updated_at:new Date().toISOString()
+   };
+   var cr=await db.from('emigro_cleaning_zone_cards').upsert(row,{onConflict:'zone_id'});if(cr.error)throw cr.error;
+  }
+
+  // Add one intentionally unassigned weekly demo routine for admin warning.
+  var unr=await db.from('emigro_cleaning_zone_cards').update({weekly_primary_staff_id:null,weekly_backup_staff_id:null,weekly_backup_days:[]}).eq('zone_id',zoneIds['DEMO-DEPO']);if(unr.error)throw unr.error;
+
+  // Demo plan image only if user has not uploaded one.
+  if(!state.settings||!state.settings.plan_image_data){
+   var svg='<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"><rect width="100%" height="100%" fill="#f3f5f6"/><text x="50" y="70" font-family="Arial" font-size="34" font-weight="700" fill="#202d36">EMIGRO DEMO MARKET PLANI</text><rect x="70" y="120" width="250" height="250" fill="#8de4a6" stroke="#202d36"/><text x="150" y="250" font-size="28">GİRİŞ / DEPO</text><rect x="380" y="120" width="300" height="220" fill="#f4d98e" stroke="#202d36"/><text x="470" y="240" font-size="28">RAFLAR</text><rect x="740" y="120" width="180" height="220" fill="#f78e92" stroke="#202d36"/><text x="785" y="240" font-size="24">KASAP</text><rect x="70" y="430" width="250" height="220" fill="#d8c8ef" stroke="#202d36"/><text x="135" y="550" font-size="26">MUTFAK</text><rect x="380" y="430" width="220" height="220" fill="#ade37f" stroke="#202d36"/><text x="430" y="550" font-size="26">SEBZE</text><rect x="660" y="430" width="280" height="220" fill="#6fbce6" stroke="#202d36"/><text x="735" y="550" font-size="26">DİPFRİZ</text></svg>';
+   var sr=await db.from('emigro_cleaning_settings').upsert({id:1,plan_image_data:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),updated_at:new Date().toISOString()});if(sr.error)throw sr.error;
+  }
+
+  await loadAll();
+
+  // Create demo completion/missed records for today.
+  var demoTasks=expectedTasks(dayStart(now),dayEnd(now)).filter(function(t){return String(t.zone.code||'').startsWith('DEMO-')});
+  var proofSvg='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="#e8f7ef"/><text x="400" y="270" text-anchor="middle" font-family="Arial" font-size="42" font-weight="700" fill="#1f7a50">DEMO TEMİZLİK FOTOĞRAFI</text><text x="400" y="330" text-anchor="middle" font-family="Arial" font-size="24" fill="#456">Alan temizlendi</text></svg>');
+  for(let i=0;i<Math.min(5,demoTasks.length);i++){
+   var t=demoTasks[i],done=i<3,row={slot_key:t.key,schedule_id:null,zone_id:t.zone.id,staff_id:(t.assigned||t.primary)?.id||null,work_date:dateKeyLocal(t.date),status:done?'done':'skipped',completed_at:done?new Date().toISOString():null,note:done?'Demo: temizlik tamamlandı.':'Demo: görev zamanında tamamlanmadı.',task_type:t.type,planned_time:t.time,proof_image_data:done?proofSvg:null};
+   var lr=await db.from('emigro_cleaning_logs').upsert(row,{onConflict:'slot_key'});if(lr.error)throw lr.error;
+  }
+  // Historical skips to demonstrate recurring-problem warning.
+  var problemZone=zoneIds['DEMO-TUVALET'];
+  for(let k=1;k<=3;k++){
+   var hd=addLocalDays(now,-k*4),hk=problemZone+':daily:'+dateKeyLocal(hd);
+   var hr=await db.from('emigro_cleaning_logs').upsert({slot_key:hk,schedule_id:null,zone_id:problemZone,staff_id:staffIds['Fatma Yılmaz'],work_date:dateKeyLocal(hd),status:'skipped',note:'Demo: tekrar eden aksama.',task_type:'daily',planned_time:'08:30',proof_image_data:null},{onConflict:'slot_key'});if(hr.error)throw hr.error;
+  }
+
+  await loadAll();
+  var btn=document.querySelector('[data-view="tracking"]');if(btn)btn.click();
+  toast('Demo hazır: alanlar, personeller, görevler ve rapor kayıtları yüklendi');
+ }catch(err){
+  console.error(err);toast('Demo yüklenemedi: '+(err.message||'Bilinmeyen hata'))
+ }
+}
 $('#planUpload').onchange=async e=>{if(!state.isAdmin){toast('Plan değiştirme yetkisi sadece adminde');e.target.value='';return;}
  const file=e.target.files?.[0];if(!file)return;
  if(file.size>12*1024*1024)return toast('Resim en fazla 12 MB olsun');
@@ -345,6 +388,20 @@ function expectedTasks(from,to){
  }
  return out
 }
+function configuredTasks(from,to){
+ var out=[],zones=manualZones();
+ for(var d=dayStart(from);d<=to;d=addLocalDays(d,1)){
+  for(var i=0;i<zones.length;i++){
+   var z=zones[i],c=cardByZone(z.id);if(!c)continue;
+   var dow=d.getDay(),dom=d.getDate();
+   if(c.daily_enabled&&(c.daily_days||[]).includes(dow))out.push(makeTask(z,c,'daily',d));
+   if(c.weekly_enabled&&(c.weekly_days||[]).includes(dow))out.push(makeTask(z,c,'weekly',d));
+   if(c.monthly_enabled&&(c.monthly_days||[]).includes(dom))out.push(makeTask(z,c,'monthly',d));
+  }
+ }
+ return out
+}
+function priorityRank(z){return z&&z.priority==='critical'?0:z&&z.priority==='high'?1:2}
 function logForTask(t){return state.logs.find(function(l){return l.slot_key===t.key})}
 function dueAt(t){
  var d=new Date(t.date),bits=(t.time||'23:59').slice(0,5).split(':').map(Number);
@@ -373,7 +430,15 @@ function renderReport(){
  if(!$('#reportList'))return;
  var now=new Date(),today=expectedTasks(dayStart(now),dayEnd(now)),done=today.filter(function(t){return statusFor(t).key==='done'}).length,over=today.filter(function(t){return statusFor(t).key==='overdue'}).length;
  $('#mToday').textContent=today.length;$('#mDone').textContent=done;$('#mOverdue').textContent=over;$('#mStaff').textContent=state.staff.filter(function(p){return p.active}).length;
- var unassigned=manualZones().filter(function(z){var c=cardByZone(z.id)||{};return !c.primary_staff_id}),ua=$('#assignmentAlert');if(ua){if(unassigned.length){ua.classList.remove('hidden');ua.innerHTML='<h3>⚠ '+unassigned.length+' alanın asıl sorumlusu yok</h3><p>'+unassigned.map(function(z){return esc(z.name)}).join(' • ')+'</p>'}else ua.classList.add('hidden')}
+ var futureConfigured=configuredTasks(dayStart(now),addLocalDays(dayStart(now),30));
+ var unassignedMap=new Map();
+ futureConfigured.forEach(function(t){if(!t.primary&&!t.backup)unassignedMap.set(t.zone.id+':'+t.type,t)});
+ var unassigned=[...unassignedMap.values()],ua=$('#assignmentAlert');
+ if(ua){if(unassigned.length){ua.classList.remove('hidden');ua.innerHTML='<h3>⚠ '+unassigned.length+' görev türünde sorumlu atanmadı</h3><p>'+unassigned.slice(0,8).map(function(t){return esc(t.zone.name)+' · '+typeNames[t.type]}).join(' • ')+(unassigned.length>8?' • +'+(unassigned.length-8)+' daha':'')+'</p>'}else ua.classList.add('hidden')}
+ var since=dateKeyLocal(addLocalDays(now,-30)),problemCounts={};
+ state.logs.filter(function(l){return l.slot_key&&l.status==='skipped'&&l.work_date>=since}).forEach(function(l){problemCounts[l.zone_id]=(problemCounts[l.zone_id]||0)+1});
+ var recurring=Object.entries(problemCounts).filter(function(x){return x[1]>=3}).sort(function(a,b){return b[1]-a[1]}),pp=$('#problemPanel');
+ if(pp){if(recurring.length){pp.classList.remove('hidden');pp.innerHTML='<h3>↻ Tekrarlayan aksama tespit edildi</h3><p>'+recurring.map(function(x){var z=zoneById(Number(x[0]));return esc((z&&z.name)||'Alan')+' · son 30 günde '+x[1]+' aksama'}).join(' • ')+'</p>'}else pp.classList.add('hidden')}
  var missed=expectedTasks(monthStart(now),now).filter(function(t){return statusFor(t).key==='overdue'}),ap=$('#alertPanel'),badge=$('#alertBadge');
  if(missed.length){ap.classList.remove('hidden');ap.innerHTML='<h3>⚠ '+missed.length+' aksayan temizlik var</h3><p>'+missed.slice(0,5).map(function(t){return esc(t.zone.name)+' · '+typeNames[t.type]+' · '+shortDate(t.date)}).join(' • ')+(missed.length>5?' • +'+(missed.length-5)+' daha':'')+'</p>';badge.classList.remove('hidden');badge.textContent=missed.length}else{ap.classList.add('hidden');badge.classList.add('hidden')}
  var rg=periodRange(),all=expectedTasks(rg[0],rg[1]),filter=$('#reportType').value||'',tasks=filter?all.filter(function(t){return t.type===filter}):all;
@@ -381,14 +446,23 @@ function renderReport(){
  $('#reportList').innerHTML=tasks.length?tasks.map(reportRowHtml).join(''):'<div class="sub">Bu dönem için görev yok.</div>'
 }
 function renderTracking(){
- if(!$('#trackingList'))return;
+ if(!$('#trackingDate'))return;
  var inp=$('#trackingDate');if(!inp.value)inp.value=dateKeyLocal(new Date());
  var d=parseDateLocal(inp.value),tasks=expectedTasks(dayStart(d),dayEnd(d));
- $('#trackingList').innerHTML=tasks.length?tasks.map(function(t){
-  var st=statusFor(t),l=st.log,proof=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
-  var act=st.key!=='done'?'<button onclick="openComplete(\''+t.key+'\')">Yaptım + Foto</button><button onclick="markSkipped(\''+t.key+'\')">Yapılmadı</button>':'<button onclick="showPhoto(\''+t.key+'\')">Fotoğraf</button>';
-  return '<article class="report-row '+st.key+'"><div><h3>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</h3><div class="sub">'+esc(t.taskText||'Görev açıklaması yok')+'</div></div><div><span class="pill">'+(t.time?t.time.slice(0,5):'Saat yok')+'</span></div><div><span class="pill">Asıl: '+esc((t.primary&&t.primary.name)||'—')+'<br>Yedek: '+esc((t.backup&&t.backup.name)||'—')+'</span></div><div><span class="status '+st.key+'">'+st.label+'</span></div><div class="row-actions">'+proof+act+'</div></article>'
- }).join(''):'<div class="sub">Seçili tarihte görev yok.</div>'
+ tasks.sort(function(a,b){return priorityRank(a.zone)-priorityRank(b.zone)||dueAt(a)-dueAt(b)});
+ var groups={overdue:[],pending:[],done:[]};
+ tasks.forEach(function(t){groups[statusFor(t).key].push(t)});
+ function item(t){
+   var st=statusFor(t),l=st.log,who=t.assigned||t.primary,proof=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
+   var actions=st.key==='done'
+     ? (proof||'<span class="sub">Fotoğraf yok</span>')
+     : '<button class="primary compact-btn" onclick="openComplete(\''+t.key+'\')">Yaptım</button>'+(st.key==='overdue'?'<button class="ghost compact-btn" onclick="openWarningForTask(\''+t.key+'\')">Uyar</button>':'');
+   return '<article class="today-task '+st.key+' priority-'+(t.zone.priority||'normal')+'" onclick="openZoneStatus('+t.zone.id+')"><div class="today-task-main"><div class="today-task-top"><span class="calendar-type-label">'+typeNames[t.type]+'</span>'+(t.zone.priority!=='normal'?'<span class="priority-badge '+t.zone.priority+'">'+(t.zone.priority==='critical'?'Kritik':'Yüksek')+'</span>':'')+'</div><h3>'+esc(t.zone.name)+'</h3><p>'+esc(t.taskText||'Görev açıklaması yok')+'</p><div class="today-meta">🕒 '+(t.time?t.time.slice(0,5):'—')+' · 👤 '+esc((who&&who.name)||'Atanmamış')+'</div></div><div class="today-task-actions" onclick="event.stopPropagation()">'+actions+'</div></article>'
+ }
+ $('#todayOverCount').textContent=groups.overdue.length;$('#todayPendingCount').textContent=groups.pending.length;$('#todayDoneCount').textContent=groups.done.length;
+ $('#todayOverdue').innerHTML=groups.overdue.length?groups.overdue.map(item).join(''):'<div class="today-empty">Aksayan iş yok.</div>';
+ $('#todayPending').innerHTML=groups.pending.length?groups.pending.map(item).join(''):'<div class="today-empty">Bekleyen iş yok.</div>';
+ $('#todayDone').innerHTML=groups.done.length?groups.done.map(item).join(''):'<div class="today-empty">Tamamlanan iş yok.</div>';
 }
 function taskByKey(key){
  var p=key.split(':'),z=zoneById(Number(p[0])),c=cardByZone(Number(p[0]));return z&&c?makeTask(z,c,p[1],parseDateLocal(p[2])):null
@@ -400,8 +474,8 @@ window.openComplete=function(key){
  var opts=choices.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
  openModal('<h2>Temizlik Tamamlandı</h2><form id="completeForm"><div class="form-grid"><div class="field full"><label>Alan / görev</label><div><b>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</b><div class="sub">'+esc(t.taskText)+'</div></div></div><div class="field"><label>Yapan kişi</label><select name="staff_id" required>'+opts+'</select></div><div class="field"><label>Planlanan saat</label><input value="'+(t.time?t.time.slice(0,5):'—')+'" disabled></div><div class="field full"><label>Fotoğraf kanıtı</label><div class="proof-upload">Temizlik sonrası fotoğraf yükleyin.<br><input id="proofFile" type="file" accept="image/*" capture="environment" required></div></div><div class="field full"><label>Not</label><textarea name="note" placeholder="Varsa açıklama..."></textarea></div></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Yaptım Olarak Kaydet</button></div></form>');
  $('#completeForm').onsubmit=async function(e){
-  e.preventDefault();var fd=new FormData(e.target),file=$('#proofFile').files&&$('#proofFile').files[0];if(!file)return toast('Fotoğraf yüklemek zorunlu');
-  var proof=await compressProof(file),row={slot_key:t.key,schedule_id:null,zone_id:t.zone.id,staff_id:+fd.get('staff_id'),work_date:dateKeyLocal(t.date),status:'done',completed_at:new Date().toISOString(),note:fd.get('note')||'',task_type:t.type,planned_time:t.time,proof_image_data:proof};
+  e.preventDefault();var fd=new FormData(e.target),file=$('#proofFile').files&&$('#proofFile').files[0];if(t.zone.proof_required&&!file)return toast('Bu alan için fotoğraf zorunlu');
+  var proof=file?await compressProof(file):null,row={slot_key:t.key,schedule_id:null,zone_id:t.zone.id,staff_id:+fd.get('staff_id'),work_date:dateKeyLocal(t.date),status:'done',completed_at:new Date().toISOString(),note:fd.get('note')||'',task_type:t.type,planned_time:t.time,proof_image_data:proof};
   var res=await db.from('emigro_cleaning_logs').upsert(row,{onConflict:'slot_key'});if(res.error)return toast(res.error.message);closeModal();toast('Fotoğraflı tamamlanma kaydedildi');loadAll()
  }
 };
