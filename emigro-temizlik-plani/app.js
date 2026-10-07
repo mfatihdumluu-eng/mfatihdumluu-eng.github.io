@@ -627,8 +627,8 @@ if($('#photoModal'))$('#photoModal').onclick=function(e){if(e.target.id==='photo
 if($('#trackingDate'))$('#trackingDate').onchange=renderTracking;
 if($('#reportType'))$('#reportType').onchange=renderReport;
 $$('.period').forEach(function(b){b.onclick=function(){$$('.period').forEach(function(x){x.classList.toggle('active',x===b)});state.reportPeriod=b.dataset.period;renderReport()}});
-$$$('.nav').forEach(function(b){b.onclick=function(){
- $$$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});$$('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+b.dataset.view)});
+$$('.nav').forEach(function(b){b.onclick=function(){
+ $$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});$$('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+b.dataset.view)});
  var meta={report:['Yönetim','Raporlar, uyarılar ve geçmiş kayıtları.'],tracking:['Bugün','Günlük, haftalık ve aylık temizlik işleri.'],
         calendar:['Takvim','Planlanan temizlikler ve sorumlular.'],
         'worker-notifications':['Bildirimler','Yönetimden gelen mesaj ve uyarılar.'],plan:['Plan','Market alanları ve temizlik bölgeleri.'],staff:['Personel','Sorumluluklar ve görev durumu.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
@@ -1066,20 +1066,14 @@ function openManagementView(view){
   ['report','notifications','history'].forEach(function(v){
     var el=$('#view-'+v);if(el)el.classList.toggle('active',v===view);
   });
-  $$$('.nav').forEach(function(n){n.classList.toggle('active',n.dataset.view==='report')});
+  $$('.nav').forEach(function(n){n.classList.toggle('active',n.dataset.view==='report')});
   var meta={
     report:['Yönetim','Raporlar, uyarılar ve geçmiş kayıtları.'],
     notifications:['Uyarılar','Gönderilen uyarılar ve açık bildirimler.'],
     history:['Geçmiş','Tamamlanan ve yapılmayan temizlik kayıtları.']
   }[view];
-  if(meta){
-        if(!state.isAdmin&&workerById()){
-          $('#pageTitle').textContent=workerById().name;
-          $('#pageSub').textContent=b.dataset.view==='worker-notifications'?'Yönetimden gelen bildirim ve uyarılar':b.dataset.view==='plan'?'Atandığın alanları plan üzerinde gör':(workerById().department||workerById().role||'Temizlik')+' · '+(b.dataset.view==='calendar'?'Takvimin':'Bugünkü görevlerin');
-        }else{$('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]}
-      }
+  if(meta){$('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]}
 }
-
 function workerTasksToday(){
  if(state.isAdmin||!state.workerStaffId)return [];
  var n=new Date();return expectedTasks(dayStart(n),dayEnd(n)).filter(taskAssignedToWorker)
@@ -1130,6 +1124,7 @@ window.selectWorkerProfile=function(id){
  renderWorkerProfilePicker();
  renderTracking();
  renderCalendar();
+ renderPlan();
  renderWorkerNotifications();
  setupWorkerMode();
  var todayNav=document.querySelector('.nav[data-view="tracking"]');
@@ -1163,9 +1158,9 @@ function initCleaningAdmin(){
     var todayNav=document.querySelector('.nav[data-view="tracking"]');
     if(todayNav)setTimeout(function(){todayNav.click()},0);
   }
-  $$$('.nav').forEach(function(b){
+  $$('.nav').forEach(function(b){
     b.onclick=function(){
-      $$$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});
+      $$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});
       $$('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+b.dataset.view)});
       var meta={
         report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],
