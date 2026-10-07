@@ -51,7 +51,7 @@ function applyPlanImage(){
 }
 
 function renderAll(){
-  renderReport();renderTracking();renderCalendar();renderPlan();renderStaff();renderWorkerDemoLaunchers();renderNotifications();renderHistory();
+  renderReport();renderTracking();renderCalendar();renderPlan();renderStaff();renderWorkerDemoLaunchers();renderWorkerNotifications();renderNotifications();renderHistory();
   var demos=state.zones.filter(function(z){return String(z.code||'').startsWith('DEMO-')});
   var badge=$('#demoBadge');
   if(badge){
@@ -507,9 +507,9 @@ window.openComplete=function(key){
  if(!choices.length)choices=state.staff.filter(function(p){return p.active});
  if(!state.isAdmin&&workerById())choices=[workerById()];
  var opts=choices.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
- openModal('<h2>Temizlik Tamamlandı</h2><form id="completeForm"><div class="form-grid"><div class="field full"><label>Alan / görev</label><div><b>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</b><div class="sub">'+esc(t.taskText)+'</div></div></div><div class="field"><label>Yapan kişi</label><select name="staff_id" required '+(!state.isAdmin?'disabled':'')+'>'+opts+'</select>'+(!state.isAdmin&&workerById()?'<input type="hidden" name="staff_id" value="'+workerById().id+'">':'')+'</div><div class="field"><label>Planlanan saat</label><input value="'+(t.time?t.time.slice(0,5):'—')+'" disabled></div>'+(t.tags&&t.tags.length?'<div class="field full"><label>Sabit görevler</label><div class="worker-checklist">'+t.tags.map(function(x){return '<label><input type="checkbox" name="tag_done" value="'+x.id+'"> <span>'+esc(x.label)+'</span></label>'}).join('')+'</div></div>':'')+'<div class="field full"><label>Fotoğraf kanıtı</label><div class="proof-upload">Temizlik sonrası fotoğraf çekin veya yükleyin.<br><input id="proofFile" type="file" accept="image/*" capture="environment" '+(t.zone.proof_required?'required':'')+'></div></div><div class="field full"><label>Durum / Not</label><textarea name="note" placeholder="Bu alanda dikkat edilmesi gereken bir durum varsa yazın..."></textarea></div></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Yaptım Olarak Kaydet</button></div></form>');
+ openModal('<h2>Temizlik Tamamlandı</h2><form id="completeForm"><div class="form-grid"><div class="field full"><label>Alan / görev</label><div><b>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</b><div class="sub">'+esc(t.taskText)+'</div></div></div><div class="field"><label>Yapan kişi</label><select name="staff_id" required '+(!state.isAdmin?'disabled':'')+'>'+opts+'</select>'+(!state.isAdmin&&workerById()?'<input type="hidden" name="staff_id" value="'+workerById().id+'">':'')+'</div><div class="field"><label>Planlanan saat</label><input value="'+(t.time?t.time.slice(0,5):'—')+'" disabled></div>'+(t.tags&&t.tags.length?'<div class="field full"><label>Sabit görevler</label><div class="worker-checklist">'+t.tags.map(function(x){return '<label><input type="checkbox" name="tag_done" value="'+x.id+'"> <span>'+esc(x.label)+'</span></label>'}).join('')+'</div></div>':'')+'<div class="field full"><label>Fotoğraf <span class="optional-label">(isteğe bağlı)</span></label><div class="proof-upload">İstersen yaptığın yerin fotoğrafını çek veya yükle.<br><input id="proofFile" type="file" accept="image/*" capture="environment" '+(state.isAdmin&&t.zone.proof_required?'required':'')+'></div></div><div class="field full"><label>Durum / Not</label><textarea name="note" placeholder="Bu alanda dikkat edilmesi gereken bir durum varsa yazın..."></textarea></div></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Yaptım</button></div></form>');
  $('#completeForm').onsubmit=async function(e){
-  e.preventDefault();var fd=new FormData(e.target),file=$('#proofFile').files&&$('#proofFile').files[0];if(t.zone.proof_required&&!file)return toast('Bu alan için fotoğraf zorunlu');
+  e.preventDefault();var fd=new FormData(e.target),file=$('#proofFile').files&&$('#proofFile').files[0];if(state.isAdmin&&t.zone.proof_required&&!file)return toast('Bu alan için fotoğraf zorunlu');
   var checked=fd.getAll('tag_done').map(Number);if(t.tags&&t.tags.length&&checked.length<t.tags.length)return toast('Sabit görevlerin tamamını işaretleyin');
   var proof=file?await compressProof(file):null,row={slot_key:t.key,schedule_id:null,zone_id:t.zone.id,staff_id:+fd.get('staff_id'),work_date:dateKeyLocal(t.date),status:'done',completed_at:new Date().toISOString(),note:fd.get('note')||'',issue_note:fd.get('note')||'',task_type:t.type,planned_time:t.time,proof_image_data:proof,task_tags_snapshot:t.tags||[]};
   var res=await db.from('emigro_cleaning_logs').upsert(row,{onConflict:'slot_key'});if(res.error)return toast(res.error.message);closeModal();toast('Fotoğraflı tamamlanma kaydedildi');loadAll()
@@ -596,7 +596,8 @@ $$('.period').forEach(function(b){b.onclick=function(){$$('.period').forEach(fun
 $$('.nav').forEach(function(b){b.onclick=function(){
  $$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});$$('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+b.dataset.view)});
  var meta={report:['Yönetim','Raporlar, uyarılar ve geçmiş kayıtları.'],tracking:['Bugün','Günlük, haftalık ve aylık temizlik işleri.'],
-        calendar:['Takvim','Planlanan temizlikler ve sorumlular.'],plan:['Plan','Market alanları ve temizlik bölgeleri.'],staff:['Personel','Sorumluluklar ve görev durumu.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
+        calendar:['Takvim','Planlanan temizlikler ve sorumlular.'],
+        'worker-notifications':['Bildirimler','Yönetimden gelen mesaj ve uyarılar.'],plan:['Plan','Market alanları ve temizlik bölgeleri.'],staff:['Personel','Sorumluluklar ve görev durumu.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
  $('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]
 }});
 
@@ -847,6 +848,24 @@ window.openGeneralWarning=function(){
  }
 };
 
+function renderWorkerNotifications(){
+ var box=$('#workerNotificationList');if(!box)return;
+ if(state.isAdmin){box.innerHTML='';return}
+ var list=state.notifications.filter(function(n){return String(n.staff_id)===String(state.workerStaffId)});
+ var openCount=list.filter(function(n){return n.status!=='resolved'}).length;
+ var badge=$('#workerAlertBadge');
+ if(badge){if(openCount){badge.classList.remove('hidden');badge.textContent=openCount}else badge.classList.add('hidden')}
+ box.innerHTML=list.length?list.map(function(n){
+   var z=zoneById(n.zone_id),sev=n.severity==='urgent'?'urgent':n.severity==='info'?'info':'warning';
+   return '<article class="notification-card worker-message '+sev+'">'+
+    '<div class="notification-icon">'+(sev==='urgent'?'!':sev==='info'?'i':'🔔')+'</div>'+
+    '<div><div class="notification-title"><b>'+esc(n.title||'Yönetim bildirimi')+'</b><span>'+new Date(n.created_at).toLocaleString('tr-TR')+'</span></div>'+
+    '<p>'+esc(n.message||'')+'</p>'+
+    '<div class="notification-meta">'+(z?'📍 '+esc(z.name):'Yönetim')+(n.work_date?' · '+n.work_date:'')+'</div></div>'+
+   '</article>'
+ }).join(''):'<div class="worker-empty-message"><span>🔔</span><b>Yeni bildirimin yok</b><p>Yönetimden gelen mesajlar burada görünecek.</p></div>'
+}
+
 function renderNotifications(){
  if(!$('#notificationList'))return;
  var list=state.notifications.slice();
@@ -944,7 +963,7 @@ function openManagementView(view){
   if(meta){
         if(!state.isAdmin&&workerById()){
           $('#pageTitle').textContent=workerById().name;
-          $('#pageSub').textContent=(workerById().department||workerById().role||'Temizlik')+' · '+(b.dataset.view==='calendar'?'Takvimin':'Bugünkü görevlerin');
+          $('#pageSub').textContent=b.dataset.view==='worker-notifications'?'Yönetimden gelen bildirim ve uyarılar':(workerById().department||workerById().role||'Temizlik')+' · '+(b.dataset.view==='calendar'?'Takvimin':'Bugünkü görevlerin');
         }else{$('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]}
       }
 }
@@ -970,11 +989,6 @@ function checkWorkerReminders(){
    if(late>=2*60*60*1000)emitWorkerNotice('Görev 2 saat gecikti',t.zone.name+' hâlâ tamamlanmadı','late-'+t.key)
  })
 }
-window.testWorkerNotification=function(){
- var w=workerById();
- emitWorkerNotice('Test bildirimi',(w?w.name+' · ':'')+'Görev bildirimi sistemi çalışıyor','manual-test-'+Date.now());
-};
-
 window.enableWorkerNotifications=async function(){
  if(!('Notification' in window))return toast('Bu cihaz bildirimleri desteklemiyor');
  var p=await Notification.requestPermission();
@@ -998,8 +1012,9 @@ function initCleaningAdmin(){
   if(!state.isAdmin){
     ['#drawBtn','.upload-btn','#demoBtn','#addStaffBtn'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
     $$('.danger-btn').forEach(function(el){el.classList.add('hidden')});
-    $$('.nav').forEach(function(el){
-      if(!['tracking','calendar'].includes(el.dataset.view))el.classList.add('hidden');
+    $('.nav').forEach(function(el){
+      var allowed=['tracking','calendar','worker-notifications'];
+      el.classList.toggle('hidden',!allowed.includes(el.dataset.view));
     });
     var todayNav=document.querySelector('.nav[data-view="tracking"]');
     if(todayNav)setTimeout(function(){todayNav.click()},0);
