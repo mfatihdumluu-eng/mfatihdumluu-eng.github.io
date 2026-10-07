@@ -51,7 +51,7 @@ function applyPlanImage(){
 }
 
 function renderAll(){
-  renderReport();renderTracking();renderCalendar();renderPlan();renderStaff();renderNotifications();renderHistory();
+  renderReport();renderTracking();renderCalendar();renderPlan();renderStaff();renderWorkerDemoLaunchers();renderNotifications();renderHistory();
   var demos=state.zones.filter(function(z){return String(z.code||'').startsWith('DEMO-')});
   var badge=$('#demoBadge');
   if(badge){
@@ -505,8 +505,9 @@ window.openComplete=function(key){
  var t=taskByKey(key);if(!t)return;
  var choices=[t.assigned,t.primary,t.backup].filter(Boolean).filter(function(p,i,a){return a.findIndex(function(x){return x.id===p.id})===i});
  if(!choices.length)choices=state.staff.filter(function(p){return p.active});
+ if(!state.isAdmin&&workerById())choices=[workerById()];
  var opts=choices.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
- openModal('<h2>Temizlik Tamamlandı</h2><form id="completeForm"><div class="form-grid"><div class="field full"><label>Alan / görev</label><div><b>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</b><div class="sub">'+esc(t.taskText)+'</div></div></div><div class="field"><label>Yapan kişi</label><select name="staff_id" required>'+opts+'</select></div><div class="field"><label>Planlanan saat</label><input value="'+(t.time?t.time.slice(0,5):'—')+'" disabled></div>'+(t.tags&&t.tags.length?'<div class="field full"><label>Sabit görevler</label><div class="worker-checklist">'+t.tags.map(function(x){return '<label><input type="checkbox" name="tag_done" value="'+x.id+'"> <span>'+esc(x.label)+'</span></label>'}).join('')+'</div></div>':'')+'<div class="field full"><label>Fotoğraf kanıtı</label><div class="proof-upload">Temizlik sonrası fotoğraf çekin veya yükleyin.<br><input id="proofFile" type="file" accept="image/*" capture="environment" '+(t.zone.proof_required?'required':'')+'></div></div><div class="field full"><label>Durum / Not</label><textarea name="note" placeholder="Bu alanda dikkat edilmesi gereken bir durum varsa yazın..."></textarea></div></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Yaptım Olarak Kaydet</button></div></form>');
+ openModal('<h2>Temizlik Tamamlandı</h2><form id="completeForm"><div class="form-grid"><div class="field full"><label>Alan / görev</label><div><b>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</b><div class="sub">'+esc(t.taskText)+'</div></div></div><div class="field"><label>Yapan kişi</label><select name="staff_id" required '+(!state.isAdmin?'disabled':'')+'>'+opts+'</select>'+(!state.isAdmin&&workerById()?'<input type="hidden" name="staff_id" value="'+workerById().id+'">':'')+'</div><div class="field"><label>Planlanan saat</label><input value="'+(t.time?t.time.slice(0,5):'—')+'" disabled></div>'+(t.tags&&t.tags.length?'<div class="field full"><label>Sabit görevler</label><div class="worker-checklist">'+t.tags.map(function(x){return '<label><input type="checkbox" name="tag_done" value="'+x.id+'"> <span>'+esc(x.label)+'</span></label>'}).join('')+'</div></div>':'')+'<div class="field full"><label>Fotoğraf kanıtı</label><div class="proof-upload">Temizlik sonrası fotoğraf çekin veya yükleyin.<br><input id="proofFile" type="file" accept="image/*" capture="environment" '+(t.zone.proof_required?'required':'')+'></div></div><div class="field full"><label>Durum / Not</label><textarea name="note" placeholder="Bu alanda dikkat edilmesi gereken bir durum varsa yazın..."></textarea></div></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Yaptım Olarak Kaydet</button></div></form>');
  $('#completeForm').onsubmit=async function(e){
   e.preventDefault();var fd=new FormData(e.target),file=$('#proofFile').files&&$('#proofFile').files[0];if(t.zone.proof_required&&!file)return toast('Bu alan için fotoğraf zorunlu');
   var checked=fd.getAll('tag_done').map(Number);if(t.tags&&t.tags.length&&checked.length<t.tags.length)return toast('Sabit görevlerin tamamını işaretleyin');
@@ -656,7 +657,7 @@ window.openZoneStatus=function(id){
    '<section class="zone-period-summary compact-summary">'+sum(week,'daily')+sum(week,'weekly')+sum(month,'monthly')+'</section>'+
    '<section class="zone-section"><div class="zone-section-head"><div><h3>Bugünkü Durum</h3><p>Planlanan işler</p></div></div><div class="zone-task-list compact-task-list">'+todayRows+'</div></section>'+
    '<section class="zone-section recent-section"><div class="zone-section-head"><div><h3>Son Kayıtlar</h3><p>Son işlemler</p></div></div><div class="recent-clean-list">'+recentRows+'</div></section>'+
-   '<div class="zone-main-actions compact-actions"><button class="primary notify-main" onclick="openWarning('+z.id+',null,null)">Bildirim Gönder</button>'+adminSettings+'</div>'+
+   '<div class="zone-main-actions compact-actions">'+(state.isAdmin?'<button class="primary notify-main" onclick="openWarning('+z.id+',null,null)">Bildirim Gönder</button>':'')+adminSettings+'</div>'+
   '</div>');
 
  var box=$('#modal .modal-box');
@@ -866,6 +867,21 @@ if($('#newWarningBtn'))$('#newWarningBtn').onclick=openGeneralWarning;
 $$('.warning-filter').forEach(function(b){b.onclick=function(){$$('.warning-filter').forEach(function(x){x.classList.toggle('active',x===b)});state.warningFilter=b.dataset.warningFilter;renderNotifications()}});
 
 
+function renderWorkerDemoLaunchers(){
+ var box=$('#workerDemoGrid');if(!box)return;
+ var order=['Kasa','Raf','Sebze Meyve','Genel Temizlik','Depo'];
+ var people=order.map(function(dep){return state.staff.find(function(p){return p.department===dep&&p.active})}).filter(Boolean);
+ box.innerHTML=people.length?people.map(function(p){
+   var icons={'Kasa':'🧾','Raf':'🧹','Sebze Meyve':'🥬','Genel Temizlik':'🧽','Depo':'📦'};
+   var today=expectedTasks(dayStart(new Date()),dayEnd(new Date())).filter(function(t){return taskAssignedToWorkerFor(t,p.id)});
+   return '<button class="worker-demo-card" onclick="openWorkerView('+p.id+')">'+
+    '<span class="worker-demo-icon">'+(icons[p.department]||'👤')+'</span>'+
+    '<span><b>'+esc(p.department||p.role||'Personel')+'</b><small>'+esc(p.name)+' · '+today.length+' görev</small></span>'+
+    '<em>›</em></button>'
+ }).join(''):'<div class="sub">Test kullanıcısı yok.</div>'
+}
+function taskAssignedToWorkerFor(t,id){var w=t.assigned||t.primary;return !!w&&String(w.id)===String(id)}
+
 function renderStaff(){
  if(!$('#staffGrid'))return;
  $('#staffGrid').innerHTML=state.staff.length?state.staff.map(function(p){
@@ -954,6 +970,11 @@ function checkWorkerReminders(){
    if(late>=2*60*60*1000)emitWorkerNotice('Görev 2 saat gecikti',t.zone.name+' hâlâ tamamlanmadı','late-'+t.key)
  })
 }
+window.testWorkerNotification=function(){
+ var w=workerById();
+ emitWorkerNotice('Test bildirimi',(w?w.name+' · ':'')+'Görev bildirimi sistemi çalışıyor','manual-test-'+Date.now());
+};
+
 window.enableWorkerNotifications=async function(){
  if(!('Notification' in window))return toast('Bu cihaz bildirimleri desteklemiyor');
  var p=await Notification.requestPermission();
