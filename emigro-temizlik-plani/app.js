@@ -995,7 +995,8 @@ window.enableWorkerNotifications=async function(){
  toast(p==='granted'?'Bildirimler açıldı':'Bildirim izni verilmedi')
 };
 function setupWorkerMode(){
- if(state.isAdmin)return;
+ if(state.isAdmin){document.body.classList.remove('worker-mode');return}
+ document.body.classList.add('worker-mode');
  var w=workerById();
  if(w){
    $('#pageTitle').textContent=w.name;
