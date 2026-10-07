@@ -385,6 +385,94 @@ if($('#reportType'))$('#reportType').onchange=renderReport;
 $$('.period').forEach(function(b){b.onclick=function(){$$('.period').forEach(function(x){x.classList.toggle('active',x===b)});state.reportPeriod=b.dataset.period;renderReport()}});
 $$('.nav').forEach(function(b){b.onclick=function(){
  $$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});$$('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+b.dataset.view)});
- var meta={report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],tracking:['Görev Takibi','Fotoğraflı tamamlanma ve aksama takibi.'],plan:['Temizlik Planı','Plan resmini yükle ve alanları tanımla.'],cards:['Alan Kartları','Günlük, haftalık ve aylık görev tanımları.'],staff:['Personel Kartları','Sorumluluk ve performans takibi.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
+ var meta={report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],tracking:['Görev Takibi','Fotoğraflı tamamlanma ve aksama takibi.'],plan:['Temizlik Planı','Plan resmini yükle ve alanları tanımla.'],cards:['Alan Kartları','Günlük, haftalık ve aylık görev tanımları.'],staff:['Personel Kartları','Sorumluluk ve performans takibi.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
  $('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]
 }});
+
+state.warningFilter='open';
+
+function zoneTasksInRange(zoneId,from,to){
+ return expectedTasks(from,to).filter(function(t){return String(t.zone.id)===String(zoneId)})
+}
+function taskMiniHtml(t){
+ var st=statusFor(t),l=st.log,photo=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
+ var warn=st.key==='overdue'?'<button class="danger-btn" onclick="event.stopPropagation();openWarningForTask(\''+t.key+'\')">Uyarı Gönder</button>':'';
+ return '<div class="zone-task-line '+st.key+'"><div><b>'+typeNames[t.type]+'</b><span>'+shortDate(t.date)+' · '+(t.time?t.time.slice(0,5):'Saat yok')+'</span></div><div class="zone-task-text">'+esc(t.taskText||'Görev açıklaması yok')+'</div><div><span class="status '+st.key+'">'+st.label+'</span></div><div class="row-actions">'+photo+warn+'</div></div>'
+}
+window.openZoneStatus=function(id){
+ var z=zoneById(id),c=cardByZone(id)||{};if(!z)return;
+ var p=staffById(c.primary_staff_id),b=staffById(c.backup_staff_id),now=new Date();
+ var today=zoneTasksInRange(id,dayStart(now),dayEnd(now));
+ var week=zoneTasksInRange(id,weekStart(now),weekEnd(now));
+ var month=zoneTasksInRange(id,monthStart(now),monthEnd(now));
+ var recent=state.logs.filter(function(l){return String(l.zone_id)===String(id)&&l.slot_key}).slice(0,8);
+ function summary(tasks,type){
+  var a=tasks.filter(function(t){return t.type===type}),done=a.filter(function(t){return statusFor(t).key==='done'}).length,over=a.filter(function(t){return statusFor(t).key==='overdue'}).length;
+  return '<div class="zone-summary-card"><span>'+typeNames[type]+'</span><b>'+done+' / '+a.length+'</b><small>'+(over?over+' yapılmadı':'Aksama yok')+'</small></div>'
+ }
+ var todayRows=today.length?today.map(taskMiniHtml).join(''):'<div class="sub">Bugün bu alan için görev yok.</div>';
+ var recentRows=recent.length?recent.map(function(l){
+   var who=staffById(l.staff_id),proof=l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+l.slot_key+'\')">':'';
+   return '<div class="recent-clean-row"><div><b>'+ (typeNames[l.task_type]||'Temizlik') +'</b><span>'+l.work_date+' · '+esc((who&&who.name)||'')+'</span></div><span class="status '+(l.status==='done'?'done':'overdue')+'">'+(l.status==='done'?'Yapıldı':'Yapılmadı')+'</span>'+proof+'</div>'
+ }).join(''):'<div class="sub">Henüz kayıt yok.</div>';
+ openModal('<div class="zone-status-head"><div><h2>'+esc(z.name)+'</h2><p>'+esc(z.description||'Alan açıklaması yok')+'</p></div><span class="zone-mini-dot large" style="background:'+(z.color||'#f47a20')+'"></span></div>'+
+ '<div class="people"><div class="person-box"><label>Asıl sorumlu</label><b>'+esc((p&&p.name)||'Atanmadı')+'</b></div><div class="person-box"><label>Yedek sorumlu</label><b>'+esc((b&&b.name)||'Atanmadı')+'</b></div></div>'+
+ '<div class="zone-period-summary">'+summary(week,'daily')+summary(week,'weekly')+summary(month,'monthly')+'</div>'+
+ '<div class="section-head compact"><div><h2>Bugünkü Durum</h2><p>Planlanan temizlikler ve kanıtlar</p></div></div><div class="zone-task-list">'+todayRows+'</div>'+
+ '<div class="section-head compact"><div><h2>Son Kayıtlar</h2><p>Bu alanda yapılan son işlemler</p></div></div><div class="recent-clean-list">'+recentRows+'</div>'+
+ '<div class="form-actions"><button class="ghost" onclick="openZoneCardModal('+z.id+')">Tanımlamayı Düzenle</button><button class="primary" onclick="openWarning('+z.id+',null,null)">Bildirim Gönder</button></div>')
+};
+
+window.openWarningForTask=function(key){
+ var t=taskByKey(key);if(!t)return;openWarning(t.zone.id,t.type,dateKeyLocal(t.date))
+};
+window.openWarning=function(zoneId,type,workDate){
+ var z=zoneById(zoneId),c=cardByZone(zoneId)||{},primary=staffById(c.primary_staff_id),backup=staffById(c.backup_staff_id);
+ var options=[primary,backup].filter(Boolean).filter(function(p,i,a){return a.findIndex(function(x){return x.id===p.id})===i});
+ if(!options.length)options=state.staff.filter(function(p){return p.active});
+ var opts=options.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
+ var suggested=type?typeNames[type]+' temizlik yapılmadı. Lütfen bu alanı kontrol edip görevi tamamlayın.':'Lütfen bu alandaki temizlik görevlerine dikkat edin ve eksik işleri tamamlayın.';
+ openModal('<h2>Personele Uyarı Gönder</h2><form id="warningForm"><div class="form-grid">'+
+ '<div class="field"><label>Alan</label><input value="'+esc((z&&z.name)||'Genel')+'" disabled></div>'+
+ '<div class="field"><label>Gönderilecek kişi</label><select name="staff_id" required>'+opts+'</select></div>'+
+ '<div class="field"><label>Uyarı türü</label><select name="severity"><option value="warning">Uyarı</option><option value="urgent">Acil</option><option value="info">Bilgilendirme</option></select></div>'+
+ '<div class="field"><label>Başlık</label><select name="title"><option>Temizlik yapılmadı</option><option>Buna dikkat et</option><option>Temizlik kontrolü</option><option>Tekrar temizlenmeli</option></select></div>'+
+ '<div class="field full"><label>Mesaj</label><textarea name="message" required>'+esc(suggested)+'</textarea></div>'+
+ '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Uyarıyı Gönder</button></div></form>');
+ $('#warningForm').onsubmit=async function(e){
+  e.preventDefault();var fd=new FormData(e.target),row={staff_id:+fd.get('staff_id'),zone_id:zoneId||null,task_type:type||null,work_date:workDate||null,title:fd.get('title'),message:fd.get('message'),severity:fd.get('severity'),status:'sent'};
+  var r=await db.from('emigro_cleaning_notifications').insert(row);if(r.error)return toast(r.error.message);closeModal();toast('Uyarı personele kaydedildi');loadAll()
+ }
+};
+
+window.openGeneralWarning=function(){
+ var opts=state.staff.filter(function(p){return p.active}).map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
+ var zopts='<option value="">Genel / alan yok</option>'+manualZones().map(function(z){return '<option value="'+z.id+'">'+esc(z.name)+'</option>'}).join('');
+ openModal('<h2>Yeni Bildirim</h2><form id="generalWarningForm"><div class="form-grid">'+
+ '<div class="field"><label>Kişi</label><select name="staff_id" required>'+opts+'</select></div>'+
+ '<div class="field"><label>Alan</label><select name="zone_id">'+zopts+'</select></div>'+
+ '<div class="field"><label>Tür</label><select name="severity"><option value="warning">Uyarı</option><option value="urgent">Acil</option><option value="info">Bilgilendirme</option></select></div>'+
+ '<div class="field"><label>Başlık</label><select name="title"><option>Buna dikkat et</option><option>Temizlik yapılmadı</option><option>Temizlik kontrolü</option><option>Tekrar temizlenmeli</option></select></div>'+
+ '<div class="field full"><label>Mesaj</label><textarea name="message" required placeholder="Personele iletilecek uyarıyı yazın..."></textarea></div>'+
+ '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Gönder</button></div></form>');
+ $('#generalWarningForm').onsubmit=async function(e){
+  e.preventDefault();var fd=new FormData(e.target),row={staff_id:+fd.get('staff_id'),zone_id:fd.get('zone_id')?+fd.get('zone_id'):null,title:fd.get('title'),message:fd.get('message'),severity:fd.get('severity'),status:'sent'};
+  var r=await db.from('emigro_cleaning_notifications').insert(row);if(r.error)return toast(r.error.message);closeModal();toast('Bildirim kaydedildi');loadAll()
+ }
+};
+
+function renderNotifications(){
+ if(!$('#notificationList'))return;
+ var list=state.notifications.slice();
+ if(state.warningFilter==='open')list=list.filter(function(n){return n.status!=='resolved'});
+ var openCount=state.notifications.filter(function(n){return n.status!=='resolved'}).length,b=$('#warningBadge');
+ if(b){if(openCount){b.classList.remove('hidden');b.textContent=openCount}else b.classList.add('hidden')}
+ $('#notificationList').innerHTML=list.length?list.map(function(n){
+  var p=staffById(n.staff_id),z=zoneById(n.zone_id),sev=n.severity==='urgent'?'urgent':n.severity==='info'?'info':'warning';
+  return '<article class="notification-card '+sev+'"><div class="notification-icon">'+(sev==='urgent'?'!':sev==='info'?'i':'⚠')+'</div><div><div class="notification-title"><b>'+esc(n.title)+'</b><span>'+new Date(n.created_at).toLocaleString('tr-TR')+'</span></div><p>'+esc(n.message)+'</p><div class="notification-meta">👤 '+esc((p&&p.name)||'—')+(z?' · 📍 '+esc(z.name):'')+(n.work_date?' · '+n.work_date:'')+'</div></div><div class="notification-actions">'+(n.status!=='resolved'?'<button onclick="resolveWarning('+n.id+')">Çözüldü</button>':'<span class="status done">Çözüldü</span>')+'</div></article>'
+ }).join(''):'<div class="sub">Bu filtrede bildirim yok.</div>'
+}
+window.resolveWarning=async function(id){var r=await db.from('emigro_cleaning_notifications').update({status:'resolved'}).eq('id',id);if(r.error)return toast(r.error.message);loadAll()};
+
+if($('#newWarningBtn'))$('#newWarningBtn').onclick=openGeneralWarning;
+$$('.warning-filter').forEach(function(b){b.onclick=function(){$$('.warning-filter').forEach(function(x){x.classList.toggle('active',x===b)});state.warningFilter=b.dataset.warningFilter;renderNotifications()}});
