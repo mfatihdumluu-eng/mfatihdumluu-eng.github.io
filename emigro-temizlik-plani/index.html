@@ -2,7 +2,8 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#111827">
 <title>EMIGRO Temizlik Yönetimi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,7 +20,6 @@
       <button class="nav" data-view="tracking"><span>✓</span><b>Bugün</b></button>
       <button class="nav" data-view="calendar"><span>▣</span><b>Takvim</b></button>
       <button class="nav" data-view="plan"><span>⌗</span><b>Market Planı</b></button>
-      <button class="nav" data-view="cards"><span>▤</span><b>Plan Ekranı</b></button>
       <button class="nav" data-view="staff"><span>👤</span><b>Personel</b></button>
       <button class="nav" data-view="notifications"><span>⚠</span><b>Uyarılar</b><em id="warningBadge" class="nav-badge hidden">0</em></button>
       <button class="nav" data-view="history"><span>↺</span><b>Geçmiş</b></button>
@@ -66,9 +66,14 @@
       </section>
 
       <section id="view-tracking" class="view">
-        <div class="section-head">
-          <div><h2>Bugün Operasyon</h2><p>Aksayan, sıradaki ve tamamlanan işleri tek ekranda takip edin.</p></div>
+        <div class="section-head operation-head">
+          <div><h2>Temizlik İşleri</h2><p>Aksayan, sıradaki ve tamamlanan işleri takip edin.</p></div>
           <input id="trackingDate" type="date">
+        </div>
+        <div class="operation-type-tabs">
+          <button class="tracking-type active" data-tracking-type="daily">Günlük</button>
+          <button class="tracking-type" data-tracking-type="weekly">Haftalık</button>
+          <button class="tracking-type" data-tracking-type="monthly">Aylık</button>
         </div>
         <div class="today-columns">
           <section class="today-column danger-col"><div class="today-col-head"><b>Aksayanlar</b><span id="todayOverCount">0</span></div><div id="todayOverdue"></div></section>
@@ -107,12 +112,6 @@
           <aside class="zones-panel"><div class="panel-head"><b>Tanımlı Alanlar</b><span id="zoneCount">0</span></div><div id="zoneMiniList"></div></aside>
         </div>
       </section>
-
-      <section id="view-cards" class="view">
-        <div class="section-head"><div><h2>Plan Ekranı</h2><p>Alanların günlük, haftalık ve aylık temizlik rutinleri.</p></div></div>
-        <div id="zoneCards" class="zone-cards"></div>
-      </section>
-
       <section id="view-staff" class="view">
         <div class="section-head"><div><h2>Personel Kartları</h2><p>Sorumluluklar ve performans tek kartta.</p></div><button id="addStaffBtn" class="primary">+ Personel Ekle</button></div>
         <div id="staffGrid" class="staff-grid"></div>
