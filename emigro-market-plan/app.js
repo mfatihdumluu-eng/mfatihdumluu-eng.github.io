@@ -7,12 +7,22 @@ const CATS={
   icecek:['İçecek / Su','#8bd9df'],nonfood:['Nonfood','#cbb9eb'],kasa:['Kasa','#ffab68'],mutfak:['Mutfak','#ffb29a']
 };
 const PRESETS=[
- ['Tekli Raf',160,40,'raf'],['Çift Taraflı Raf',160,80,'raf'],['Duvar Rafı',320,30,'raf'],['Kısa Raf',80,40,'raf'],
- ['Uzun Raf',400,40,'raf'],['Dipfriz / Dondurucu',200,80,'dondurucu'],['Dik Dondurucu',160,40,'dondurucu'],
- ['Soğutucu Dolap',200,40,'soguk'],['Kasa',80,160,'kasa'],['Palet Alanı',60,60,'depo'],['Sebze-Meyve Standı',120,120,'taze'],
- ['Nonfood Standı',120,80,'nonfood'],['Depo Alanı',240,200,'depo'],['Koridor / Boş Alan',400,80,'koridor']
+ ['Tekli Raf',160,40,'raf','shelf-single'],['Çift Taraflı Raf',160,80,'raf','shelf-double'],['Duvar Rafı',320,30,'raf','shelf-wall'],['Kısa Raf',80,40,'raf','shelf-single'],
+ ['Uzun Raf',400,40,'raf','shelf-single'],['Dipfriz / Dondurucu',200,80,'dondurucu','freezer-chest'],['Dik Dondurucu',160,40,'dondurucu','freezer-upright'],
+ ['Soğutucu Dolap',200,40,'soguk','cooler'],['Kasa',80,160,'kasa','checkout'],['Palet Alanı',60,60,'depo','pallet'],['Sebze-Meyve Standı',120,120,'taze','produce'],
+ ['Nonfood Standı',120,80,'nonfood','display'],['Depo Alanı',240,200,'depo','storage'],['Koridor / Boş Alan',400,80,'koridor','zone']
 ];
-const A=(id,num,name,x,y,w,h,cat,rot=0)=>({id,num,name,x,y,w,h,cat,rot,locked:false});
+function inferShape(name,cat){
+ const n=String(name||'').toLowerCase();
+ if(cat==='kasa'||n.includes('kasa'))return 'checkout';
+ if(cat==='dondurucu'||n.includes('dipfriz')||n.includes('deepfriz'))return n.includes('dik')?'freezer-upright':'freezer-chest';
+ if(cat==='soguk'&&(n.includes('dolap')||n.includes('lokum')))return 'cooler';
+ if(cat==='raf'||n.includes('pat')||n.includes('baharat')||n.includes('konserve')||n.includes('cips')||n.includes('kuruyemiş')||n.includes('kahve')||n.includes('pirinç')||n.includes('bakliyat')||n.includes('sos')||n.includes('zeytin'))return 'shelf-single';
+ if(n.includes('palet'))return 'pallet';
+ if(cat==='taze')return 'produce';
+ return 'zone';
+}
+const A=(id,num,name,x,y,w,h,cat,rot=0,shape=null)=>({id,num,name,x,y,w,h,cat,rot,shape:shape||inferShape(name,cat),locked:false});
 const seed=()=>[
  A('a25',25,'mutfak koridor',20,220,240,60,'koridor'),
  A('a26',26,'mutfak',275,173,240,108,'mutfak'),
@@ -74,7 +84,7 @@ function migrate(v){
   id:String(o.id||('m'+i)),num:o.num??i+1,name:String(o.name||'alan'),
   x:+o.x||0,y:+o.y||0,w:Math.max(10,+o.w||80),h:Math.max(10,+o.h||80),
   cat:o.cat||o.category||'raf',rot:[0,90,180,270].includes(+o.rot)?+o.rot:([0,90,180,270].includes(+o.rotation)?+o.rotation:0),
-  locked:!!o.locked
+  shape:o.shape||inferShape(o.name,o.cat||o.category||'raf'),locked:!!o.locked
  }));
 }
 try{ const raw=localStorage.getItem(STORAGE); areas=migrate(raw?JSON.parse(raw):null)||seed(); }catch{areas=seed()}
@@ -90,6 +100,40 @@ function showToast(msg){const t=$('#toast');t.textContent=msg;t.classList.remove
 function worldFromEvent(e){const r=svg.getBoundingClientRect();return{x:(e.clientX-r.left-view.x)/view.s,y:(e.clientY-r.top-view.y)/view.s}}
 function applyView(){viewport.setAttribute('transform',`translate(${view.x} ${view.y}) scale(${view.s})`);$('#zoomLabel').textContent=Math.round(view.s*100)+'%'}
 function areaFill(a){return (CATS[a.cat]||CATS.raf)[1]}
+function svgEl(tag,attrs={}){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);return e}
+function addLine(g,x1,y1,x2,y2,cls='fixture-line'){g.append(svgEl('line',{x1,y1,x2,y2,class:cls}))}
+function addRect(g,x,y,w,h,cls='fixture-detail'){g.append(svgEl('rect',{x,y,width:w,height:h,class:cls}))}
+function renderFixture(g,a){
+ const x=a.x,y=a.y,w=a.w,h=a.h,shape=a.shape||inferShape(a.name,a.cat),pad=Math.max(3,Math.min(w,h)*.10);
+ if(shape.startsWith('shelf')){
+   const horizontal=w>=h;
+   if(horizontal){
+     addLine(g,x+pad,y+h*.5,x+w-pad,y+h*.5,'fixture-heavy');
+     if(shape==='shelf-double'){addLine(g,x+pad,y+h*.33,x+w-pad,y+h*.33);addLine(g,x+pad,y+h*.67,x+w-pad,y+h*.67)}
+     addLine(g,x+pad,y+pad,x+pad,y+h-pad);addLine(g,x+w-pad,y+pad,x+w-pad,y+h-pad);
+   }else{
+     addLine(g,x+w*.5,y+pad,x+w*.5,y+h-pad,'fixture-heavy');
+     if(shape==='shelf-double'){addLine(g,x+w*.33,y+pad,x+w*.33,y+h-pad);addLine(g,x+w*.67,y+pad,x+w*.67,y+h-pad)}
+     addLine(g,x+pad,y+pad,x+w-pad,y+pad);addLine(g,x+pad,y+h-pad,x+w-pad,y+h-pad);
+   }
+ } else if(shape==='checkout'){
+   if(h>=w){addRect(g,x+w*.16,y+h*.10,w*.68,h*.58,'checkout-belt');addRect(g,x+w*.20,y+h*.73,w*.32,h*.16,'checkout-register');addLine(g,x+w*.58,y+h*.73,x+w*.82,y+h*.89)}
+   else{addRect(g,x+w*.10,y+h*.16,w*.58,h*.68,'checkout-belt');addRect(g,x+w*.73,y+h*.20,w*.16,h*.32,'checkout-register');addLine(g,x+w*.73,y+h*.58,x+w*.89,y+h*.82)}
+ } else if(shape==='freezer-chest'){
+   addRect(g,x+pad,y+pad,w-pad*2,h-pad*2,'freezer-glass');
+   if(w>=h){for(let i=1;i<4;i++)addLine(g,x+pad+(w-pad*2)*i/4,y+pad,x+pad+(w-pad*2)*i/4,y+h-pad)}
+   else{for(let i=1;i<4;i++)addLine(g,x+pad,y+pad+(h-pad*2)*i/4,x+w-pad,y+pad+(h-pad*2)*i/4)}
+ } else if(shape==='freezer-upright'||shape==='cooler'){
+   addRect(g,x+pad,y+pad,w-pad*2,h-pad*2,'freezer-glass');
+   const count=Math.max(2,Math.min(6,Math.round((w>=h?w:h)/45)));
+   if(w>=h){for(let i=1;i<count;i++)addLine(g,x+pad+(w-pad*2)*i/count,y+pad,x+pad+(w-pad*2)*i/count,y+h-pad)}
+   else{for(let i=1;i<count;i++)addLine(g,x+pad,y+pad+(h-pad*2)*i/count,x+w-pad,y+pad+(h-pad*2)*i/count)}
+ } else if(shape==='pallet'){
+   addRect(g,x+pad,y+pad,w-pad*2,h-pad*2,'pallet-inner');addLine(g,x+pad,y+h*.5,x+w-pad,y+h*.5);addLine(g,x+w*.5,y+pad,x+w*.5,y+h-pad);
+ } else if(shape==='produce'){
+   addRect(g,x+pad,y+pad,w-pad*2,h-pad*2,'produce-inner');addLine(g,x+pad,y+h*.5,x+w-pad,y+h*.5);addLine(g,x+w*.5,y+pad,x+w*.5,y+h-pad);
+ }
+}
 
 function render(){
  layer.innerHTML='';
@@ -97,6 +141,7 @@ function render(){
   const g=document.createElementNS('http://www.w3.org/2000/svg','g');g.classList.add('area');g.dataset.id=a.id;
   if(selected.has(a.id))g.classList.add('selected');if(a.locked)g.classList.add('locked');
   const r=document.createElementNS('http://www.w3.org/2000/svg','rect');r.classList.add('body');r.setAttribute('x',a.x);r.setAttribute('y',a.y);r.setAttribute('width',a.w);r.setAttribute('height',a.h);r.setAttribute('fill',areaFill(a));g.append(r);
+  renderFixture(g,a);
   const cx=a.x+a.w/2,cy=a.y+a.h/2;const textG=document.createElementNS('http://www.w3.org/2000/svg','g');
   if(a.h>a.w*1.45)textG.setAttribute('transform',`rotate(-90 ${cx} ${cy})`);
   const n=document.createElementNS('http://www.w3.org/2000/svg','text');n.classList.add('num-text');n.setAttribute('x',cx);n.setAttribute('y',cy-4);n.setAttribute('text-anchor','middle');n.setAttribute('font-size',Math.max(10,Math.min(38,a.h*.34,a.w*.22)));n.textContent=a.num;textG.append(n);
@@ -163,10 +208,10 @@ function bulkLock(v){commit(areas.map(a=>selected.has(a.id)?{...a,locked:v}:a))}
 function addPreset(p){
  const r=svg.getBoundingClientRect(), center={x:(r.width/2-view.x)/view.s,y:(r.height/2-view.y)/view.s};
  const n=maxNum()+1,id='a'+Date.now()+Math.random().toString(36).slice(2,5);
- const a=A(id,n,p[0],snap(center.x-p[1]/2),snap(center.y-p[2]/2),p[1],p[2],p[3]);
+ const a=A(id,n,p[0],snap(center.x-p[1]/2),snap(center.y-p[2]/2),p[1],p[2],p[3],0,p[4]);
  commit([...areas,a]);selected.clear();selected.add(id);render()
 }
-function addGeneric(){addPreset(['Yeni Alan',160,100,'raf'])}
+function addGeneric(){addPreset(['Yeni Alan',160,100,'raf','zone'])}
 function duplicateSelection(){
  if(!selected.size)return;const sel=areas.filter(a=>selected.has(a.id));let n=maxNum();const ids=[];const copies=sel.map((a,i)=>{const id='a'+Date.now()+i+Math.random().toString(36).slice(2,5);ids.push(id);return{...a,id,num:++n,x:a.x+40,y:a.y+40,locked:false}});
  commit([...areas,...copies]);selected=new Set(ids);render()
@@ -204,7 +249,7 @@ function endDrag(e){
  if(!drag)return;
  if(drag.type==='marquee'){
   const box=normMarquee();$('#marquee').classList.add('hidden');
-  if(box&&box.w>3&&box.h>3){const hits=areas.filter(a=>a.x>=box.x&&a.y>=box.y&&a.x+a.w<=box.x+box.w&&a.y+a.h<=box.y+box.h).map(a=>a.id);if(!drag.add)selected.clear();hits.forEach(id=>selected.add(id))}
+  if(box&&box.w>3&&box.h>3){const hits=areas.filter(a=>a.x < box.x+box.w && a.x+a.w > box.x && a.y < box.y+box.h && a.y+a.h > box.y).map(a=>a.id);if(!drag.add)selected.clear();hits.forEach(id=>selected.add(id));showToast(hits.length+' alan mouse ile seçildi — seçili alanlardan birini sürükleyin')}
   else if(!drag.add)selected.clear();
   drag=null;marquee=null;render();return
  }
@@ -248,7 +293,7 @@ function exportPNG(){
 }
 function printPlan(){window.print()}
 
-for(const p of PRESETS){const b=document.createElement('button');b.className='preset';b.textContent=p[0];b.onclick=()=>addPreset(p);$('#presetGrid').append(b)}
+for(const p of PRESETS){const b=document.createElement('button');b.className='preset';b.dataset.shape=p[4];b.innerHTML='<span class="preset-icon '+p[4]+'"></span><span>'+p[0]+'</span>';b.onclick=()=>addPreset(p);$('#presetGrid').append(b)}
 $('#addBtn').onclick=addGeneric;$('#copyBtn').onclick=duplicateSelection;$('#deleteBtn').onclick=deleteSelection;$('#undoBtn').onclick=undo;$('#redoBtn').onclick=redo;
 $('#zoomOutBtn').onclick=()=>zoom(.85);$('#zoomInBtn').onclick=()=>zoom(1.18);$('#fitBtn').onclick=fit;$('#resetBtn').onclick=resetPlan;$('#exportBtn').onclick=exportPNG;$('#printBtn').onclick=printPlan;
 render();setTimeout(fit,50);
