@@ -2,7 +2,7 @@ const SUPABASE_URL='https://hroarfuwpfsqilsijwpp.supabase.co';
 const SUPABASE_KEY='sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const state={zones:[],staff:[],cards:[],logs:[],settings:null,drawMode:false,drawStart:null,showAreas:true};
+const state={zones:[],staff:[],cards:[],logs:[],notifications:[],settings:null,drawMode:false,drawStart:null,showAreas:true};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dayNames=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
@@ -22,15 +22,16 @@ function fmtMonthDays(arr){return !arr?.length?'—':arr.map(x=>x+'. gün').join
 async function loadAll(){
  try{
   $('#dbState').textContent='● Bağlanıyor';
-  const [z,p,c,l,s]=await Promise.all([
+  const [z,p,c,l,n,s]=await Promise.all([
    db.from('emigro_cleaning_zones').select('*').order('sort_order'),
    db.from('emigro_cleaning_staff').select('*').order('name'),
    db.from('emigro_cleaning_zone_cards').select('*'),
-   db.from('emigro_cleaning_logs').select('*').order('work_date',{ascending:false}).limit(300),
+   db.from('emigro_cleaning_logs').select('*').order('work_date',{ascending:false}).limit(1500),
+   db.from('emigro_cleaning_notifications').select('*').order('created_at',{ascending:false}).limit(500),
    db.from('emigro_cleaning_settings').select('*').eq('id',1).single()
   ]);
-  [z,p,c,l,s].forEach(r=>{if(r.error)throw r.error});
-  state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.settings=s.data||{};
+  [z,p,c,l,n,s].forEach(r=>{if(r.error)throw r.error});
+  state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.notifications=n.data||[];state.settings=s.data||{};
   $('#dbState').textContent='● Veritabanı bağlı';
   applyPlanImage();renderAll();
  }catch(e){console.error(e);$('#dbState').textContent='● Bağlantı hatası';toast('Veritabanı bağlantı hatası')}
@@ -42,19 +43,19 @@ function applyPlanImage(){
  else{$('#planImg').classList.add('hidden');$('#emptyPlan').classList.remove('hidden')}
 }
 
-function renderAll(){renderReport();renderTracking();renderPlan();renderCards();renderStaff();renderHistory()}
+function renderAll(){renderReport();renderTracking();renderPlan();renderCards();renderStaff();renderNotifications();renderHistory()}
 function renderPlan(){
  const zones=manualZones();$('#zoneCount').textContent=zones.length;
  const ov=$('#zoneOverlay');ov.innerHTML='';ov.style.display=state.showAreas?'block':'none';
  zones.forEach(z=>{
   const e=document.createElement('div');e.className='zone-box';e.style.cssText=`left:${z.x}%;top:${z.y}%;width:${z.w}%;height:${z.h}%;--zone:${z.color||'#f47a20'}`;
   e.innerHTML=`<span class="zone-label">${esc(z.name)}</span>`;
-  e.onclick=()=>openZoneCardModal(z.id);
+  e.onclick=()=>openZoneStatus(z.id);
   ov.append(e)
  });
  $('#zoneMiniList').innerHTML=zones.length?zones.map(z=>{
    const card=cardByZone(z.id),p=staffById(card?.primary_staff_id),b=staffById(card?.backup_staff_id);
-   return `<div class="zone-mini" onclick="openZoneCardModal(${z.id})"><span class="zone-mini-dot" style="background:${z.color||'#f47a20'}"></span><div><b>${esc(z.name)}</b><small>${p?'Asıl: '+esc(p.name):'Asıl yok'}${b?' · Yedek: '+esc(b.name):''}</small></div></div>`
+   return `<div class="zone-mini" onclick="openZoneStatus(${z.id})"><span class="zone-mini-dot" style="background:${z.color||'#f47a20'}"></span><div><b>${esc(z.name)}</b><small>${p?'Asıl: '+esc(p.name):'Asıl yok'}${b?' · Yedek: '+esc(b.name):''}</small></div></div>`
  }).join(''):'<div style="padding:12px;font-size:10px;color:#6f7d86">Henüz alan tanımlanmadı.</div>';
 }
 
