@@ -43,6 +43,26 @@ function workerZoneTypes(zoneId){
  });
  return out
 }
+function staffDeptIcon(p){
+ var dep=(p&&p.department)||'';
+ return {'Kasa':'🧾','Raf':'🧹','Sebze Meyve':'🥬','Genel Temizlik':'🧽','Depo':'📦'}[dep]||'👤'
+}
+function staffAssignedZones(personId){
+ var id=String(personId),seen={};
+ return manualZones().filter(function(z){
+   var c=cardByZone(z.id)||{};
+   var fields=[
+     c.primary_staff_id,c.backup_staff_id,
+     c.daily_primary_staff_id,c.daily_backup_staff_id,
+     c.weekly_primary_staff_id,c.weekly_backup_staff_id,
+     c.monthly_primary_staff_id,c.monthly_backup_staff_id
+   ];
+   var hit=fields.some(function(x){return String(x||'')===id});
+   if(hit&&!seen[z.id]){seen[z.id]=true;return true}
+   return false
+ })
+}
+
 function fmtDays(arr){return !arr?.length?'—':arr.map(x=>dayNames[x]).join(', ')}
 function fmtMonthDays(arr){return !arr?.length?'—':arr.map(x=>x+'. gün').join(', ')}
 
@@ -1017,7 +1037,7 @@ function renderStaff(){
  if(!$('#staffGrid'))return;
  $('#staffGrid').innerHTML=state.staff.length?state.staff.map(function(p){
   var st=staffStats(p.id),lines=staffResponsibilityLines(p.id);
-  return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.role||'Rol belirtilmedi')+'</div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
+  return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div class="staff-card-identity"><span class="staff-shared-icon">'+staffDeptIcon(p)+'</span><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.department||p.role||'Rol belirtilmedi')+'</div></div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
    '<div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div>'+
    '<div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
    '<div class="card-actions staff-actions"><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Görev Ata</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
@@ -1104,7 +1124,6 @@ function renderWorkerProfilePicker(){
  var wrap=$('#workerProfilePicker'),box=$('#workerProfileOptions');if(!wrap||!box)return;
  if(state.isAdmin){wrap.classList.add('hidden');return}
  wrap.classList.remove('hidden');
- var icons={'Kasa':'🧾','Raf':'🧹','Sebze Meyve':'🥬','Genel Temizlik':'🧽','Depo':'📦'};
  var people=state.staff.filter(function(p){return p.active}).sort(function(a,b){
    var da=a.department||'Diğer',dbb=b.department||'Diğer';
    return da.localeCompare(dbb,'tr')||a.name.localeCompare(b.name,'tr')
@@ -1112,10 +1131,19 @@ function renderWorkerProfilePicker(){
  box.innerHTML=people.length?people.map(function(p){
    var active=String(p.id)===String(state.workerStaffId);
    var count=expectedTasks(dayStart(new Date()),dayEnd(new Date())).filter(function(t){return taskAssignedToWorkerFor(t,p.id)}).length;
-   return '<button class="worker-profile-option '+(active?'active':'')+'" onclick="selectWorkerProfile('+p.id+')">'+
-     '<span class="worker-profile-icon">'+(icons[p.department]||'👤')+'</span>'+
-     '<span><b>'+esc(p.name)+'</b><small>'+esc(p.department||p.role||'Personel')+' · '+count+' görev</small></span>'+
-   '</button>'
+   var zones=staffAssignedZones(p.id);
+   var zoneButtons=zones.length
+     ? '<div class="worker-assigned-zone-buttons">'+zones.map(function(z){
+         return '<button type="button" class="worker-assigned-zone-btn" onclick="event.stopPropagation();openWorkerAssignedZone('+p.id+','+z.id+')">'+esc(z.name)+'</button>'
+       }).join('')+'</div>'
+     : '<div class="worker-no-zone">Tanımlı alan yok</div>';
+   return '<article class="worker-profile-option '+(active?'active':'')+'">'+
+     '<button type="button" class="worker-profile-main" onclick="selectWorkerProfile('+p.id+')">'+
+       '<span class="worker-profile-icon">'+staffDeptIcon(p)+'</span>'+
+       '<span><b>'+esc(p.name)+'</b><small>'+esc(p.department||p.role||'Personel')+' · '+count+' görev</small></span>'+
+     '</button>'+
+     zoneButtons+
+   '</article>'
  }).join(''):'<div class="sub">Aktif personel yok.</div>'
 }
 window.selectWorkerProfile=function(id){
@@ -1130,6 +1158,18 @@ window.selectWorkerProfile=function(id){
  var todayNav=document.querySelector('.nav[data-view="tracking"]');
  if(todayNav)todayNav.click();
 };
+window.openWorkerAssignedZone=function(personId,zoneId){
+ state.workerStaffId=Number(personId)||null;
+ if(state.workerStaffId)localStorage.setItem('emigro-cleaning-worker',String(state.workerStaffId));
+ renderWorkerProfilePicker();
+ renderTracking();
+ renderCalendar();
+ renderPlan();
+ renderWorkerNotifications();
+ setupWorkerMode();
+ openZoneStatus(zoneId);
+};
+
 function setupWorkerMode(){
  if(state.isAdmin){document.body.classList.remove('worker-mode');return}
  document.body.classList.add('worker-mode');
