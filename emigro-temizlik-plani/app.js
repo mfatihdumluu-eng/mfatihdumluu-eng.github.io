@@ -22,6 +22,27 @@ function cardByZone(id){return state.cards.find(c=>String(c.zone_id)===String(id
 function tagsFor(zoneId,type){return state.taskTags.filter(function(x){return String(x.zone_id)===String(zoneId)&&x.task_type===type&&x.active!==false}).sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0)})}
 function workerById(){return staffById(state.workerStaffId)}
 function taskAssignedToWorker(t){var w=t.assigned||t.primary;return !!w&&String(w.id)===String(state.workerStaffId)}
+function workerAssignedToZone(zoneId){
+ if(state.isAdmin)return true;
+ if(!state.workerStaffId)return false;
+ var c=cardByZone(zoneId)||{},id=String(state.workerStaffId);
+ var fields=[
+   c.primary_staff_id,c.backup_staff_id,
+   c.daily_primary_staff_id,c.daily_backup_staff_id,
+   c.weekly_primary_staff_id,c.weekly_backup_staff_id,
+   c.monthly_primary_staff_id,c.monthly_backup_staff_id
+ ];
+ return fields.some(function(x){return String(x||'')===id})
+}
+function workerZoneTypes(zoneId){
+ var c=cardByZone(zoneId)||{},id=String(state.workerStaffId),out=[];
+ ['daily','weekly','monthly'].forEach(function(type){
+   var p=c[type+'_primary_staff_id']||(type==='daily'?c.primary_staff_id:null);
+   var b=c[type+'_backup_staff_id']||(type==='daily'?c.backup_staff_id:null);
+   if(String(p||'')===id||String(b||'')===id)out.push(type)
+ });
+ return out
+}
 function fmtDays(arr){return !arr?.length?'—':arr.map(x=>dayNames[x]).join(', ')}
 function fmtMonthDays(arr){return !arr?.length?'—':arr.map(x=>x+'. gün').join(', ')}
 
@@ -62,18 +83,31 @@ function renderAll(){
 function renderPlan(){
  const zones=manualZones();$('#zoneCount').textContent=zones.length;
  const ov=$('#zoneOverlay');ov.innerHTML='';ov.style.display=state.showAreas?'block':'none';
- zones.forEach(z=>{
-  const e=document.createElement('div');e.className='zone-box';e.style.cssText=`left:${z.x}%;top:${z.y}%;width:${z.w}%;height:${z.h}%;--zone:${z.color||'#f47a20'}`;
-  e.innerHTML=`<span class="zone-label">${esc(z.name)}</span>`;
-  e.onclick=()=>openZoneStatus(z.id);
+
+ zones.forEach(function(z){
+  var assigned=workerAssignedToZone(z.id);
+  const e=document.createElement('div');
+  e.className='zone-box'+(!state.isAdmin&&!assigned?' worker-zone-disabled':'')+(!state.isAdmin&&assigned?' worker-zone-active':'');
+  e.style.cssText='left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%;--zone:'+(z.color||'#f47a20');
+  e.innerHTML='<span class="zone-label">'+esc(z.name)+'</span>';
+  if(state.isAdmin||assigned)e.onclick=function(){openZoneStatus(z.id)};
+  else e.setAttribute('aria-disabled','true');
   ov.append(e)
  });
- $('#zoneMiniList').innerHTML=zones.length?zones.map(z=>{
-   const card=cardByZone(z.id),p=staffById(card?.primary_staff_id),b=staffById(card?.backup_staff_id);
-   return `<div class="zone-mini" onclick="openZoneStatus(${z.id})"><span class="zone-mini-dot" style="background:${z.color||'#f47a20'}"></span><div><b>${esc(z.name)}</b><small>${p?'Asıl: '+esc(p.name):'Asıl yok'}${b?' · Yedek: '+esc(b.name):''}</small></div></div>`
- }).join(''):'<div style="padding:12px;font-size:10px;color:#6f7d86">Henüz alan tanımlanmadı.</div>';
-}
 
+ if(state.isAdmin){
+   $('#zoneMiniList').innerHTML=zones.length?zones.map(function(z){
+     const card=cardByZone(z.id),p=staffById(card&&card.primary_staff_id),b=staffById(card&&card.backup_staff_id);
+     return '<div class="zone-mini" onclick="openZoneStatus('+z.id+')"><span class="zone-mini-dot" style="background:'+(z.color||'#f47a20')+'"></span><div><b>'+esc(z.name)+'</b><small>'+(p?'Asıl: '+esc(p.name):'Asıl yok')+(b?' · Yedek: '+esc(b.name):'')+'</small></div></div>'
+   }).join(''):'<div class="sub">Henüz alan tanımlanmadı.</div>';
+ }else{
+   var mine=zones.filter(function(z){return workerAssignedToZone(z.id)});
+   $('#zoneMiniList').innerHTML=mine.length?mine.map(function(z){
+     var types=workerZoneTypes(z.id).map(function(x){return typeNames[x]}).join(' · ');
+     return '<div class="zone-mini worker-zone-mini" onclick="openZoneStatus('+z.id+')"><span class="zone-mini-dot" style="background:'+(z.color||'#079455')+'"></span><div><b>'+esc(z.name)+'</b><small>Atandığın alan · '+esc(types||'Görev')+'</small></div></div>'
+   }).join(''):'<div class="worker-plan-empty">Bu kullanıcıya henüz plan alanı atanmadı.</div>';
+ }
+}
 function scheduleLine(label,enabled,days,time,monthly=false){
  return `<div class="schedule-line"><strong>${label}</strong><div class="days">${enabled?(monthly?fmtMonthDays(days):fmtDays(days)):'Kapalı'}</div><div class="time">${enabled?(time?.slice(0,5)||'Saat yok'):'—'}</div></div>`
 }
@@ -616,6 +650,7 @@ function taskMiniHtml(t){
   '</article>'
 }
 window.openZoneStatus=function(id){
+ if(!state.isAdmin&&!workerAssignedToZone(id))return toast('Bu alan sana atanmadı');
  var z=zoneById(id),c=cardByZone(id)||{};if(!z)return;
  var p=staffById(c.primary_staff_id),b=staffById(c.backup_staff_id),now=new Date();
  var today=zoneTasksInRange(id,dayStart(now),dayEnd(now));
@@ -1040,7 +1075,7 @@ function openManagementView(view){
   if(meta){
         if(!state.isAdmin&&workerById()){
           $('#pageTitle').textContent=workerById().name;
-          $('#pageSub').textContent=b.dataset.view==='worker-notifications'?'Yönetimden gelen bildirim ve uyarılar':(workerById().department||workerById().role||'Temizlik')+' · '+(b.dataset.view==='calendar'?'Takvimin':'Bugünkü görevlerin');
+          $('#pageSub').textContent=b.dataset.view==='worker-notifications'?'Yönetimden gelen bildirim ve uyarılar':b.dataset.view==='plan'?'Atandığın alanları plan üzerinde gör':(workerById().department||workerById().role||'Temizlik')+' · '+(b.dataset.view==='calendar'?'Takvimin':'Bugünkü görevlerin');
         }else{$('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]}
       }
 }
@@ -1122,7 +1157,7 @@ function initCleaningAdmin(){
     ['#drawBtn','.upload-btn','#demoBtn','#addStaffBtn'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
     $$('.danger-btn').forEach(function(el){el.classList.add('hidden')});
     $('.nav').forEach(function(el){
-      var allowed=['tracking','calendar','worker-notifications'];
+      var allowed=['tracking','calendar','plan','worker-notifications'];
       el.classList.toggle('hidden',!allowed.includes(el.dataset.view));
     });
     var todayNav=document.querySelector('.nav[data-view="tracking"]');
