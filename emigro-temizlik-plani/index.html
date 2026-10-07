@@ -78,6 +78,10 @@
           <div><h2>Temizlik İşleri</h2><p>Aksayan, sıradaki ve tamamlanan işleri takip edin.</p></div>
           <input id="trackingDate" type="date">
         </div>
+        <div id="workerNoticeBar" class="worker-notice-bar hidden">
+          <div><b>Görev bildirimleri</b><span>15 dk önce ve 2 saat gecikmede uyarı al.</span></div>
+          <button class="primary" onclick="enableWorkerNotifications()">Bildirimleri Aç</button>
+        </div>
         <div class="operation-type-tabs">
           <button class="tracking-type active" data-tracking-type="daily">Günlük</button>
           <button class="tracking-type" data-tracking-type="weekly">Haftalık</button>
