@@ -1108,3 +1108,19 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
  .worker-profile-option b{font-size:13px}
  .worker-profile-option small{font-size:10px}
 }
+
+/* DIRECT STAFF TASK ASSIGNMENT */
+.staff-actions{display:grid!important;grid-template-columns:1.35fr 1fr 1.1fr!important;gap:7px!important}
+.staff-actions button{min-height:40px!important;border-radius:11px!important;font-size:11px!important;font-weight:800!important}
+.assign-task-btn{background:#079455!important;color:#fff!important;border:0!important;box-shadow:0 5px 12px rgba(7,148,85,.15)!important}
+.assign-task-btn:hover{background:#067647!important}
+.assign-task-modal{width:min(680px,94vw)!important;max-width:680px!important}
+.assign-task-sheet .app-head{margin-bottom:12px!important}
+.assign-days-box{display:grid!important;grid-template-columns:repeat(7,1fr)!important;gap:6px!important}
+.assign-days-box .check{min-height:42px!important;display:flex!important;align-items:center!important;justify-content:center!important}
+@media(max-width:600px){
+ .staff-actions{grid-template-columns:1fr 1fr!important}
+ .staff-actions .assign-task-btn{grid-column:1/-1!important;min-height:46px!important;font-size:13px!important}
+ .assign-days-box{grid-template-columns:repeat(4,1fr)!important}
+ .assign-days-box .check{font-size:12px!important}
+}
