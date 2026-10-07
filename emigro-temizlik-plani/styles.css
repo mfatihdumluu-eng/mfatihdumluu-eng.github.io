@@ -29,3 +29,18 @@
 .assignment-row>div:first-child b{display:block;font-size:10px}.assignment-row>div:first-child span{display:block;font-size:8px;color:var(--muted);margin-top:2px}
 .backup-days{display:flex;gap:4px;flex-wrap:wrap}.backup-days .check{padding:4px 5px}.backup-days.muted{opacity:.4}
 @media(max-width:900px){.assignment-row{grid-template-columns:1fr auto auto auto}.backup-days{grid-column:1/-1}}
+
+.plan-status-card{cursor:pointer;transition:.15s}.plan-status-card:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.plan-status-card.critical{background:#fff1f0;border-color:#e7aaa6;box-shadow:0 0 0 1px rgba(217,83,79,.05)}
+.plan-status-card.critical .zone-card-top h3{color:#9f302d}
+.plan-status-card.late{background:#fff8ec;border-color:#ead3a7}
+.plan-status-card.completed{opacity:.52;filter:saturate(.7);order:99}
+.plan-status-card.completed:hover{opacity:.82;filter:none}
+.plan-status-card.active{background:#fffdf8}
+.zone-state-badge{font-size:8px;font-weight:800;border-radius:999px;padding:5px 7px;white-space:nowrap}
+.zone-state-badge.critical{background:#f9d8d5;color:#a42e2a}
+.zone-state-badge.active{background:#fff0c9;color:#9b6a00}
+.zone-state-badge.completed{background:#dff3e8;color:#267b50}
+.zone-state-badge.late{background:#f7e5c4;color:#97620d}
+.zone-state-badge.normal{background:#edf1f3;color:#697780}
+.plan-task-chips{display:flex;gap:5px;flex-wrap:wrap;margin:9px 0}.plan-task-chip{font-size:8px;border-radius:999px;padding:4px 6px;background:#eef2f4}.plan-task-chip.done{background:#e4f5eb;color:#23784d}.plan-task-chip.overdue{background:#fbe0de;color:#a42e2a}.plan-task-chip.pending{background:#fff0c9;color:#9b6a00}.plan-task-chip.neutral{color:#77848c}
