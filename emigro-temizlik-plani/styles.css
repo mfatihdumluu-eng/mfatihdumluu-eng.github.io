@@ -301,3 +301,28 @@ input,select,textarea{font-size:16px}
  .warning-person-card b{font-size:19px}
  .warning-person-card small{font-size:11px}
 }
+
+/* Today operations / management */
+.today-columns{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.today-column{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.today-col-head{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-bottom:1px solid var(--line)}
+.today-col-head b{font-size:12px}.today-col-head span{min-width:24px;height:24px;display:grid;place-items:center;border-radius:999px;background:#eef2f4;font-size:10px;font-weight:800}
+.danger-col .today-col-head{background:#fff4f3}.danger-col .today-col-head span{background:#f7d9d6;color:#a52f2a}
+.pending-col .today-col-head{background:#fffaf0}.pending-col .today-col-head span{background:#ffebbb;color:#916400}
+.done-col .today-col-head{background:#f0faf4}.done-col .today-col-head span{background:#d9f2e3;color:#23764d}
+.today-task{margin:8px;border:1px solid var(--line);border-radius:9px;padding:10px;background:#fff;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;cursor:pointer}
+.today-task.overdue{border-left:4px solid var(--red);background:#fff9f8}.today-task.pending{border-left:4px solid var(--amber)}.today-task.done{border-left:4px solid var(--green);opacity:.68}
+.today-task.priority-critical{box-shadow:0 0 0 1px rgba(217,83,79,.12)}.today-task.priority-high{box-shadow:0 0 0 1px rgba(217,154,34,.12)}
+.today-task h3{margin:3px 0;font-size:12px}.today-task p{margin:0;font-size:9px;color:var(--muted);line-height:1.4}.today-meta{font-size:8px;color:#56656e;margin-top:5px}.today-task-top{display:flex;gap:5px;align-items:center}
+.priority-badge{font-size:7px;border-radius:999px;padding:3px 5px;font-weight:800}.priority-badge.critical{background:#f7d9d6;color:#9e2f2b}.priority-badge.high{background:#ffebbb;color:#8a6105}
+.today-task-actions{display:flex;gap:5px;align-items:center}.compact-btn{min-height:34px!important;padding:6px 8px!important;font-size:8px!important}
+.today-empty{padding:16px 12px;color:var(--muted);font-size:9px;text-align:center}
+.recurring-alert{border-left-color:#8c5bd3;background:#f7f2ff;border-color:#dac9f0}
+.recurring-alert h3{color:#5b378c}
+@media(max-width:1000px){.today-columns{grid-template-columns:1fr}.today-column{min-height:0}}
+@media(max-width:760px){
+ .today-columns{grid-template-columns:1fr;gap:9px}
+ .today-task{grid-template-columns:1fr;padding:10px}
+ .today-task h3{font-size:14px}.today-task p{font-size:11px}.today-meta{font-size:10px}
+ .today-task-actions{width:100%}.today-task-actions button{flex:1;min-height:42px!important;font-size:10px!important}
+}
