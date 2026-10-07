@@ -276,3 +276,19 @@ input,select,textarea{font-size:16px}
  .owner-choice{min-height:42px;font-size:11px}
  .day-name{font-size:13px}
 }
+
+.freq-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#eaf0f3;border-radius:10px;padding:4px;margin-bottom:10px}
+.freq-tab{border:0;background:transparent;border-radius:8px;min-height:42px;font-size:11px;font-weight:800;color:#65747e;cursor:pointer}
+.freq-tab.active{background:#fff;color:#17232b;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.freq-panel{display:none}.freq-panel.active{display:block}
+.freq-person-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}.freq-person-head b{display:block;font-size:13px}.freq-person-head span{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.special-assignment-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px}.special-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.special-head b{font-size:11px}.special-head span{font-size:10px;color:var(--orange);font-weight:700}.special-assignment-card p{font-size:10px;color:var(--muted);line-height:1.4}.special-day-checks{margin-top:8px}.month-special-days{max-height:180px;overflow:auto}
+.calendar-list{display:grid;gap:8px}.calendar-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px;display:grid;grid-template-columns:1.5fr .9fr auto;gap:10px;align-items:center;cursor:pointer}.calendar-card.done{border-left:4px solid var(--green)}.calendar-card.overdue{border-left:4px solid var(--red)}.calendar-card.pending{border-left:4px solid var(--amber)}.calendar-card h3{margin:2px 0 3px;font-size:13px}.calendar-card p{margin:0;font-size:10px;color:var(--muted)}.calendar-type-label{font-size:8px;text-transform:uppercase;font-weight:800;color:var(--orange)}.calendar-assignee label{display:block;font-size:8px;color:var(--muted)}.calendar-assignee b{display:block;font-size:11px}.calendar-assignee small{display:block;font-size:8px;color:var(--muted);margin-top:2px}.calendar-time{display:block;font-size:12px;margin-bottom:4px}.calendar-empty{background:#fff;border:1px dashed var(--line);border-radius:10px;padding:16px;color:var(--muted);font-size:10px;text-align:center}
+.staff-auto-assignments{display:grid;gap:5px;margin-top:10px}.staff-auto-assignments>div{background:#f8fafb;border:1px solid var(--line);border-radius:7px;padding:7px}.staff-auto-assignments b{display:block;font-size:10px}.staff-auto-assignments span{display:block;font-size:8px;color:var(--muted);margin-top:2px}.staff-auto-assignments small{font-size:8px;color:var(--orange)}
+.notify-people{display:grid;gap:6px}.notify-person{display:flex;gap:9px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:9px;background:#fafbfc;cursor:pointer}.notify-person.active-person{border-color:#f3b173;background:#fff7ef}.notify-person input{width:18px;height:18px}.notify-person b{display:block;font-size:11px}.notify-person small{display:block;font-size:8px;color:var(--muted);margin-top:2px}.notify-person.active-person small{color:#b9630c}
+@media(max-width:760px){
+ .calendar-card{grid-template-columns:1fr;gap:7px}.calendar-card>*:last-child{display:flex;justify-content:space-between;align-items:center}
+ .freq-tab{font-size:12px;min-height:44px}.special-head{flex-direction:column}.special-assignment-card p{font-size:11px}
+ .staff-auto-assignments b{font-size:11px}.staff-auto-assignments span{font-size:10px}
+ .notify-person b{font-size:12px}.notify-person small{font-size:10px}
+}
