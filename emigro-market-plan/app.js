@@ -1,4 +1,6 @@
 (() => {
+const EMBED_MODE=new URLSearchParams(location.search).get('embed')==='1';
+if(EMBED_MODE) document.body.classList.add('embed-mode');
 const STORAGE='emigro-plan-v1';
 const GRID=40,SNAP=10;
 const CATS={
@@ -393,5 +395,5 @@ function printPlan(){window.print()}
 for(const p of PRESETS){const b=document.createElement('button');b.className='preset';b.dataset.shape=p[4];b.innerHTML='<span class="preset-icon '+p[4]+'"></span><span>'+p[0]+'</span>';b.onclick=()=>addPreset(p);$('#presetGrid').append(b)}
 $('#addBtn').onclick=addGeneric;$('#copyBtn').onclick=duplicateSelection;$('#deleteBtn').onclick=deleteSelection;$('#undoBtn').onclick=undo;$('#redoBtn').onclick=redo;
 $('#zoomOutBtn').onclick=()=>zoom(.85);$('#zoomInBtn').onclick=()=>zoom(1.18);$('#fitBtn').onclick=fit;$('#resetBtn').onclick=resetPlan;$('#exportBtn').onclick=exportPNG;$('#printBtn').onclick=printPlan;
-render();setTimeout(fit,50);
+render();setTimeout(fit,EMBED_MODE?120:50);
 })();
