@@ -459,3 +459,5 @@ input,select,textarea{width:100%;border:1px solid #d7dce2!important;border-radiu
   .type-summary{grid-template-columns:1fr}
   .nav{flex-basis:62px;min-width:62px}
 }
+
+.demo-badge{display:inline-flex;align-items:center;margin-top:5px;background:#fff3e8;color:#b55300;border:1px solid #f0c398;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:900;letter-spacing:.35px}
