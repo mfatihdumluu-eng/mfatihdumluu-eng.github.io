@@ -960,6 +960,7 @@ function setupWorkerMode(){
  }
  var btn=$('#refreshBtn');if(btn)btn.title='Görevleri yenile';
  if($('#demoBtn'))$('#demoBtn').classList.add('hidden');
+ if($('#workerNoticeBar'))$('#workerNoticeBar').classList.remove('hidden');
  checkWorkerReminders();
  if(!window.__workerReminderTimer)window.__workerReminderTimer=setInterval(checkWorkerReminders,60000)
 }
