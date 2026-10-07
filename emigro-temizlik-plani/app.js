@@ -454,7 +454,10 @@ function reportRowHtml(t){
  var st=statusFor(t),l=st.log,who=l?staffById(l.staff_id):(t.assigned||t.primary);
  var proof=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
  var action=st.key!=='done'?'<button onclick="openComplete(\''+t.key+'\')">Yaptım + Foto</button>':'<button onclick="showPhoto(\''+t.key+'\')">Kanıt</button>';
- return '<article class="report-row '+st.key+'"><div><h3>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</h3><div class="sub">'+esc(t.taskText||'Görev açıklaması yok')+'</div></div><div><span class="pill">'+shortDate(t.date)+' · '+(t.time?t.time.slice(0,5):'Saat yok')+'</span></div><div><span class="pill">👤 '+esc((who&&who.name)||'Atanmamış')+'</span></div><div><span class="status '+st.key+'">'+st.label+'</span></div><div class="row-actions">'+proof+action+'</div></article>'
+ var snap=l&&Array.isArray(l.task_tags_snapshot)&&l.task_tags_snapshot.length?l.task_tags_snapshot:(t.tags||[]);
+ var tagHtml=snap.length?'<div class="report-tag-list">'+snap.map(function(x){return '<span>'+esc(x.label||x)+'</span>'}).join('')+'</div>':'';
+ var note=l&&(l.issue_note||l.note)?'<div class="report-note"><b>Not:</b> '+esc(l.issue_note||l.note)+'</div>':'';
+ return '<article class="report-row '+st.key+'"><div><h3>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</h3><div class="sub">'+esc(t.taskText||'Görev açıklaması yok')+'</div>'+tagHtml+note+'</div><div><span class="pill">'+shortDate(t.date)+' · '+(t.time?t.time.slice(0,5):'Saat yok')+'</span></div><div><span class="pill">👤 '+esc((who&&who.name)||'Atanmamış')+'</span></div><div><span class="status '+st.key+'">'+st.label+'</span></div><div class="row-actions">'+proof+action+'</div></article>'
 }
 function renderReport(){
  if(!$('#reportList'))return;
