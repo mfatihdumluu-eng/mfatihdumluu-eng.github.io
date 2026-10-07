@@ -150,3 +150,59 @@ input,select,textarea{font-size:16px}
   .sidebar{height:72px}
   .nav b{font-size:6.5px}
 }
+
+/* Zone status: mobile app sheet */
+.zone-sheet{width:min(620px,100%);padding:0!important;overflow:hidden;background:#f7f9fa}
+.zone-sheet #modalBody{max-height:90vh;overflow:auto;-webkit-overflow-scrolling:touch}
+.zone-app-card{padding:18px;background:#f7f9fa}
+.zone-app-card .app-head{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.eyebrow{display:block;font-size:8px;letter-spacing:.9px;font-weight:800;color:var(--orange);margin-bottom:4px}
+.zone-app-card .app-head h2{font-size:28px;margin:0 0 3px}
+.zone-app-card .app-head p{font-size:10px;color:var(--muted);margin:0;line-height:1.45}
+.assignee-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.assignee-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.assignee-title b{display:block;font-size:11px}.assignee-title span{display:block;font-size:8px;color:var(--muted);margin-top:2px}
+.assign-btn{border:0;background:#eef2f4;color:#26343f;border-radius:999px;padding:8px 10px;font-size:9px;font-weight:800;cursor:pointer;min-height:36px}
+.assignee-card .people{margin:0}.assignee-card .person-box{background:#f8fafb}.assignee-card .person-box small{display:block;margin-top:3px;font-size:8px;color:var(--orange)}
+.zone-app-card .zone-period-summary{margin:0 0 10px}
+.zone-app-card .zone-summary-card{background:#fff;border-radius:12px}
+.zone-app-card .section-head.compact{margin:14px 2px 7px}
+.zone-app-card .section-head.compact h2{font-size:19px}
+.empty-state-mini{background:#fff;border:1px dashed var(--line);border-radius:10px;padding:12px;color:var(--muted);font-size:9px}
+.zone-main-actions{display:grid;gap:8px;position:sticky;bottom:0;padding:10px 0 2px;background:linear-gradient(180deg,rgba(247,249,250,0),#f7f9fa 22%)}
+.notify-main{width:100%;min-height:50px;font-size:13px}
+.zone-settings{background:#fff;border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.zone-settings summary{list-style:none;cursor:pointer;padding:12px 13px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;min-height:44px}
+.zone-settings summary::-webkit-details-marker{display:none}
+.zone-settings[open] summary{border-bottom:1px solid var(--line)}
+.zone-settings-menu{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;padding:9px}
+.zone-settings-menu button{min-height:42px;font-size:9px}
+.field-help{font-size:8px;color:var(--muted);margin-top:4px;line-height:1.4}
+
+@media(max-width:760px){
+ .modal:has(.zone-sheet){align-items:flex-end;padding:0;background:rgba(10,18,23,.48)}
+ .zone-sheet{width:100%;max-width:none;max-height:94dvh;border-radius:22px 22px 0 0!important}
+ .zone-sheet #modalBody{max-height:94dvh}
+ .zone-app-card{padding:12px 12px 18px}
+ .zone-app-card .app-head{border-radius:16px;padding:13px}
+ .zone-app-card .app-head h2{font-size:25px}
+ .assignee-card{border-radius:16px;padding:11px}
+ .assignee-title{align-items:flex-start}
+ .assign-btn{padding:8px 11px}
+ .zone-app-card .people{grid-template-columns:1fr 1fr}
+ .zone-app-card .zone-period-summary{grid-template-columns:repeat(3,1fr);gap:6px}
+ .zone-app-card .zone-summary-card{padding:9px 8px}
+ .zone-app-card .zone-summary-card b{font-size:20px}
+ .zone-app-card .zone-summary-card small{font-size:7px}
+ .zone-settings-menu{grid-template-columns:1fr}
+ .zone-settings-menu button{width:100%}
+ .zone-main-actions{padding-bottom:max(4px,env(safe-area-inset-bottom))}
+ .notify-main{min-height:52px;border-radius:12px}
+}
+@media(max-width:430px){
+ .zone-app-card .people{grid-template-columns:1fr}
+ .zone-app-card .zone-period-summary{grid-template-columns:1fr 1fr 1fr}
+ .zone-app-card .zone-summary-card span{font-size:8px}
+ .zone-app-card .zone-summary-card b{font-size:18px}
+ .zone-app-card .zone-summary-card small{font-size:6.5px}
+}
