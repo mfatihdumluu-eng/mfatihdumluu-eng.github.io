@@ -36,3 +36,8 @@ button{border:1px solid rgba(255,255,255,.16);background:transparent;color:inher
 .section-card>b{display:block;font-size:11px;margin-bottom:7px;color:var(--text)}
 
 .section-num,.section-name{dominant-baseline:alphabetic}
+
+body.embed-mode .toolbar,body.embed-mode .left-panel,body.embed-mode .right-panel,body.embed-mode .hint{display:none!important}
+body.embed-mode .workspace{height:100vh}
+body.embed-mode .canvas-wrap{width:100vw;height:100vh}
+body.embed-mode #canvas{pointer-events:none}
