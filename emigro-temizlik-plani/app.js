@@ -3,7 +3,7 @@ const SUPABASE_KEY='sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const ADMIN_MODE=new URLSearchParams(location.search).get('mode')!=='worker';
-const state={zones:[],staff:[],cards:[],logs:[],notifications:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:ADMIN_MODE};
+const state={zones:[],staff:[],cards:[],logs:[],notifications:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:ADMIN_MODE,redrawZoneId:null};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dayNames=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
@@ -63,24 +63,41 @@ function renderPlan(){
 function scheduleLine(label,enabled,days,time,monthly=false){
  return `<div class="schedule-line"><strong>${label}</strong><div class="days">${enabled?(monthly?fmtMonthDays(days):fmtDays(days)):'Kapalı'}</div><div class="time">${enabled?(time?.slice(0,5)||'Saat yok'):'—'}</div></div>`
 }
+function completedOnTime(task){
+ var l=logForTask(task);if(!l||l.status!=='done'||!l.completed_at)return false;
+ return new Date(l.completed_at)<=dueAt(task);
+}
+function zoneCardState(zone){
+ var now=new Date(),tasks=expectedTasks(dayStart(now),dayEnd(now)).filter(function(t){return String(t.zone.id)===String(zone.id)});
+ if(!tasks.length)return {rank:2,key:'normal',label:'Bugün görev yok',tasks:tasks};
+ var statuses=tasks.map(function(t){return {task:t,status:statusFor(t)}});
+ if(statuses.some(function(x){return x.status.key==='overdue'}))return {rank:0,key:'critical',label:'Yapılmayan görev var',tasks:tasks};
+ if(statuses.some(function(x){return x.status.key==='pending'}))return {rank:1,key:'active',label:'Bekleyen görev var',tasks:tasks};
+ if(statuses.every(function(x){return x.status.key==='done'&&completedOnTime(x.task)}))return {rank:4,key:'completed',label:'Zamanında tamamlandı',tasks:tasks};
+ if(statuses.every(function(x){return x.status.key==='done'}))return {rank:3,key:'late',label:'Tamamlandı · geç',tasks:tasks};
+ return {rank:2,key:'normal',label:'Kontrol gerekli',tasks:tasks}
+}
+
 function renderCards(){
- const zones=manualZones();
- $('#zoneCards').innerHTML=zones.length?zones.map(z=>{
-  const c=cardByZone(z.id)||{},p=staffById(c.primary_staff_id),b=staffById(c.backup_staff_id);
-  return `<article class="zone-card">
-   <div class="zone-card-top"><div><h3>${esc(z.name)}</h3><div class="desc">${esc(z.description||'Açıklama yok')}</div></div><span class="zone-mini-dot" style="background:${z.color||'#f47a20'}"></span></div>
-   <div class="people"><div class="person-box"><label>Asıl temizleyen</label><b>${esc(p?.name||'Atanmadı')}</b></div><div class="person-box"><label>Yedek temizleyen</label><b>${esc(b?.name||'Atanmadı')}</b></div></div>
-   <div class="schedule-block">
-    ${scheduleLine('Günlük',c.daily_enabled,c.daily_days,c.daily_time)}
-    ${c.daily_enabled&&c.daily_task?`<div class="desc">${esc(c.daily_task)}</div>`:''}
-    ${scheduleLine('Haftalık',c.weekly_enabled,c.weekly_days,c.weekly_time)}
-    ${c.weekly_enabled&&c.weekly_task?`<div class="desc">${esc(c.weekly_task)}</div>`:''}
-    ${scheduleLine('Aylık',c.monthly_enabled,c.monthly_days,c.monthly_time,true)}
-    ${c.monthly_enabled&&c.monthly_task?`<div class="desc">${esc(c.monthly_task)}</div>`:''}
-   </div>
-   <div class="card-actions"><button onclick="openZoneCardModal(${z.id})">Düzenle</button><button class="danger-btn" onclick="deleteZone(${z.id})">Sil</button></div>
-  </article>`
- }).join(''):'<div style="font-size:11px;color:#6f7d86">Planda alan seçtikçe kartlar burada oluşacak.</div>';
+ const zones=manualZones().map(function(z){return {zone:z,state:zoneCardState(z)}}).sort(function(a,b){return a.state.rank-b.state.rank||a.zone.sort_order-b.zone.sort_order});
+ $('#zoneCards').innerHTML=zones.length?zones.map(function(item){
+  const z=item.zone,cs=item.state,c=cardByZone(z.id)||{},p=staffById(c.primary_staff_id),b=staffById(c.backup_staff_id);
+  const todayRows=cs.tasks.length?cs.tasks.map(function(t){
+    const st=statusFor(t);
+    return '<span class="plan-task-chip '+st.key+'">'+typeNames[t.type]+' · '+(t.time?t.time.slice(0,5):'—')+' · '+st.label+'</span>'
+  }).join(''):'<span class="plan-task-chip neutral">Bugün görev yok</span>';
+  return '<article class="zone-card plan-status-card '+cs.key+'" onclick="openZoneStatus('+z.id+')">'+
+   '<div class="zone-card-top"><div><h3>'+esc(z.name)+'</h3><div class="desc">'+esc(z.description||'Açıklama yok')+'</div></div><span class="zone-state-badge '+cs.key+'">'+cs.label+'</span></div>'+
+   '<div class="people"><div class="person-box"><label>Bugünkü görevli</label><b>'+esc(((cs.tasks[0]&&(cs.tasks[0].assigned||cs.tasks[0].primary))||p)?.name||'Atanmadı')+'</b></div><div class="person-box"><label>Yedek</label><b>'+esc(b?.name||'Atanmadı')+'</b></div></div>'+
+   '<div class="plan-task-chips">'+todayRows+'</div>'+
+   '<div class="schedule-block">'+
+    scheduleLine('Günlük',c.daily_enabled,c.daily_days,c.daily_time)+(c.daily_enabled&&c.daily_task?'<div class="desc">'+esc(c.daily_task)+'</div>':'')+
+    scheduleLine('Haftalık',c.weekly_enabled,c.weekly_days,c.weekly_time)+(c.weekly_enabled&&c.weekly_task?'<div class="desc">'+esc(c.weekly_task)+'</div>':'')+
+    scheduleLine('Aylık',c.monthly_enabled,c.monthly_days,c.monthly_time,true)+(c.monthly_enabled&&c.monthly_task?'<div class="desc">'+esc(c.monthly_task)+'</div>':'')+
+   '</div>'+
+   '<div class="card-actions" onclick="event.stopPropagation()"><button onclick="openZoneStatus('+z.id+')">Detay</button>'+(state.isAdmin?'<button onclick="openZoneCardModal('+z.id+')">Rutini Düzenle</button><button onclick="startZoneRedraw('+z.id+')">Alanı Değiştir</button>':'')+'</div>'+
+  '</article>'
+ }).join(''):'<div class="sub">Planda alan seçtikçe burada görünecek.</div>';
 }
 
 function renderStaff(){
@@ -94,8 +111,19 @@ function posPct(e){
  const r=$('#planStage').getBoundingClientRect();
  return {x:Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)),y:Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100))}
 }
-function startDraw(){if(!state.isAdmin)return toast('Alan seçme yetkisi sadece adminde');if(!state.settings?.plan_image_data)return toast('Önce plan resmini yükle');state.drawMode=true;state.drawStart=null;$('#drawBtn').textContent='İptal';$('#drawStatus').textContent='Mouse ile alanın çevresini çiz.'}
-function cancelDraw(){state.drawMode=false;state.drawStart=null;$('#drawRect').classList.add('hidden');$('#drawBtn').textContent='+ Alan Seç';$('#drawStatus').textContent='Alan seçmek için “Alan Seç”e bas.'}
+function startDraw(redrawZoneId=null){
+ if(!state.isAdmin)return toast('Alan seçme yetkisi sadece adminde');
+ if(!state.settings?.plan_image_data)return toast('Önce plan resmini yükle');
+ state.drawMode=true;state.drawStart=null;state.redrawZoneId=redrawZoneId;
+ $('#drawBtn').textContent='İptal';
+ $('#drawStatus').textContent=redrawZoneId?'Alan için yeni sınırı mouse ile çiz.':'Mouse ile alanın çevresini çiz.';
+}
+function startZoneRedraw(id){
+ if(!state.isAdmin)return toast('Alan değiştirme yetkisi sadece adminde');
+ closeModal();startDraw(id);toast('Yeni alan sınırını çiz');
+}
+window.startZoneRedraw=startZoneRedraw
+function cancelDraw(){state.drawMode=false;state.drawStart=null;state.redrawZoneId=null;$('#drawRect').classList.add('hidden');$('#drawBtn').textContent='+ Alan Seç';$('#drawStatus').textContent='Alan seçmek için “Alan Seç”e bas.'}
 $('#planStage').addEventListener('pointerdown',e=>{
  if(!state.drawMode)return;
  e.preventDefault();state.drawStart=posPct(e);const d=$('#drawRect');d.classList.remove('hidden');d.style.left=state.drawStart.x+'%';d.style.top=state.drawStart.y+'%';d.style.width='0%';d.style.height='0%'
@@ -103,8 +131,19 @@ $('#planStage').addEventListener('pointerdown',e=>{
 $('#planStage').addEventListener('pointermove',e=>{
  if(!state.drawMode||!state.drawStart)return;const p=posPct(e),x=Math.min(p.x,state.drawStart.x),y=Math.min(p.y,state.drawStart.y),w=Math.abs(p.x-state.drawStart.x),h=Math.abs(p.y-state.drawStart.y),d=$('#drawRect');d.style.left=x+'%';d.style.top=y+'%';d.style.width=w+'%';d.style.height=h+'%'
 });
-$('#planStage').addEventListener('pointerup',e=>{
- if(!state.drawMode||!state.drawStart)return;const p=posPct(e),box={x:Math.min(p.x,state.drawStart.x),y:Math.min(p.y,state.drawStart.y),w:Math.abs(p.x-state.drawStart.x),h:Math.abs(p.y-state.drawStart.y)};cancelDraw();if(box.w<1||box.h<1)return toast('Alan çok küçük');openNewZoneModal(box)
+$('#planStage').addEventListener('pointerup',async e=>{
+ if(!state.drawMode||!state.drawStart)return;
+ const p=posPct(e),box={x:Math.min(p.x,state.drawStart.x),y:Math.min(p.y,state.drawStart.y),w:Math.abs(p.x-state.drawStart.x),h:Math.abs(p.y-state.drawStart.y)};
+ const redrawId=state.redrawZoneId;
+ cancelDraw();
+ if(box.w<1||box.h<1)return toast('Alan çok küçük');
+ if(redrawId){
+   const row={x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3)};
+   const r=await db.from('emigro_cleaning_zones').update(row).eq('id',redrawId);
+   if(r.error)return toast(r.error.message);
+   toast('Alan konumu güncellendi');await loadAll();return;
+ }
+ openNewZoneModal(box)
 });
 
 function staffOptions(selected){
@@ -462,7 +501,7 @@ window.openZoneStatus=function(id){
  '<div class="zone-period-summary">'+summary(week,'daily')+summary(week,'weekly')+summary(month,'monthly')+'</div>'+
  '<div class="section-head compact"><div><h2>Bugünkü Durum</h2><p>Planlanan temizlikler ve kanıtlar</p></div></div><div class="zone-task-list">'+todayRows+'</div>'+
  '<div class="section-head compact"><div><h2>Son Kayıtlar</h2><p>Bu alanda yapılan son işlemler</p></div></div><div class="recent-clean-list">'+recentRows+'</div>'+
- '<div class="form-actions"><button class="ghost" onclick="openZoneCardModal('+z.id+')">Tanımlamayı Düzenle</button><button class="primary" onclick="openWarning('+z.id+',null,null)">Bildirim Gönder</button></div>')
+ '<div class="form-actions"><button class="ghost" onclick="openZoneCardModal('+z.id+')">Tanımlamayı Düzenle</button>'+(state.isAdmin?'<button class="ghost" onclick="startZoneRedraw('+z.id+')">Alanı Yeniden Seç</button>':'')+'<button class="primary" onclick="openWarning('+z.id+',null,null)">Bildirim Gönder</button></div>')
 };
 
 window.openWarningForTask=function(key){
