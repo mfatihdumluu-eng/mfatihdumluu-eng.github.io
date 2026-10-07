@@ -1124,3 +1124,45 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
  .assign-days-box{grid-template-columns:repeat(4,1fr)!important}
  .assign-days-box .check{font-size:12px!important}
 }
+
+
+/* WORKER ASSIGNED PLAN */
+.worker-mode .sidebar nav{grid-template-columns:repeat(4,1fr)!important;max-width:560px!important}
+.worker-zone-disabled{
+  filter:grayscale(1)!important;
+  opacity:.16!important;
+  background:#d0d5dd!important;
+  border-color:#98a2b3!important;
+  cursor:not-allowed!important;
+  pointer-events:none!important;
+}
+.worker-zone-disabled .zone-label{color:#667085!important;background:rgba(255,255,255,.88)!important}
+.worker-zone-active{
+  opacity:1!important;
+  cursor:pointer!important;
+  box-shadow:0 0 0 3px rgba(7,148,85,.22),0 10px 22px rgba(16,24,40,.14)!important;
+  z-index:3!important;
+}
+.worker-zone-active .zone-label{
+  background:#079455!important;
+  color:#fff!important;
+  font-weight:800!important;
+}
+.worker-zone-mini{
+  border:1px solid #ccebdc!important;
+  background:#f4fbf7!important;
+  cursor:pointer!important;
+}
+.worker-plan-empty{
+  padding:18px;text-align:center;border:1px dashed #d0d5dd;border-radius:14px;
+  color:#667085;font-size:13px;background:#fff
+}
+.worker-mode #view-plan .section-head p:after{
+  content:" · Sadece sana atanmış renkli alanlara dokunabilirsin";
+  color:#079455;font-weight:700
+}
+@media(max-width:600px){
+ .worker-mode .sidebar nav{grid-template-columns:repeat(4,1fr)!important}
+ .worker-mode .sidebar .nav b{font-size:10px!important}
+ .worker-zone-active{box-shadow:0 0 0 2px rgba(7,148,85,.25)!important}
+}
