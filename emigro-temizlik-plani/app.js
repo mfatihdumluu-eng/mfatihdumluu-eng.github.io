@@ -233,16 +233,19 @@ function zoneCardForm(z,c={}){
 
  <div class="field full"><label>Günlük</label><label class="check"><input type="checkbox" name="daily_enabled" ${c.daily_enabled?'checked':''}> Aktif</label><div class="checks">${weekdayChecks('daily_days',c.daily_days||[1,2,3,4,5,6,0])}</div></div>
  <div class="field"><label>Günlük saat</label><input type="time" name="daily_time" value="${c.daily_time?.slice(0,5)||''}"></div>
+ <div class="field"><label>Günlük fotoğraf</label><select name="daily_proof_required"><option value="false" ${!c.daily_proof_required?'selected':''}>İsteğe bağlı</option><option value="true" ${c.daily_proof_required?'selected':''}>Zorunlu</option></select></div>
  <div class="field full"><label>Günlük ne yapılacak?</label><textarea name="daily_task" placeholder="Örn. zemin süpür, paspas yap...">${esc(c.daily_task||'')}</textarea></div>
  <div class="field full"><label>Günlük sabit görevler</label><textarea name="daily_tags" placeholder="Her satıra bir görev yazın. Örn. Kasap tezgâhını temizle&#10;Yerleri paspasla">${esc(tagsFor(z.id,'daily').map(function(x){return x.label}).join('\n'))}</textarea></div>
 
  <div class="field full"><label>Haftalık</label><label class="check"><input type="checkbox" name="weekly_enabled" ${c.weekly_enabled?'checked':''}> Aktif</label><div class="checks">${weekdayChecks('weekly_days',c.weekly_days||[])}</div></div>
  <div class="field"><label>Haftalık saat</label><input type="time" name="weekly_time" value="${c.weekly_time?.slice(0,5)||''}"></div>
+ <div class="field"><label>Haftalık fotoğraf</label><select name="weekly_proof_required"><option value="false" ${!c.weekly_proof_required?'selected':''}>İsteğe bağlı</option><option value="true" ${c.weekly_proof_required?'selected':''}>Zorunlu</option></select></div>
  <div class="field full"><label>Haftalık ne yapılacak?</label><textarea name="weekly_task" placeholder="Örn. raf altlarını temizle...">${esc(c.weekly_task||'')}</textarea></div>
  <div class="field full"><label>Haftalık sabit görevler</label><textarea name="weekly_tags">${esc(tagsFor(z.id,'weekly').map(function(x){return x.label}).join('\n'))}</textarea></div>
 
  <div class="field full"><label>Aylık</label><label class="check"><input type="checkbox" name="monthly_enabled" ${c.monthly_enabled?'checked':''}> Aktif</label><div class="checks">${monthDayChecks(c.monthly_days||[])}</div></div>
  <div class="field"><label>Aylık saat</label><input type="time" name="monthly_time" value="${c.monthly_time?.slice(0,5)||''}"></div>
+ <div class="field"><label>Aylık fotoğraf</label><select name="monthly_proof_required"><option value="false" ${!c.monthly_proof_required?'selected':''}>İsteğe bağlı</option><option value="true" ${c.monthly_proof_required?'selected':''}>Zorunlu</option></select></div>
  <div class="field full"><label>Aylık ne yapılacak?</label><textarea name="monthly_task" placeholder="Örn. derin temizlik...">${esc(c.monthly_task||'')}</textarea></div>
  <div class="field full"><label>Aylık sabit görevler</label><textarea name="monthly_tags">${esc(tagsFor(z.id,'monthly').map(function(x){return x.label}).join('\n'))}</textarea></div>
  </div>
@@ -265,9 +268,9 @@ function bindZoneCardForm(z,isNew,c={}){
    backup_staff_id:c.backup_staff_id||null,
    backup_enabled:!!c.backup_enabled,
    backup_days:c.backup_days||[],
-   daily_enabled:fd.has('daily_enabled'),daily_days:fd.getAll('daily_days').length?fd.getAll('daily_days').map(Number):(c.daily_days||[]),daily_time:fd.get('daily_time')||null,
-   weekly_enabled:fd.has('weekly_enabled'),weekly_days:fd.getAll('weekly_days').length?fd.getAll('weekly_days').map(Number):(c.weekly_days||[]),weekly_time:fd.get('weekly_time')||null,
-   monthly_enabled:fd.has('monthly_enabled'),monthly_days:fd.getAll('monthly_days').length?fd.getAll('monthly_days').map(Number):(c.monthly_days||[]),monthly_time:fd.get('monthly_time')||null,
+   daily_enabled:fd.has('daily_enabled'),daily_days:fd.getAll('daily_days').length?fd.getAll('daily_days').map(Number):(c.daily_days||[]),daily_time:fd.get('daily_time')||null,daily_proof_required:fd.get('daily_proof_required')==='true',
+   weekly_enabled:fd.has('weekly_enabled'),weekly_days:fd.getAll('weekly_days').length?fd.getAll('weekly_days').map(Number):(c.weekly_days||[]),weekly_time:fd.get('weekly_time')||null,weekly_proof_required:fd.get('weekly_proof_required')==='true',
+   monthly_enabled:fd.has('monthly_enabled'),monthly_days:fd.getAll('monthly_days').length?fd.getAll('monthly_days').map(Number):(c.monthly_days||[]),monthly_time:fd.get('monthly_time')||null,monthly_proof_required:fd.get('monthly_proof_required')==='true',
    daily_task:fd.get('daily_task')||'',
    weekly_task:fd.get('weekly_task')||'',
    monthly_task:fd.get('monthly_task')||'',
@@ -450,7 +453,8 @@ function makeTask(zone,card,type,d){
   assigned:backupActive?backup:primary,
   backupActive:backupActive,
   taskText:card[type+'_task']||'',
-  tags:tagsFor(zone.id,type)
+  tags:tagsFor(zone.id,type),
+  proofRequired:typeof card[type+'_proof_required']==='boolean'?card[type+'_proof_required']:!!zone.proof_required
  }
 }
 function expectedTasks(from,to){
@@ -561,9 +565,9 @@ window.openComplete=function(key){
  if(!choices.length)choices=state.staff.filter(function(p){return p.active});
  if(!state.isAdmin&&workerById())choices=[workerById()];
  var opts=choices.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
- openModal('<h2>Temizlik Tamamlandı</h2><form id="completeForm"><div class="form-grid"><div class="field full"><label>Alan / görev</label><div><b>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</b><div class="sub">'+esc(t.taskText)+'</div></div></div><div class="field"><label>Yapan kişi</label><select name="staff_id" required '+(!state.isAdmin?'disabled':'')+'>'+opts+'</select>'+(!state.isAdmin&&workerById()?'<input type="hidden" name="staff_id" value="'+workerById().id+'">':'')+'</div><div class="field"><label>Planlanan saat</label><input value="'+(t.time?t.time.slice(0,5):'—')+'" disabled></div>'+(t.tags&&t.tags.length?'<div class="field full"><label>Sabit görevler</label><div class="worker-checklist">'+t.tags.map(function(x){return '<label><input type="checkbox" name="tag_done" value="'+x.id+'"> <span>'+esc(x.label)+'</span></label>'}).join('')+'</div></div>':'')+'<div class="field full"><label>Fotoğraf <span class="optional-label">(isteğe bağlı)</span></label><div class="proof-upload">İstersen yaptığın yerin fotoğrafını çek veya yükle.<br><input id="proofFile" type="file" accept="image/*" capture="environment" '+(state.isAdmin&&t.zone.proof_required?'required':'')+'></div></div><div class="field full"><label>Durum / Not</label><textarea name="note" placeholder="Bu alanda dikkat edilmesi gereken bir durum varsa yazın..."></textarea></div></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Yaptım</button></div></form>');
+ openModal('<h2>Temizlik Tamamlandı</h2><form id="completeForm"><div class="form-grid"><div class="field full"><label>Alan / görev</label><div><b>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</b><div class="sub">'+esc(t.taskText)+'</div></div></div><div class="field"><label>Yapan kişi</label><select name="staff_id" required '+(!state.isAdmin?'disabled':'')+'>'+opts+'</select>'+(!state.isAdmin&&workerById()?'<input type="hidden" name="staff_id" value="'+workerById().id+'">':'')+'</div><div class="field"><label>Planlanan saat</label><input value="'+(t.time?t.time.slice(0,5):'—')+'" disabled></div>'+(t.tags&&t.tags.length?'<div class="field full"><label>Sabit görevler</label><div class="worker-checklist">'+t.tags.map(function(x){return '<label><input type="checkbox" name="tag_done" value="'+x.id+'"> <span>'+esc(x.label)+'</span></label>'}).join('')+'</div></div>':'')+'<div class="field full"><label>Fotoğraf '+(t.proofRequired?'<span class="required-label">Zorunlu</span>':'<span class="optional-label">(isteğe bağlı)</span>')+'</label><div class="proof-upload">'+(t.proofRequired?'Bu görev fotoğraf kanıtı olmadan tamamlanamaz.':'İstersen yaptığın yerin fotoğrafını çek veya yükle.')+'<br><input id="proofFile" type="file" accept="image/*" capture="environment" '+(t.proofRequired?'required':'')+'></div></div><div class="field full"><label>Durum / Not</label><textarea name="note" placeholder="Bu alanda dikkat edilmesi gereken bir durum varsa yazın..."></textarea></div></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Yaptım</button></div></form>');
  $('#completeForm').onsubmit=async function(e){
-  e.preventDefault();var fd=new FormData(e.target),file=$('#proofFile').files&&$('#proofFile').files[0];if(state.isAdmin&&t.zone.proof_required&&!file)return toast('Bu alan için fotoğraf zorunlu');
+  e.preventDefault();var fd=new FormData(e.target),file=$('#proofFile').files&&$('#proofFile').files[0];if(t.proofRequired&&!file)return toast('Bu görev için fotoğraf zorunlu');
   var checked=fd.getAll('tag_done').map(Number);if(t.tags&&t.tags.length&&checked.length<t.tags.length)return toast('Sabit görevlerin tamamını işaretleyin');
   var proof=file?await compressProof(file):null,row={slot_key:t.key,schedule_id:null,zone_id:t.zone.id,staff_id:+fd.get('staff_id'),work_date:dateKeyLocal(t.date),status:'done',completed_at:new Date().toISOString(),note:fd.get('note')||'',issue_note:fd.get('note')||'',task_type:t.type,planned_time:t.time,proof_image_data:proof,task_tags_snapshot:t.tags||[]};
   var res=await db.from('emigro_cleaning_logs').upsert(row,{onConflict:'slot_key'});if(res.error)return toast(res.error.message);closeModal();toast('Fotoğraflı tamamlanma kaydedildi');loadAll()
@@ -963,6 +967,7 @@ window.openAssignTaskToStaff=function(staffId){
    '<div class="field full"><label>Alan</label><select name="zone_id" id="assignZone" required>'+zoneOpts+'</select></div>'+
    '<div class="field"><label>Görev türü</label><select name="task_type" id="assignTaskType"><option value="daily">Günlük</option><option value="weekly">Haftalık</option><option value="monthly">Aylık</option></select></div>'+
    '<div class="field"><label>Saat</label><input type="time" name="time" value="09:00" required></div>'+
+   '<div class="field"><label>Fotoğraf</label><select name="proof_required"><option value="false">İsteğe bağlı</option><option value="true">Zorunlu</option></select></div>'+
    '<div class="field full"><label id="assignDaysLabel">Günler</label><div id="assignDaysBox" class="checks assign-days-box"></div></div>'+
    '<div class="field full"><label>Görev açıklaması</label><textarea name="task_text" required placeholder="Örn. Kasap tezgâhını ve zeminini temizle"></textarea></div>'+
    '<div class="field full"><label>Sabit görevler</label><textarea name="tags" placeholder="Her satıra bir görev yazın.&#10;Örn. Tezgâhı temizle&#10;Yerleri paspasla"></textarea><div class="field-help">Bu maddeler çalışan ekranında her görevde checkbox olarak görünür.</div></div>'+
@@ -1000,6 +1005,7 @@ window.openAssignTaskToStaff=function(staffId){
    row[type+'_days']=days;
    row[type+'_time']=time;
    row[type+'_task']=taskText;
+   row[type+'_proof_required']=fd.get('proof_required')==='true';
    row[type+'_primary_staff_id']=staffId;
    row[type+'_backup_staff_id']=null;
    row[type+'_backup_days']=[];
@@ -1138,11 +1144,11 @@ function renderWorkerProfilePicker(){
        }).join('')+'</div>'
      : '<div class="worker-no-zone">Tanımlı alan yok</div>';
    return '<article class="worker-profile-option '+(active?'active':'')+'">'+
+     '<div class="worker-profile-zones-top"><span class="worker-zone-caption">Tanımlı alanlar</span>'+zoneButtons+'</div>'+
      '<button type="button" class="worker-profile-main" onclick="selectWorkerProfile('+p.id+')">'+
        '<span class="worker-profile-icon">'+staffDeptIcon(p)+'</span>'+
        '<span><b>'+esc(p.name)+'</b><small>'+esc(p.department||p.role||'Personel')+' · '+count+' görev</small></span>'+
      '</button>'+
-     zoneButtons+
    '</article>'
  }).join(''):'<div class="sub">Aktif personel yok.</div>'
 }
