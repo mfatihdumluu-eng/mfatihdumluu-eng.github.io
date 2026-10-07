@@ -292,3 +292,12 @@ input,select,textarea{font-size:16px}
  .staff-auto-assignments b{font-size:11px}.staff-auto-assignments span{font-size:10px}
  .notify-person b{font-size:12px}.notify-person small{font-size:10px}
 }
+
+.warning-person-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.warning-person-card label{display:block;font-size:9px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.warning-person-card b{display:block;font-size:17px;margin-top:3px}
+.warning-person-card small{display:block;font-size:10px;color:var(--orange);margin-top:3px}
+@media(max-width:760px){
+ .warning-person-card b{font-size:19px}
+ .warning-person-card small{font-size:11px}
+}
