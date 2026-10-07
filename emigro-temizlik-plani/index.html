@@ -16,7 +16,7 @@
     <div class="brand"><div class="brand-mark">E</div><div><b>EMIGRO</b><span>Temizlik Yönetimi</span></div></div>
     <nav>
       <button class="nav active" data-view="report"><span>▦</span><b>Rapor</b><em id="alertBadge" class="nav-badge hidden">0</em></button>
-      <button class="nav" data-view="tracking"><span>✓</span><b>Görev Takibi</b></button>
+      <button class="nav" data-view="tracking"><span>✓</span><b>Bugün</b></button>
       <button class="nav" data-view="calendar"><span>▣</span><b>Takvim</b></button>
       <button class="nav" data-view="plan"><span>⌗</span><b>Market Planı</b></button>
       <button class="nav" data-view="cards"><span>▤</span><b>Plan Ekranı</b></button>
@@ -36,6 +36,7 @@
     <main class="content">
       <section id="view-report" class="view active">
         <div id="assignmentAlert" class="alert-panel assignment-alert hidden"></div>
+        <div id="problemPanel" class="alert-panel recurring-alert hidden"></div>
         <div id="alertPanel" class="alert-panel hidden"></div>
 
         <div class="metrics">
@@ -66,10 +67,14 @@
 
       <section id="view-tracking" class="view">
         <div class="section-head">
-          <div><h2>Görev Takibi</h2><p>Çalışan “Yaptım” dediğinde fotoğraf ve not ile kayıt oluşur.</p></div>
+          <div><h2>Bugün Operasyon</h2><p>Aksayan, sıradaki ve tamamlanan işleri tek ekranda takip edin.</p></div>
           <input id="trackingDate" type="date">
         </div>
-        <div id="trackingList" class="report-list"></div>
+        <div class="today-columns">
+          <section class="today-column danger-col"><div class="today-col-head"><b>Aksayanlar</b><span id="todayOverCount">0</span></div><div id="todayOverdue"></div></section>
+          <section class="today-column pending-col"><div class="today-col-head"><b>Şimdi / Sıradaki</b><span id="todayPendingCount">0</span></div><div id="todayPending"></div></section>
+          <section class="today-column done-col"><div class="today-col-head"><b>Tamamlananlar</b><span id="todayDoneCount">0</span></div><div id="todayDone"></div></section>
+        </div>
       </section>
 
       <section id="view-calendar" class="view">
