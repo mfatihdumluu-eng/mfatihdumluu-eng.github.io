@@ -580,8 +580,12 @@ function zoneTasksInRange(zoneId,from,to){
 }
 function taskMiniHtml(t){
  var st=statusFor(t),l=st.log,photo=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
- var warn=st.key==='overdue'?'<button class="danger-btn" onclick="event.stopPropagation();openWarningForTask(\''+t.key+'\')">Uyarı Gönder</button>':'';
- return '<div class="zone-task-line '+st.key+'"><div><b>'+typeNames[t.type]+'</b><span>'+shortDate(t.date)+' · '+(t.time?t.time.slice(0,5):'Saat yok')+'</span></div><div class="zone-task-text">'+esc(t.taskText||'Görev açıklaması yok')+'</div><div><span class="status '+st.key+'">'+st.label+'</span></div><div class="row-actions">'+photo+warn+'</div></div>'
+ var warn=st.key==='overdue'?'<button class="task-warn-btn" onclick="event.stopPropagation();openWarningForTask(\''+t.key+'\')">Uyar</button>':'';
+ return '<article class="zone-task-card '+st.key+'">'+
+   '<div class="zone-task-head"><div><span class="task-kind">'+typeNames[t.type]+'</span><b>'+(t.time?t.time.slice(0,5):'Saat yok')+'</b></div><span class="task-status '+st.key+'">'+st.label+'</span></div>'+
+   '<p>'+esc(t.taskText||'Görev açıklaması yok')+'</p>'+
+   '<div class="zone-task-foot"><span>'+shortDate(t.date)+'</span><div class="zone-task-actions">'+photo+warn+'</div></div>'+
+  '</article>'
 }
 window.openZoneStatus=function(id){
  var z=zoneById(id),c=cardByZone(id)||{};if(!z)return;
@@ -589,18 +593,25 @@ window.openZoneStatus=function(id){
  var today=zoneTasksInRange(id,dayStart(now),dayEnd(now));
  var week=zoneTasksInRange(id,weekStart(now),weekEnd(now));
  var month=zoneTasksInRange(id,monthStart(now),monthEnd(now));
- var recent=state.logs.filter(function(l){return String(l.zone_id)===String(id)&&l.slot_key}).slice(0,8);
+ var recent=state.logs.filter(function(l){return String(l.zone_id)===String(id)&&l.slot_key}).slice(0,6);
 
- function summary(tasks,type){
-  var a=tasks.filter(function(t){return t.type===type}),done=a.filter(function(t){return statusFor(t).key==='done'}).length,over=a.filter(function(t){return statusFor(t).key==='overdue'}).length;
-  return '<div class="zone-summary-card"><span>'+typeNames[type]+'</span><b>'+done+' / '+a.length+'</b><small>'+(over?over+' yapılmadı':'Aksama yok')+'</small></div>'
+ function sum(tasks,type){
+  var a=tasks.filter(function(t){return t.type===type});
+  var done=a.filter(function(t){return statusFor(t).key==='done'}).length;
+  var over=a.filter(function(t){return statusFor(t).key==='overdue'}).length;
+  return '<div class="zone-summary-card"><span>'+typeNames[type]+'</span><b>'+a.length+' görev</b><small>'+(over?over+' yapılmadı':done===a.length&&a.length?'Tamamlandı':'Aksama yok')+'</small></div>'
  }
+ var states=today.map(function(t){return statusFor(t).key});
+ var overall=states.includes('overdue')?{key:'overdue',label:'Aksıyor'}:states.includes('pending')?{key:'pending',label:'Bekliyor'}:states.length&&states.every(function(x){return x==='done'})?{key:'done',label:'Tamamlandı'}:{key:'neutral',label:'Bugün görev yok'};
 
  var todayRows=today.length?today.map(taskMiniHtml).join(''):'<div class="empty-state-mini">Bugün bu alan için görev yok.</div>';
  var recentRows=recent.length?recent.map(function(l){
    var who=staffById(l.staff_id),proof=l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+l.slot_key+'\')">':'';
-   return '<div class="recent-clean-row"><div><b>'+ (typeNames[l.task_type]||'Temizlik') +'</b><span>'+l.work_date+' · '+esc((who&&who.name)||'')+'</span></div><span class="status '+(l.status==='done'?'done':'overdue')+'">'+(l.status==='done'?'Yapıldı':'Yapılmadı')+'</span>'+proof+'</div>'
+   return '<div class="recent-clean-row"><div><b>'+(typeNames[l.task_type]||'Temizlik')+'</b><span>'+l.work_date+' · '+esc((who&&who.name)||'')+'</span></div><span class="status '+(l.status==='done'?'done':'overdue')+'">'+(l.status==='done'?'Yapıldı':'Yapılmadı')+'</span>'+proof+'</div>'
  }).join(''):'<div class="empty-state-mini">Henüz kayıt yok.</div>';
+
+ var backupDays=(b&&c.backup_enabled)?(c.backup_days||[]):[];
+ var primaryDays=[0,1,2,3,4,5,6].filter(function(d){return !backupDays.includes(d)});
 
  var adminSettings=state.isAdmin
   ? '<details class="zone-settings"><summary>⚙ Ayarlar</summary><div class="zone-settings-menu">'+
@@ -610,20 +621,21 @@ window.openZoneStatus=function(id){
     '</div></details>'
   : '';
 
- openModal('<div class="zone-app-card">'+
-  '<div class="zone-status-head app-head"><div><span class="eyebrow">ALAN DURUMU</span><h2>'+esc(z.name)+'</h2><p>'+esc(z.description||'Alan açıklaması yok')+'</p></div><span class="zone-mini-dot large" style="background:'+(z.color||'#f47a20')+'"></span></div>'+
-  '<div class="assignee-card"><div class="assignee-title"><div><b>Temizlik Sorumluları</b><span>Bu alan için görevli kişiler</span></div></div>'+
-   '<div class="people"><div class="person-box"><label>Asıl sorumlu</label><b>'+esc((p&&p.name)||'Atanmadı')+'</b>'+(p?'<small>Günler: '+fmtDays((function(){var bd=(b&&c.backup_enabled)?(c.backup_days||[]):[];return [0,1,2,3,4,5,6].filter(function(d){return !bd.includes(d)})})())+'</small>':'')+'</div><div class="person-box"><label>Yedek sorumlu</label><b>'+esc((b&&b.name)||'Atanmadı')+'</b>'+(b&&c.backup_enabled?'<small>Günler: '+fmtDays(c.backup_days||[])+'</small>':'')+'</div></div>'+
-  '</div>'+
-  '<div class="zone-period-summary">'+summary(week,'daily')+summary(week,'weekly')+summary(month,'monthly')+'</div>'+
-  '<div class="section-head compact"><div><h2>Bugünkü Durum</h2><p>Planlanan temizlikler ve kanıtlar</p></div></div><div class="zone-task-list">'+todayRows+'</div>'+
-  '<div class="section-head compact"><div><h2>Son Kayıtlar</h2><p>Bu alanda yapılan son işlemler</p></div></div><div class="recent-clean-list">'+recentRows+'</div>'+
-  '<div class="zone-main-actions"><button class="primary notify-main" onclick="openWarning('+z.id+',null,null)">Bildirim Gönder</button>'+adminSettings+'</div>'+
- '</div>');
+ openModal('<div class="zone-app-card compact-zone-card">'+
+   '<header class="zone-detail-header"><div><span class="eyebrow">ALAN DURUMU</span><h2>'+esc(z.name)+'</h2><p>'+esc(z.description||'Alan açıklaması yok')+'</p></div><span class="zone-overall '+overall.key+'">'+overall.label+'</span></header>'+
+   '<section class="assignee-card compact-assignees"><div class="assignee-title"><div><b>Temizlik Sorumluları</b><span>Aktif oldukları günler</span></div></div>'+
+    '<div class="people"><div class="person-box"><label>Asıl sorumlu</label><b>'+esc((p&&p.name)||'Atanmadı')+'</b>'+(p?'<small>'+fmtDays(primaryDays)+'</small>':'')+'</div>'+
+    '<div class="person-box"><label>Yedek sorumlu</label><b>'+esc((b&&b.name)||'Atanmadı')+'</b>'+(b&&backupDays.length?'<small>'+fmtDays(backupDays)+'</small>':'')+'</div></div>'+
+   '</section>'+
+   '<section class="zone-period-summary compact-summary">'+sum(week,'daily')+sum(week,'weekly')+sum(month,'monthly')+'</section>'+
+   '<section class="zone-section"><div class="zone-section-head"><div><h3>Bugünkü Durum</h3><p>Planlanan işler</p></div></div><div class="zone-task-list compact-task-list">'+todayRows+'</div></section>'+
+   '<section class="zone-section recent-section"><div class="zone-section-head"><div><h3>Son Kayıtlar</h3><p>Son işlemler</p></div></div><div class="recent-clean-list">'+recentRows+'</div></section>'+
+   '<div class="zone-main-actions compact-actions"><button class="primary notify-main" onclick="openWarning('+z.id+',null,null)">Bildirim Gönder</button>'+adminSettings+'</div>'+
+  '</div>');
 
- var box=$('#modal .modal-box');if(box)box.classList.add('zone-sheet');
+ var box=$('#modal .modal-box');
+ if(box){box.classList.add('zone-sheet','zone-detail-sheet')}
 };
-
 window.openZoneAssignee=function(zoneId){
  if(!state.isAdmin)return toast('Kişi atama yetkisi sadece adminde');
  var z=zoneById(zoneId),c=cardByZone(zoneId)||{};
