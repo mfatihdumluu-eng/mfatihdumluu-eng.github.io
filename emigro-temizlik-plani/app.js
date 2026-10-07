@@ -44,7 +44,7 @@ function applyPlanImage(){
  else{$('#planImg').classList.add('hidden');$('#emptyPlan').classList.remove('hidden')}
 }
 
-function renderAll(){renderReport();renderTracking();renderCalendar();renderPlan();renderCards();renderStaff();renderNotifications();renderHistory()}
+function renderAll(){renderReport();renderTracking();renderCalendar();renderPlan();renderStaff();renderNotifications();renderHistory()}
 function renderPlan(){
  const zones=manualZones();$('#zoneCount').textContent=zones.length;
  const ov=$('#zoneOverlay');ov.innerHTML='';ov.style.display=state.showAreas?'block':'none';
@@ -330,6 +330,7 @@ function compressImage(file){
 }
 
 state.reportPeriod='today';
+state.trackingType='daily';
 const typeNames={daily:'Günlük',weekly:'Haftalık',monthly:'Aylık'};
 
 function pad2(n){return String(n).padStart(2,'0')}
@@ -448,7 +449,7 @@ function renderReport(){
 function renderTracking(){
  if(!$('#trackingDate'))return;
  var inp=$('#trackingDate');if(!inp.value)inp.value=dateKeyLocal(new Date());
- var d=parseDateLocal(inp.value),tasks=expectedTasks(dayStart(d),dayEnd(d));
+ var d=parseDateLocal(inp.value),tasks=expectedTasks(dayStart(d),dayEnd(d)).filter(function(t){return t.type===state.trackingType});
  tasks.sort(function(a,b){return priorityRank(a.zone)-priorityRank(b.zone)||dueAt(a)-dueAt(b)});
  var groups={overdue:[],pending:[],done:[]};
  tasks.forEach(function(t){groups[statusFor(t).key].push(t)});
@@ -559,8 +560,8 @@ if($('#reportType'))$('#reportType').onchange=renderReport;
 $$('.period').forEach(function(b){b.onclick=function(){$$('.period').forEach(function(x){x.classList.toggle('active',x===b)});state.reportPeriod=b.dataset.period;renderReport()}});
 $$('.nav').forEach(function(b){b.onclick=function(){
  $$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});$$('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+b.dataset.view)});
- var meta={report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],tracking:['Bugün Operasyon','Aksayan, sıradaki ve tamamlanan temizlikleri takip edin.'],
-        calendar:['Temizlik Takvimi','Günlük, haftalık ve aylık görev/personel planı.'],plan:['Temizlik Planı','Plan resmini yükle ve alanları tanımla.'],cards:['Plan Ekranı','Alanların günlük, haftalık ve aylık temizlik rutinleri.'],staff:['Personel Kartları','Sorumluluk ve performans takibi.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
+ var meta={report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],tracking:['Temizlik İşleri','Günlük, haftalık ve aylık işleri sade şekilde takip edin.'],
+        calendar:['Temizlik Takvimi','Günlük, haftalık ve aylık görev/personel planı.'],plan:['Temizlik Planı','Plan resmini yükle ve alanları tanımla.'],staff:['Personel Kartları','Sorumluluk ve performans takibi.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
  $('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]
 }});
 
@@ -896,6 +897,13 @@ function initCleaningAdmin(){
   if($('#demoBtn')) $('#demoBtn').onclick=loadDemoData;
   if($('#newWarningBtn')) $('#newWarningBtn').onclick=openGeneralWarning;
   if($('#trackingDate')) $('#trackingDate').onchange=renderTracking;
+  $('.tracking-type').forEach(function(b){
+    b.onclick=function(){
+      $('.tracking-type').forEach(function(x){x.classList.toggle('active',x===b)});
+      state.trackingType=b.dataset.trackingType;
+      renderTracking();
+    }
+  });
   if($('#calendarDate')) $('#calendarDate').onchange=renderCalendar;
   $('.calendar-type').forEach(function(b){b.onclick=function(){$('.calendar-type').forEach(function(x){x.classList.toggle('active',x===b)});state.calendarType=b.dataset.calendarType;renderCalendar()}});
   if($('#reportType')) $('#reportType').onchange=renderReport;
