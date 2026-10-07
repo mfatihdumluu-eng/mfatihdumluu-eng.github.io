@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EMIGRO Market Yerleşim Planı</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="toolbar">
+      <div class="brand"><b>EMIGRO</b><span>Market Yerleşim Planı</span></div>
+      <button id="addBtn">+ Alan</button>
+      <button id="copyBtn">Kopyala</button>
+      <button id="deleteBtn">Sil</button>
+      <span class="sep"></span>
+      <button id="undoBtn">↶ Geri</button>
+      <button id="redoBtn">↷ İleri</button>
+      <span class="sep"></span>
+      <button id="zoomOutBtn">−</button><span id="zoomLabel">100%</span><button id="zoomInBtn">+</button>
+      <button id="fitBtn">Sığdır</button>
+      <span id="selectionCount" class="selection-count">0 seçili</span>
+      <span class="grow"></span>
+      <button id="resetBtn">Başlangıç</button>
+      <button id="exportBtn">PNG</button>
+      <button id="printBtn">Yazdır</button>
+    </header>
+
+    <div class="workspace">
+      <aside class="left-panel">
+        <section class="panel-section">
+          <h3>Eleman Ekle</h3>
+          <div id="presetGrid" class="preset-grid"></div>
+        </section>
+        <section class="panel-section areas-section">
+          <h3>Alanlar <span id="areaCount"></span></h3>
+          <div id="areaList" class="area-list"></div>
+        </section>
+      </aside>
+
+      <main class="canvas-wrap">
+        <svg id="canvas" tabindex="0">
+          <defs>
+            <pattern id="minorGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+              <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#e9edf0" stroke-width="1"/>
+            </pattern>
+            <pattern id="majorGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <rect width="40" height="40" fill="url(#minorGrid)"/>
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#d4dbe0" stroke-width="1"/>
+            </pattern>
+          </defs>
+          <rect id="bg" x="-5000" y="-5000" width="10000" height="10000" fill="url(#majorGrid)"/>
+          <g id="viewport"><g id="planLayer"></g><rect id="marquee" class="marquee hidden"/></g>
+        </svg>
+        <div class="hint">Shift+tık: çoklu seçim · Alt+sürükle: serbest taşı · Space+sürükle: planı kaydır · Boş alanda sürükle: seçim kutusu</div>
+        <div id="toast" class="toast hidden"></div>
+      </main>
+
+      <aside class="right-panel">
+        <div id="properties"></div>
+      </aside>
+    </div>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>
