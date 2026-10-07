@@ -461,3 +461,330 @@ input,select,textarea{width:100%;border:1px solid #d7dce2!important;border-radiu
 }
 
 .demo-badge{display:inline-flex;align-items:center;margin-top:5px;background:#fff3e8;color:#b55300;border:1px solid #f0c398;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:900;letter-spacing:.35px}
+
+/* === iOS-inspired visual system === */
+:root{
+  --ios-bg:#f2f2f7;
+  --ios-card:#ffffff;
+  --ios-label:#000000;
+  --ios-secondary:#8e8e93;
+  --ios-tertiary:#c7c7cc;
+  --ios-separator:#d1d1d6;
+  --ios-blue:#007aff;
+  --ios-green:#34c759;
+  --ios-orange:#ff9500;
+  --ios-red:#ff3b30;
+  --ios-fill:#e5e5ea;
+}
+html,body{
+  background:var(--ios-bg);
+  color:var(--ios-label);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility
+}
+.shell,.main{background:var(--ios-bg)}
+.content{padding:14px 14px 96px}
+
+/* iOS navigation bar */
+.topbar{
+  min-height:104px;
+  padding:18px 18px 12px;
+  align-items:flex-end;
+  background:rgba(249,249,249,.9);
+  color:var(--ios-label);
+  border-bottom:1px solid rgba(60,60,67,.18);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px)
+}
+.topbar-brand{min-width:0}
+.mobile-brand{
+  font-size:11px;
+  line-height:1.2;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  font-weight:700;
+  color:var(--ios-secondary);
+  margin-bottom:2px
+}
+.mobile-subtitle{
+  margin:0;
+  font-size:34px;
+  line-height:1.05;
+  letter-spacing:-.025em;
+  font-weight:700;
+  color:var(--ios-label)
+}
+.demo-badge{
+  margin-top:7px;
+  border:0;
+  background:rgba(255,149,0,.14);
+  color:#b25b00;
+  padding:5px 8px;
+  font-size:10px;
+  font-weight:700
+}
+.icon-action{
+  width:36px;height:36px;border-radius:18px;
+  border:0;
+  background:rgba(118,118,128,.12);
+  color:var(--ios-blue);
+  font-size:18px;
+  display:grid;place-items:center
+}
+
+/* iOS tab bar: exactly 5 */
+.sidebar{
+  width:min(100%,480px);
+  padding:7px 8px calc(7px + env(safe-area-inset-bottom));
+  background:rgba(249,249,249,.92);
+  border-top:1px solid rgba(60,60,67,.18);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px)
+}
+.sidebar nav{
+  display:grid!important;
+  grid-template-columns:repeat(5,1fr)!important;
+  gap:0!important;
+  overflow:visible!important
+}
+.nav{
+  min-width:0!important;
+  flex:none!important;
+  padding:5px 1px 3px;
+  border-radius:0;
+  color:var(--ios-secondary);
+  background:transparent!important;
+  font-weight:600
+}
+.nav span{font-size:20px;line-height:22px}
+.nav b{font-size:10px;line-height:12px;font-weight:600}
+.nav.active{color:var(--ios-blue)!important}
+.nav:hover{color:var(--ios-blue)}
+.nav-badge,.inline-badge{
+  background:var(--ios-red);
+  color:#fff;
+  border-radius:999px;
+  min-width:17px;
+  height:17px;
+  padding:0 5px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  font-weight:700
+}
+
+/* Apple-like grouped controls */
+.management-switch,
+.operation-type-tabs,
+.segmented{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:2px;
+  background:rgba(118,118,128,.12);
+  border-radius:9px;
+  padding:2px
+}
+.manage-tab,.tracking-type,.segmented button{
+  min-height:32px;
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  color:var(--ios-label);
+  font-size:13px;
+  font-weight:600
+}
+.manage-tab.active,.tracking-type.active,.segmented button.active{
+  background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.12)
+}
+.management-switch{margin-bottom:14px}
+
+/* typography */
+.section-head{margin:18px 2px 10px}
+.section-head h2,.upload-card h2{
+  font-family:inherit!important;
+  font-size:22px;
+  line-height:1.2;
+  letter-spacing:-.015em;
+  font-weight:700
+}
+.section-head p,.upload-card p,.sub,.desc{
+  color:var(--ios-secondary);
+  font-size:13px;
+  line-height:1.45
+}
+.today-task h3,.staff-card h3,.zone-card h3,.report-row h3{font-size:17px;font-weight:600}
+.today-task p,.calendar-card p,.notification-card p{font-size:13px;color:var(--ios-secondary)}
+
+/* cards */
+.metric,.type-summary article,.zone-card,.staff-card,.plan-card,.zones-panel,
+.table-card,.today-column,.upload-card,.alert-panel,.notification-card,.report-row,
+.calendar-card,.assignee-card,.zone-summary-card,.special-assignment-card,.day-owner-card{
+  background:var(--ios-card);
+  border:0;
+  border-radius:18px;
+  box-shadow:none
+}
+.metric,.type-summary article,.zone-card,.staff-card,.upload-card{padding:16px}
+.metric b,.type-summary b{
+  font-family:inherit!important;
+  font-size:28px;
+  font-weight:700;
+  letter-spacing:-.02em
+}
+.metric span,.metric small,.type-summary span,.type-summary small{
+  color:var(--ios-secondary);
+  font-size:12px
+}
+.metrics{gap:10px}
+.today-column{overflow:hidden}
+.today-col-head{
+  padding:12px 14px;
+  background:#fff!important;
+  border-bottom:1px solid rgba(60,60,67,.12)
+}
+.today-col-head b{font-size:15px;font-weight:600}
+.today-col-head span{
+  background:rgba(118,118,128,.12)!important;
+  color:var(--ios-secondary)!important
+}
+.today-task{
+  margin:0;
+  border:0;
+  border-top:1px solid rgba(60,60,67,.1);
+  border-radius:0;
+  background:#fff!important;
+  padding:14px 14px
+}
+.today-task.overdue{border-left:4px solid var(--ios-red)}
+.today-task.pending{border-left:4px solid var(--ios-orange)}
+.today-task.done{border-left:4px solid var(--ios-green);opacity:.55}
+.today-task.done:hover{opacity:.85}
+.priority-badge.critical{background:rgba(255,59,48,.12);color:var(--ios-red)}
+.priority-badge.high{background:rgba(255,149,0,.14);color:#b25b00}
+
+/* iOS buttons */
+.primary,.btn,.compact-btn{
+  background:var(--ios-blue)!important;
+  border-color:var(--ios-blue)!important;
+  color:#fff!important;
+  border-radius:12px!important;
+  font-weight:600!important
+}
+.ghost{
+  background:rgba(118,118,128,.12)!important;
+  border-color:transparent!important;
+  color:var(--ios-blue)!important;
+  border-radius:12px!important
+}
+.danger-btn{
+  background:rgba(255,59,48,.1)!important;
+  border-color:transparent!important;
+  color:var(--ios-red)!important;
+  border-radius:12px!important
+}
+.assign-btn{background:rgba(0,122,255,.1);color:var(--ios-blue)}
+.zone-settings summary{color:var(--ios-blue)}
+
+/* inputs */
+input,select,textarea{
+  min-height:44px;
+  border:1px solid rgba(60,60,67,.18)!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  color:var(--ios-label)!important;
+  font-size:16px!important;
+  padding:11px 12px!important
+}
+.field label{
+  font-size:13px;
+  text-transform:none;
+  letter-spacing:0;
+  font-weight:600;
+  color:#3a3a3c
+}
+.field-help{font-size:12px;color:var(--ios-secondary)}
+
+/* badges/status */
+.status.done,.plan-task-chip.done{color:var(--ios-green)}
+.status.overdue,.plan-task-chip.overdue{color:var(--ios-red)}
+.status.pending,.plan-task-chip.pending{color:var(--ios-orange)}
+.pill,.plan-task-chip,.zone-state-badge{
+  background:rgba(118,118,128,.1);
+  border-radius:999px;
+  padding:5px 8px
+}
+
+/* modal = iOS sheet */
+.modal{
+  background:rgba(0,0,0,.36);
+  align-items:flex-end
+}
+.modal-box,.zone-sheet{
+  width:min(100%,480px)!important;
+  max-width:480px!important;
+  max-height:92dvh;
+  border-radius:22px 22px 0 0!important;
+  background:var(--ios-bg)
+}
+.modal-box #modalBody{padding:16px}
+.modal-close{
+  width:30px;height:30px;
+  border-radius:15px;
+  background:rgba(118,118,128,.18);
+  color:#3a3a3c;
+  font-size:18px
+}
+.zone-app-card{background:var(--ios-bg)}
+.zone-app-card .app-head,
+.assignee-card,
+.zone-summary-card,
+.special-assignment-card,
+.day-owner-card,
+.warning-person-card{
+  background:#fff;
+  border:0!important;
+  border-radius:18px
+}
+.zone-main-actions{background:var(--ios-bg)}
+.form-actions{background:var(--ios-bg)}
+
+/* management */
+.alert-panel{padding:14px 16px}
+.assignment-alert{background:#fff8e6}
+.recurring-alert{background:#f4efff}
+.notification-card{padding:14px 16px}
+.table-card{overflow:auto}
+
+/* person cards */
+.staff-metrics div,.person-box,.staff-auto-assignments>div{
+  background:#f7f7f9;
+  border:0;
+  border-radius:14px
+}
+.person-box label{font-size:12px;color:var(--ios-secondary)}
+.person-box b{font-size:16px}
+
+/* Apple-like spacing */
+.view{padding-bottom:4px}
+.report-list,.notification-list,.calendar-list{gap:10px}
+.today-columns{gap:12px}
+.zone-cards,.staff-grid{gap:10px}
+
+/* desktop still previews the phone app instead of stretching */
+@media(min-width:481px){
+  body{padding:0}
+  .shell{box-shadow:0 0 0 1px rgba(0,0,0,.04)}
+}
+@media(max-width:480px){
+  .topbar{min-height:96px;padding:16px 16px 10px}
+  .mobile-subtitle{font-size:32px}
+  .content{padding:12px 12px 92px}
+  .section-head h2{font-size:21px}
+  .operation-head{display:grid;grid-template-columns:1fr;gap:8px}
+  .operation-head input{max-width:none}
+  .metrics{grid-template-columns:1fr 1fr}
+  .management-switch{position:sticky;top:96px;z-index:20}
+}
