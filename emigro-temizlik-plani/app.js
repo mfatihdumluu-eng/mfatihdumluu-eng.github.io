@@ -70,8 +70,11 @@ function renderCards(){
    <div class="people"><div class="person-box"><label>Asıl temizleyen</label><b>${esc(p?.name||'Atanmadı')}</b></div><div class="person-box"><label>Yedek temizleyen</label><b>${esc(b?.name||'Atanmadı')}</b></div></div>
    <div class="schedule-block">
     ${scheduleLine('Günlük',c.daily_enabled,c.daily_days,c.daily_time)}
+    ${c.daily_enabled&&c.daily_task?`<div class="desc">${esc(c.daily_task)}</div>`:''}
     ${scheduleLine('Haftalık',c.weekly_enabled,c.weekly_days,c.weekly_time)}
+    ${c.weekly_enabled&&c.weekly_task?`<div class="desc">${esc(c.weekly_task)}</div>`:''}
     ${scheduleLine('Aylık',c.monthly_enabled,c.monthly_days,c.monthly_time,true)}
+    ${c.monthly_enabled&&c.monthly_task?`<div class="desc">${esc(c.monthly_task)}</div>`:''}
    </div>
    <div class="card-actions"><button onclick="openZoneCardModal(${z.id})">Düzenle</button><button class="danger-btn" onclick="deleteZone(${z.id})">Sil</button></div>
   </article>`
@@ -121,12 +124,15 @@ function zoneCardForm(z,c={}){
 
  <div class="field full"><label>Günlük</label><label class="check"><input type="checkbox" name="daily_enabled" ${c.daily_enabled?'checked':''}> Aktif</label><div class="checks">${weekdayChecks('daily_days',c.daily_days||[1,2,3,4,5,6,0])}</div></div>
  <div class="field"><label>Günlük saat</label><input type="time" name="daily_time" value="${c.daily_time?.slice(0,5)||''}"></div>
+ <div class="field full"><label>Günlük ne yapılacak?</label><textarea name="daily_task" placeholder="Örn. zemin süpür, paspas yap, raf önlerini sil...">${esc(c.daily_task||'')}</textarea></div>
 
  <div class="field full"><label>Haftalık</label><label class="check"><input type="checkbox" name="weekly_enabled" ${c.weekly_enabled?'checked':''}> Aktif</label><div class="checks">${weekdayChecks('weekly_days',c.weekly_days||[])}</div></div>
  <div class="field"><label>Haftalık saat</label><input type="time" name="weekly_time" value="${c.weekly_time?.slice(0,5)||''}"></div>
+ <div class="field full"><label>Haftalık ne yapılacak?</label><textarea name="weekly_task" placeholder="Örn. raf altlarını temizle, köşeleri detaylı sil...">${esc(c.weekly_task||'')}</textarea></div>
 
  <div class="field full"><label>Aylık</label><label class="check"><input type="checkbox" name="monthly_enabled" ${c.monthly_enabled?'checked':''}> Aktif</label><div class="checks">${monthDayChecks(c.monthly_days||[])}</div></div>
  <div class="field"><label>Aylık saat</label><input type="time" name="monthly_time" value="${c.monthly_time?.slice(0,5)||''}"></div>
+ <div class="field full"><label>Aylık ne yapılacak?</label><textarea name="monthly_task" placeholder="Örn. derin temizlik, duvar dipleri, dolap arkaları...">${esc(c.monthly_task||'')}</textarea></div>
  </div>
  <div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>`
 }
@@ -148,6 +154,9 @@ function bindZoneCardForm(z,isNew,c={}){
    daily_enabled:fd.has('daily_enabled'),daily_days:fd.getAll('daily_days').map(Number),daily_time:fd.get('daily_time')||null,
    weekly_enabled:fd.has('weekly_enabled'),weekly_days:fd.getAll('weekly_days').map(Number),weekly_time:fd.get('weekly_time')||null,
    monthly_enabled:fd.has('monthly_enabled'),monthly_days:fd.getAll('monthly_days').map(Number),monthly_time:fd.get('monthly_time')||null,
+   daily_task:fd.get('daily_task')||'',
+   weekly_task:fd.get('weekly_task')||'',
+   monthly_task:fd.get('monthly_task')||'',
    updated_at:new Date().toISOString()
   };
   const {error}=await db.from('emigro_cleaning_zone_cards').upsert(cardRow,{onConflict:'zone_id'});if(error)return toast(error.message);
@@ -166,6 +175,60 @@ window.editStaff=id=>{
  </div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>`);
  $('#staffForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target),row={name:fd.get('name'),role:fd.get('role'),phone:fd.get('phone'),active:fd.get('active')==='true'};const q=p.id?db.from('emigro_cleaning_staff').update(row).eq('id',p.id):db.from('emigro_cleaning_staff').insert(row);const {error}=await q;if(error)return toast(error.message);closeModal();loadAll()}
 };
+
+
+async function loadDemoData(){
+ if(!confirm('Demo verileri yüklensin mi? Mevcut manuel alanlar korunur, demo alanları eklenir/güncellenir.'))return;
+ const people=[
+  {name:'Ayşe Demir',role:'Temizlik',phone:'0611111111',active:true},
+  {name:'Mehmet Kaya',role:'Temizlik',phone:'0622222222',active:true},
+  {name:'Fatma Yılmaz',role:'Temizlik',phone:'0633333333',active:true},
+  {name:'Ali Can',role:'Yedek',phone:'0644444444',active:true}
+ ];
+ const staffIds={};
+ for(const p of people){
+   const existing=state.staff.find(x=>x.name===p.name);
+   if(existing){await db.from('emigro_cleaning_staff').update(p).eq('id',existing.id);staffIds[p.name]=existing.id}
+   else{const {data,error}=await db.from('emigro_cleaning_staff').insert(p).select().single();if(error)return toast(error.message);staffIds[p.name]=data.id}
+ }
+ const zones=[
+  {code:'DEMO-GIRIS',name:'Giriş',description:'Giriş zemini, kapı önü ve cam çevresi.',color:'#8de4a6',x:6,y:75,w:14,h:12,sort_order:101},
+  {code:'DEMO-KASA',name:'Kasa Alanı',description:'Kasa çevresi, bant önü ve müşteri temas alanları.',color:'#ffab68',x:22,y:68,w:18,h:10,sort_order:102},
+  {code:'DEMO-SEBZE',name:'Sebze Reyonu',description:'Sebze standı, zemin ve dökülen ürün kalıntıları.',color:'#ade37f',x:43,y:43,w:20,h:18,sort_order:103},
+  {code:'DEMO-KASAP',name:'Kasap Alanı',description:'Kasap önü, zemin ve yakın temas yüzeyleri.',color:'#f78e92',x:42,y:18,w:22,h:17,sort_order:104},
+  {code:'DEMO-DIPFRIZ',name:'Dipfriz Alanı',description:'Dipfriz dış yüzeyleri, kapak çevresi ve zemin.',color:'#6fbce6',x:67,y:28,w:18,h:18,sort_order:105},
+  {code:'DEMO-RAFLAR',name:'Orta Raflar',description:'Raf önleri, koridor zemini ve raf altları.',color:'#f4d98e',x:56,y:48,w:26,h:25,sort_order:106},
+  {code:'DEMO-NONFOOD',name:'Nonfood',description:'Nonfood koridorları ve raf çevresi.',color:'#cbb9eb',x:8,y:30,w:20,h:25,sort_order:107},
+  {code:'DEMO-MUTFAK',name:'Mutfak',description:'Mutfak tezgah, lavabo, zemin ve çöp alanı.',color:'#ffb29a',x:7,y:7,w:20,h:15,sort_order:108},
+  {code:'DEMO-TUVALET',name:'Tuvalet',description:'Tam hijyen temizliği ve sarf kontrolü.',color:'#d8c8ef',x:28,y:7,w:10,h:12,sort_order:109},
+  {code:'DEMO-DEPO',name:'Depo',description:'Depo zemini, palet çevresi ve geçiş yolları.',color:'#d3bda3',x:70,y:6,w:24,h:18,sort_order:110}
+ ];
+ const zoneIds={};
+ for(const z of zones){
+   const existing=state.zones.find(x=>x.code===z.code);
+   const row={...z,manual:true,active:true,shape:'rect'};
+   if(existing){await db.from('emigro_cleaning_zones').update(row).eq('id',existing.id);zoneIds[z.code]=existing.id}
+   else{const {data,error}=await db.from('emigro_cleaning_zones').insert(row).select().single();if(error)return toast(error.message);zoneIds[z.code]=data.id}
+ }
+ const cards=[
+  ['DEMO-GIRIS','Ayşe Demir','Ali Can',true,[1,2,3,4,5,6,0],'07:30','Kapı önü, paspas, cam altları ve giriş zemini.',true,[1,4],'13:00','Kapı camları ve köşe temizliği.',true,[1],'08:00','Derin zemin temizliği ve duvar dipleri.'],
+  ['DEMO-KASA','Mehmet Kaya','Fatma Yılmaz',true,[1,2,3,4,5,6,0],'08:00','Kasa önü, bant çevresi ve zemin.',true,[2,5],'15:00','Kasa altları ve kablo çevresi.',true,[1,15],'09:00','Detaylı kasa ve çevre temizliği.'],
+  ['DEMO-SEBZE','Fatma Yılmaz','Ayşe Demir',true,[1,2,3,4,5,6,0],'09:00','Zemin, dökülen ürünler ve stand önleri.',true,[3,6],'16:00','Stand altları ve köşeler.',true,[5,20],'08:30','Derin stand ve kasa altı temizliği.'],
+  ['DEMO-KASAP','Ayşe Demir','Mehmet Kaya',true,[1,2,3,4,5,6,0],'10:00','Kasap önü zemini ve temas yüzeyleri.',true,[2,5],'17:00','Detaylı yüzey ve zemin temizliği.',true,[10,25],'07:00','Derin temizlik ve kenar/köşe işlemleri.'],
+  ['DEMO-DIPFRIZ','Mehmet Kaya','Ali Can',true,[1,2,3,4,5,6,0],'11:00','Kapak çevresi, dış yüzey ve zemin.',true,[4],'14:00','Alt/yan bölgeler ve detay silme.',true,[12],'08:00','Derin dış temizlik ve çevre kontrolü.'],
+  ['DEMO-RAFLAR','Fatma Yılmaz','Ali Can',true,[1,2,3,4,5,6,0],'12:00','Koridor zemini ve görünür raf önleri.',true,[1,3,5],'16:30','Raf altları ve dipler.',true,[1,15,30],'07:30','Tüm raf altı, üstü ve detaylı koridor temizliği.'],
+  ['DEMO-NONFOOD','Ali Can','Ayşe Demir',true,[1,2,3,4,5,6],'13:00','Zemin ve raf önü temizliği.',true,[2,6],'15:30','Raf altları ve köşeler.',true,[8,22],'09:00','Derin temizlik ve duvar dipleri.'],
+  ['DEMO-MUTFAK','Ayşe Demir','Fatma Yılmaz',true,[1,2,3,4,5,6,0],'14:00','Tezgah, lavabo, zemin ve çöp.',true,[1,4],'18:00','Dolap önleri, cihaz çevresi.',true,[1,16],'08:00','Derin mutfak temizliği.'],
+  ['DEMO-TUVALET','Fatma Yılmaz','Ali Can',true,[1,2,3,4,5,6,0],'08:30','Klozet, lavabo, zemin ve sarf kontrolü.',true,[1,3,5],'14:30','Duvar ve temas noktaları.',true,[1,15],'07:30','Derin hijyen temizliği.'],
+  ['DEMO-DEPO','Mehmet Kaya','Ali Can',true,[1,2,3,4,5],'15:00','Geçiş yolları ve zemin.',true,[5],'17:30','Palet altları ve duvar dipleri.',true,[1,20],'08:00','Derin depo temizliği.']
+ ];
+ for(const c of cards){
+   const [code,prim,backup,de,dd,dt,dtext,we,wd,wt,wtext,me,md,mt,mtext]=c;
+   const row={zone_id:zoneIds[code],primary_staff_id:staffIds[prim],backup_staff_id:staffIds[backup],daily_enabled:de,daily_days:dd,daily_time:dt,weekly_enabled:we,weekly_days:wd,weekly_time:wt,monthly_enabled:me,monthly_days:md,monthly_time:mt,daily_task:dtext,weekly_task:wtext,monthly_task:mtext,updated_at:new Date().toISOString()};
+   const {error}=await db.from('emigro_cleaning_zone_cards').upsert(row,{onConflict:'zone_id'});if(error)return toast(error.message)
+ }
+ toast('Demo verileri yüklendi');await loadAll();document.querySelector('[data-view="cards"]').click();
+}
 
 $('#planUpload').onchange=async e=>{
  const file=e.target.files?.[0];if(!file)return;
@@ -189,6 +252,6 @@ $$('.nav').forEach(b=>b.onclick=()=>{
 });
 $('#drawBtn').onclick=()=>state.drawMode?cancelDraw():startDraw();
 $('#toggleAreasBtn').onclick=()=>{state.showAreas=!state.showAreas;$('#toggleAreasBtn').textContent=state.showAreas?'Alanları Gizle':'Alanları Göster';renderPlan()};
-$('#addStaffBtn').onclick=()=>editStaff(null);$('#refreshBtn').onclick=loadAll;
+$('#addStaffBtn').onclick=()=>editStaff(null);$('#refreshBtn').onclick=loadAll;$('#demoBtn').onclick=loadDemoData;
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&state.drawMode)cancelDraw()});
 loadAll();
