@@ -109,15 +109,50 @@ function addRect(g,x,y,w,h,cls='fixture-detail'){g.append(svgEl('rect',{x,y,widt
 function renderSections(g,a){
  if(!a.sections||a.sections.length!==2)return false;
  const vertical=a.splitDir!=='horizontal';
- if(vertical)addLine(g,a.x+a.w/2,a.y,a.x+a.w/2,a.y+a.h,'section-divider');
- else addLine(g,a.x,a.y+a.h/2,a.x+a.w,a.y+a.h/2,'section-divider');
- const centers=vertical
-  ? [[a.x+a.w*.25,a.y+a.h*.52],[a.x+a.w*.75,a.y+a.h*.52]]
-  : [[a.x+a.w*.5,a.y+a.h*.27],[a.x+a.w*.5,a.y+a.h*.77]];
+ const dividerGap=Math.max(16,Math.min(a.w,a.h)*.10);
+ if(vertical)addLine(g,a.x+a.w/2,a.y+4,a.x+a.w/2,a.y+a.h-4,'section-divider');
+ else addLine(g,a.x+4,a.y+a.h/2,a.x+a.w-4,a.y+a.h/2,'section-divider');
+
+ const boxes=vertical
+  ? [
+      {x:a.x,y:a.y,w:a.w/2,h:a.h},
+      {x:a.x+a.w/2,y:a.y,w:a.w/2,h:a.h}
+    ]
+  : [
+      {x:a.x,y:a.y,w:a.w,h:a.h/2},
+      {x:a.x,y:a.y+a.h/2,w:a.w,h:a.h/2}
+    ];
+
  a.sections.forEach((q,i)=>{
-   const [cx,cy]=centers[i];
-   const n=svgEl('text',{x:cx,y:cy-4,'text-anchor':'middle',class:'section-num','font-size':Math.max(9,Math.min(24,(vertical?a.w/2:a.h/2)*.28))});n.textContent=q.num;g.append(n);
-   const nm=svgEl('text',{x:cx,y:cy+12,'text-anchor':'middle',class:'section-name','font-size':Math.max(6,Math.min(10,(vertical?a.w/2:a.h/2)/(String(q.name).length*.7)))});nm.textContent=q.name;g.append(nm);
+   const b=boxes[i];
+   const safePad=Math.max(8,Math.min(18,Math.min(b.w,b.h)*.12));
+   const safeX=b.x+safePad, safeY=b.y+safePad;
+   const safeW=Math.max(20,b.w-safePad*2), safeH=Math.max(20,b.h-safePad*2);
+
+   // Keep text away from the divider line.
+   let cx=safeX+safeW/2, cy=safeY+safeH/2;
+   if(vertical){
+     if(i===0) cx-=dividerGap*.12; else cx+=dividerGap*.12;
+   }else{
+     if(i===0) cy-=dividerGap*.12; else cy+=dividerGap*.12;
+   }
+
+   const numSize=Math.max(9,Math.min(24,safeH*.28,safeW*.20));
+   const nameSize=Math.max(6,Math.min(12,safeH*.16,safeW/Math.max(6,String(q.name).length*.62)));
+   const totalTextH=numSize+nameSize+6;
+   const topY=cy-totalTextH/2+numSize*.72;
+
+   const n=svgEl('text',{
+     x:cx,y:topY,'text-anchor':'middle',
+     class:'section-num','font-size':numSize
+   });
+   n.textContent=q.num;g.append(n);
+
+   const nm=svgEl('text',{
+     x:cx,y:topY+nameSize+8,'text-anchor':'middle',
+     class:'section-name','font-size':nameSize
+   });
+   nm.textContent=q.name;g.append(nm);
  });
  return true;
 }
@@ -219,7 +254,7 @@ function renderProps(){
  <div class="field"><label>Bölüm Yapısı</label>
    <div class="prop-actions">
     <button id="splitToggle" class="${a.sections?'orange':''}">${a.sections?'Tek Bölüme Dön':'2 Bölüme Ayır'}</button>
-    ${a.sections?'<button id="splitDir">Ayırıcı Yönü</button>':''}
+    ${a.sections?'<button id="splitDir">Ayırıcı Yönünü Değiştir</button>':''}
    </div>
   </div>
   ${a.sections?`<div class="section-editor">
@@ -247,7 +282,7 @@ function toggleSections(id){
  const a=areas.find(x=>x.id===id);if(!a)return;
  if(a.sections){patchOne(id,{sections:null});return}
  const n=maxNum();
- patchOne(id,{sections:[{num:a.num,name:a.name||'Bölüm 1'},{num:n+1,name:'Bölüm 2'}],splitDir:a.w>=a.h?'vertical':'horizontal'});
+ patchOne(id,{sections:[{num:a.num,name:a.name||'Bölüm 1'},{num:n+1,name:'Bölüm 2'}],splitDir:a.cat==='raf'?'horizontal':(a.w>=a.h?'vertical':'horizontal')});
 }
 function patchSection(id,index,key,value){
  commit(areas.map(a=>{
