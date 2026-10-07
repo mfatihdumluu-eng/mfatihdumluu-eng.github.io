@@ -4,7 +4,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const PARAMS=new URLSearchParams(location.search);
 const ADMIN_MODE=PARAMS.get('mode')!=='worker';
-const WORKER_ID=Number(PARAMS.get('staff')||localStorage.getItem('emigro-cleaning-worker')||0)||null;
+const WORKER_ID=Number(PARAMS.get('staff')||0)||null;
 const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:ADMIN_MODE,redrawZoneId:null,workerStaffId:WORKER_ID};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -38,7 +38,7 @@ async function loadAll(){
    db.from('emigro_cleaning_settings').select('*').eq('id',1).single()
   ]);
   [z,p,c,l,n,t,s].forEach(r=>{if(r.error)throw r.error});
-  state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.notifications=n.data||[];state.taskTags=t.data||[];state.settings=s.data||{};if(!state.isAdmin&&!state.workerStaffId&&state.staff[0])state.workerStaffId=state.staff[0].id;
+  state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.notifications=n.data||[];state.taskTags=t.data||[];state.settings=s.data||{};
   $('#dbState').textContent='● Veritabanı bağlı';
   applyPlanImage();renderAll();setupWorkerMode();
  }catch(e){console.error(e);$('#dbState').textContent='● Bağlantı hatası';toast('Veritabanı bağlantı hatası')}
@@ -51,7 +51,7 @@ function applyPlanImage(){
 }
 
 function renderAll(){
-  renderReport();renderTracking();renderCalendar();renderPlan();renderStaff();renderWorkerDemoLaunchers();renderWorkerNotifications();renderNotifications();renderHistory();
+  renderReport();renderTracking();renderCalendar();renderPlan();renderStaff();renderWorkerDemoLaunchers();renderWorkerProfilePicker();renderWorkerNotifications();renderNotifications();renderHistory();
   var demos=state.zones.filter(function(z){return String(z.code||'').startsWith('DEMO-')});
   var badge=$('#demoBadge');
   if(badge){
@@ -482,7 +482,7 @@ function renderTracking(){
  if(!$('#trackingDate'))return;
  var inp=$('#trackingDate');if(!inp.value)inp.value=dateKeyLocal(new Date());
  var d=parseDateLocal(inp.value),tasks=expectedTasks(dayStart(d),dayEnd(d)).filter(function(t){return t.type===state.trackingType});
- if(!state.isAdmin)tasks=tasks.filter(taskAssignedToWorker);
+ if(!state.isAdmin){if(!state.workerStaffId)tasks=[];else tasks=tasks.filter(taskAssignedToWorker);}
  tasks.sort(function(a,b){return priorityRank(a.zone)-priorityRank(b.zone)||dueAt(a)-dueAt(b)});
  var groups={overdue:[],pending:[],done:[]};
  tasks.forEach(function(t){groups[statusFor(t).key].push(t)});
@@ -888,16 +888,10 @@ $$('.warning-filter').forEach(function(b){b.onclick=function(){$$('.warning-filt
 
 function renderWorkerDemoLaunchers(){
  var box=$('#workerDemoGrid');if(!box)return;
- var order=['Kasa','Raf','Sebze Meyve','Genel Temizlik','Depo'];
- var people=order.map(function(dep){return state.staff.find(function(p){return p.department===dep&&p.active})}).filter(Boolean);
- box.innerHTML=people.length?people.map(function(p){
-   var icons={'Kasa':'🧾','Raf':'🧹','Sebze Meyve':'🥬','Genel Temizlik':'🧽','Depo':'📦'};
-   var today=expectedTasks(dayStart(new Date()),dayEnd(new Date())).filter(function(t){return taskAssignedToWorkerFor(t,p.id)});
-   return '<button class="worker-demo-card" onclick="openWorkerView('+p.id+')">'+
-    '<span class="worker-demo-icon">'+(icons[p.department]||'👤')+'</span>'+
-    '<span><b>'+esc(p.department||p.role||'Personel')+'</b><small>'+esc(p.name)+' · '+today.length+' görev</small></span>'+
-    '<em>›</em></button>'
- }).join(''):'<div class="sub">Test kullanıcısı yok.</div>'
+ box.innerHTML='<button class="worker-demo-card worker-portal-launch" onclick="openWorkerView()">'+
+  '<span class="worker-demo-icon">👥</span>'+
+  '<span><b>Çalışan Portalını Aç</b><small>Kasa · Raf · Sebze Meyve · Genel Temizlik · Depo</small></span>'+
+  '<em>›</em></button>'
 }
 function taskAssignedToWorkerFor(t,id){var w=t.assigned||t.primary;return !!w&&String(w.id)===String(id)}
 
@@ -908,12 +902,12 @@ function renderStaff(){
   return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.role||'Rol belirtilmedi')+'</div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
    '<div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div>'+
    '<div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
-   '<div class="card-actions"><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
+   '<div class="card-actions"><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView()">Kullanıcı Ekranı</button></div></article>'
  }).join(''):'<div class="sub">Personel eklenmedi.</div>'
 }
 
-window.openWorkerView=function(id){
- var url=location.pathname+'?mode=worker&staff='+id;
+window.openWorkerView=function(){
+ var url=location.pathname+'?mode=worker';
  window.open(url,'_blank');
 };
 
@@ -994,6 +988,33 @@ window.enableWorkerNotifications=async function(){
  var p=await Notification.requestPermission();
  toast(p==='granted'?'Bildirimler açıldı':'Bildirim izni verilmedi')
 };
+function renderWorkerProfilePicker(){
+ var wrap=$('#workerProfilePicker'),box=$('#workerProfileOptions');if(!wrap||!box)return;
+ if(state.isAdmin){wrap.classList.add('hidden');return}
+ wrap.classList.remove('hidden');
+ var order=['Kasa','Raf','Sebze Meyve','Genel Temizlik','Depo'];
+ var icons={'Kasa':'🧾','Raf':'🧹','Sebze Meyve':'🥬','Genel Temizlik':'🧽','Depo':'📦'};
+ var people=order.map(function(dep){return state.staff.find(function(p){return p.department===dep&&p.active})}).filter(Boolean);
+ box.innerHTML=people.map(function(p){
+   var active=String(p.id)===String(state.workerStaffId);
+   var count=expectedTasks(dayStart(new Date()),dayEnd(new Date())).filter(function(t){return taskAssignedToWorkerFor(t,p.id)}).length;
+   return '<button class="worker-profile-option '+(active?'active':'')+'" onclick="selectWorkerProfile('+p.id+')">'+
+     '<span class="worker-profile-icon">'+(icons[p.department]||'👤')+'</span>'+
+     '<span><b>'+esc(p.department||p.role||'Personel')+'</b><small>'+esc(p.name)+' · '+count+' görev</small></span>'+
+   '</button>'
+ }).join('');
+}
+window.selectWorkerProfile=function(id){
+ state.workerStaffId=Number(id)||null;
+ if(state.workerStaffId)localStorage.setItem('emigro-cleaning-worker',String(state.workerStaffId));
+ renderWorkerProfilePicker();
+ renderTracking();
+ renderCalendar();
+ renderWorkerNotifications();
+ setupWorkerMode();
+ var todayNav=document.querySelector('.nav[data-view="tracking"]');
+ if(todayNav)todayNav.click();
+};
 function setupWorkerMode(){
  if(state.isAdmin){document.body.classList.remove('worker-mode');return}
  document.body.classList.add('worker-mode');
@@ -1001,7 +1022,9 @@ function setupWorkerMode(){
  if(w){
    $('#pageTitle').textContent=w.name;
    $('#pageSub').textContent=(w.department||w.role||'Temizlik')+' · Bugünkü görevlerin';
-   localStorage.setItem('emigro-cleaning-worker',w.id)
+ }else{
+   $('#pageTitle').textContent='Çalışan Portalı';
+   $('#pageSub').textContent='Yukarıdan görev profilini seç.';
  }
  var btn=$('#refreshBtn');if(btn)btn.title='Görevleri yenile';
  if($('#demoBtn'))$('#demoBtn').classList.add('hidden');
