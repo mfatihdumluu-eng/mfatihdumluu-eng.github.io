@@ -326,3 +326,136 @@ input,select,textarea{font-size:16px}
  .today-task h3{font-size:14px}.today-task p{font-size:11px}.today-meta{font-size:10px}
  .today-task-actions{width:100%}.today-task-actions button{flex:1;min-height:42px!important;font-size:10px!important}
 }
+
+/* === EMIGRO RAF MOBILE DESIGN SYSTEM ALIGNMENT === */
+:root{
+  --bg:#f3f5f7;--card:#fff;--text:#17202a;--muted:#6b7280;--line:#e5e7eb;
+  --dark:#111827;--ok:#138a55;--warn:#d99000;--danger:#d33131;--orange:#e66a00;--blue:#1769aa;
+  --radius:18px;--shadow:0 8px 28px rgba(17,24,39,.08)
+}
+html,body{background:#dfe3e8;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+body{min-height:100vh}
+.shell{display:block;width:100%;max-width:480px;min-height:100vh;margin:0 auto;background:var(--bg);padding-bottom:88px;position:relative}
+.main{min-width:0;width:100%;max-width:480px;margin:0 auto;background:var(--bg)}
+.content{padding:14px;max-width:none;margin:0}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+/* topbar = raf-mobile */
+.topbar{position:sticky;top:0;z-index:80;height:auto;min-height:72px;display:flex;justify-content:space-between;align-items:center;padding:18px 16px 12px;background:rgba(17,24,39,.96);color:#fff;border:0}
+.mobile-brand{font-size:24px;font-weight:900;letter-spacing:.4px}
+.mobile-subtitle{font-size:12px;color:#cbd5e1;margin-top:2px;font-weight:600}
+.top-actions{display:flex;gap:8px}
+.icon-action{border:0;border-radius:12px;background:#ffffff18;color:#fff;width:38px;height:38px;font-size:18px;font-weight:800;cursor:pointer}
+.icon-action:hover{background:#ffffff26}
+
+/* sidebar becomes raf-style bottom nav */
+.sidebar{position:fixed;left:50%;right:auto;bottom:0;top:auto;transform:translateX(-50%);width:min(100%,480px);height:auto;background:#fff;color:var(--text);padding:8px 8px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);z-index:100;display:block}
+.sidebar .brand,.sidebar-foot{display:none!important}
+.sidebar nav{display:flex!important;gap:0!important;overflow-x:auto;scrollbar-width:none;width:100%;padding:0}
+.sidebar nav::-webkit-scrollbar{display:none}
+.nav{flex:1 0 64px;min-width:64px;border:0;background:none;color:#667085;border-radius:10px;padding:7px 3px;text-align:center;font-weight:700;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;position:relative}
+.nav span{font-size:19px;line-height:1}
+.nav b{display:block!important;font-size:9px;line-height:1.05;white-space:normal}
+.nav:hover{background:#f3f4f6;color:#111827}
+.nav.active{background:#eef0f3;color:#111827}
+.nav-badge{position:absolute;right:5px;top:3px;background:var(--danger);color:#fff;border-radius:999px;padding:1px 5px;font-size:8px;font-style:normal}
+
+/* cards, controls, sections */
+.section-head{margin:4px 2px 10px}
+.section-head h2,.upload-card h2{font-family:inherit;font-size:18px;font-weight:800}
+.section-head p,.upload-card p{font-size:12px;color:var(--muted)}
+.metric,.type-summary article,.zone-card,.staff-card,.plan-card,.zones-panel,.table-card,.today-column,.upload-card,.alert-panel,.notification-card{
+  background:var(--card);border:0;border-radius:16px;box-shadow:var(--shadow)
+}
+.metric{padding:14px}
+.metric b{font-family:inherit;font-size:24px}
+.metric span{font-size:12px;color:var(--muted)}
+.metrics{grid-template-columns:repeat(2,1fr);gap:10px}
+.type-summary{grid-template-columns:repeat(3,1fr);gap:8px}
+.type-summary article{padding:11px}
+.type-summary b{font-family:inherit;font-size:21px}
+.primary,.ghost,.danger-btn{border-radius:12px;min-height:42px;padding:10px 12px;font-size:12px;font-weight:800}
+.primary{background:var(--dark);border-color:var(--dark);color:#fff}
+.ghost{background:#eef0f3;border-color:#eef0f3;color:#1f2937}
+.danger-btn{background:#fff0f0;border-color:#f3b6b6;color:#b42318}
+input,select,textarea{width:100%;border:1px solid #d7dce2!important;border-radius:12px!important;padding:11px!important;background:#fff;font-size:14px}
+.field label{font-size:12px;color:#374151}
+.check{border-radius:10px;background:#fff;border:1px solid var(--line);font-size:11px}
+.pill,.status,.zone-state-badge,.plan-task-chip{font-size:10px}
+
+/* Operation tabs replace Plan Ekranı */
+.operation-head{align-items:flex-end}
+.operation-head input{max-width:155px}
+.operation-type-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#e9edf1;padding:4px;border-radius:12px;margin-bottom:12px}
+.tracking-type{border:0;border-radius:10px;min-height:42px;background:transparent;color:#667085;font-size:12px;font-weight:800;cursor:pointer}
+.tracking-type.active{background:#fff;color:#111827;box-shadow:0 1px 3px rgba(17,24,39,.09)}
+
+/* Today operations as stacked mobile cards */
+.today-columns{grid-template-columns:1fr;gap:12px}
+.today-column{overflow:hidden}
+.today-col-head{padding:12px 14px}
+.today-col-head b{font-size:14px}
+.today-col-head span{font-size:11px}
+.today-task{margin:0;border:0;border-top:1px solid var(--line);border-radius:0;padding:13px 14px;background:#fff;box-shadow:none}
+.today-task:first-child{border-top:0}
+.today-task.overdue{background:#fff;border-left:5px solid var(--danger)}
+.today-task.pending{background:#fff;border-left:5px solid var(--warn)}
+.today-task.done{background:#fff;border-left:5px solid var(--ok);opacity:.72}
+.today-task h3{font-size:15px;margin:4px 0}
+.today-task p{font-size:12px}
+.today-meta{font-size:11px}
+.calendar-type-label{font-size:9px;font-weight:800;color:var(--orange)}
+.priority-badge{font-size:8px}
+.today-task-actions{display:flex;gap:6px}
+.compact-btn{min-height:38px!important;font-size:10px!important;padding:7px 10px!important}
+.today-empty{padding:22px 14px;font-size:12px}
+
+/* plan / person cards */
+.zone-cards,.staff-grid{grid-template-columns:1fr;gap:10px}
+.zone-card,.staff-card{padding:14px}
+.staff-card{cursor:pointer}
+.staff-card h3,.zone-card h3{font-size:15px}
+.staff-auto-assignments>div{border-radius:12px;background:#f8fafb}
+
+/* plan canvas remains horizontally scrollable */
+.plan-layout{display:block}
+.plan-card{padding:8px;overflow:auto;-webkit-overflow-scrolling:touch}
+.plan-stage{min-width:900px}
+.zones-panel{margin-top:10px;max-height:280px}
+
+/* modal/dialog feel like raf-mobile */
+.modal{align-items:flex-end;padding:0;background:rgba(17,24,39,.62)}
+.modal-box{width:min(100%,480px);max-width:480px;max-height:88vh;border-radius:22px 22px 0 0;padding:0;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.25)}
+.modal-box #modalBody{padding:15px}
+.modal-close{position:sticky;float:right;top:10px;margin:10px 10px -48px 0;z-index:10;width:38px;height:38px;border-radius:12px;background:#eef0f3;font-size:22px;display:grid;place-items:center}
+.zone-sheet{width:min(100%,480px)!important;max-width:480px!important;border-radius:22px 22px 0 0!important}
+.zone-app-card{padding:0;background:#fff}
+.zone-app-card .app-head,.assignee-card,.zone-summary-card,.zone-settings,.special-assignment-card,.day-owner-card{box-shadow:none;border:1px solid var(--line);border-radius:16px}
+.zone-main-actions{background:#fff}
+
+/* report/list consistency */
+.report-row{background:#fff;border:0;border-radius:16px;box-shadow:var(--shadow);padding:12px}
+.report-row.overdue{border-left:5px solid var(--danger)}
+.report-row.pending{border-left:5px solid var(--warn)}
+.report-row.done{border-left:5px solid var(--ok)}
+.notification-card{padding:12px}
+
+/* desktop intentionally keeps mobile app canvas */
+@media(min-width:761px){
+  .content{padding:14px}
+  .today-columns{grid-template-columns:1fr}
+  .report-row{grid-template-columns:1fr}
+  .report-row>*:last-child{grid-column:auto}
+  .plan-layout{display:block}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:480px){
+  .shell,.main{max-width:none}
+  .content{padding:12px 12px 90px}
+  .topbar{padding:16px 14px 12px}
+  .operation-head{display:grid;grid-template-columns:1fr;gap:8px}
+  .operation-head input{max-width:none}
+  .metrics{grid-template-columns:1fr 1fr}
+  .type-summary{grid-template-columns:1fr}
+  .nav{flex-basis:62px;min-width:62px}
+}
