@@ -16,13 +16,11 @@
   <aside class="sidebar">
     <div class="brand"><div class="brand-mark">E</div><div><b>EMIGRO</b><span>Temizlik Yönetimi</span></div></div>
     <nav>
-      <button class="nav" data-view="report"><span>▦</span><b>Rapor</b><em id="alertBadge" class="nav-badge hidden">0</em></button>
       <button class="nav active" data-view="tracking"><span>✓</span><b>Bugün</b></button>
       <button class="nav" data-view="calendar"><span>▣</span><b>Takvim</b></button>
-      <button class="nav" data-view="plan"><span>⌗</span><b>Market Planı</b></button>
+      <button class="nav" data-view="plan"><span>⌖</span><b>Plan</b></button>
       <button class="nav" data-view="staff"><span>👤</span><b>Personel</b></button>
-      <button class="nav" data-view="notifications"><span>⚠</span><b>Uyarılar</b><em id="warningBadge" class="nav-badge hidden">0</em></button>
-      <button class="nav" data-view="history"><span>↺</span><b>Geçmiş</b></button>
+      <button class="nav" data-view="report"><span>⋯</span><b>Yönetim</b><em id="alertBadge" class="nav-badge hidden">0</em></button>
     </nav>
     <div class="sidebar-foot"><span id="dbState">● Bağlanıyor</span></div>
   </aside>
@@ -31,7 +29,7 @@
     <header class="topbar">
       <div class="topbar-brand">
         <div class="mobile-brand">EMİGRO</div>
-        <div class="mobile-subtitle" id="pageTitle">Temizlik İşleri</div>
+        <div class="mobile-subtitle" id="pageTitle">Bugün</div>
         <div id="demoBadge" class="demo-badge hidden">DEMO</div>
         <p id="pageSub" class="sr-only">Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.</p>
       </div>
@@ -43,6 +41,11 @@
 
     <main class="content">
       <section id="view-report" class="view">
+        <div class="management-switch">
+          <button class="manage-tab active" data-manage-view="report">Rapor</button>
+          <button class="manage-tab" data-manage-view="notifications">Uyarılar <span id="warningBadge" class="inline-badge hidden">0</span></button>
+          <button class="manage-tab" data-manage-view="history">Geçmiş</button>
+        </div>
         <div id="assignmentAlert" class="alert-panel assignment-alert hidden"></div>
         <div id="problemPanel" class="alert-panel recurring-alert hidden"></div>
         <div id="alertPanel" class="alert-panel hidden"></div>
@@ -126,6 +129,11 @@
       </section>
 
       <section id="view-notifications" class="view">
+        <div class="management-switch">
+          <button class="manage-tab" data-manage-view="report">Rapor</button>
+          <button class="manage-tab active" data-manage-view="notifications">Uyarılar <span id="warningBadge2" class="inline-badge hidden">0</span></button>
+          <button class="manage-tab" data-manage-view="history">Geçmiş</button>
+        </div>
         <div class="section-head">
           <div><h2>Uyarılar & Bildirimler</h2><p>Temizlik aksaması veya dikkat edilmesi gereken konuları personele iletin.</p></div>
           <button id="newWarningBtn" class="primary">+ Bildirim Gönder</button>
@@ -140,6 +148,11 @@
       </section>
 
       <section id="view-history" class="view">
+        <div class="management-switch">
+          <button class="manage-tab" data-manage-view="report">Rapor</button>
+          <button class="manage-tab" data-manage-view="notifications">Uyarılar</button>
+          <button class="manage-tab active" data-manage-view="history">Geçmiş</button>
+        </div>
         <div class="section-head"><div><h2>Geçmiş</h2><p>Tamamlanan temizlikler ve fotoğraf kanıtları.</p></div></div>
         <div class="table-card"><table><thead><tr><th>Tarih</th><th>Tür</th><th>Alan</th><th>Yapan</th><th>Durum</th><th>Fotoğraf</th><th>Not</th></tr></thead><tbody id="historyBody"></tbody></table></div>
       </section>
