@@ -84,7 +84,10 @@ function migrate(v){
   id:String(o.id||('m'+i)),num:o.num??i+1,name:String(o.name||'alan'),
   x:+o.x||0,y:+o.y||0,w:Math.max(10,+o.w||80),h:Math.max(10,+o.h||80),
   cat:o.cat||o.category||'raf',rot:[0,90,180,270].includes(+o.rot)?+o.rot:([0,90,180,270].includes(+o.rotation)?+o.rotation:0),
-  shape:o.shape||inferShape(o.name,o.cat||o.category||'raf'),locked:!!o.locked
+  shape:o.shape||inferShape(o.name,o.cat||o.category||'raf'),
+  sections:Array.isArray(o.sections)&&o.sections.length===2?o.sections.map((q,j)=>({num:q?.num??'',name:String(q?.name??('Bölüm '+(j+1)))})):null,
+  splitDir:o.splitDir==='horizontal'?'horizontal':'vertical',
+  locked:!!o.locked
  }));
 }
 try{ const raw=localStorage.getItem(STORAGE); areas=migrate(raw?JSON.parse(raw):null)||seed(); }catch{areas=seed()}
@@ -103,6 +106,21 @@ function areaFill(a){return (CATS[a.cat]||CATS.raf)[1]}
 function svgEl(tag,attrs={}){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);return e}
 function addLine(g,x1,y1,x2,y2,cls='fixture-line'){g.append(svgEl('line',{x1,y1,x2,y2,class:cls}))}
 function addRect(g,x,y,w,h,cls='fixture-detail'){g.append(svgEl('rect',{x,y,width:w,height:h,class:cls}))}
+function renderSections(g,a){
+ if(!a.sections||a.sections.length!==2)return false;
+ const vertical=a.splitDir!=='horizontal';
+ if(vertical)addLine(g,a.x+a.w/2,a.y,a.x+a.w/2,a.y+a.h,'section-divider');
+ else addLine(g,a.x,a.y+a.h/2,a.x+a.w,a.y+a.h/2,'section-divider');
+ const centers=vertical
+  ? [[a.x+a.w*.25,a.y+a.h*.52],[a.x+a.w*.75,a.y+a.h*.52]]
+  : [[a.x+a.w*.5,a.y+a.h*.27],[a.x+a.w*.5,a.y+a.h*.77]];
+ a.sections.forEach((q,i)=>{
+   const [cx,cy]=centers[i];
+   const n=svgEl('text',{x:cx,y:cy-4,'text-anchor':'middle',class:'section-num','font-size':Math.max(9,Math.min(24,(vertical?a.w/2:a.h/2)*.28))});n.textContent=q.num;g.append(n);
+   const nm=svgEl('text',{x:cx,y:cy+12,'text-anchor':'middle',class:'section-name','font-size':Math.max(6,Math.min(10,(vertical?a.w/2:a.h/2)/(String(q.name).length*.7)))});nm.textContent=q.name;g.append(nm);
+ });
+ return true;
+}
 function renderFixture(g,a){
  const x=a.x,y=a.y,w=a.w,h=a.h,shape=a.shape||inferShape(a.name,a.cat),pad=Math.max(3,Math.min(w,h)*.10);
  if(shape.startsWith('shelf')){
@@ -142,10 +160,13 @@ function render(){
   if(selected.has(a.id))g.classList.add('selected');if(a.locked)g.classList.add('locked');
   const r=document.createElementNS('http://www.w3.org/2000/svg','rect');r.classList.add('body');r.setAttribute('x',a.x);r.setAttribute('y',a.y);r.setAttribute('width',a.w);r.setAttribute('height',a.h);r.setAttribute('fill',areaFill(a));g.append(r);
   renderFixture(g,a);
-  const cx=a.x+a.w/2,cy=a.y+a.h/2;const textG=document.createElementNS('http://www.w3.org/2000/svg','g');
-  if(a.h>a.w*1.45)textG.setAttribute('transform',`rotate(-90 ${cx} ${cy})`);
-  const n=document.createElementNS('http://www.w3.org/2000/svg','text');n.classList.add('num-text');n.setAttribute('x',cx);n.setAttribute('y',cy-4);n.setAttribute('text-anchor','middle');n.setAttribute('font-size',Math.max(10,Math.min(38,a.h*.34,a.w*.22)));n.textContent=a.num;textG.append(n);
-  const nm=document.createElementNS('http://www.w3.org/2000/svg','text');nm.classList.add('name-text');nm.setAttribute('x',cx);nm.setAttribute('y',cy+14);nm.setAttribute('text-anchor','middle');nm.setAttribute('font-size',Math.max(6,Math.min(12,a.h*.12,a.w/(String(a.name).length*.65))));nm.textContent=a.name;textG.append(nm);g.append(textG);
+  const hasSections=renderSections(g,a);
+  if(!hasSections){
+    const cx=a.x+a.w/2,cy=a.y+a.h/2;const textG=document.createElementNS('http://www.w3.org/2000/svg','g');
+    if(a.h>a.w*1.45)textG.setAttribute('transform',`rotate(-90 ${cx} ${cy})`);
+    const n=document.createElementNS('http://www.w3.org/2000/svg','text');n.classList.add('num-text');n.setAttribute('x',cx);n.setAttribute('y',cy-4);n.setAttribute('text-anchor','middle');n.setAttribute('font-size',Math.max(10,Math.min(38,a.h*.34,a.w*.22)));n.textContent=a.num;textG.append(n);
+    const nm=document.createElementNS('http://www.w3.org/2000/svg','text');nm.classList.add('name-text');nm.setAttribute('x',cx);nm.setAttribute('y',cy+14);nm.setAttribute('text-anchor','middle');nm.setAttribute('font-size',Math.max(6,Math.min(12,a.h*.12,a.w/(String(a.name).length*.65))));nm.textContent=a.name;textG.append(nm);g.append(textG);
+  }
   if(selected.has(a.id)&&selected.size===1&&!a.locked){
    for(const [c,hx,hy] of [['nw',a.x,a.y],['ne',a.x+a.w,a.y],['sw',a.x,a.y+a.h],['se',a.x+a.w,a.y+a.h]]){
     const h=document.createElementNS('http://www.w3.org/2000/svg','rect');h.classList.add('handle');h.dataset.corner=c;h.setAttribute('x',hx-6/view.s);h.setAttribute('y',hy-6/view.s);h.setAttribute('width',12/view.s);h.setAttribute('height',12/view.s);g.append(h);
@@ -162,7 +183,9 @@ function renderList(){
  const sorted=[...areas].sort((a,b)=>(Number(a.num)||999)-(Number(b.num)||999));
  for(const a of sorted){
   const b=document.createElement('button');b.className='area-row'+(selected.has(a.id)?' selected':'');b.dataset.id=a.id;
-  b.innerHTML=`<span class="swatch" style="background:${areaFill(a)}"></span><span class="area-num">${a.num}</span><span class="area-name">${esc(a.name)}</span>${a.locked?' 🔒':''}`;
+  const nums=a.sections?.length===2?(a.sections[0].num+' / '+a.sections[1].num):a.num;
+  const nmTxt=a.sections?.length===2?(a.sections[0].name+' | '+a.sections[1].name):a.name;
+  b.innerHTML=`<span class="swatch" style="background:${areaFill(a)}"></span><span class="area-num">${nums}</span><span class="area-name">${esc(nmTxt)}</span>${a.locked?' 🔒':''}`;
   b.onclick=e=>selectArea(a.id,e.shiftKey);box.append(b);
  }
 }
@@ -193,20 +216,59 @@ function renderProps(){
   <div class="field"><label>Genişlik</label><input id="pW" type="number" value="${a.w}"></div><div class="field"><label>Yükseklik</label><input id="pH" type="number" value="${a.h}"></div>
  </div>
  <div class="field"><label>Renk / kategori</label><div class="category-grid">${catButtons(a.cat)}</div></div>
+ <div class="field"><label>Bölüm Yapısı</label>
+   <div class="prop-actions">
+    <button id="splitToggle" class="${a.sections?'orange':''}">${a.sections?'Tek Bölüme Dön':'2 Bölüme Ayır'}</button>
+    ${a.sections?'<button id="splitDir">Ayırıcı Yönü</button>':''}
+   </div>
+  </div>
+  ${a.sections?`<div class="section-editor">
+    <div class="section-card"><b>Bölüm 1</b><div class="grid2"><div class="field"><label>No</label><input id="s1Num" value="${esc(a.sections[0].num)}"></div><div class="field"><label>Ad</label><input id="s1Name" value="${esc(a.sections[0].name)}"></div></div></div>
+    <div class="section-card"><b>Bölüm 2</b><div class="grid2"><div class="field"><label>No</label><input id="s2Num" value="${esc(a.sections[1].num)}"></div><div class="field"><label>Ad</label><input id="s2Name" value="${esc(a.sections[1].name)}"></div></div></div>
+  </div>`:''}
  <div class="prop-actions"><button id="lockOne" class="${a.locked?'orange':''}">${a.locked?'Kilidi Aç':'Kilitle'}</button><button id="copyOne">Kopyala</button><button id="deleteOne" class="danger">Sil</button></div>`;
  $('#pRot').value=String(a.rot||0);
  const bind=(id,key,conv=v=>v)=>{$(id).onchange=e=>patchOne(a.id,{[key]:conv(e.target.value)})};
  bind('#pNum','num');bind('#pName','name');bind('#pX','x',Number);bind('#pY','y',Number);bind('#pW','w',v=>Math.max(10,Number(v)));bind('#pH','h',v=>Math.max(10,Number(v)));bind('#pRot','rot',Number);
  p.querySelectorAll('.cat-btn').forEach(b=>b.onclick=()=>patchOne(a.id,{cat:b.dataset.cat}));
+ $('#splitToggle').onclick=()=>toggleSections(a.id);
+ if(a.sections){
+   $('#splitDir').onclick=()=>patchOne(a.id,{splitDir:a.splitDir==='horizontal'?'vertical':'horizontal'});
+   $('#s1Num').onchange=e=>patchSection(a.id,0,'num',e.target.value);
+   $('#s1Name').onchange=e=>patchSection(a.id,0,'name',e.target.value);
+   $('#s2Num').onchange=e=>patchSection(a.id,1,'num',e.target.value);
+   $('#s2Name').onchange=e=>patchSection(a.id,1,'name',e.target.value);
+ }
  $('#lockOne').onclick=()=>patchOne(a.id,{locked:!a.locked});$('#copyOne').onclick=duplicateSelection;$('#deleteOne').onclick=deleteSelection;
 }
 function catButtons(active){return Object.entries(CATS).map(([k,[label,color]])=>`<button class="cat-btn ${active===k?'active':''}" data-cat="${k}"><span class="swatch" style="background:${color}"></span>${label}</button>`).join('')}
 function patchOne(id,patch){commit(areas.map(a=>a.id===id?{...a,...patch}:a))}
+function toggleSections(id){
+ const a=areas.find(x=>x.id===id);if(!a)return;
+ if(a.sections){patchOne(id,{sections:null});return}
+ const n=maxNum();
+ patchOne(id,{sections:[{num:a.num,name:a.name||'Bölüm 1'},{num:n+1,name:'Bölüm 2'}],splitDir:a.w>=a.h?'vertical':'horizontal'});
+}
+function patchSection(id,index,key,value){
+ commit(areas.map(a=>{
+   if(a.id!==id||!a.sections)return a;
+   const sections=a.sections.map((q,i)=>i===index?{...q,[key]:value}:q);
+   return {...a,sections};
+ }));
+}
 function bulkCat(cat){commit(areas.map(a=>selected.has(a.id)?{...a,cat}:a))}
 function bulkLock(v){commit(areas.map(a=>selected.has(a.id)?{...a,locked:v}:a))}
 
 function addPreset(p){
  const r=svg.getBoundingClientRect(), center={x:(r.width/2-view.x)/view.s,y:(r.height/2-view.y)/view.s};
+ if(p[4]==='shelf-double'){
+   const base=maxNum(),gap=4,eachH=Math.max(26,Math.round((p[2]-gap)/2));
+   const id1='a'+Date.now()+'a',id2='a'+Date.now()+'b';
+   const x=snap(center.x-p[1]/2),y=snap(center.y-(eachH*2+gap)/2);
+   const a1=A(id1,base+1,'Çift Taraflı Raf A',x,y,p[1],eachH,'raf',0,'shelf-single');
+   const a2=A(id2,base+2,'Çift Taraflı Raf B',x,y+eachH+gap,p[1],eachH,'raf',0,'shelf-single');
+   commit([...areas,a1,a2]);selected=new Set([id1,id2]);render();showToast('İki ayrı sırt sırta raf eklendi');return;
+ }
  const n=maxNum()+1,id='a'+Date.now()+Math.random().toString(36).slice(2,5);
  const a=A(id,n,p[0],snap(center.x-p[1]/2),snap(center.y-p[2]/2),p[1],p[2],p[3],0,p[4]);
  commit([...areas,a]);selected.clear();selected.add(id);render()
