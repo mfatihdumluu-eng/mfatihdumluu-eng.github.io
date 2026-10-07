@@ -559,8 +559,8 @@ if($('#reportType'))$('#reportType').onchange=renderReport;
 $$('.period').forEach(function(b){b.onclick=function(){$$('.period').forEach(function(x){x.classList.toggle('active',x===b)});state.reportPeriod=b.dataset.period;renderReport()}});
 $$('.nav').forEach(function(b){b.onclick=function(){
  $$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});$$('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+b.dataset.view)});
- var meta={report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],tracking:['Görev Takibi','Fotoğraflı tamamlanma ve aksama takibi.'],
-        calendar:['Temizlik Takvimi','Günlük, haftalık ve aylık görev/personel planı.'],plan:['Temizlik Planı','Plan resmini yükle ve alanları tanımla.'],cards:['Alan Kartları','Günlük, haftalık ve aylık görev tanımları.'],staff:['Personel Kartları','Sorumluluk ve performans takibi.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
+ var meta={report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],tracking:['Bugün Operasyon','Aksayan, sıradaki ve tamamlanan temizlikleri takip edin.'],
+        calendar:['Temizlik Takvimi','Günlük, haftalık ve aylık görev/personel planı.'],plan:['Temizlik Planı','Plan resmini yükle ve alanları tanımla.'],cards:['Plan Ekranı','Alanların günlük, haftalık ve aylık temizlik rutinleri.'],staff:['Personel Kartları','Sorumluluk ve performans takibi.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
  $('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]
 }});
 
@@ -862,6 +862,11 @@ function initCleaningAdmin(){
   if(!state.isAdmin){
     ['#drawBtn','.upload-btn','#demoBtn','#addStaffBtn'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
     $('.danger-btn').forEach(function(el){el.classList.add('hidden')});
+    $('.nav').forEach(function(el){
+      if(!['tracking','calendar'].includes(el.dataset.view))el.classList.add('hidden');
+    });
+    var todayNav=document.querySelector('.nav[data-view="tracking"]');
+    if(todayNav)setTimeout(function(){todayNav.click()},0);
   }
   $$('.nav').forEach(function(b){
     b.onclick=function(){
