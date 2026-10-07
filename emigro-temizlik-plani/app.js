@@ -246,16 +246,6 @@ function compressImage(file){
  })
 }
 
-$$('.nav').forEach(b=>b.onclick=()=>{
- $$('.nav').forEach(x=>x.classList.toggle('active',x===b));$$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+b.dataset.view));
- const meta={plan:['Temizlik Planı','Plan resmini yükle, alanları kendin seç ve kartlarını oluştur.'],cards:['Alan Kartları','Her alanın sorumluları ve temizlik zamanları.'],staff:['Personel','Asıl ve yedek temizleyen kişileri yönet.'],history:['Geçmiş','Tamamlanan temizlik kayıtları.']}[b.dataset.view];
- $('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]
-});
-$('#drawBtn').onclick=()=>state.drawMode?cancelDraw():startDraw();
-$('#toggleAreasBtn').onclick=()=>{state.showAreas=!state.showAreas;$('#toggleAreasBtn').textContent=state.showAreas?'Alanları Gizle':'Alanları Göster';renderPlan()};
-$('#addStaffBtn').onclick=()=>editStaff(null);$('#refreshBtn').onclick=loadAll;$('#demoBtn').onclick=loadDemoData;
-window.addEventListener('keydown',e=>{if(e.key==='Escape'&&state.drawMode)cancelDraw()});
-loadAll();
 state.reportPeriod='today';
 const typeNames={daily:'Günlük',weekly:'Haftalık',monthly:'Aylık'};
 
@@ -476,3 +466,54 @@ window.resolveWarning=async function(id){var r=await db.from('emigro_cleaning_no
 
 if($('#newWarningBtn'))$('#newWarningBtn').onclick=openGeneralWarning;
 $$('.warning-filter').forEach(function(b){b.onclick=function(){$$('.warning-filter').forEach(function(x){x.classList.toggle('active',x===b)});state.warningFilter=b.dataset.warningFilter;renderNotifications()}});
+
+function initCleaningAdmin(){
+  $$('.nav').forEach(function(b){
+    b.onclick=function(){
+      $$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});
+      $$('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+b.dataset.view)});
+      var meta={
+        report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],
+        tracking:['Görev Takibi','Fotoğraflı tamamlanma ve aksama takibi.'],
+        plan:['Temizlik Planı','Plan resmini yükle ve alanları tanımla.'],
+        cards:['Alan Kartları','Günlük, haftalık ve aylık görev tanımları.'],
+        staff:['Personel Kartları','Sorumluluk ve performans takibi.'],
+        notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],
+        history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']
+      }[b.dataset.view];
+      if(meta){$('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]}
+    }
+  });
+
+  if($('#drawBtn')) $('#drawBtn').onclick=function(){state.drawMode?cancelDraw():startDraw()};
+  if($('#toggleAreasBtn')) $('#toggleAreasBtn').onclick=function(){
+    state.showAreas=!state.showAreas;
+    $('#toggleAreasBtn').textContent=state.showAreas?'Alanları Gizle':'Alanları Göster';
+    renderPlan();
+  };
+  if($('#addStaffBtn')) $('#addStaffBtn').onclick=function(){editStaff(null)};
+  if($('#refreshBtn')) $('#refreshBtn').onclick=loadAll;
+  if($('#demoBtn')) $('#demoBtn').onclick=loadDemoData;
+  if($('#newWarningBtn')) $('#newWarningBtn').onclick=openGeneralWarning;
+  if($('#trackingDate')) $('#trackingDate').onchange=renderTracking;
+  if($('#reportType')) $('#reportType').onchange=renderReport;
+
+  $$('.period').forEach(function(b){
+    b.onclick=function(){
+      $$('.period').forEach(function(x){x.classList.toggle('active',x===b)});
+      state.reportPeriod=b.dataset.period;
+      renderReport();
+    }
+  });
+  $$('.warning-filter').forEach(function(b){
+    b.onclick=function(){
+      $$('.warning-filter').forEach(function(x){x.classList.toggle('active',x===b)});
+      state.warningFilter=b.dataset.warningFilter;
+      renderNotifications();
+    }
+  });
+
+  window.addEventListener('keydown',function(e){if(e.key==='Escape'&&state.drawMode)cancelDraw()});
+  loadAll();
+}
+initCleaningAdmin();
