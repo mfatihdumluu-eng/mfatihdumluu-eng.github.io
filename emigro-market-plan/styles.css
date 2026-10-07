@@ -34,3 +34,5 @@ button{border:1px solid rgba(255,255,255,.16);background:transparent;color:inher
 .section-editor{display:grid;gap:8px;margin:8px 0 12px}
 .section-card{border:1px solid var(--border);background:#f8fafb;border-radius:6px;padding:8px}
 .section-card>b{display:block;font-size:11px;margin-bottom:7px;color:var(--text)}
+
+.section-num,.section-name{dominant-baseline:alphabetic}
