@@ -2,8 +2,10 @@ const SUPABASE_URL='https://hroarfuwpfsqilsijwpp.supabase.co';
 const SUPABASE_KEY='sb_publishable_tAn6zZNaqMQW-BLXwXI30g_lmBUWENo';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-const ADMIN_MODE=new URLSearchParams(location.search).get('mode')!=='worker';
-const state={zones:[],staff:[],cards:[],logs:[],notifications:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:ADMIN_MODE,redrawZoneId:null};
+const PARAMS=new URLSearchParams(location.search);
+const ADMIN_MODE=PARAMS.get('mode')!=='worker';
+const WORKER_ID=Number(PARAMS.get('staff')||localStorage.getItem('emigro-cleaning-worker')||0)||null;
+const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:ADMIN_MODE,redrawZoneId:null,workerStaffId:WORKER_ID};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dayNames=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
@@ -17,24 +19,28 @@ function manualZones(){return state.zones.filter(z=>z.manual&&z.active)}
 function zoneById(id){return state.zones.find(z=>String(z.id)===String(id))}
 function staffById(id){return state.staff.find(p=>String(p.id)===String(id))}
 function cardByZone(id){return state.cards.find(c=>String(c.zone_id)===String(id))}
+function tagsFor(zoneId,type){return state.taskTags.filter(function(x){return String(x.zone_id)===String(zoneId)&&x.task_type===type&&x.active!==false}).sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0)})}
+function workerById(){return staffById(state.workerStaffId)}
+function taskAssignedToWorker(t){var w=t.assigned||t.primary;return !!w&&String(w.id)===String(state.workerStaffId)}
 function fmtDays(arr){return !arr?.length?'—':arr.map(x=>dayNames[x]).join(', ')}
 function fmtMonthDays(arr){return !arr?.length?'—':arr.map(x=>x+'. gün').join(', ')}
 
 async function loadAll(){
  try{
   $('#dbState').textContent='● Bağlanıyor';
-  const [z,p,c,l,n,s]=await Promise.all([
+  const [z,p,c,l,n,t,s]=await Promise.all([
    db.from('emigro_cleaning_zones').select('*').order('sort_order'),
    db.from('emigro_cleaning_staff').select('*').order('name'),
    db.from('emigro_cleaning_zone_cards').select('*'),
    db.from('emigro_cleaning_logs').select('*').order('work_date',{ascending:false}).limit(1500),
    db.from('emigro_cleaning_notifications').select('*').order('created_at',{ascending:false}).limit(500),
+   db.from('emigro_cleaning_task_tags').select('*').order('sort_order'),
    db.from('emigro_cleaning_settings').select('*').eq('id',1).single()
   ]);
-  [z,p,c,l,n,s].forEach(r=>{if(r.error)throw r.error});
-  state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.notifications=n.data||[];state.settings=s.data||{};
+  [z,p,c,l,n,t,s].forEach(r=>{if(r.error)throw r.error});
+  state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.notifications=n.data||[];state.taskTags=t.data||[];state.settings=s.data||{};if(!state.isAdmin&&!state.workerStaffId&&state.staff[0])state.workerStaffId=state.staff[0].id;
   $('#dbState').textContent='● Veritabanı bağlı';
-  applyPlanImage();renderAll();
+  applyPlanImage();renderAll();setupWorkerMode();
  }catch(e){console.error(e);$('#dbState').textContent='● Bağlantı hatası';toast('Veritabanı bağlantı hatası')}
 }
 
@@ -173,15 +179,18 @@ function zoneCardForm(z,c={}){
 
  <div class="field full"><label>Günlük</label><label class="check"><input type="checkbox" name="daily_enabled" ${c.daily_enabled?'checked':''}> Aktif</label><div class="checks">${weekdayChecks('daily_days',c.daily_days||[1,2,3,4,5,6,0])}</div></div>
  <div class="field"><label>Günlük saat</label><input type="time" name="daily_time" value="${c.daily_time?.slice(0,5)||''}"></div>
- <div class="field full"><label>Günlük ne yapılacak?</label><textarea name="daily_task" placeholder="Örn. zemin süpür, paspas yap, raf önlerini sil...">${esc(c.daily_task||'')}</textarea></div>
+ <div class="field full"><label>Günlük ne yapılacak?</label><textarea name="daily_task" placeholder="Örn. zemin süpür, paspas yap...">${esc(c.daily_task||'')}</textarea></div>
+ <div class="field full"><label>Günlük sabit görevler</label><textarea name="daily_tags" placeholder="Her satıra bir görev yazın. Örn. Kasap tezgâhını temizle&#10;Yerleri paspasla">${esc(tagsFor(z.id,'daily').map(function(x){return x.label}).join('\n'))}</textarea></div>
 
  <div class="field full"><label>Haftalık</label><label class="check"><input type="checkbox" name="weekly_enabled" ${c.weekly_enabled?'checked':''}> Aktif</label><div class="checks">${weekdayChecks('weekly_days',c.weekly_days||[])}</div></div>
  <div class="field"><label>Haftalık saat</label><input type="time" name="weekly_time" value="${c.weekly_time?.slice(0,5)||''}"></div>
- <div class="field full"><label>Haftalık ne yapılacak?</label><textarea name="weekly_task" placeholder="Örn. raf altlarını temizle, köşeleri detaylı sil...">${esc(c.weekly_task||'')}</textarea></div>
+ <div class="field full"><label>Haftalık ne yapılacak?</label><textarea name="weekly_task" placeholder="Örn. raf altlarını temizle...">${esc(c.weekly_task||'')}</textarea></div>
+ <div class="field full"><label>Haftalık sabit görevler</label><textarea name="weekly_tags">${esc(tagsFor(z.id,'weekly').map(function(x){return x.label}).join('\n'))}</textarea></div>
 
  <div class="field full"><label>Aylık</label><label class="check"><input type="checkbox" name="monthly_enabled" ${c.monthly_enabled?'checked':''}> Aktif</label><div class="checks">${monthDayChecks(c.monthly_days||[])}</div></div>
  <div class="field"><label>Aylık saat</label><input type="time" name="monthly_time" value="${c.monthly_time?.slice(0,5)||''}"></div>
- <div class="field full"><label>Aylık ne yapılacak?</label><textarea name="monthly_task" placeholder="Örn. derin temizlik, duvar dipleri, dolap arkaları...">${esc(c.monthly_task||'')}</textarea></div>
+ <div class="field full"><label>Aylık ne yapılacak?</label><textarea name="monthly_task" placeholder="Örn. derin temizlik...">${esc(c.monthly_task||'')}</textarea></div>
+ <div class="field full"><label>Aylık sabit görevler</label><textarea name="monthly_tags">${esc(tagsFor(z.id,'monthly').map(function(x){return x.label}).join('\n'))}</textarea></div>
  </div>
  <div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>`
 }
@@ -211,7 +220,14 @@ function bindZoneCardForm(z,isNew,c={}){
    updated_at:new Date().toISOString()
   };
   const {error}=await db.from('emigro_cleaning_zone_cards').upsert(cardRow,{onConflict:'zone_id'});if(error)return toast(error.message);
-  closeModal();toast('Alan kartı kaydedildi');loadAll()
+  for(const tp of ['daily','weekly','monthly']){
+    var del=await db.from('emigro_cleaning_task_tags').delete().eq('zone_id',zoneId).eq('task_type',tp);if(del.error)return toast(del.error.message);
+    var labels=String(fd.get(tp+'_tags')||'').split(/\n+/).map(function(x){return x.trim()}).filter(Boolean);
+    if(labels.length){
+      var ins=await db.from('emigro_cleaning_task_tags').insert(labels.map(function(label,i){return {zone_id:zoneId,task_type:tp,label:label,active:true,sort_order:i}}));if(ins.error)return toast(ins.error.message)
+    }
+  }
+  closeModal();toast('Alan kartı ve sabit görevler kaydedildi');loadAll()
  }
 }
 window.deleteZone=async id=>{if(!state.isAdmin)return toast('Alan silme yetkisi sadece adminde');if(!confirm('Bu seçili alan tamamen silinsin mi? Alan tanımı ve rutini kaldırılacak.'))return;const {error}=await db.from('emigro_cleaning_zones').delete().eq('id',id);if(error)return toast(error.message);loadAll()};
@@ -222,9 +238,13 @@ window.editStaff=id=>{
  <div class="field"><label>Ad Soyad</label><input name="name" required value="${esc(p.name||'')}"></div>
  <div class="field"><label>Rol</label><input name="role" value="${esc(p.role||'')}"></div>
  <div class="field"><label>Telefon</label><input name="phone" value="${esc(p.phone||'')}"></div>
+ <div class="field"><label>Çalışma grubu</label><select name="department">
+  <option value="">Seçiniz</option>
+  ${['Kasa','Raf','Sebze Meyve','Genel Temizlik','Depo'].map(function(x){return '<option value="'+x+'" '+(p.department===x?'selected':'')+'>'+x+'</option>'}).join('')}
+ </select></div>
  <div class="field"><label>Durum</label><select name="active"><option value="true" ${p.active!==false?'selected':''}>Aktif</option><option value="false" ${p.active===false?'selected':''}>Pasif</option></select></div>
  </div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>`);
- $('#staffForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target),row={name:fd.get('name'),role:fd.get('role'),phone:fd.get('phone'),active:fd.get('active')==='true'};const q=p.id?db.from('emigro_cleaning_staff').update(row).eq('id',p.id):db.from('emigro_cleaning_staff').insert(row);const {error}=await q;if(error)return toast(error.message);closeModal();loadAll()}
+ $('#staffForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target),row={name:fd.get('name'),role:fd.get('role'),phone:fd.get('phone'),department:fd.get('department')||null,active:fd.get('active')==='true'};const q=p.id?db.from('emigro_cleaning_staff').update(row).eq('id',p.id):db.from('emigro_cleaning_staff').insert(row);const {error}=await q;if(error)return toast(error.message);closeModal();loadAll()}
 };
 
 
@@ -375,7 +395,8 @@ function makeTask(zone,card,type,d){
   primary:primary,backup:backup,
   assigned:backupActive?backup:primary,
   backupActive:backupActive,
-  taskText:card[type+'_task']||''
+  taskText:card[type+'_task']||'',
+  tags:tagsFor(zone.id,type)
  }
 }
 function expectedTasks(from,to){
@@ -458,6 +479,7 @@ function renderTracking(){
  if(!$('#trackingDate'))return;
  var inp=$('#trackingDate');if(!inp.value)inp.value=dateKeyLocal(new Date());
  var d=parseDateLocal(inp.value),tasks=expectedTasks(dayStart(d),dayEnd(d)).filter(function(t){return t.type===state.trackingType});
+ if(!state.isAdmin)tasks=tasks.filter(taskAssignedToWorker);
  tasks.sort(function(a,b){return priorityRank(a.zone)-priorityRank(b.zone)||dueAt(a)-dueAt(b)});
  var groups={overdue:[],pending:[],done:[]};
  tasks.forEach(function(t){groups[statusFor(t).key].push(t)});
@@ -465,7 +487,7 @@ function renderTracking(){
    var st=statusFor(t),l=st.log,who=t.assigned||t.primary,proof=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
    var actions=st.key==='done'
      ? (proof||'<span class="sub">Fotoğraf yok</span>')
-     : '<button class="primary compact-btn" onclick="openComplete(\''+t.key+'\')">Yaptım</button>'+(st.key==='overdue'?'<button class="ghost compact-btn" onclick="openWarningForTask(\''+t.key+'\')">Uyar</button>':'');
+     : '<button class="primary compact-btn" onclick="openComplete(\''+t.key+'\')">Yaptım</button>'+(state.isAdmin&&st.key==='overdue'?'<button class="ghost compact-btn" onclick="openWarningForTask(\''+t.key+'\')">Uyar</button>':'');
    return '<article class="today-task '+st.key+' priority-'+(t.zone.priority||'normal')+'" onclick="openZoneStatus('+t.zone.id+')"><div class="today-task-main"><div class="today-task-top"><span class="calendar-type-label">'+typeNames[t.type]+'</span>'+(t.zone.priority!=='normal'?'<span class="priority-badge '+t.zone.priority+'">'+(t.zone.priority==='critical'?'Kritik':'Yüksek')+'</span>':'')+'</div><h3>'+esc(t.zone.name)+'</h3><p>'+esc(t.taskText||'Görev açıklaması yok')+'</p><div class="today-meta">🕒 '+(t.time?t.time.slice(0,5):'—')+' · 👤 '+esc((who&&who.name)||'Atanmamış')+'</div></div><div class="today-task-actions" onclick="event.stopPropagation()">'+actions+'</div></article>'
  }
  $('#todayOverCount').textContent=groups.overdue.length;$('#todayPendingCount').textContent=groups.pending.length;$('#todayDoneCount').textContent=groups.done.length;
@@ -481,10 +503,11 @@ window.openComplete=function(key){
  var choices=[t.assigned,t.primary,t.backup].filter(Boolean).filter(function(p,i,a){return a.findIndex(function(x){return x.id===p.id})===i});
  if(!choices.length)choices=state.staff.filter(function(p){return p.active});
  var opts=choices.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
- openModal('<h2>Temizlik Tamamlandı</h2><form id="completeForm"><div class="form-grid"><div class="field full"><label>Alan / görev</label><div><b>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</b><div class="sub">'+esc(t.taskText)+'</div></div></div><div class="field"><label>Yapan kişi</label><select name="staff_id" required>'+opts+'</select></div><div class="field"><label>Planlanan saat</label><input value="'+(t.time?t.time.slice(0,5):'—')+'" disabled></div><div class="field full"><label>Fotoğraf kanıtı</label><div class="proof-upload">Temizlik sonrası fotoğraf yükleyin.<br><input id="proofFile" type="file" accept="image/*" capture="environment" required></div></div><div class="field full"><label>Not</label><textarea name="note" placeholder="Varsa açıklama..."></textarea></div></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Yaptım Olarak Kaydet</button></div></form>');
+ openModal('<h2>Temizlik Tamamlandı</h2><form id="completeForm"><div class="form-grid"><div class="field full"><label>Alan / görev</label><div><b>'+esc(t.zone.name)+' · '+typeNames[t.type]+'</b><div class="sub">'+esc(t.taskText)+'</div></div></div><div class="field"><label>Yapan kişi</label><select name="staff_id" required>'+opts+'</select></div><div class="field"><label>Planlanan saat</label><input value="'+(t.time?t.time.slice(0,5):'—')+'" disabled></div>'+(t.tags&&t.tags.length?'<div class="field full"><label>Sabit görevler</label><div class="worker-checklist">'+t.tags.map(function(x){return '<label><input type="checkbox" name="tag_done" value="'+x.id+'"> <span>'+esc(x.label)+'</span></label>'}).join('')+'</div></div>':'')+'<div class="field full"><label>Fotoğraf kanıtı</label><div class="proof-upload">Temizlik sonrası fotoğraf çekin veya yükleyin.<br><input id="proofFile" type="file" accept="image/*" capture="environment" '+(t.zone.proof_required?'required':'')+'></div></div><div class="field full"><label>Durum / Not</label><textarea name="note" placeholder="Bu alanda dikkat edilmesi gereken bir durum varsa yazın..."></textarea></div></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Yaptım Olarak Kaydet</button></div></form>');
  $('#completeForm').onsubmit=async function(e){
   e.preventDefault();var fd=new FormData(e.target),file=$('#proofFile').files&&$('#proofFile').files[0];if(t.zone.proof_required&&!file)return toast('Bu alan için fotoğraf zorunlu');
-  var proof=file?await compressProof(file):null,row={slot_key:t.key,schedule_id:null,zone_id:t.zone.id,staff_id:+fd.get('staff_id'),work_date:dateKeyLocal(t.date),status:'done',completed_at:new Date().toISOString(),note:fd.get('note')||'',task_type:t.type,planned_time:t.time,proof_image_data:proof};
+  var checked=fd.getAll('tag_done').map(Number);if(t.tags&&t.tags.length&&checked.length<t.tags.length)return toast('Sabit görevlerin tamamını işaretleyin');
+  var proof=file?await compressProof(file):null,row={slot_key:t.key,schedule_id:null,zone_id:t.zone.id,staff_id:+fd.get('staff_id'),work_date:dateKeyLocal(t.date),status:'done',completed_at:new Date().toISOString(),note:fd.get('note')||'',issue_note:fd.get('note')||'',task_type:t.type,planned_time:t.time,proof_image_data:proof,task_tags_snapshot:t.tags||[]};
   var res=await db.from('emigro_cleaning_logs').upsert(row,{onConflict:'slot_key'});if(res.error)return toast(res.error.message);closeModal();toast('Fotoğraflı tamamlanma kaydedildi');loadAll()
  }
 };
@@ -495,7 +518,7 @@ window.markSkipped=async function(key){
 };
 window.showPhoto=function(key){var l=state.logs.find(function(x){return x.slot_key===key});if(!l||!l.proof_image_data)return toast('Fotoğraf yok');$('#photoView').src=l.proof_image_data;$('#photoModal').classList.remove('hidden')};
 function compressProof(file){
- return new Promise(function(resolve,reject){var img=new Image(),url=URL.createObjectURL(file);img.onload=function(){var max=1200,sc=Math.min(1,max/Math.max(img.width,img.height)),w=Math.round(img.width*sc),h=Math.round(img.height*sc),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);resolve(c.toDataURL('image/jpeg',.76))};img.onerror=reject;img.src=url})
+ return new Promise(function(resolve,reject){var img=new Image(),url=URL.createObjectURL(file);img.onload=function(){var max=960,sc=Math.min(1,max/Math.max(img.width,img.height)),w=Math.round(img.width*sc),h=Math.round(img.height*sc),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);resolve(c.toDataURL('image/jpeg',.68))};img.onerror=reject;img.src=url})
 }
 
 function staffStats(id){
@@ -847,9 +870,14 @@ function renderStaff(){
   return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.role||'Rol belirtilmedi')+'</div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
    '<div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div>'+
    '<div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
-   '<div class="card-actions"><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button></div></article>'
+   '<div class="card-actions"><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
  }).join(''):'<div class="sub">Personel eklenmedi.</div>'
 }
+
+window.openWorkerView=function(id){
+ var url=location.pathname+'?mode=worker&staff='+id;
+ window.open(url,'_blank');
+};
 
 state.calendarType='daily';
 
@@ -894,6 +922,46 @@ function openManagementView(view){
     history:['Geçmiş','Tamamlanan ve yapılmayan temizlik kayıtları.']
   }[view];
   if(meta){$('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]}
+}
+
+function workerTasksToday(){
+ if(state.isAdmin||!state.workerStaffId)return [];
+ var n=new Date();return expectedTasks(dayStart(n),dayEnd(n)).filter(taskAssignedToWorker)
+}
+function emitWorkerNotice(title,body,key){
+ try{
+  var k='emigro-notice-'+key;if(localStorage.getItem(k))return;
+  localStorage.setItem(k,new Date().toISOString());
+  toast(title+' · '+body);
+  if('Notification' in window&&Notification.permission==='granted')new Notification(title,{body:body})
+ }catch(e){}
+}
+function checkWorkerReminders(){
+ var now=new Date();
+ workerTasksToday().forEach(function(t){
+   if(statusFor(t).key==='done')return;
+   var due=dueAt(t),diff=due-now,late=now-due;
+   if(diff>=0&&diff<=15*60*1000)emitWorkerNotice('15 dakika sonra görev',t.zone.name+' · '+typeNames[t.type],'pre-'+t.key);
+   if(late>=2*60*60*1000)emitWorkerNotice('Görev 2 saat gecikti',t.zone.name+' hâlâ tamamlanmadı','late-'+t.key)
+ })
+}
+window.enableWorkerNotifications=async function(){
+ if(!('Notification' in window))return toast('Bu cihaz bildirimleri desteklemiyor');
+ var p=await Notification.requestPermission();
+ toast(p==='granted'?'Bildirimler açıldı':'Bildirim izni verilmedi')
+};
+function setupWorkerMode(){
+ if(state.isAdmin)return;
+ var w=workerById();
+ if(w){
+   $('#pageTitle').textContent=w.name;
+   $('#pageSub').textContent=(w.department||w.role||'Temizlik')+' · Bugünkü görevlerin';
+   localStorage.setItem('emigro-cleaning-worker',w.id)
+ }
+ var btn=$('#refreshBtn');if(btn)btn.title='Görevleri yenile';
+ if($('#demoBtn'))$('#demoBtn').classList.add('hidden');
+ checkWorkerReminders();
+ if(!window.__workerReminderTimer)window.__workerReminderTimer=setInterval(checkWorkerReminders,60000)
 }
 function initCleaningAdmin(){
   if(!state.isAdmin){
