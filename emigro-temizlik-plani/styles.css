@@ -1074,3 +1074,14 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
 .worker-notice-actions{display:flex;gap:8px;align-items:center}
 @media(max-width:900px){.worker-demo-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.worker-demo-grid{grid-template-columns:1fr}.worker-demo-card{min-height:72px}.worker-notice-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.worker-notice-actions button{width:100%!important}}
+
+.worker-mode .sidebar nav{grid-template-columns:repeat(3,1fr)!important;max-width:430px;margin:0 auto}
+.worker-message{grid-template-columns:auto 1fr!important;align-items:flex-start!important}
+.worker-message .notification-actions{display:none!important}
+.worker-empty-message{padding:40px 20px;text-align:center;background:#fff;border:1px solid #eaecf0;border-radius:20px}
+.worker-empty-message>span{display:block;font-size:28px;margin-bottom:8px}
+.worker-empty-message b{display:block;font-size:16px;color:#101828}
+.worker-empty-message p{margin:5px 0 0;color:#667085;font-size:13px}
+.optional-label{color:#98a2b3;font-weight:500;font-size:12px}
+.worker-mode .today-task-actions{grid-template-columns:1fr!important}
+.worker-mode .today-task-actions .primary{width:100%!important}
