@@ -1060,3 +1060,7 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
  .task-tag-list span{font-size:12px}
  .worker-checklist label{font-size:15px}
 }
+
+.report-tag-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.report-tag-list span{display:inline-flex;padding:5px 8px;border-radius:999px;background:#eaf8f1;color:#067647;font-size:10px;font-weight:750}
+.report-note{margin-top:8px;padding:8px 10px;border-radius:10px;background:#fff8e6;color:#7a5a00;font-size:11px;line-height:1.4}
