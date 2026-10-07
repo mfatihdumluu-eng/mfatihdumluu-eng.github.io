@@ -568,8 +568,8 @@ if($('#reportType'))$('#reportType').onchange=renderReport;
 $$('.period').forEach(function(b){b.onclick=function(){$$('.period').forEach(function(x){x.classList.toggle('active',x===b)});state.reportPeriod=b.dataset.period;renderReport()}});
 $$('.nav').forEach(function(b){b.onclick=function(){
  $$('.nav').forEach(function(x){x.classList.toggle('active',x===b)});$$('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+b.dataset.view)});
- var meta={report:['Admin Raporu','Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.'],tracking:['Temizlik İşleri','Günlük, haftalık ve aylık işleri sade şekilde takip edin.'],
-        calendar:['Temizlik Takvimi','Günlük, haftalık ve aylık görev/personel planı.'],plan:['Temizlik Planı','Plan resmini yükle ve alanları tanımla.'],staff:['Personel Kartları','Sorumluluk ve performans takibi.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
+ var meta={report:['Yönetim','Raporlar, uyarılar ve geçmiş kayıtları.'],tracking:['Bugün','Günlük, haftalık ve aylık temizlik işleri.'],
+        calendar:['Takvim','Planlanan temizlikler ve sorumlular.'],plan:['Plan','Market alanları ve temizlik bölgeleri.'],staff:['Personel','Sorumluluklar ve görev durumu.'],notifications:['Uyarılar & Bildirimler','Personele gönderilen temizlik uyarıları ve takip kayıtları.'],history:['Geçmiş','Tamamlanan temizlikler ve fotoğraf kanıtları.']}[b.dataset.view];
  $('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]
 }});
 
@@ -812,8 +812,11 @@ function renderNotifications(){
  if(!$('#notificationList'))return;
  var list=state.notifications.slice();
  if(state.warningFilter==='open')list=list.filter(function(n){return n.status!=='resolved'});
- var openCount=state.notifications.filter(function(n){return n.status!=='resolved'}).length,b=$('#warningBadge');
- if(b){if(openCount){b.classList.remove('hidden');b.textContent=openCount}else b.classList.add('hidden')}
+ var openCount=state.notifications.filter(function(n){return n.status!=='resolved'}).length;
+ ['#warningBadge','#warningBadge2'].forEach(function(sel){
+   var b=$(sel);if(!b)return;
+   if(openCount){b.classList.remove('hidden');b.textContent=openCount}else b.classList.add('hidden');
+ });
  $('#notificationList').innerHTML=list.length?list.map(function(n){
   var p=staffById(n.staff_id),z=zoneById(n.zone_id),sev=n.severity==='urgent'?'urgent':n.severity==='info'?'info':'warning';
   return '<article class="notification-card '+sev+'"><div class="notification-icon">'+(sev==='urgent'?'!':sev==='info'?'i':'⚠')+'</div><div><div class="notification-title"><b>'+esc(n.title)+'</b><span>'+new Date(n.created_at).toLocaleString('tr-TR')+'</span></div><p>'+esc(n.message)+'</p><div class="notification-meta">👤 '+esc((p&&p.name)||'—')+(z?' · 📍 '+esc(z.name):'')+(n.work_date?' · '+n.work_date:'')+'</div></div><div class="notification-actions">'+(n.status!=='resolved'?'<button onclick="resolveWarning('+n.id+')">Çözüldü</button>':'<span class="status done">Çözüldü</span>')+'</div></article>'
@@ -866,6 +869,19 @@ function staffResponsibilityLines(personId){
    })
  });
  return lines
+}
+
+function openManagementView(view){
+  ['report','notifications','history'].forEach(function(v){
+    var el=$('#view-'+v);if(el)el.classList.toggle('active',v===view);
+  });
+  $$('.nav').forEach(function(n){n.classList.toggle('active',n.dataset.view==='report')});
+  var meta={
+    report:['Yönetim','Raporlar, uyarılar ve geçmiş kayıtları.'],
+    notifications:['Uyarılar','Gönderilen uyarılar ve açık bildirimler.'],
+    history:['Geçmiş','Tamamlanan ve yapılmayan temizlik kayıtları.']
+  }[view];
+  if(meta){$('#pageTitle').textContent=meta[0];$('#pageSub').textContent=meta[1]}
 }
 function initCleaningAdmin(){
   if(!state.isAdmin){
@@ -923,12 +939,15 @@ function initCleaningAdmin(){
       renderReport();
     }
   });
-  $$('.warning-filter').forEach(function(b){
+  $('.warning-filter').forEach(function(b){
     b.onclick=function(){
-      $$('.warning-filter').forEach(function(x){x.classList.toggle('active',x===b)});
+      $('.warning-filter').forEach(function(x){x.classList.toggle('active',x===b)});
       state.warningFilter=b.dataset.warningFilter;
       renderNotifications();
     }
+  });
+  $('.manage-tab').forEach(function(b){
+    b.onclick=function(){openManagementView(b.dataset.manageView)}
   });
 
   window.addEventListener('keydown',function(e){if(e.key==='Escape'&&state.drawMode)cancelDraw()});
