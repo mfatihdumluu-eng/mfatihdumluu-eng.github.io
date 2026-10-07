@@ -15,6 +15,7 @@
     <nav>
       <button class="nav active" data-view="tracking"><span>✓</span><b>Bugün</b></button>
       <button class="nav" data-view="calendar"><span>▣</span><b>Takvim</b></button>
+      <button class="nav worker-only hidden" data-view="worker-notifications"><span>🔔</span><b>Bildirimler</b><em id="workerAlertBadge" class="nav-badge hidden">0</em></button>
       <button class="nav" data-view="plan"><span>⌖</span><b>Plan</b></button>
       <button class="nav" data-view="staff"><span>👤</span><b>Personel</b></button>
       <button class="nav" data-view="report"><span>⋯</span><b>Yönetim</b><em id="alertBadge" class="nav-badge hidden">0</em></button>
@@ -79,9 +80,8 @@
           <input id="trackingDate" type="date">
         </div>
         <div id="workerNoticeBar" class="worker-notice-bar hidden">
-          <div><b>Görev bildirimleri</b><span>15 dk önce ve 2 saat gecikmede uyarı al.</span></div>
+          <div><b>Görev hatırlatmaları</b><span>15 dk önce ve 2 saat gecikmede telefon bildirimi al.</span></div>
           <div class="worker-notice-actions">
-            <button class="ghost" onclick="testWorkerNotification()">Test Uyarısı</button>
             <button class="primary" onclick="enableWorkerNotifications()">Bildirimleri Aç</button>
           </div>
         </div>
@@ -136,6 +136,13 @@
           <div id="workerDemoGrid" class="worker-demo-grid"></div>
         </section>
         <div id="staffGrid" class="staff-grid"></div>
+      </section>
+
+      <section id="view-worker-notifications" class="view">
+        <div class="section-head">
+          <div><h2>Bildirimler</h2><p>Yönetimden sana gönderilen mesaj ve uyarılar.</p></div>
+        </div>
+        <div id="workerNotificationList" class="notification-list"></div>
       </section>
 
       <section id="view-notifications" class="view">
