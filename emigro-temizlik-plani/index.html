@@ -20,6 +20,7 @@
       <button class="nav" data-view="plan"><span>⌗</span><b>Temizlik Planı</b></button>
       <button class="nav" data-view="cards"><span>▤</span><b>Alan Kartları</b></button>
       <button class="nav" data-view="staff"><span>👤</span><b>Personel</b></button>
+      <button class="nav" data-view="notifications"><span>⚠</span><b>Uyarılar</b><em id="warningBadge" class="nav-badge hidden">0</em></button>
       <button class="nav" data-view="history"><span>↺</span><b>Geçmiş</b></button>
     </nav>
     <div class="sidebar-foot"><span id="dbState">● Bağlanıyor</span></div>
@@ -93,6 +94,20 @@
       <section id="view-staff" class="view">
         <div class="section-head"><div><h2>Personel Kartları</h2><p>Sorumluluklar ve performans tek kartta.</p></div><button id="addStaffBtn" class="primary">+ Personel Ekle</button></div>
         <div id="staffGrid" class="staff-grid"></div>
+      </section>
+
+      <section id="view-notifications" class="view">
+        <div class="section-head">
+          <div><h2>Uyarılar & Bildirimler</h2><p>Temizlik aksaması veya dikkat edilmesi gereken konuları personele iletin.</p></div>
+          <button id="newWarningBtn" class="primary">+ Bildirim Gönder</button>
+        </div>
+        <div class="report-toolbar">
+          <div class="segmented">
+            <button class="warning-filter active" data-warning-filter="open">Açık Uyarılar</button>
+            <button class="warning-filter" data-warning-filter="all">Tümü</button>
+          </div>
+        </div>
+        <div id="notificationList" class="notification-list"></div>
       </section>
 
       <section id="view-history" class="view">
