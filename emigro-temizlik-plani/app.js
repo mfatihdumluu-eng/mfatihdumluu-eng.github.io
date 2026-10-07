@@ -895,6 +895,89 @@ function renderWorkerDemoLaunchers(){
 }
 function taskAssignedToWorkerFor(t,id){var w=t.assigned||t.primary;return !!w&&String(w.id)===String(id)}
 
+window.openAssignTaskToStaff=function(staffId){
+ if(!state.isAdmin)return toast('Görev atama yetkisi sadece adminde');
+ var person=staffById(staffId);if(!person)return;
+ var zones=manualZones().filter(function(z){return z.active!==false});
+ if(!zones.length)return toast('Önce Plan ekranından bir alan tanımlayın');
+
+ var zoneOpts=zones.map(function(z){return '<option value="'+z.id+'">'+esc(z.name)+'</option>'}).join('');
+ openModal('<div class="zone-app-card assign-task-sheet">'+
+  '<div class="app-head"><span class="eyebrow">GÖREV ATA</span><h2>'+esc(person.name)+'</h2><p>'+esc(person.department||person.role||'Personel')+' için yeni temizlik görevi oluştur.</p></div>'+
+  '<form id="assignTaskForm"><div class="form-grid">'+
+   '<div class="field full"><label>Alan</label><select name="zone_id" id="assignZone" required>'+zoneOpts+'</select></div>'+
+   '<div class="field"><label>Görev türü</label><select name="task_type" id="assignTaskType"><option value="daily">Günlük</option><option value="weekly">Haftalık</option><option value="monthly">Aylık</option></select></div>'+
+   '<div class="field"><label>Saat</label><input type="time" name="time" value="09:00" required></div>'+
+   '<div class="field full"><label id="assignDaysLabel">Günler</label><div id="assignDaysBox" class="checks assign-days-box"></div></div>'+
+   '<div class="field full"><label>Görev açıklaması</label><textarea name="task_text" required placeholder="Örn. Kasap tezgâhını ve zeminini temizle"></textarea></div>'+
+   '<div class="field full"><label>Sabit görevler</label><textarea name="tags" placeholder="Her satıra bir görev yazın.&#10;Örn. Tezgâhı temizle&#10;Yerleri paspasla"></textarea><div class="field-help">Bu maddeler çalışan ekranında her görevde checkbox olarak görünür.</div></div>'+
+  '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Görevi Ata</button></div></form></div>');
+
+ var form=$('#assignTaskForm'),typeSel=$('#assignTaskType'),daysBox=$('#assignDaysBox'),daysLabel=$('#assignDaysLabel');
+
+ function renderAssignDays(){
+   var type=typeSel.value;
+   if(type==='monthly'){
+     daysLabel.textContent='Ayın günleri';
+     daysBox.innerHTML=monthDayChecks([1]);
+   }else{
+     daysLabel.textContent=type==='daily'?'Haftanın günleri':'Haftalık yapılacak gün';
+     daysBox.innerHTML=weekdayChecks('assign_days',type==='daily'?[0,1,2,3,4,5,6]:[1]);
+   }
+ }
+ typeSel.onchange=renderAssignDays;
+ renderAssignDays();
+
+ form.onsubmit=async function(e){
+   e.preventDefault();
+   var fd=new FormData(form),zoneId=Number(fd.get('zone_id')),type=fd.get('task_type'),time=fd.get('time')||null;
+   var taskText=(fd.get('task_text')||'').trim();
+   if(!taskText)return toast('Görev açıklamasını yaz');
+
+   var days=type==='monthly'
+     ? [...form.querySelectorAll('input[name="monthly_days"]:checked')].map(function(x){return Number(x.value)})
+     : [...form.querySelectorAll('input[name="assign_days"]:checked')].map(function(x){return Number(x.value)});
+   if(!days.length)return toast('En az bir gün seç');
+
+   var c=cardByZone(zoneId)||{};
+   var row={zone_id:zoneId,updated_at:new Date().toISOString()};
+   row[type+'_enabled']=true;
+   row[type+'_days']=days;
+   row[type+'_time']=time;
+   row[type+'_task']=taskText;
+   row[type+'_primary_staff_id']=staffId;
+   row[type+'_backup_staff_id']=null;
+   row[type+'_backup_days']=[];
+   if(type==='daily'){
+     row.primary_staff_id=staffId;
+     row.backup_staff_id=null;
+     row.backup_enabled=false;
+     row.backup_days=[];
+   }
+
+   var q=cardByZone(zoneId)
+     ? db.from('emigro_cleaning_zone_cards').update(row).eq('zone_id',zoneId)
+     : db.from('emigro_cleaning_zone_cards').insert(row);
+   var r=await q;if(r.error)return toast(r.error.message);
+
+   var del=await db.from('emigro_cleaning_task_tags').delete().eq('zone_id',zoneId).eq('task_type',type);
+   if(del.error)return toast(del.error.message);
+   var labels=String(fd.get('tags')||'').split(/\n+/).map(function(x){return x.trim()}).filter(Boolean);
+   if(labels.length){
+     var ins=await db.from('emigro_cleaning_task_tags').insert(labels.map(function(label,i){
+       return {zone_id:zoneId,task_type:type,label:label,active:true,sort_order:i}
+     }));
+     if(ins.error)return toast(ins.error.message)
+   }
+
+   closeModal();
+   toast(person.name+' kişisine '+typeNames[type].toLowerCase()+' görev atandı');
+   await loadAll();
+   var staffNav=document.querySelector('.nav[data-view="staff"]');if(staffNav)staffNav.click();
+ }
+ var box=$('#modal .modal-box');if(box)box.classList.add('zone-sheet','assign-task-modal');
+};
+
 function renderStaff(){
  if(!$('#staffGrid'))return;
  $('#staffGrid').innerHTML=state.staff.length?state.staff.map(function(p){
@@ -902,7 +985,7 @@ function renderStaff(){
   return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.role||'Rol belirtilmedi')+'</div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
    '<div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div>'+
    '<div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
-   '<div class="card-actions"><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView()">Kullanıcı Ekranı</button></div></article>'
+   '<div class="card-actions staff-actions"><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Görev Ata</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView()">Kullanıcı Ekranı</button></div></article>'
  }).join(''):'<div class="sub">Personel eklenmedi.</div>'
 }
 
