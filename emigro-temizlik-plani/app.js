@@ -525,61 +525,102 @@ window.openZoneAssignee=function(zoneId){
  if(!state.isAdmin)return toast('Kişi atama yetkisi sadece adminde');
  var z=zoneById(zoneId),c=cardByZone(zoneId)||{};
  var staff=state.staff.filter(function(p){return p.active});
- var options='<option value="">Atanmadı</option>'+staff.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
+ var options='<option value="">Seçiniz</option>'+staff.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
 
- openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">PERSONEL ATAMA</span><h2>'+esc((z&&z.name)||'Alan')+'</h2><p>Asıl ve yedek personeli seçin. Yedek günlerinde asıl görevli otomatik pasif olur.</p></div>'+
-  '<form id="zoneAssigneeForm"><div class="form-grid">'+
-   '<div class="field"><label>Asıl temizleyen</label><select name="primary" id="primaryStaffSelect">'+options+'</select></div>'+
-   '<div class="field"><label>Yedek temizleyen</label><select name="backup" id="backupStaffSelect">'+options+'</select></div>'+
-   '<div class="field full backup-calendar-wrap" id="backupCalendarWrap">'+
-    '<div class="backup-calendar-head"><div><label>Yedek Çalışma Günleri</label><p>İşaretlenen günlerde asıl kişi pasif olur ve görev yedeğe geçer.</p></div><span class="backup-status-pill" id="backupStatusPill">Yedek aktif değil</span></div>'+
-    '<div class="backup-day-grid">'+weekdayChecks('backup_days',c.backup_days||[])+'</div>'+
-    '<div class="backup-day-summary" id="backupDaySummary"></div>'+
+ openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">PERSONEL ATAMA</span><h2>'+esc((z&&z.name)||'Alan')+'</h2><p>Her gün için yalnızca bir kişi sorumludur. Yedek seçilen günlerde asıl otomatik pasif olur.</p></div>'+
+  '<form id="zoneAssigneeForm">'+
+   '<div class="assignment-person-grid">'+
+    '<div class="field"><label>Asıl temizleyen</label><select name="primary" id="primaryStaffSelect" required>'+options+'</select></div>'+
+    '<div class="field"><label>Yedek temizleyen</label><select name="backup" id="backupStaffSelect">'+options+'</select></div>'+
    '</div>'+
-  '</div><div class="form-actions"><button type="button" class="ghost" onclick="openZoneStatus('+zoneId+')">Geri</button><button class="primary">Atamayı Kaydet</button></div></form></div>');
+   '<div class="day-owner-card"><div class="day-owner-head"><div><b>Haftalık Sorumluluk</b><span>Her gün Asıl veya Yedek seçilir.</span></div><span id="dayOwnerHint" class="backup-status-pill">7 gün Asıl</span></div>'+
+    '<div id="dayOwnerGrid" class="day-owner-grid"></div>'+
+   '</div>'+
+   '<div class="form-actions"><button type="button" class="ghost" onclick="openZoneStatus('+zoneId+')">Geri</button><button class="primary">Atamayı Kaydet</button></div>'+
+  '</form></div>');
 
- var form=$('#zoneAssigneeForm'), primarySel=$('#primaryStaffSelect'), backupSel=$('#backupStaffSelect'), wrap=$('#backupCalendarWrap'), pill=$('#backupStatusPill'), summary=$('#backupDaySummary');
+ var form=$('#zoneAssigneeForm'),primarySel=$('#primaryStaffSelect'),backupSel=$('#backupStaffSelect'),grid=$('#dayOwnerGrid'),hint=$('#dayOwnerHint');
  primarySel.value=c.primary_staff_id||'';
  backupSel.value=c.backup_staff_id||'';
 
- function updateBackupCalendar(){
-   var backupId=backupSel.value;
-   wrap.classList.toggle('hidden',!backupId);
-   if(!backupId){pill.textContent='Yedek aktif değil';summary.innerHTML='';return}
-   var checked=[...form.querySelectorAll('input[name="backup_days"]:checked')].map(function(x){return Number(x.value)});
-   pill.textContent=checked.length?checked.length+' gün yedek aktif':'Gün seçilmedi';
-   summary.innerHTML=checked.length
-     ? checked.map(function(d){return '<span><b>'+dayNames[d]+'</b><small>Asıl pasif · Yedek aktif</small></span>'}).join('')
-     : '<em>Yedek için en az bir gün seçin.</em>';
+ function selectedBackupDays(){return c.backup_enabled?(c.backup_days||[]):[]}
+
+ function renderDayOwners(){
+  var primaryId=primarySel.value,backupId=backupSel.value,backupDays=selectedBackupDays();
+  grid.innerHTML=dayNames.map(function(day,i){
+    var useBackup=!!backupId&&backupDays.includes(i);
+    return '<div class="day-owner-row" data-day="'+i+'">'+
+      '<div class="day-name">'+day+'</div>'+
+      '<div class="owner-toggle">'+
+       '<label class="owner-choice '+(!useBackup?'selected':'')+'"><input type="radio" name="owner_'+i+'" value="primary" '+(!useBackup?'checked':'')+'>Asıl</label>'+
+       '<label class="owner-choice '+(useBackup?'selected':'')+' '+(!backupId?'disabled':'')+'"><input type="radio" name="owner_'+i+'" value="backup" '+(useBackup?'checked':'')+' '+(!backupId?'disabled':'')+'>Yedek</label>'+
+      '</div>'+
+      '<div class="day-owner-person">'+(useBackup?esc(staffById(backupId)?.name||'Yedek'):esc(staffById(primaryId)?.name||'Asıl seçilmedi'))+'</div>'+
+    '</div>'
+  }).join('');
+  bindOwnerRadios();
+  updateOwnerHint();
  }
- backupSel.onchange=function(){
-   if(backupSel.value&&primarySel.value&&backupSel.value===primarySel.value){backupSel.value='';toast('Asıl ve yedek aynı kişi olamaz')}
-   updateBackupCalendar()
- };
+
+ function bindOwnerRadios(){
+  grid.querySelectorAll('input[type="radio"]').forEach(function(r){
+    r.onchange=function(){
+      var row=r.closest('.day-owner-row');
+      row.querySelectorAll('.owner-choice').forEach(function(l){l.classList.remove('selected')});
+      r.closest('.owner-choice').classList.add('selected');
+      var who=r.value==='backup'?staffById(backupSel.value):staffById(primarySel.value);
+      row.querySelector('.day-owner-person').textContent=(who&&who.name)||(r.value==='backup'?'Yedek':'Asıl seçilmedi');
+      updateOwnerHint();
+    }
+  })
+ }
+
+ function updateOwnerHint(){
+  var backupCount=0;
+  grid.querySelectorAll('.day-owner-row').forEach(function(row){
+    var checked=row.querySelector('input[type="radio"]:checked');
+    if(checked&&checked.value==='backup')backupCount++;
+  });
+  hint.textContent=backupCount?((7-backupCount)+' gün Asıl · '+backupCount+' gün Yedek'):'7 gün Asıl';
+ }
+
  primarySel.onchange=function(){
-   if(backupSel.value&&primarySel.value===backupSel.value){backupSel.value='';toast('Asıl ve yedek aynı kişi olamaz')}
-   updateBackupCalendar()
+  if(backupSel.value&&primarySel.value===backupSel.value){backupSel.value='';toast('Asıl ve yedek aynı kişi olamaz')}
+  renderDayOwners()
  };
- form.querySelectorAll('input[name="backup_days"]').forEach(function(el){el.onchange=updateBackupCalendar});
- updateBackupCalendar();
+ backupSel.onchange=function(){
+  if(backupSel.value&&primarySel.value===backupSel.value){backupSel.value='';toast('Asıl ve yedek aynı kişi olamaz')}
+  // Backup changed: existing backup-day pattern is preserved if a backup still exists.
+  renderDayOwners()
+ };
+
+ renderDayOwners();
 
  form.onsubmit=async function(e){
   e.preventDefault();
-  var fd=new FormData(form),primary=fd.get('primary')?+fd.get('primary'):null,backup=fd.get('backup')?+fd.get('backup'):null,days=fd.getAll('backup_days').map(Number);
+  var primary=primarySel.value?+primarySel.value:null,backup=backupSel.value?+backupSel.value:null;
+  if(!primary)return toast('Önce asıl temizleyeni seç');
   if(primary&&backup&&primary===backup)return toast('Asıl ve yedek aynı kişi olamaz');
-  if(backup&&!days.length)return toast('Yedek için en az bir gün seç');
+
+  var backupDays=[];
+  grid.querySelectorAll('.day-owner-row').forEach(function(row){
+    var checked=row.querySelector('input[type="radio"]:checked');
+    if(checked&&checked.value==='backup')backupDays.push(Number(row.dataset.day));
+  });
+  if(backupDays.length&&!backup)return toast('Yedek günleri seçili ama yedek personel yok');
+
   var row={
    primary_staff_id:primary,
    backup_staff_id:backup,
-   backup_enabled:!!backup&&days.length>0,
-   backup_days:backup?days:[],
+   backup_enabled:!!backup&&backupDays.length>0,
+   backup_days:backup?backupDays:[],
    updated_at:new Date().toISOString()
   };
   var q=cardByZone(zoneId)
     ? db.from('emigro_cleaning_zone_cards').update(row).eq('zone_id',zoneId)
     : db.from('emigro_cleaning_zone_cards').insert(Object.assign({zone_id:zoneId},row));
   var r=await q;if(r.error)return toast(r.error.message);
-  toast('Sorumlular ve yedek günleri güncellendi');await loadAll();openZoneStatus(zoneId)
+  toast('Haftalık sorumluluk kaydedildi');await loadAll();openZoneStatus(zoneId)
  };
  var box=$('#modal .modal-box');if(box)box.classList.add('zone-sheet');
 };
