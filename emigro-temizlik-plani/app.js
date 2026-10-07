@@ -114,7 +114,7 @@ function posPct(e){
 function startDraw(redrawZoneId=null){
  if(!state.isAdmin)return toast('Alan seçme yetkisi sadece adminde');
  if(!state.settings?.plan_image_data)return toast('Önce plan resmini yükle');
- state.drawMode=true;state.drawStart=null;state.redrawZoneId=redrawZoneId;
+ state.drawMode=true;state.drawStart=null;state.redrawZoneId=redrawZoneId;$('#planStage').classList.add('drawing');
  $('#drawBtn').textContent='İptal';
  $('#drawStatus').textContent=redrawZoneId?'Alan için yeni sınırı mouse ile çiz.':'Mouse ile alanın çevresini çiz.';
 }
@@ -123,7 +123,7 @@ function startZoneRedraw(id){
  closeModal();startDraw(id);toast('Yeni alan sınırını çiz');
 }
 window.startZoneRedraw=startZoneRedraw
-function cancelDraw(){state.drawMode=false;state.drawStart=null;state.redrawZoneId=null;$('#drawRect').classList.add('hidden');$('#drawBtn').textContent='+ Alan Seç';$('#drawStatus').textContent='Alan seçmek için “Alan Seç”e bas.'}
+function cancelDraw(){state.drawMode=false;state.drawStart=null;state.redrawZoneId=null;$('#planStage').classList.remove('drawing');$('#drawRect').classList.add('hidden');$('#drawBtn').textContent='+ Alan Seç';$('#drawStatus').textContent='Alan seçmek için “Alan Seç”e bas.'}
 $('#planStage').addEventListener('pointerdown',e=>{
  if(!state.drawMode)return;
  e.preventDefault();state.drawStart=posPct(e);const d=$('#drawRect');d.classList.remove('hidden');d.style.left=state.drawStart.x+'%';d.style.top=state.drawStart.y+'%';d.style.width='0%';d.style.height='0%'
@@ -204,7 +204,7 @@ function bindZoneCardForm(z,isNew,c={}){
   closeModal();toast('Alan kartı kaydedildi');loadAll()
  }
 }
-window.deleteZone=async id=>{if(!state.isAdmin)return toast('Alan silme yetkisi sadece adminde');if(!confirm('Bu alanı ve kartını silmek istiyor musun?'))return;const {error}=await db.from('emigro_cleaning_zones').delete().eq('id',id);if(error)return toast(error.message);loadAll()};
+window.deleteZone=async id=>{if(!state.isAdmin)return toast('Alan silme yetkisi sadece adminde');if(!confirm('Bu seçili alan tamamen silinsin mi? Alan tanımı ve rutini kaldırılacak.'))return;const {error}=await db.from('emigro_cleaning_zones').delete().eq('id',id);if(error)return toast(error.message);loadAll()};
 
 window.editStaff=id=>{
  const p=state.staff.find(x=>x.id===id)||{};
@@ -501,7 +501,7 @@ window.openZoneStatus=function(id){
  '<div class="zone-period-summary">'+summary(week,'daily')+summary(week,'weekly')+summary(month,'monthly')+'</div>'+
  '<div class="section-head compact"><div><h2>Bugünkü Durum</h2><p>Planlanan temizlikler ve kanıtlar</p></div></div><div class="zone-task-list">'+todayRows+'</div>'+
  '<div class="section-head compact"><div><h2>Son Kayıtlar</h2><p>Bu alanda yapılan son işlemler</p></div></div><div class="recent-clean-list">'+recentRows+'</div>'+
- '<div class="form-actions"><button class="ghost" onclick="openZoneCardModal('+z.id+')">Tanımlamayı Düzenle</button>'+(state.isAdmin?'<button class="ghost" onclick="startZoneRedraw('+z.id+')">Alanı Yeniden Seç</button>':'')+'<button class="primary" onclick="openWarning('+z.id+',null,null)">Bildirim Gönder</button></div>')
+ '<div class="form-actions mobile-actions"><button class="ghost" onclick="openZoneCardModal('+z.id+')">Tanımlamayı Düzenle</button>'+(state.isAdmin?'<button class="ghost" onclick="startZoneRedraw('+z.id+')">Alanı Yeniden Seç</button><button class="danger-btn" onclick="deleteZone('+z.id+')">Alanı Sil</button>':'')+'<button class="primary" onclick="openWarning('+z.id+',null,null)">Bildirim Gönder</button></div>')
 };
 
 window.openWarningForTask=function(key){
@@ -612,3 +612,9 @@ function initCleaningAdmin(){
   loadAll();
 }
 initCleaningAdmin();
+
+function applyMobileClass(){
+ document.body.classList.toggle('mobile-ui',window.innerWidth<=760);
+}
+window.addEventListener('resize',applyMobileClass);
+applyMobileClass();
