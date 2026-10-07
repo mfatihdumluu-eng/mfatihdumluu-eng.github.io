@@ -16,8 +16,8 @@
   <aside class="sidebar">
     <div class="brand"><div class="brand-mark">E</div><div><b>EMIGRO</b><span>Temizlik Yönetimi</span></div></div>
     <nav>
-      <button class="nav active" data-view="report"><span>▦</span><b>Rapor</b><em id="alertBadge" class="nav-badge hidden">0</em></button>
-      <button class="nav" data-view="tracking"><span>✓</span><b>Bugün</b></button>
+      <button class="nav" data-view="report"><span>▦</span><b>Rapor</b><em id="alertBadge" class="nav-badge hidden">0</em></button>
+      <button class="nav active" data-view="tracking"><span>✓</span><b>Bugün</b></button>
       <button class="nav" data-view="calendar"><span>▣</span><b>Takvim</b></button>
       <button class="nav" data-view="plan"><span>⌗</span><b>Market Planı</b></button>
       <button class="nav" data-view="staff"><span>👤</span><b>Personel</b></button>
@@ -31,7 +31,8 @@
     <header class="topbar">
       <div class="topbar-brand">
         <div class="mobile-brand">EMİGRO</div>
-        <div class="mobile-subtitle" id="pageTitle">Temizlik Yönetimi</div>
+        <div class="mobile-subtitle" id="pageTitle">Temizlik İşleri</div>
+        <div id="demoBadge" class="demo-badge hidden">DEMO</div>
         <p id="pageSub" class="sr-only">Yapılan, bekleyen ve aksayan temizlikleri tek ekranda görün.</p>
       </div>
       <div class="top-actions">
@@ -41,7 +42,7 @@
     </header>
 
     <main class="content">
-      <section id="view-report" class="view active">
+      <section id="view-report" class="view">
         <div id="assignmentAlert" class="alert-panel assignment-alert hidden"></div>
         <div id="problemPanel" class="alert-panel recurring-alert hidden"></div>
         <div id="alertPanel" class="alert-panel hidden"></div>
@@ -72,7 +73,7 @@
         <div id="reportList" class="report-list"></div>
       </section>
 
-      <section id="view-tracking" class="view">
+      <section id="view-tracking" class="view active">
         <div class="section-head operation-head">
           <div><h2>Temizlik İşleri</h2><p>Aksayan, sıradaki ve tamamlanan işleri takip edin.</p></div>
           <input id="trackingDate" type="date">
