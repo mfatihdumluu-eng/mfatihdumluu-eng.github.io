@@ -5,7 +5,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const PARAMS=new URLSearchParams(location.search);
 const ADMIN_MODE=PARAMS.get('mode')!=='worker';
 const WORKER_ID=Number(PARAMS.get('staff')||0)||null;
-const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:ADMIN_MODE,redrawZoneId:null,workerStaffId:WORKER_ID};
+const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],oneoffTasks:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:ADMIN_MODE,redrawZoneId:null,workerStaffId:WORKER_ID};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dayNames=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
@@ -59,17 +59,18 @@ function fmtMonthDays(arr){return !arr?.length?'—':arr.map(x=>x+'. gün').join
 async function loadAll(){
  try{
   $('#dbState').textContent='● Bağlanıyor';
-  const [z,p,c,l,n,t,s]=await Promise.all([
+  const [z,p,c,l,n,t,o,s]=await Promise.all([
    db.from('emigro_cleaning_zones').select('*').order('sort_order'),
    db.from('emigro_cleaning_staff').select('*').order('name'),
    db.from('emigro_cleaning_zone_cards').select('*'),
    db.from('emigro_cleaning_logs').select('*').order('work_date',{ascending:false}).limit(1500),
    db.from('emigro_cleaning_notifications').select('*').order('created_at',{ascending:false}).limit(500),
    db.from('emigro_cleaning_task_tags').select('*').order('sort_order'),
+   db.from('emigro_cleaning_oneoff_tasks').select('*').eq('active',true).order('work_date'),
    db.from('emigro_cleaning_settings').select('*').eq('id',1).single()
   ]);
-  [z,p,c,l,n,t,s].forEach(r=>{if(r.error)throw r.error});
-  state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.notifications=n.data||[];state.taskTags=t.data||[];state.settings=s.data||{};
+  [z,p,c,l,n,t,o,s].forEach(r=>{if(r.error)throw r.error});
+  state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.notifications=n.data||[];state.taskTags=t.data||[];state.oneoffTasks=o.data||[];state.settings=s.data||{};
   $('#dbState').textContent='● Veritabanı bağlı';
   applyPlanImage();renderAll();setupWorkerMode();openTaskDeepLink();
  }catch(e){console.error(e);$('#dbState').textContent='● Bağlantı hatası';toast('Veritabanı bağlantı hatası')}
@@ -410,7 +411,7 @@ function compressImage(file){
 
 state.reportPeriod='today';
 state.trackingType='daily';
-const typeNames={daily:'Günlük',weekly:'Haftalık',monthly:'Aylık'};
+const typeNames={daily:'Günlük',weekly:'Haftalık',monthly:'Aylık',oneoff:'Tek Seferlik'};
 
 function pad2(n){return String(n).padStart(2,'0')}
 function dateKeyLocal(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())}
@@ -451,6 +452,27 @@ function makeTask(zone,card,type,d){
   proofRequired:typeof card[type+'_proof_required']==='boolean'?card[type+'_proof_required']:!!zone.proof_required
  }
 }
+function makeOneoffTask(row){
+ var person=staffById(row.staff_id),zone=zoneById(row.zone_id)||{id:row.zone_id||0,name:row.zone_id?'Alan':'Genel Görev',priority:'normal',proof_required:false};
+ var d=parseDateLocal(row.work_date);
+ return {
+   key:'oneoff:'+row.id+':'+row.work_date,
+   oneoffId:row.id,
+   zone:zone,
+   card:null,
+   type:'oneoff',
+   date:d,
+   time:row.task_time||null,
+   primary:person,
+   backup:null,
+   assigned:person,
+   backupActive:false,
+   taskText:row.task_text||row.title||'Tek seferlik görev',
+   tags:[],
+   proofRequired:!!row.proof_required,
+   title:row.title||'Tek Seferlik Görev'
+ }
+}
 function expectedTasks(from,to){
  var out=[],zones=manualZones();
  for(var d=dayStart(from);d<=to;d=addLocalDays(d,1)){
@@ -468,6 +490,10 @@ function expectedTasks(from,to){
    }
   }
  }
+ state.oneoffTasks.forEach(function(row){
+   var d=parseDateLocal(row.work_date);
+   if(d>=dayStart(from)&&d<=dayEnd(to))out.push(makeOneoffTask(row))
+ });
  return out
 }
 function configuredTasks(from,to){
@@ -540,7 +566,7 @@ function renderReport(){
 function renderTracking(){
  if(!$('#trackingDate'))return;
  var inp=$('#trackingDate');if(!inp.value)inp.value=dateKeyLocal(new Date());
- var d=parseDateLocal(inp.value),tasks=expectedTasks(dayStart(d),dayEnd(d)).filter(function(t){return t.type===state.trackingType});
+ var d=parseDateLocal(inp.value),tasks=expectedTasks(dayStart(d),dayEnd(d)).filter(function(t){return t.type===state.trackingType||(state.trackingType==='daily'&&t.type==='oneoff')});
  if(!state.isAdmin){if(!state.workerStaffId)tasks=[];else tasks=tasks.filter(taskAssignedToWorker);}
  tasks.sort(function(a,b){return priorityRank(a.zone)-priorityRank(b.zone)||dueAt(a)-dueAt(b)});
  var groups={overdue:[],pending:[],done:[]};
@@ -560,6 +586,10 @@ function renderTracking(){
  $('#todayDone').innerHTML=groups.done.length?groups.done.map(item).join(''):'<div class="today-empty">Tamamlanan iş yok.</div>';
 }
 function taskByKey(key){
+ if(String(key).startsWith('oneoff:')){
+   var p=key.split(':'),row=state.oneoffTasks.find(function(x){return String(x.id)===String(p[1])});
+   return row?makeOneoffTask(row):null
+ }
  var p=key.split(':'),z=zoneById(Number(p[0])),c=cardByZone(Number(p[0]));return z&&c?makeTask(z,c,p[1],parseDateLocal(p[2])):null
 }
 window.openComplete=function(key){
@@ -1134,6 +1164,52 @@ window.openAssignTaskToStaff=function(staffId){
  var box=$('#modal .modal-box');if(box)box.classList.add('zone-sheet','assign-task-modal');
 };
 
+window.openOneoffTask=function(staffId){
+ if(!state.isAdmin)return;
+ var person=staffById(staffId);if(!person)return;
+ var zones=manualZones();
+ var zoneOpts='<option value="">Genel / alan seçme</option>'+zones.map(function(z){return '<option value="'+z.id+'">'+esc(z.name)+'</option>'}).join('');
+ var today=dateKeyLocal(new Date());
+ openModal('<div class="zone-app-card oneoff-task-sheet">'+
+   '<div class="app-head"><span class="eyebrow">TEK SEFERLİK GÖREV</span><h2>'+esc(person.name)+'</h2><p>Bu görev yalnız seçilen tarih ve saatte görünecek.</p></div>'+
+   '<form id="oneoffTaskForm"><div class="form-grid">'+
+     '<div class="field"><label>Tarih</label><input type="date" name="work_date" value="'+today+'" required></div>'+
+     '<div class="field"><label>Saat</label><input type="time" name="task_time" value="12:00" required></div>'+
+     '<div class="field full"><label>Alan</label><select name="zone_id">'+zoneOpts+'</select></div>'+
+     '<div class="field full"><label>Başlık</label><input name="title" value="Tek Seferlik Görev" required></div>'+
+     '<div class="field full"><label>Görev</label><textarea name="task_text" required placeholder="Örn. Depo girişini bugün 16:00’ya kadar temizle"></textarea></div>'+
+     '<div class="field"><label>Fotoğraf</label><select name="proof_required"><option value="false">İsteğe bağlı</option><option value="true">Zorunlu</option></select></div>'+
+   '</div>'+
+   '<div class="oneoff-save-note">Kaydedince görev çalışanın Bugün/Takvim ekranına eklenir.</div>'+
+   '<div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Görevi Kaydet</button></div>'+
+   '</form>'+
+ '</div>');
+
+ $('#oneoffTaskForm').onsubmit=async function(e){
+   e.preventDefault();
+   var fd=new FormData(e.target);
+   var row={
+     staff_id:person.id,
+     zone_id:fd.get('zone_id')?Number(fd.get('zone_id')):null,
+     title:(fd.get('title')||'Tek Seferlik Görev').trim(),
+     task_text:(fd.get('task_text')||'').trim(),
+     work_date:fd.get('work_date'),
+     task_time:fd.get('task_time')||null,
+     proof_required:fd.get('proof_required')==='true',
+     active:true,
+     updated_at:new Date().toISOString()
+   };
+   if(!row.task_text)return toast('Görevi yaz');
+   var ins=await db.from('emigro_cleaning_oneoff_tasks').insert(row).select().single();
+   if(ins.error)return toast(ins.error.message);
+   await loadAll();
+   var task=makeOneoffTask(ins.data);
+   closeModal();
+   openTaskNotificationCard(task);
+ };
+ var box=$('#modal .modal-box');if(box)box.classList.add('zone-sheet','oneoff-task-modal');
+};
+
 function renderStaff(){
  if(!$('#staffGrid'))return;
  $('#staffGrid').innerHTML=state.staff.length?state.staff.map(function(p){
@@ -1141,7 +1217,7 @@ function renderStaff(){
   return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div class="staff-card-identity"><span class="staff-shared-icon">'+staffDeptIcon(p)+'</span><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.department||p.role||'Rol belirtilmedi')+'</div></div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
    '<div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div>'+
    '<div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
-   '<div class="card-actions staff-actions"><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Görev Ata</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
+   '<div class="card-actions staff-actions"><button class="oneoff-task-btn" onclick="event.stopPropagation();openOneoffTask('+p.id+')">+ Tek Seferlik Görev</button><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Rutin Görev</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
  }).join(''):'<div class="sub">Personel eklenmedi.</div>'
 }
 
@@ -1155,7 +1231,7 @@ state.calendarType='daily';
 function renderCalendar(){
  if(!$('#calendarList'))return;
  var input=$('#calendarDate');if(!input.value)input.value=dateKeyLocal(new Date());
- var d=parseDateLocal(input.value),type=state.calendarType,tasks=expectedTasks(dayStart(d),dayEnd(d)).filter(function(t){return t.type===type});
+ var d=parseDateLocal(input.value),type=state.calendarType,tasks=expectedTasks(dayStart(d),dayEnd(d)).filter(function(t){return t.type===type||(type==='daily'&&t.type==='oneoff')});
  if(!state.isAdmin)tasks=tasks.filter(taskAssignedToWorker);
  $('#calendarList').innerHTML=tasks.length?tasks.map(function(t){
    var st=statusFor(t),who=t.assigned||t.primary;
