@@ -1369,3 +1369,24 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
   background:#079455!important;
   color:#fff!important;
 }
+
+
+/* HARD LOCK WORKER PLAN INTERACTION */
+.worker-mode .plan-stage.worker-plan-stage{
+  pointer-events:none!important;
+}
+.worker-mode .plan-stage.worker-plan-stage .zone-overlay{
+  pointer-events:none!important;
+}
+.worker-mode .plan-stage.worker-plan-stage .worker-zone-active{
+  pointer-events:auto!important;
+}
+.worker-mode .plan-stage.worker-plan-stage .worker-zone-disabled{
+  pointer-events:none!important;
+}
+.worker-mode #view-plan #toggleAreasBtn,
+.worker-mode #view-plan #drawBtn,
+.worker-mode #view-plan #drawStatus,
+.worker-mode #view-plan .upload-btn{
+  display:none!important;
+}
