@@ -22,24 +22,20 @@ function cardByZone(id){return state.cards.find(c=>String(c.zone_id)===String(id
 function tagsFor(zoneId,type){return state.taskTags.filter(function(x){return String(x.zone_id)===String(zoneId)&&x.task_type===type&&x.active!==false}).sort(function(a,b){return (a.sort_order||0)-(b.sort_order||0)})}
 function workerById(){return staffById(state.workerStaffId)}
 function taskAssignedToWorker(t){var w=t.assigned||t.primary;return !!w&&String(w.id)===String(state.workerStaffId)}
+function workerTasksForDate(date){
+ if(state.isAdmin||!state.workerStaffId)return [];
+ var d=dayStart(date||new Date());
+ return expectedTasks(d,dayEnd(d)).filter(taskAssignedToWorker)
+}
 function workerAssignedToZone(zoneId){
  if(state.isAdmin)return true;
  if(!state.workerStaffId)return false;
- var c=cardByZone(zoneId)||{},id=String(state.workerStaffId);
- var fields=[
-   c.primary_staff_id,c.backup_staff_id,
-   c.daily_primary_staff_id,c.daily_backup_staff_id,
-   c.weekly_primary_staff_id,c.weekly_backup_staff_id,
-   c.monthly_primary_staff_id,c.monthly_backup_staff_id
- ];
- return fields.some(function(x){return String(x||'')===id})
+ return workerTasksForDate(new Date()).some(function(t){return String(t.zone.id)===String(zoneId)})
 }
 function workerZoneTypes(zoneId){
- var c=cardByZone(zoneId)||{},id=String(state.workerStaffId),out=[];
- ['daily','weekly','monthly'].forEach(function(type){
-   var p=c[type+'_primary_staff_id']||(type==='daily'?c.primary_staff_id:null);
-   var b=c[type+'_backup_staff_id']||(type==='daily'?c.backup_staff_id:null);
-   if(String(p||'')===id||String(b||'')===id)out.push(type)
+ var out=[];
+ workerTasksForDate(new Date()).forEach(function(t){
+   if(String(t.zone.id)===String(zoneId)&&!out.includes(t.type))out.push(t.type)
  });
  return out
 }
@@ -48,18 +44,12 @@ function staffDeptIcon(p){
  return {'Kasa':'🧾','Raf':'🧹','Sebze Meyve':'🥬','Genel Temizlik':'🧽','Depo':'📦'}[dep]||'👤'
 }
 function staffAssignedZones(personId){
- var id=String(personId),seen={};
- return manualZones().filter(function(z){
-   var c=cardByZone(z.id)||{};
-   var fields=[
-     c.primary_staff_id,c.backup_staff_id,
-     c.daily_primary_staff_id,c.daily_backup_staff_id,
-     c.weekly_primary_staff_id,c.weekly_backup_staff_id,
-     c.monthly_primary_staff_id,c.monthly_backup_staff_id
-   ];
-   var hit=fields.some(function(x){return String(x||'')===id});
-   if(hit&&!seen[z.id]){seen[z.id]=true;return true}
-   return false
+ var d=dayStart(new Date()),id=String(personId),seen={};
+ return expectedTasks(d,dayEnd(d)).filter(function(t){
+   var w=t.assigned||t.primary;
+   return w&&String(w.id)===id
+ }).map(function(t){return t.zone}).filter(function(z){
+   if(seen[z.id])return false;seen[z.id]=true;return true
  })
 }
 
@@ -194,13 +184,16 @@ function startZoneRedraw(id){
 window.startZoneRedraw=startZoneRedraw
 function cancelDraw(){state.drawMode=false;state.drawStart=null;state.redrawZoneId=null;$('#planStage').classList.remove('drawing');$('#drawRect').classList.add('hidden');$('#drawBtn').textContent='+ Alan Seç';$('#drawStatus').textContent='Alan seçmek için “Alan Seç”e bas.'}
 $('#planStage').addEventListener('pointerdown',e=>{
+ if(!state.isAdmin)return;
  if(!state.drawMode)return;
  e.preventDefault();state.drawStart=posPct(e);const d=$('#drawRect');d.classList.remove('hidden');d.style.left=state.drawStart.x+'%';d.style.top=state.drawStart.y+'%';d.style.width='0%';d.style.height='0%'
 });
 $('#planStage').addEventListener('pointermove',e=>{
+ if(!state.isAdmin)return;
  if(!state.drawMode||!state.drawStart)return;const p=posPct(e),x=Math.min(p.x,state.drawStart.x),y=Math.min(p.y,state.drawStart.y),w=Math.abs(p.x-state.drawStart.x),h=Math.abs(p.y-state.drawStart.y),d=$('#drawRect');d.style.left=x+'%';d.style.top=y+'%';d.style.width=w+'%';d.style.height=h+'%'
 });
 $('#planStage').addEventListener('pointerup',async e=>{
+ if(!state.isAdmin)return;
  if(!state.drawMode||!state.drawStart)return;
  const p=posPct(e),box={x:Math.min(p.x,state.drawStart.x),y:Math.min(p.y,state.drawStart.y),w:Math.abs(p.x-state.drawStart.x),h:Math.abs(p.y-state.drawStart.y)};
  const redrawId=state.redrawZoneId;
@@ -1250,7 +1243,7 @@ function setupWorkerMode(){
 }
 function initCleaningAdmin(){
   if(!state.isAdmin){
-    ['#drawBtn','.upload-btn','#demoBtn','#addStaffBtn'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
+    ['#drawBtn','#toggleAreasBtn','.upload-btn','#demoBtn','#addStaffBtn','#drawStatus'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
     $$('.danger-btn').forEach(function(el){el.classList.add('hidden')});
     $$('.nav').forEach(function(el){
       var allowed=['tracking','calendar','plan','worker-notifications'];
