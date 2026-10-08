@@ -68,7 +68,7 @@ async function initAuth(){
    var password=String(fd.get('password')||'');
    var r=await db.auth.signInWithPassword({email:email,password:password});
 
-   if(r.error&&email==='sedat@emigro.nl'&&String(r.error.message||'').toLowerCase().includes('invalid login credentials')){
+   if(r.error&&email==='info@emigro.nl'&&String(r.error.message||'').toLowerCase().includes('invalid login credentials')){
      showAuthMessage('Sedat Boss hesabı ilk kez aktive ediliyor...');
      var created=await db.auth.signUp({
        email:email,
@@ -79,7 +79,7 @@ async function initAuth(){
      if(created.data&&created.data.session){
        try{await establishAccess();initCleaningAdmin();return}catch(err){await db.auth.signOut();return showAuthMessage(err.message||'Boss profili bağlanamadı','error')}
      }
-     return showAuthMessage('Sedat hesabı oluşturuldu. sedat@emigro.nl adresine doğrulama maili gönderildi. Maildeki bağlantıyı bir kez açtıktan sonra aynı şifreyle giriş yap.')
+     return showAuthMessage('Sedat hesabı oluşturuldu. info@emigro.nl adresine doğrulama maili gönderildi. Maildeki bağlantıyı bir kez açtıktan sonra aynı şifreyle giriş yap.')
    }
 
    if(r.error)return showAuthMessage(r.error.message,'error');
