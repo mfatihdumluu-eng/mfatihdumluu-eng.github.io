@@ -1274,3 +1274,57 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
   border-color:#f97066!important;
   background:#fff7f6!important;
 }
+
+
+/* SELECTED WORKER SUMMARY */
+.worker-selected-header{
+  margin:0 0 14px;
+  padding:14px;
+  background:#fff;
+  border:1px solid #eaecf0;
+  border-radius:18px;
+  box-shadow:0 8px 24px rgba(16,24,40,.05);
+}
+.worker-selected-zones{display:flex;flex-direction:column;gap:10px}
+.worker-selected-zone-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px
+}
+.worker-selected-zone-head>span{
+  font-size:10px;font-weight:900;letter-spacing:.08em;color:#079455
+}
+.worker-change-profile{
+  border:0;background:#f2f4f7;color:#475467;
+  border-radius:999px;padding:7px 10px;font-size:10px;font-weight:800;cursor:pointer
+}
+.worker-selected-zone-buttons{
+  display:flex;flex-wrap:wrap;gap:8px
+}
+.worker-selected-zone-btn{
+  display:flex;flex-direction:column;align-items:flex-start;
+  min-width:150px;padding:10px 12px;
+  border:1px solid #b7ddc8;border-radius:14px;
+  background:#f4fbf7;color:#101828;cursor:pointer
+}
+.worker-selected-zone-btn b{font-size:12px}
+.worker-selected-zone-btn small{margin-top:3px;font-size:10px;color:#067647}
+.worker-selected-person{
+  display:flex;align-items:center;gap:10px;
+  margin-top:12px;padding-top:12px;border-top:1px solid #eef2f0
+}
+.worker-selected-icon{
+  width:40px;height:40px;display:grid;place-items:center;
+  border-radius:12px;background:#eaf8f1;font-size:20px
+}
+.worker-selected-person b{display:block;font-size:14px;color:#101828}
+.worker-selected-person small{display:block;margin-top:2px;font-size:11px;color:#667085}
+.worker-profile-pick-card{
+  display:grid!important;
+  grid-template-columns:auto 1fr!important;
+  align-items:center!important;
+  text-align:left!important;
+}
+@media(max-width:600px){
+  .worker-selected-zone-buttons{display:grid;grid-template-columns:1fr 1fr}
+  .worker-selected-zone-btn{min-width:0;width:100%}
+  .worker-selected-zone-head{align-items:flex-start}
+}
