@@ -313,6 +313,10 @@ function monthDayChecks(arr=[]){
 function zoneCardForm(z,c={}){
  return `<h2>${z.id?'Alan Kartı':'Yeni Alan'}</h2><form id="zoneCardForm"><div class="form-grid">
  <div class="field"><label>Alan adı</label><input name="name" required value="${esc(z.name||'')}"></div>
+ <div class="field"><label>Bölüm</label><select name="department" required>
+  <option value="">Seçiniz</option>
+  ${DEPARTMENTS.filter(function(d){return state.isFullAdmin||state.role!=='manager'||state.managedDepartments.includes(d)}).map(function(d){return '<option value="'+d+'" '+(z.department===d?'selected':'')+'>'+d+'</option>'}).join('')}
+ </select></div>
  <div class="field"><label>Renk</label><input name="color" type="color" value="${z.color||'#f47a20'}"></div>
  <div class="field"><label>Alan önceliği</label><select name="priority"><option value="normal" ${(z.priority||'normal')==='normal'?'selected':''}>Normal</option><option value="high" ${z.priority==='high'?'selected':''}>Yüksek</option><option value="critical" ${z.priority==='critical'?'selected':''}>Kritik</option></select></div>
  <div class="field"><label>Fotoğraf kanıtı</label><select name="proof_required"><option value="false" ${!z.proof_required?'selected':''}>İsteğe bağlı</option><option value="true" ${z.proof_required?'selected':''}>Zorunlu</option></select></div>
@@ -339,14 +343,14 @@ function zoneCardForm(z,c={}){
  <div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>`
 }
 function openNewZoneModal(box){
- const z={name:'',description:'',color:'#f47a20',priority:'normal',proof_required:false,x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),manual:true,active:true};
+ const z={name:'',department:state.role==='manager'&&state.managedDepartments.length===1?state.managedDepartments[0]:'',description:'',color:'#f47a20',priority:'normal',proof_required:false,x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),manual:true,active:true};
  openModal(zoneCardForm(z,{}));bindZoneCardForm(z,true)
 }
 window.openZoneCardModal=id=>{if(!state.isAdmin)return openZoneStatus(id);const z=zoneById(id),c=cardByZone(id)||{};openModal(zoneCardForm(z,c));bindZoneCardForm(z,false,c)};
 function bindZoneCardForm(z,isNew,c={}){
  $('#zoneCardForm').onsubmit=async e=>{
   e.preventDefault();const fd=new FormData(e.target);let zoneId=z.id;
-  const zoneRow={name:fd.get('name'),description:fd.get('description'),color:fd.get('color'),priority:fd.get('priority')||'normal',proof_required:fd.get('proof_required')==='true',manual:true,active:true,x:z.x,y:z.y,w:z.w,h:z.h,shape:'rect',code:z.code||('MANUAL-'+Date.now())};
+  const zoneRow={name:fd.get('name'),department:fd.get('department')||null,description:fd.get('description'),color:fd.get('color'),priority:fd.get('priority')||'normal',proof_required:fd.get('proof_required')==='true',manual:true,active:true,x:z.x,y:z.y,w:z.w,h:z.h,shape:'rect',code:z.code||('MANUAL-'+Date.now())};
   if(isNew){const {data,error}=await db.from('emigro_cleaning_zones').insert(zoneRow).select().single();if(error)return toast(error.message);zoneId=data.id}
   else{const {error}=await db.from('emigro_cleaning_zones').update(zoneRow).eq('id',z.id);if(error)return toast(error.message)}
   const cardRow={
@@ -382,13 +386,14 @@ window.editStaff=id=>{
  <div class="field"><label>Ad Soyad</label><input name="name" required value="${esc(p.name||'')}"></div>
  <div class="field"><label>Rol</label><input name="role" value="${esc(p.role||'')}"></div>
  <div class="field"><label>Telefon</label><input name="phone" value="${esc(p.phone||'')}"></div>
+ <div class="field"><label>E-posta</label><input type="email" name="email" value="${esc(p.email||'')}"></div>
  <div class="field"><label>Çalışma grubu</label><select name="department">
   <option value="">Seçiniz</option>
-  ${['Kasa','Raf','Sebze Meyve','Genel Temizlik','Depo'].map(function(x){return '<option value="'+x+'" '+(p.department===x?'selected':'')+'>'+x+'</option>'}).join('')}
+  ${DEPARTMENTS.filter(function(x){return state.isFullAdmin||state.role!=='manager'||state.managedDepartments.includes(x)}).map(function(x){return '<option value="'+x+'" '+(p.department===x?'selected':'')+'>'+x+'</option>'}).join('')}
  </select></div>
  <div class="field"><label>Durum</label><select name="active"><option value="true" ${p.active!==false?'selected':''}>Aktif</option><option value="false" ${p.active===false?'selected':''}>Pasif</option></select></div>
  </div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>`);
- $('#staffForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target),row={name:fd.get('name'),role:fd.get('role'),phone:fd.get('phone'),department:fd.get('department')||null,active:fd.get('active')==='true'};const q=p.id?db.from('emigro_cleaning_staff').update(row).eq('id',p.id):db.from('emigro_cleaning_staff').insert(row);const {error}=await q;if(error)return toast(error.message);closeModal();loadAll()}
+ $('#staffForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target),row={name:fd.get('name'),role:fd.get('role'),phone:fd.get('phone'),email:fd.get('email')||null,department:fd.get('department')||null,active:fd.get('active')==='true'};const q=p.id?db.from('emigro_cleaning_staff').update(row).eq('id',p.id):db.from('emigro_cleaning_staff').insert(row);const {error}=await q;if(error)return toast(error.message);closeModal();loadAll()}
 };
 
 
