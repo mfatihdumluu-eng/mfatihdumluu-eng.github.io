@@ -58,7 +58,7 @@ async function initAuth(){
    var email=String(new FormData($('#loginForm')).get('email')||'').trim().toLowerCase();
    if(!email)email=prompt('Şifre sıfırlama e-postası:','mfatihdumluu@gmail.com')||'';
    if(!email)return;
-   var r=await db.auth.resetPasswordForEmail(email);
+   var r=await db.auth.resetPasswordForEmail(email,{redirectTo:appRedirectUrl()});
    showAuthMessage(r.error?r.error.message:'Şifre sıfırlama bağlantısı '+email+' adresine gönderildi. Gelen kutusu ve spam klasörünü kontrol et.',r.error?'error':'ok')
  };
  if($('#loginForm'))$('#loginForm').onsubmit=async function(e){
@@ -73,7 +73,7 @@ async function initAuth(){
      var created=await db.auth.signUp({
        email:email,
        password:password,
-       options:{data:{display_name:'Sedat',role:'boss'}}
+       options:{emailRedirectTo:appRedirectUrl(),data:{display_name:'Sedat',role:'boss'}}
      });
      if(created.error)return showAuthMessage(created.error.message,'error');
      if(created.data&&created.data.session){
@@ -90,7 +90,7 @@ async function initAuth(){
    var fd=new FormData(e.target),email=String(fd.get('email')||'').trim().toLowerCase(),p1=String(fd.get('password')||''),p2=String(fd.get('password2')||'');
    if(p1!==p2)return showAuthMessage('Şifreler aynı değil.','error');
    showAuthMessage('Hesap aktive ediliyor...');
-   var r=await db.auth.signUp({email:email,password:p1});
+   var r=await db.auth.signUp({email:email,password:p1,options:{emailRedirectTo:appRedirectUrl()}});
    if(r.error)return showAuthMessage(r.error.message,'error');
    if(r.data.session){
      try{await establishAccess();initCleaningAdmin()}catch(err){await db.auth.signOut();showAuthMessage(err.message||'Bu e-posta sisteme davet edilmemiş','error')}
