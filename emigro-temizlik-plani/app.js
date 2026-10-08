@@ -5,10 +5,101 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const PARAMS=new URLSearchParams(location.search);
 const ADMIN_MODE=PARAMS.get('mode')!=='worker';
 const WORKER_ID=Number(PARAMS.get('staff')||0)||null;
-const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],oneoffTasks:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:ADMIN_MODE,redrawZoneId:null,workerStaffId:WORKER_ID};
+const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],oneoffTasks:[],accessUsers:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:false,isFullAdmin:false,role:null,accessProfile:null,managedDepartments:[],redrawZoneId:null,workerStaffId:null,authReady:false};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dayNames=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+
+const ROLE_LABELS={system_admin:'System Admin',boss:'Boss',manager:'Manager',worker:'Çalışan'};
+const DEPARTMENTS=['Kasap','Sebze Meyve','Kasa','Raf','Depo','Genel Temizlik'];
+
+function showAuthMessage(msg,kind){
+ var el=$('#authMessage');if(!el)return;
+ el.textContent=msg||'';el.classList.toggle('hidden',!msg);
+ el.classList.toggle('error',kind==='error');
+}
+function showAuthPane(name){
+ ['#authLoginPane','#authFirstPane','#authResetPane'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
+ var el=$(name);if(el)el.classList.remove('hidden');
+ showAuthMessage('');
+}
+function appRedirectUrl(extra){
+ return location.origin+location.pathname+(extra||'');
+}
+async function establishAccess(){
+ var r=await db.rpc('emigro_claim_preapproved_access');
+ if(r.error)throw r.error;
+ var profile=Array.isArray(r.data)?r.data[0]:r.data;
+ if(!profile)throw new Error('Yetki profili bulunamadı');
+ state.accessProfile=profile;
+ state.role=profile.role;
+ state.isFullAdmin=['system_admin','boss'].includes(profile.role);
+ state.isAdmin=profile.role!=='worker';
+ state.managedDepartments=profile.departments||[];
+ state.workerStaffId=profile.role==='worker'?Number(profile.staff_id)||null:null;
+ state.authReady=true;
+ $('#authGate')?.classList.add('hidden');
+ $('#appShell')?.classList.remove('hidden');
+ if($('#sessionBadge')){
+   $('#sessionBadge').classList.remove('hidden');
+   $('#sessionName').textContent=profile.display_name||profile.email||'Kullanıcı';
+   $('#sessionRole').textContent=ROLE_LABELS[profile.role]||profile.role;
+ }
+ $('#logoutBtn')?.classList.remove('hidden');
+ document.body.classList.toggle('full-admin',state.isFullAdmin);
+ document.body.classList.toggle('manager-mode',state.role==='manager');
+ document.body.classList.toggle('authenticated-worker',state.role==='worker');
+ return profile
+}
+async function initAuth(){
+ if($('#firstAccessBtn'))$('#firstAccessBtn').onclick=function(){showAuthPane('#authFirstPane')};
+ $('[data-auth-back]').forEach(function(b){b.onclick=function(){showAuthPane('#authLoginPane')}});
+ if($('#forgotPasswordBtn'))$('#forgotPasswordBtn').onclick=async function(){
+   var email=String(new FormData($('#loginForm')).get('email')||'').trim().toLowerCase();
+   if(!email)email=prompt('Şifre sıfırlama e-postası:','mfatihdumluu@gmail.com')||'';
+   if(!email)return;
+   var r=await db.auth.resetPasswordForEmail(email,{redirectTo:appRedirectUrl('?recovery=1')});
+   showAuthMessage(r.error?r.error.message:'Şifre sıfırlama bağlantısı '+email+' adresine gönderildi.',r.error?'error':'ok')
+ };
+ if($('#loginForm'))$('#loginForm').onsubmit=async function(e){
+   e.preventDefault();showAuthMessage('Giriş yapılıyor...');
+   var fd=new FormData(e.target);
+   var r=await db.auth.signInWithPassword({email:String(fd.get('email')||'').trim(),password:String(fd.get('password')||'')});
+   if(r.error)return showAuthMessage(r.error.message,'error');
+   try{await establishAccess();initCleaningAdmin()}catch(err){await db.auth.signOut();showAuthMessage(err.message||'Bu hesap sisteme davet edilmemiş','error')}
+ };
+ if($('#firstAccessForm'))$('#firstAccessForm').onsubmit=async function(e){
+   e.preventDefault();var fd=new FormData(e.target),email=String(fd.get('email')||'').trim().toLowerCase(),p1=String(fd.get('password')||''),p2=String(fd.get('password2')||'');
+   if(email!=='mfatihdumluu@gmail.com')return showAuthMessage('İlk erişim yalnız System Admin e-postası için açık.','error');
+   if(p1!==p2)return showAuthMessage('Şifreler aynı değil.','error');
+   var r=await db.auth.signUp({email:email,password:p1,options:{emailRedirectTo:appRedirectUrl()}});
+   if(r.error)return showAuthMessage(r.error.message,'error');
+   if(r.data.session){
+     try{await establishAccess();initCleaningAdmin()}catch(err){showAuthMessage(err.message,'error')}
+   }else showAuthMessage('Doğrulama e-postası gönderildi. E-postadaki bağlantıyı açıp sonra giriş yap.')
+ };
+ if($('#resetPasswordForm'))$('#resetPasswordForm').onsubmit=async function(e){
+   e.preventDefault();var fd=new FormData(e.target),p1=String(fd.get('password')||''),p2=String(fd.get('password2')||'');
+   if(p1!==p2)return showAuthMessage('Şifreler aynı değil.','error');
+   var r=await db.auth.updateUser({password:p1});
+   if(r.error)return showAuthMessage(r.error.message,'error');
+   showAuthMessage('Şifren güncellendi. Uygulama açılıyor.');
+   try{await establishAccess();initCleaningAdmin()}catch(err){showAuthMessage(err.message,'error')}
+ };
+ if($('#logoutBtn'))$('#logoutBtn').onclick=async function(){await db.auth.signOut();location.href=location.pathname};
+
+ db.auth.onAuthStateChange(function(event){
+   if(event==='PASSWORD_RECOVERY')showAuthPane('#authResetPane')
+ });
+
+ var ses=await db.auth.getSession();
+ if(ses.data&&ses.data.session){
+   try{await establishAccess();initCleaningAdmin();return}catch(err){await db.auth.signOut();showAuthMessage(err.message||'Erişim reddedildi','error')}
+ }
+ if(PARAMS.get('recovery')==='1')showAuthPane('#authResetPane');
+ else showAuthPane('#authLoginPane')
+}
+
 
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.add('hidden'),1800)}
 function openModal(html){var box=$('#modal .modal-box');if(box)box.classList.remove('zone-sheet');$('#modalBody').innerHTML=html;$('#modal').classList.remove('hidden')}
@@ -59,7 +150,7 @@ function fmtMonthDays(arr){return !arr?.length?'—':arr.map(x=>x+'. gün').join
 async function loadAll(){
  try{
   $('#dbState').textContent='● Bağlanıyor';
-  const [z,p,c,l,n,t,o,s]=await Promise.all([
+  const [z,p,c,l,n,t,o,s,a]=await Promise.all([
    db.from('emigro_cleaning_zones').select('*').order('sort_order'),
    db.from('emigro_cleaning_staff').select('*').order('name'),
    db.from('emigro_cleaning_zone_cards').select('*'),
@@ -67,12 +158,13 @@ async function loadAll(){
    db.from('emigro_cleaning_notifications').select('*').order('created_at',{ascending:false}).limit(500),
    db.from('emigro_cleaning_task_tags').select('*').order('sort_order'),
    db.from('emigro_cleaning_oneoff_tasks').select('*').eq('active',true).order('work_date'),
-   db.from('emigro_cleaning_settings').select('*').eq('id',1).single()
+   db.from('emigro_cleaning_settings').select('*').eq('id',1).single(),
+   state.isFullAdmin?db.from('emigro_cleaning_user_access').select('*').order('display_name'):Promise.resolve({data:[],error:null})
   ]);
-  [z,p,c,l,n,t,o,s].forEach(r=>{if(r.error)throw r.error});
-  state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.notifications=n.data||[];state.taskTags=t.data||[];state.oneoffTasks=o.data||[];state.settings=s.data||{};
+  [z,p,c,l,n,t,o,s,a].forEach(r=>{if(r.error)throw r.error});
+  state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.notifications=n.data||[];state.taskTags=t.data||[];state.oneoffTasks=o.data||[];state.settings=s.data||{};state.accessUsers=a.data||[];
   $('#dbState').textContent='● Veritabanı bağlı';
-  applyPlanImage();renderAll();setupWorkerMode();openTaskDeepLink();
+  applyPlanImage();renderAll();setupRoleUI();setupWorkerMode();renderAccessAdmin();openTaskDeepLink();
  }catch(e){console.error(e);$('#dbState').textContent='● Bağlantı hatası';toast('Veritabanı bağlantı hatası')}
 }
 
@@ -1059,6 +1151,93 @@ if($('#newWarningBtn'))$('#newWarningBtn').onclick=openGeneralWarning;
 $$('.warning-filter').forEach(function(b){b.onclick=function(){$$('.warning-filter').forEach(function(x){x.classList.toggle('active',x===b)});state.warningFilter=b.dataset.warningFilter;renderNotifications()}});
 
 
+function setupRoleUI(){
+ var worker=state.role==='worker',manager=state.role==='manager';
+ if(worker){
+   var change=$('.worker-change-profile');if(change)change.classList.add('hidden');
+ }
+ if(manager){
+   if($('#demoBtn'))$('#demoBtn').classList.add('hidden');
+   if($('#workerDemoGrid'))$('#workerDemoGrid').closest('.worker-demo-panel')?.classList.add('hidden');
+ }
+ if(!state.isFullAdmin){
+   if($('#accessAdminPanel'))$('#accessAdminPanel').classList.add('hidden');
+ }
+}
+function departmentChecks(selected){
+ selected=selected||[];
+ return DEPARTMENTS.map(function(d){
+   return '<label class="check"><input type="checkbox" name="departments" value="'+esc(d)+'" '+(selected.includes(d)?'checked':'')+'> '+esc(d)+'</label>'
+ }).join('')
+}
+async function invokeUserAdmin(body){
+ var r=await db.functions.invoke('cleaning-user-admin',{body:body});
+ if(r.error)throw r.error;
+ if(r.data&&r.data.error)throw new Error(r.data.error);
+ return r.data
+}
+function renderAccessAdmin(){
+ var panel=$('#accessAdminPanel');if(!panel)return;
+ if(!state.isFullAdmin){panel.classList.add('hidden');return}
+ panel.classList.remove('hidden');
+ var sedat=state.accessUsers.find(function(x){return x.role==='boss'&&String(x.display_name).toLowerCase()==='sedat'});
+ var sedatCard=$('#sedatSetupCard');
+ if(sedatCard)sedatCard.classList.toggle('hidden',!!(sedat&&sedat.email));
+ var list=$('#accessUserList');if(!list)return;
+ list.innerHTML=state.accessUsers.length?state.accessUsers.map(function(u){
+   var deps=(u.departments||[]).join(', ')||'Tüm alanlar / kapsam yok';
+   return '<article class="access-user-card"><div><b>'+esc(u.display_name)+'</b><span>'+esc(u.email||'E-posta bekleniyor')+'</span><small>'+esc(ROLE_LABELS[u.role]||u.role)+' · '+esc(deps)+'</small></div>'+
+     '<div><span class="status '+(u.active?'done':'overdue')+'">'+(u.active?'Aktif':'Pasif')+'</span>'+
+     (u.email&&u.role!=='system_admin'?'<button onclick="editAccessUser('+u.id+')">Yetkiyi Düzenle</button>':'')+'</div></article>'
+ }).join(''):'<div class="sub">Henüz kullanıcı yok.</div>'
+}
+window.openInviteUser=function(){
+ if(!state.isFullAdmin)return;
+ var staffOpts='<option value="">Personel kartı bağlama</option>'+state.staff.filter(function(p){return p.active}).map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+' · '+esc(p.department||'')+'</option>'}).join('');
+ var bossOption=state.role==='system_admin'?'<option value="boss">Boss</option>':'';
+ openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">KULLANICI DAVETİ</span><h2>Yeni kullanıcı</h2><p>E-posta ile güvenli davet gönderilir.</p></div>'+
+ '<form id="inviteUserForm"><div class="form-grid">'+
+ '<div class="field"><label>Ad Soyad</label><input name="display_name" required></div>'+
+ '<div class="field"><label>E-posta</label><input type="email" name="email" required></div>'+
+ '<div class="field"><label>Rol</label><select name="role"><option value="worker">Çalışan</option><option value="manager">Manager</option>'+bossOption+'</select></div>'+
+ '<div class="field"><label>Personel Kartı</label><select name="staff_id">'+staffOpts+'</select></div>'+
+ '<div class="field full"><label>Yönetebileceği Bölümler</label><div class="checks">'+departmentChecks([])+'</div></div>'+
+ '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Davet Gönder</button></div></form></div>');
+ $('#inviteUserForm').onsubmit=async function(e){
+   e.preventDefault();var fd=new FormData(e.target);
+   try{
+     await invokeUserAdmin({action:'invite',email:fd.get('email'),display_name:fd.get('display_name'),role:fd.get('role'),staff_id:fd.get('staff_id')||null,departments:fd.getAll('departments'),redirect_to:appRedirectUrl()});
+     closeModal();toast('Davet e-postası gönderildi');await loadAll()
+   }catch(err){toast(err.message||'Davet gönderilemedi')}
+ }
+};
+window.editAccessUser=function(id){
+ var u=state.accessUsers.find(function(x){return String(x.id)===String(id)});if(!u||!state.isFullAdmin)return;
+ var roleOptions='<option value="worker" '+(u.role==='worker'?'selected':'')+'>Çalışan</option><option value="manager" '+(u.role==='manager'?'selected':'')+'>Manager</option>'+
+   (state.role==='system_admin'?'<option value="boss" '+(u.role==='boss'?'selected':'')+'>Boss</option>':'');
+ openModal('<h2>Yetkiyi Düzenle</h2><form id="accessEditForm"><div class="form-grid">'+
+ '<div class="field full"><label>Kullanıcı</label><div><b>'+esc(u.display_name)+'</b><div class="sub">'+esc(u.email||'')+'</div></div></div>'+
+ '<div class="field"><label>Rol</label><select name="role">'+roleOptions+'</select></div>'+
+ '<div class="field"><label>Durum</label><select name="active"><option value="true" '+(u.active?'selected':'')+'>Aktif</option><option value="false" '+(!u.active?'selected':'')+'>Pasif</option></select></div>'+
+ '<div class="field full"><label>Yönetebileceği Bölümler</label><div class="checks">'+departmentChecks(u.departments||[])+'</div></div>'+
+ '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>');
+ $('#accessEditForm').onsubmit=async function(e){
+   e.preventDefault();var fd=new FormData(e.target);
+   try{
+     await invokeUserAdmin({action:'update_access',access_id:u.id,role:fd.get('role'),active:fd.get('active')==='true',departments:fd.getAll('departments')});
+     closeModal();toast('Yetki güncellendi');await loadAll()
+   }catch(err){toast(err.message||'Yetki güncellenemedi')}
+ }
+};
+window.setSedatEmail=function(){
+ if(state.role!=='system_admin')return;
+ openModal('<h2>Sedat · Boss hesabı</h2><form id="sedatEmailForm"><div class="field"><label>E-posta</label><input type="email" name="email" required></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Davet Gönder</button></div></form>');
+ $('#sedatEmailForm').onsubmit=async function(e){
+   e.preventDefault();var fd=new FormData(e.target);
+   try{await invokeUserAdmin({action:'set_sedat_email',email:fd.get('email'),redirect_to:appRedirectUrl()});closeModal();toast('Sedat için Boss daveti gönderildi');await loadAll()}catch(err){toast(err.message||'Davet gönderilemedi')}
+ }
+};
+
 function renderWorkerDemoLaunchers(){
  var box=$('#workerDemoGrid');if(!box)return;
  box.innerHTML='<button class="worker-demo-card worker-portal-launch" onclick="openWorkerView()">'+
@@ -1366,6 +1545,7 @@ window.selectWorkerProfile=function(id){
 };
 
 window.changeWorkerProfile=function(){
+ if(state.role==='worker')return;
  state.workerStaffId=null;
  localStorage.removeItem('emigro-cleaning-worker');
  var selected=$('#workerSelectedHeader');if(selected)selected.classList.add('hidden');
@@ -1446,6 +1626,8 @@ function initCleaningAdmin(){
     renderPlan();
   };
   if($('#addStaffBtn')) $('#addStaffBtn').onclick=function(){editStaff(null)};
+  if($('#inviteUserBtn')) $('#inviteUserBtn').onclick=openInviteUser;
+  if($('#setSedatEmailBtn')) $('#setSedatEmailBtn').onclick=setSedatEmail;
   if($('#refreshBtn')) $('#refreshBtn').onclick=loadAll;
   if($('#demoBtn')) $('#demoBtn').onclick=loadDemoData;
   if($('#newWarningBtn')) $('#newWarningBtn').onclick=openGeneralWarning;
@@ -1487,7 +1669,7 @@ function initCleaningAdmin(){
     $('#pageSub').textContent='Günlük, haftalık ve aylık işleri sade şekilde takip edin.';
   }
 }
-initCleaningAdmin();
+initAuth();
 
 function applyMobileClass(){
  document.body.classList.toggle('mobile-ui',window.innerWidth<=760);
