@@ -511,7 +511,14 @@ function periodRange(){
 function reportRowHtml(t){
  var st=statusFor(t),l=st.log,who=l?staffById(l.staff_id):(t.assigned||t.primary);
  var proof=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
- var action=st.key!=='done'?'<button onclick="openComplete(\''+t.key+'\')">Yaptım + Foto</button>':'<button onclick="showPhoto(\''+t.key+'\')">Kanıt</button>';
+ var action='';
+ if(st.key!=='done'){
+   action=state.isAdmin
+     ? '<button class="ghost" onclick="openWarningForTask(\''+t.key+'\')">Uyar</button>'
+     : '<button onclick="openComplete(\''+t.key+'\')">Yaptım</button>';
+ }else if(proof){
+   action='<button onclick="showPhoto(\''+t.key+'\')">Kanıt</button>';
+ }
  var snap=l&&Array.isArray(l.task_tags_snapshot)&&l.task_tags_snapshot.length?l.task_tags_snapshot:(t.tags||[]);
  var tagHtml=snap.length?'<div class="report-tag-list">'+snap.map(function(x){return '<span>'+esc(x.label||x)+'</span>'}).join('')+'</div>':'';
  var note=l&&(l.issue_note||l.note)?'<div class="report-note"><b>Not:</b> '+esc(l.issue_note||l.note)+'</div>':'';
@@ -548,7 +555,9 @@ function renderTracking(){
    var st=statusFor(t),l=st.log,who=t.assigned||t.primary,proof=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
    var actions=st.key==='done'
      ? (proof||'<span class="sub">Fotoğraf yok</span>')
-     : '<button class="primary compact-btn" onclick="openComplete(\''+t.key+'\')">Yaptım</button>'+(state.isAdmin&&st.key==='overdue'?'<button class="ghost compact-btn" onclick="openWarningForTask(\''+t.key+'\')">Uyar</button>':'');
+     : (state.isAdmin
+        ? '<button class="ghost compact-btn" onclick="openWarningForTask(\''+t.key+'\')">Uyar</button>'
+        : '<button class="primary compact-btn" onclick="openComplete(\''+t.key+'\')">Yaptım</button>');
    return '<article class="today-task '+st.key+' priority-'+(t.zone.priority||'normal')+'" onclick="openZoneStatus('+t.zone.id+')"><div class="today-task-main"><div class="today-task-top"><span class="calendar-type-label">'+typeNames[t.type]+'</span>'+(t.zone.priority!=='normal'?'<span class="priority-badge '+t.zone.priority+'">'+(t.zone.priority==='critical'?'Kritik':'Yüksek')+'</span>':'')+'</div><h3>'+esc(t.zone.name)+'</h3><p>'+esc(t.taskText||'Görev açıklaması yok')+'</p>'+(t.tags&&t.tags.length?'<div class="task-tag-list">'+t.tags.map(function(x){return '<span>'+esc(x.label)+'</span>'}).join('')+'</div>':'')+'<div class="today-meta">🕒 '+(t.time?t.time.slice(0,5):'—')+' · 👤 '+esc((who&&who.name)||'Atanmamış')+'</div></div><div class="today-task-actions" onclick="event.stopPropagation()">'+actions+'</div></article>'
  }
  $('#todayOverCount').textContent=groups.overdue.length;$('#todayPendingCount').textContent=groups.pending.length;$('#todayDoneCount').textContent=groups.done.length;
@@ -560,6 +569,7 @@ function taskByKey(key){
  var p=key.split(':'),z=zoneById(Number(p[0])),c=cardByZone(Number(p[0]));return z&&c?makeTask(z,c,p[1],parseDateLocal(p[2])):null
 }
 window.openComplete=function(key){
+ if(state.isAdmin)return toast('Görevi yalnız çalışan tamamlayabilir');
  var t=taskByKey(key);if(!t)return;
  var choices=[t.assigned,t.primary,t.backup].filter(Boolean).filter(function(p,i,a){return a.findIndex(function(x){return x.id===p.id})===i});
  if(!choices.length)choices=state.staff.filter(function(p){return p.active});
