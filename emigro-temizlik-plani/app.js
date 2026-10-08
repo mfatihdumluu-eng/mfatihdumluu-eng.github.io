@@ -1168,14 +1168,14 @@ window.openOneoffTask=function(staffId){
  if(!state.isAdmin)return;
  var person=staffById(staffId);if(!person)return;
  var zones=manualZones();
- var zoneOpts='<option value="">Genel / alan seçme</option>'+zones.map(function(z){return '<option value="'+z.id+'">'+esc(z.name)+'</option>'}).join('');
+ var zoneOpts='<option value="">Alan seç</option>'+zones.map(function(z){return '<option value="'+z.id+'">'+esc(z.name)+'</option>'}).join('');
  var today=dateKeyLocal(new Date());
  openModal('<div class="zone-app-card oneoff-task-sheet">'+
    '<div class="app-head"><span class="eyebrow">TEK SEFERLİK GÖREV</span><h2>'+esc(person.name)+'</h2><p>Bu görev yalnız seçilen tarih ve saatte görünecek.</p></div>'+
    '<form id="oneoffTaskForm"><div class="form-grid">'+
      '<div class="field"><label>Tarih</label><input type="date" name="work_date" value="'+today+'" required></div>'+
      '<div class="field"><label>Saat</label><input type="time" name="task_time" value="12:00" required></div>'+
-     '<div class="field full"><label>Alan</label><select name="zone_id">'+zoneOpts+'</select></div>'+
+     '<div class="field full"><label>Alan</label><select name="zone_id" required>'+zoneOpts+'</select></div>'+
      '<div class="field full"><label>Başlık</label><input name="title" value="Tek Seferlik Görev" required></div>'+
      '<div class="field full"><label>Görev</label><textarea name="task_text" required placeholder="Örn. Depo girişini bugün 16:00’ya kadar temizle"></textarea></div>'+
      '<div class="field"><label>Fotoğraf</label><select name="proof_required"><option value="false">İsteğe bağlı</option><option value="true">Zorunlu</option></select></div>'+
@@ -1190,7 +1190,7 @@ window.openOneoffTask=function(staffId){
    var fd=new FormData(e.target);
    var row={
      staff_id:person.id,
-     zone_id:fd.get('zone_id')?Number(fd.get('zone_id')):null,
+     zone_id:Number(fd.get('zone_id')),
      title:(fd.get('title')||'Tek Seferlik Görev').trim(),
      task_text:(fd.get('task_text')||'').trim(),
      work_date:fd.get('work_date'),
@@ -1199,6 +1199,7 @@ window.openOneoffTask=function(staffId){
      active:true,
      updated_at:new Date().toISOString()
    };
+   if(!row.zone_id)return toast('Alan seç');
    if(!row.task_text)return toast('Görevi yaz');
    var ins=await db.from('emigro_cleaning_oneoff_tasks').insert(row).select().single();
    if(ins.error)return toast(ins.error.message);
