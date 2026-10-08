@@ -23,19 +23,14 @@
       </form>
       <div class="auth-links">
         <button type="button" id="forgotPasswordBtn">Şifremi unuttum</button>
-        <button type="button" id="firstAccessBtn">İlk erişim / şifre oluştur</button>
+        <button type="button" id="firstAccessBtn">İlk erişim / şifre belirle</button>
       </div>
     </div>
     <div id="authFirstPane" class="hidden">
       <span class="auth-eyebrow">İLK ERİŞİM</span>
-      <h1>System Admin hesabını oluştur</h1>
-      <p>Bu ilk erişim yalnız <b>mfatihdumluu@gmail.com</b> için kullanılabilir.</p>
-      <form id="firstAccessForm">
-        <label>E-posta<input type="email" name="email" value="mfatihdumluu@gmail.com" readonly required></label>
-        <label>Yeni şifre<input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
-        <label>Şifre tekrar<input type="password" name="password2" minlength="8" autocomplete="new-password" required></label>
-        <button class="primary auth-submit">Hesabı Oluştur</button>
-      </form>
+      <h1>System Admin şifresini belirle</h1>
+      <p>Mevcut <b>mfatihdumluu@gmail.com</b> hesabına güvenli şifre belirleme bağlantısı gönderilir.</p>
+      <button type="button" id="sendFirstAccessReset" class="primary auth-submit">E-postaya Bağlantı Gönder</button>
       <button type="button" class="auth-back" data-auth-back>Girişe dön</button>
     </div>
     <div id="authResetPane" class="hidden">
