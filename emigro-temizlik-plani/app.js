@@ -53,7 +53,7 @@ async function establishAccess(){
 }
 async function initAuth(){
  if($('#firstAccessBtn'))$('#firstAccessBtn').onclick=function(){showAuthPane('#authFirstPane')};
- $('[data-auth-back]').forEach(function(b){b.onclick=function(){showAuthPane('#authLoginPane')}});
+ $$('[data-auth-back]').forEach(function(b){b.onclick=function(){showAuthPane('#authLoginPane')}});
  if($('#forgotPasswordBtn'))$('#forgotPasswordBtn').onclick=async function(){
    var email=String(new FormData($('#loginForm')).get('email')||'').trim().toLowerCase();
    if(!email)email=prompt('Şifre sıfırlama e-postası:','mfatihdumluu@gmail.com')||'';
