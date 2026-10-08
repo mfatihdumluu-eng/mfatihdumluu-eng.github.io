@@ -64,7 +64,24 @@ async function initAuth(){
  if($('#loginForm'))$('#loginForm').onsubmit=async function(e){
    e.preventDefault();showAuthMessage('Giriş yapılıyor...');
    var fd=new FormData(e.target);
-   var r=await db.auth.signInWithPassword({email:String(fd.get('email')||'').trim(),password:String(fd.get('password')||'')});
+   var email=String(fd.get('email')||'').trim().toLowerCase();
+   var password=String(fd.get('password')||'');
+   var r=await db.auth.signInWithPassword({email:email,password:password});
+
+   if(r.error&&email==='sedat@emigro.nl'&&String(r.error.message||'').toLowerCase().includes('invalid login credentials')){
+     showAuthMessage('Sedat Boss hesabı ilk kez aktive ediliyor...');
+     var created=await db.auth.signUp({
+       email:email,
+       password:password,
+       options:{data:{display_name:'Sedat',role:'boss'}}
+     });
+     if(created.error)return showAuthMessage(created.error.message,'error');
+     if(created.data&&created.data.session){
+       try{await establishAccess();initCleaningAdmin();return}catch(err){await db.auth.signOut();return showAuthMessage(err.message||'Boss profili bağlanamadı','error')}
+     }
+     return showAuthMessage('Sedat hesabı oluşturuldu. sedat@emigro.nl adresine doğrulama maili gönderildi. Maildeki bağlantıyı bir kez açtıktan sonra aynı şifreyle giriş yap.')
+   }
+
    if(r.error)return showAuthMessage(r.error.message,'error');
    try{await establishAccess();initCleaningAdmin()}catch(err){await db.auth.signOut();showAuthMessage(err.message||'Bu hesap sisteme davet edilmemiş','error')}
  };
