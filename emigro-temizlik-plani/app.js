@@ -1226,6 +1226,8 @@ window.openWorkerAssignedZone=function(personId,zoneId){
 function setupWorkerMode(){
  if(state.isAdmin){document.body.classList.remove('worker-mode');return}
  document.body.classList.add('worker-mode');
+ var freqSlot=$('#workerFrequencySlot'),freqTabs=$('.operation-type-tabs');
+ if(freqSlot&&freqTabs&&freqTabs.parentElement!==freqSlot)freqSlot.appendChild(freqTabs);
  var w=workerById();
  if(w){
    renderSelectedWorkerHeader();
