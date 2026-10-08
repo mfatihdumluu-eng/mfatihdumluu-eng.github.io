@@ -1390,3 +1390,36 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
 .worker-mode #view-plan .upload-btn{
   display:none!important;
 }
+
+
+/* WORKER FREQUENCY TABS MOVED TO TOP PROFILE HEADER */
+.worker-frequency-slot{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid #eef2f0;
+}
+.worker-frequency-label{
+  display:block;
+  margin-bottom:8px;
+  font-size:10px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:.08em;
+  color:#667085;
+}
+.worker-frequency-slot .operation-type-tabs{
+  margin:0!important;
+  width:100%;
+}
+.worker-frequency-slot .tracking-type{
+  min-height:46px!important;
+}
+.worker-mode #view-tracking > .operation-type-tabs{
+  display:none!important;
+}
+@media(max-width:600px){
+  .worker-frequency-slot .tracking-type{
+    min-height:42px!important;
+    font-size:12px!important;
+  }
+}
