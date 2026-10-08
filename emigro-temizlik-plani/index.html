@@ -9,7 +9,49 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div class="shell">
+<section id="authGate" class="auth-gate">
+  <div class="auth-card">
+    <div class="auth-brand"><div class="brand-mark">E</div><div><b>EMIGRO</b><span>Temizlik Yönetimi</span></div></div>
+    <div id="authLoginPane">
+      <span class="auth-eyebrow">GÜVENLİ GİRİŞ</span>
+      <h1>Hesabınla giriş yap</h1>
+      <p>Görevler ve yönetim yetkileri hesabına göre açılır.</p>
+      <form id="loginForm">
+        <label>E-posta<input type="email" name="email" autocomplete="email" required></label>
+        <label>Şifre<input type="password" name="password" autocomplete="current-password" required></label>
+        <button class="primary auth-submit">Giriş Yap</button>
+      </form>
+      <div class="auth-links">
+        <button type="button" id="forgotPasswordBtn">Şifremi unuttum</button>
+        <button type="button" id="firstAccessBtn">İlk erişim / şifre oluştur</button>
+      </div>
+    </div>
+    <div id="authFirstPane" class="hidden">
+      <span class="auth-eyebrow">İLK ERİŞİM</span>
+      <h1>System Admin hesabını oluştur</h1>
+      <p>Bu ilk erişim yalnız <b>mfatihdumluu@gmail.com</b> için kullanılabilir.</p>
+      <form id="firstAccessForm">
+        <label>E-posta<input type="email" name="email" value="mfatihdumluu@gmail.com" readonly required></label>
+        <label>Yeni şifre<input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
+        <label>Şifre tekrar<input type="password" name="password2" minlength="8" autocomplete="new-password" required></label>
+        <button class="primary auth-submit">Hesabı Oluştur</button>
+      </form>
+      <button type="button" class="auth-back" data-auth-back>Girişe dön</button>
+    </div>
+    <div id="authResetPane" class="hidden">
+      <span class="auth-eyebrow">ŞİFRE SIFIRLAMA</span>
+      <h1>Yeni şifre belirle</h1>
+      <form id="resetPasswordForm">
+        <label>Yeni şifre<input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
+        <label>Şifre tekrar<input type="password" name="password2" minlength="8" autocomplete="new-password" required></label>
+        <button class="primary auth-submit">Şifreyi Kaydet</button>
+      </form>
+    </div>
+    <div id="authMessage" class="auth-message hidden"></div>
+  </div>
+</section>
+
+<div id="appShell" class="shell hidden">
   <aside class="sidebar">
     <div class="brand"><div class="brand-mark">E</div><div><b>EMIGRO</b><span>Temizlik Yönetimi</span></div></div>
     <nav>
@@ -32,8 +74,10 @@
         <div id="demoBadge" class="demo-badge hidden">DEMO</div>
       </div>
       <div class="top-actions">
+        <div id="sessionBadge" class="session-badge hidden"><b id="sessionName">—</b><span id="sessionRole">—</span></div>
         <button id="demoBtn" class="icon-action" title="Demo verisi" aria-label="Demo verisi">↻</button>
         <button id="refreshBtn" class="icon-action" title="Yenile" aria-label="Yenile">⟳</button>
+        <button id="logoutBtn" class="icon-action hidden" title="Çıkış" aria-label="Çıkış">↪</button>
       </div>
     </header>
 
@@ -165,6 +209,18 @@
           <div id="workerDemoGrid" class="worker-demo-grid"></div>
         </section>
         <div id="staffGrid" class="staff-grid"></div>
+
+        <section id="accessAdminPanel" class="access-admin-panel hidden">
+          <div class="section-head access-admin-head">
+            <div><h2>Kullanıcı & Yetki Yönetimi</h2><p>Manager, bölüm yöneticisi ve çalışan davetlerini yönetin.</p></div>
+            <button id="inviteUserBtn" class="primary">+ Kullanıcı Davet Et</button>
+          </div>
+          <div id="sedatSetupCard" class="sedat-setup-card hidden">
+            <div><b>Boss · Sedat</b><span>Boss hesabının e-postasını tanımlayıp davet gönder.</span></div>
+            <button id="setSedatEmailBtn">Sedat E-postasını Tanımla</button>
+          </div>
+          <div id="accessUserList" class="access-user-list"></div>
+        </section>
       </section>
 
       <section id="view-worker-notifications" class="view">
