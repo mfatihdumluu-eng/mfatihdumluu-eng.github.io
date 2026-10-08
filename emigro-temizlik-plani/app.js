@@ -71,7 +71,7 @@ async function loadAll(){
   [z,p,c,l,n,t,s].forEach(r=>{if(r.error)throw r.error});
   state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.notifications=n.data||[];state.taskTags=t.data||[];state.settings=s.data||{};
   $('#dbState').textContent='● Veritabanı bağlı';
-  applyPlanImage();renderAll();setupWorkerMode();
+  applyPlanImage();renderAll();setupWorkerMode();openTaskDeepLink();
  }catch(e){console.error(e);$('#dbState').textContent='● Bağlantı hatası';toast('Veritabanı bağlantı hatası')}
 }
 
@@ -508,7 +508,7 @@ function reportRowHtml(t){
  var action='';
  if(st.key!=='done'){
    action=state.isAdmin
-     ? '<button class="ghost" onclick="openWarningForTask(\''+t.key+'\')">Uyar</button>'
+     ? '<button class="ghost" onclick="openWarningForTask(\''+t.key+'\')">Bildirim Gönder</button>'
      : '<button onclick="openComplete(\''+t.key+'\')">Yaptım</button>';
  }else if(proof){
    action='<button onclick="showPhoto(\''+t.key+'\')">Kanıt</button>';
@@ -550,7 +550,7 @@ function renderTracking(){
    var actions=st.key==='done'
      ? (proof||'<span class="sub">Fotoğraf yok</span>')
      : (state.isAdmin
-        ? '<button class="ghost compact-btn" onclick="openWarningForTask(\''+t.key+'\')">Uyar</button>'
+        ? '<button class="ghost compact-btn" onclick="openWarningForTask(\''+t.key+'\')">Bildirim Gönder</button>'
         : '<button class="primary compact-btn" onclick="openComplete(\''+t.key+'\')">Yaptım</button>');
    return '<article class="today-task '+st.key+' priority-'+(t.zone.priority||'normal')+'" onclick="openZoneStatus('+t.zone.id+')"><div class="today-task-main"><div class="today-task-top"><span class="calendar-type-label">'+typeNames[t.type]+'</span>'+(t.zone.priority!=='normal'?'<span class="priority-badge '+t.zone.priority+'">'+(t.zone.priority==='critical'?'Kritik':'Yüksek')+'</span>':'')+'</div><h3>'+esc(t.zone.name)+'</h3><p>'+esc(t.taskText||'Görev açıklaması yok')+'</p>'+(t.tags&&t.tags.length?'<div class="task-tag-list">'+t.tags.map(function(x){return '<span>'+esc(x.label)+'</span>'}).join('')+'</div>':'')+'<div class="today-meta">🕒 '+(t.time?t.time.slice(0,5):'—')+' · 👤 '+esc((who&&who.name)||'Atanmamış')+'</div></div><div class="today-task-actions" onclick="event.stopPropagation()">'+actions+'</div></article>'
  }
@@ -670,7 +670,7 @@ function zoneTasksInRange(zoneId,from,to){
 }
 function taskMiniHtml(t){
  var st=statusFor(t),l=st.log,photo=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
- var warn=st.key==='overdue'?'<button class="task-warn-btn" onclick="event.stopPropagation();openWarningForTask(\''+t.key+'\')">Uyar</button>':'';
+ var warn=st.key!=='done'&&state.isAdmin?'<button class="task-warn-btn" onclick="event.stopPropagation();openWarningForTask(\''+t.key+'\')">Bildirim Gönder</button>':'';
  return '<article class="zone-task-card '+st.key+'">'+
    '<div class="zone-task-head"><div><span class="task-kind">'+typeNames[t.type]+'</span><b>'+(t.time?t.time.slice(0,5):'Saat yok')+'</b></div><span class="task-status '+st.key+'">'+st.label+'</span></div>'+
    '<p>'+esc(t.taskText||'Görev açıklaması yok')+'</p>'+
@@ -864,37 +864,97 @@ window.openZoneAssignee=function(zoneId){
  var box=$('#modal .modal-box');if(box)box.classList.add('zone-sheet');
 };
 window.openWarningForTask=function(key){
- var t=taskByKey(key);if(!t)return;openWarning(t.zone.id,t.type,dateKeyLocal(t.date))
+ var t=taskByKey(key);if(!t)return;
+ openTaskNotificationCard(t)
 };
+
 window.openWarning=function(zoneId,type,workDate){
  var z=zoneById(zoneId),targetDate=workDate?parseDateLocal(workDate):new Date();
  var tasks=expectedTasks(dayStart(targetDate),dayEnd(targetDate)).filter(function(t){
    return String(t.zone.id)===String(zoneId)&&(type?t.type===type:true)
  });
  var task=tasks[0]||null;
- var person=task?(task.assigned||task.primary):null;
- if(!person){
-   var c=cardByZone(zoneId)||{};
-   var pid=(type?c[type+'_primary_staff_id']:null)||c.daily_primary_staff_id||c.primary_staff_id;
-   person=staffById(pid);
- }
+ if(task)return openTaskNotificationCard(task);
+
+ var c=cardByZone(zoneId)||{};
+ var pid=(type?c[type+'_primary_staff_id']:null)||c.daily_primary_staff_id||c.primary_staff_id;
+ var person=staffById(pid);
  if(!person)return toast('Bu görev için sorumlu kişi tanımlı değil');
-
- var taskLabel=type?typeNames[type]:'Temizlik';
- var defaultText=taskLabel+' yapılmadı. Lütfen kontrol edip görevi tamamlayın.';
- openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">UYARI GÖNDER</span><h2>'+esc((z&&z.name)||'Alan')+'</h2><p>Bildirim o anda görevli olan kişiye gönderilecek.</p></div>'+
-  '<form id="warningForm"><div class="warning-person-card"><label>Gönderilecek kişi</label><b>'+esc(person.name)+'</b><small>'+esc(taskLabel)+(task&&task.time?' · '+task.time.slice(0,5):'')+'</small></div>'+
-  '<div class="field"><label>Mesaj</label><textarea name="message" placeholder="İsterseniz kısa açıklama ekleyin...">'+esc(defaultText)+'</textarea></div>'+
-  '<div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Bildirimi Gönder</button></div></form></div>');
-
- $('#warningForm').onsubmit=async function(e){
-  e.preventDefault();var fd=new FormData(e.target),msg=(fd.get('message')||defaultText).trim();
-  var row={staff_id:person.id,zone_id:zoneId||null,task_type:type||null,work_date:workDate||dateKeyLocal(targetDate),title:'Temizlik yapılmadı',message:msg,severity:'warning',status:'sent'};
-  var r=await db.from('emigro_cleaning_notifications').insert(row);if(r.error)return toast(r.error.message);
-  closeModal();toast(person.name+' kişisine bildirim gönderildi');loadAll()
+ var pseudo={
+   key:String(zoneId)+':'+(type||'daily')+':'+dateKeyLocal(targetDate),
+   zone:z||{id:zoneId,name:'Alan'},
+   type:type||'daily',
+   date:targetDate,
+   time:type?c[type+'_time']:c.daily_time,
+   taskText:type?c[type+'_task']:c.daily_task,
+   assigned:person,primary:person
  };
- var box=$('#modal .modal-box');if(box)box.classList.add('zone-sheet');
+ openTaskNotificationCard(pseudo)
 };
+
+function openTaskNotificationCard(task){
+ if(!state.isAdmin)return;
+ var person=task.assigned||task.primary;
+ if(!person)return toast('Bu görev için sorumlu kişi tanımlı değil');
+ var z=task.zone||{},taskLabel=typeNames[task.type]||'Temizlik';
+ var status=statusFor(task);
+ var defaultTitle=status.key==='overdue'?'Temizlik yapılmadı':'Görev hatırlatması';
+ var defaultText=(z.name||'Alan')+' · '+taskLabel+(task.time?' · '+task.time.slice(0,5):'')+'\n'+
+   (task.taskText||'Temizlik görevini kontrol edip tamamlayın.');
+ var phone=whatsappPhone(person.phone);
+ var phoneText=person.phone?esc(person.phone):'Telefon tanımlı değil';
+
+ openModal('<div class="zone-app-card task-notify-card">'+
+   '<div class="app-head"><span class="eyebrow">GÖREV BİLDİRİMİ</span><h2>'+esc(z.name||'Görev')+'</h2><p>Bu görev doğrudan atanmış personele gönderilecek.</p></div>'+
+   '<div class="task-notify-summary">'+
+     '<div><label>Personel</label><b>'+esc(person.name)+'</b><small>'+esc(person.department||person.role||'Personel')+'</small></div>'+
+     '<div><label>Görev</label><b>'+esc(taskLabel)+'</b><small>'+(task.time?task.time.slice(0,5):'Saat yok')+' · '+shortDate(task.date)+'</small></div>'+
+     '<div class="full"><label>Açıklama</label><p>'+esc(task.taskText||'Görev açıklaması yok')+'</p></div>'+
+   '</div>'+
+   '<form id="taskNotifyForm">'+
+     '<div class="form-grid">'+
+       '<div class="field"><label>Bildirim türü</label><select name="severity"><option value="info">Bilgilendirme</option><option value="warning" '+(status.key==='overdue'?'selected':'')+'>Uyarı</option><option value="urgent">Acil</option></select></div>'+
+       '<div class="field"><label>Başlık</label><input name="title" value="'+esc(defaultTitle)+'" required></div>'+
+       '<div class="field full"><label>Mesaj</label><textarea name="message" required>'+esc(defaultText)+'</textarea></div>'+
+     '</div>'+
+     '<div class="notify-channel-grid">'+
+       '<button type="submit" class="notify-channel-card system-channel"><span>🔔</span><b>Sisteme Gönder</b><small>Çalışanın Bildirimler ekranına düşer.</small></button>'+
+       '<button type="button" id="sendWhatsAppTask" class="notify-channel-card whatsapp-channel" '+(!phone?'disabled':'')+'><span>💬</span><b>WhatsApp’tan Gönder</b><small>'+phoneText+'</small></button>'+
+     '</div>'+
+     '<div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">Kapat</button></div>'+
+   '</form>'+
+ '</div>');
+
+ $('#taskNotifyForm').onsubmit=async function(e){
+   e.preventDefault();
+   var fd=new FormData(e.target),row={
+     staff_id:person.id,
+     zone_id:z.id||null,
+     task_type:task.type||null,
+     work_date:dateKeyLocal(task.date||new Date()),
+     task_key:task.key||null,
+     title:(fd.get('title')||defaultTitle).trim(),
+     message:(fd.get('message')||defaultText).trim(),
+     severity:fd.get('severity')||'info',
+     status:'sent'
+   };
+   var r=await db.from('emigro_cleaning_notifications').insert(row);
+   if(r.error)return toast(r.error.message);
+   toast(person.name+' kişisine sistem bildirimi gönderildi');
+   await loadAll();
+ };
+
+ var wa=$('#sendWhatsAppTask');
+ if(wa)wa.onclick=function(){
+   if(!phone)return toast('Bu personelin kartında telefon numarası yok');
+   var form=$('#taskNotifyForm'),fd=new FormData(form);
+   var title=(fd.get('title')||defaultTitle).trim(),msg=(fd.get('message')||defaultText).trim();
+   var direct=workerTaskUrl(person.id,task.key);
+   var textMsg='*'+title+'*\n'+msg+'\n\nGörevi aç: '+direct;
+   window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(textMsg),'_blank');
+ };
+ var box=$('#modal .modal-box');if(box)box.classList.add('zone-sheet','task-notify-modal');
+}
 window.openGeneralWarning=function(){
  var opts=state.staff.filter(function(p){return p.active}).map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
  var zopts='<option value="">Genel / alan yok</option>'+manualZones().map(function(z){return '<option value="'+z.id+'">'+esc(z.name)+'</option>'}).join('');
@@ -924,9 +984,29 @@ function renderWorkerNotifications(){
     '<div class="notification-icon">'+(sev==='urgent'?'!':sev==='info'?'i':'🔔')+'</div>'+
     '<div><div class="notification-title"><b>'+esc(n.title||'Yönetim bildirimi')+'</b><span>'+new Date(n.created_at).toLocaleString('tr-TR')+'</span></div>'+
     '<p>'+esc(n.message||'')+'</p>'+
-    '<div class="notification-meta">'+(z?'📍 '+esc(z.name):'Yönetim')+(n.work_date?' · '+n.work_date:'')+'</div></div>'+
+    '<div class="notification-meta">'+(z?'📍 '+esc(z.name):'Yönetim')+(n.work_date?' · '+n.work_date:'')+'</div>'+
+    (n.task_key?'<button class="worker-open-task-btn" onclick="openNotificationTask(\''+esc(n.task_key)+'\')">Görevi Aç</button>':'')+
+    '</div>'+
    '</article>'
  }).join(''):'<div class="worker-empty-message"><span>🔔</span><b>Yeni bildirimin yok</b><p>Yönetimden gelen mesajlar burada görünecek.</p></div>'
+}
+
+window.openNotificationTask=function(key){
+ var t=taskByKey(key);if(!t)return toast('Görev bulunamadı');
+ if(!state.isAdmin&&!taskAssignedToWorker(t))return toast('Bu görev sana atanmadı');
+ state.trackingType=t.type;
+ var inp=$('#trackingDate');if(inp)inp.value=dateKeyLocal(t.date);
+ $$('.tracking-type').forEach(function(b){b.classList.toggle('active',b.dataset.trackingType===t.type)});
+ renderTracking();
+ var nav=document.querySelector('.nav[data-view="tracking"]');if(nav)nav.click();
+ openZoneStatus(t.zone.id)
+};
+function openTaskDeepLink(){
+ if(state.isAdmin||state.__taskDeepLinkOpened)return;
+ var key=PARAMS.get('task');if(!key)return;
+ var t=taskByKey(key);if(!t||!taskAssignedToWorker(t))return;
+ state.__taskDeepLinkOpened=true;
+ setTimeout(function(){openNotificationTask(key)},60)
 }
 
 function renderNotifications(){
@@ -957,6 +1037,17 @@ function renderWorkerDemoLaunchers(){
   '<em>›</em></button>'
 }
 function taskAssignedToWorkerFor(t,id){var w=t.assigned||t.primary;return !!w&&String(w.id)===String(id)}
+function whatsappPhone(phone){
+ var d=String(phone||'').replace(/\D/g,'');
+ if(!d)return '';
+ if(d.startsWith('00'))d=d.slice(2);
+ if(d.startsWith('0'))d='31'+d.slice(1);
+ return d
+}
+function workerTaskUrl(personId,taskKey){
+ return location.origin+location.pathname+'?mode=worker&staff='+encodeURIComponent(personId)+'&task='+encodeURIComponent(taskKey||'')
+}
+
 
 window.openAssignTaskToStaff=function(staffId){
  if(!state.isAdmin)return toast('Görev atama yetkisi sadece adminde');
