@@ -58,8 +58,8 @@ async function initAuth(){
    var email=String(new FormData($('#loginForm')).get('email')||'').trim().toLowerCase();
    if(!email)email=prompt('Şifre sıfırlama e-postası:','mfatihdumluu@gmail.com')||'';
    if(!email)return;
-   var r=await db.auth.resetPasswordForEmail(email,{redirectTo:appRedirectUrl('?recovery=1')});
-   showAuthMessage(r.error?r.error.message:'Şifre sıfırlama bağlantısı '+email+' adresine gönderildi.',r.error?'error':'ok')
+   var r=await db.auth.resetPasswordForEmail(email);
+   showAuthMessage(r.error?r.error.message:'Şifre sıfırlama bağlantısı '+email+' adresine gönderildi. Gelen kutusu ve spam klasörünü kontrol et.',r.error?'error':'ok')
  };
  if($('#loginForm'))$('#loginForm').onsubmit=async function(e){
    e.preventDefault();showAuthMessage('Giriş yapılıyor...');
@@ -68,10 +68,18 @@ async function initAuth(){
    if(r.error)return showAuthMessage(r.error.message,'error');
    try{await establishAccess();initCleaningAdmin()}catch(err){await db.auth.signOut();showAuthMessage(err.message||'Bu hesap sisteme davet edilmemiş','error')}
  };
- if($('#sendFirstAccessReset'))$('#sendFirstAccessReset').onclick=async function(){
-   var email='mfatihdumluu@gmail.com';
-   var r=await db.auth.resetPasswordForEmail(email,{redirectTo:appRedirectUrl('?recovery=1')});
-   showAuthMessage(r.error?r.error.message:'Şifre belirleme bağlantısı '+email+' adresine gönderildi.',r.error?'error':'ok')
+ if($('#firstAccessForm'))$('#firstAccessForm').onsubmit=async function(e){
+   e.preventDefault();
+   var fd=new FormData(e.target),email=String(fd.get('email')||'').trim().toLowerCase(),p1=String(fd.get('password')||''),p2=String(fd.get('password2')||'');
+   if(p1!==p2)return showAuthMessage('Şifreler aynı değil.','error');
+   showAuthMessage('Hesap aktive ediliyor...');
+   var r=await db.auth.signUp({email:email,password:p1});
+   if(r.error)return showAuthMessage(r.error.message,'error');
+   if(r.data.session){
+     try{await establishAccess();initCleaningAdmin()}catch(err){await db.auth.signOut();showAuthMessage(err.message||'Bu e-posta sisteme davet edilmemiş','error')}
+   }else{
+     showAuthMessage('Hesap oluşturuldu. E-postana doğrulama bağlantısı geldiyse onu onayla, sonra giriş yap.')
+   }
  };
  if($('#resetPasswordForm'))$('#resetPasswordForm').onsubmit=async function(e){
    e.preventDefault();var fd=new FormData(e.target),p1=String(fd.get('password')||''),p2=String(fd.get('password2')||'');
