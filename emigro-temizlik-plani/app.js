@@ -1158,6 +1158,7 @@ function setupRoleUI(){
  }
  if(manager){
    if($('#demoBtn'))$('#demoBtn').classList.add('hidden');
+   var up=$('.upload-btn');if(up)up.classList.add('hidden');
    if($('#workerDemoGrid'))$('#workerDemoGrid').closest('.worker-demo-panel')?.classList.add('hidden');
  }
  if(!state.isFullAdmin){
