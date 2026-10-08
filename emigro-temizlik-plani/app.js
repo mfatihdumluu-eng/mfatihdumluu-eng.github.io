@@ -10,7 +10,7 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dayNames=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
 
-const ROLE_LABELS={system_admin:'System Admin',boss:'Boss',manager:'Manager',worker:'Çalışan'};
+const ROLE_LABELS={system_admin:'System Admin',boss:'Boss',manager:'Manager',department_manager:'Bölüm Yöneticisi',worker:'Çalışan'};
 const DEPARTMENTS=['Kasap','Sebze Meyve','Kasa','Raf','Depo','Genel Temizlik'];
 
 function showAuthMessage(msg,kind){
@@ -1160,7 +1160,7 @@ $$('.warning-filter').forEach(function(b){b.onclick=function(){$$('.warning-filt
 
 
 function setupRoleUI(){
- var worker=state.role==='worker',manager=state.role==='manager';
+ var worker=state.role==='worker',manager=['manager','department_manager'].includes(state.role);
  if(worker){
    var change=$('.worker-change-profile');if(change)change.classList.add('hidden');
  }
@@ -1208,9 +1208,9 @@ window.openInviteUser=function(){
  '<form id="inviteUserForm"><div class="form-grid">'+
  '<div class="field"><label>Ad Soyad</label><input name="display_name" required></div>'+
  '<div class="field"><label>E-posta</label><input type="email" name="email" required></div>'+
- '<div class="field"><label>Rol</label><select name="role"><option value="worker">Çalışan</option><option value="manager">Manager</option>'+bossOption+'</select></div>'+
+ '<div class="field"><label>Rol</label><select name="role"><option value="worker">Çalışan</option><option value="manager">Manager</option><option value="department_manager">Bölüm Yöneticisi</option>'+bossOption+'</select></div>'+
  '<div class="field"><label>Personel Kartı</label><select name="staff_id">'+staffOpts+'</select></div>'+
- '<div class="field full"><label>Yönetebileceği Bölümler</label><div class="checks">'+departmentChecks([])+'</div></div>'+
+ '<div class="field full"><label>Yönetebileceği Bölümler</label><div class="checks">'+departmentChecks([])+'</div><small class="sub">Manager birden fazla bölüm alabilir. Bölüm Yöneticisi için tek bölüm seçin.</small></div>'+
  '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Davet Gönder</button></div></form></div>');
  $('#inviteUserForm').onsubmit=async function(e){
    e.preventDefault();var fd=new FormData(e.target);
@@ -1222,7 +1222,7 @@ window.openInviteUser=function(){
 };
 window.editAccessUser=function(id){
  var u=state.accessUsers.find(function(x){return String(x.id)===String(id)});if(!u||!state.isFullAdmin)return;
- var roleOptions='<option value="worker" '+(u.role==='worker'?'selected':'')+'>Çalışan</option><option value="manager" '+(u.role==='manager'?'selected':'')+'>Manager</option>'+
+ var roleOptions='<option value="worker" '+(u.role==='worker'?'selected':'')+'>Çalışan</option><option value="manager" '+(u.role==='manager'?'selected':'')+'>Manager</option><option value="department_manager" '+(u.role==='department_manager'?'selected':'')+'>Bölüm Yöneticisi</option>'+
    (state.role==='system_admin'?'<option value="boss" '+(u.role==='boss'?'selected':'')+'>Boss</option>':'');
  openModal('<h2>Yetkiyi Düzenle</h2><form id="accessEditForm"><div class="form-grid">'+
  '<div class="field full"><label>Kullanıcı</label><div><b>'+esc(u.display_name)+'</b><div class="sub">'+esc(u.email||'')+'</div></div></div>'+
@@ -1270,6 +1270,7 @@ function workerTaskUrl(personId,taskKey){
 window.openAssignTaskToStaff=function(staffId){
  if(!state.isAdmin)return toast('Görev atama yetkisi sadece adminde');
  var person=staffById(staffId);if(!person)return;
+ if(['manager','department_manager'].includes(state.role)&&!state.managedDepartments.includes(person.department||''))return toast('Bu çalışan yetki alanınızda değil');
  var zones=manualZones().filter(function(z){return z.active!==false});
  if(!zones.length)return toast('Önce Plan ekranından bir alan tanımlayın');
 
@@ -1353,9 +1354,9 @@ window.openAssignTaskToStaff=function(staffId){
 };
 
 window.openOneoffTask=function(staffId){
- if(!state.isAdmin)return;
+ if(!['system_admin','boss','manager','department_manager'].includes(state.role))return toast('Anlık görev tanımlama yetkiniz yok');
  var person=staffById(staffId);if(!person)return;
- var zones=manualZones();
+ var zones=manualZones().filter(function(z){return state.isFullAdmin||!['manager','department_manager'].includes(state.role)||state.managedDepartments.includes(z.department)});
  var zoneOpts='<option value="">Alan seç</option>'+zones.map(function(z){return '<option value="'+z.id+'">'+esc(z.name)+'</option>'}).join('');
  var today=dateKeyLocal(new Date());
  openModal('<div class="zone-app-card oneoff-task-sheet">'+
