@@ -47,7 +47,7 @@ async function establishAccess(){
  }
  $('#logoutBtn')?.classList.remove('hidden');
  document.body.classList.toggle('full-admin',state.isFullAdmin);
- document.body.classList.toggle('manager-mode',state.role==='manager');
+ document.body.classList.toggle('manager-mode',['manager','department_manager'].includes(state.role));
  document.body.classList.toggle('authenticated-worker',state.role==='worker');
  return profile
 }
@@ -1356,7 +1356,9 @@ window.openAssignTaskToStaff=function(staffId){
 window.openOneoffTask=function(staffId){
  if(!['system_admin','boss','manager','department_manager'].includes(state.role))return toast('Anlık görev tanımlama yetkiniz yok');
  var person=staffById(staffId);if(!person)return;
+ if(['manager','department_manager'].includes(state.role)&&!state.managedDepartments.includes(person.department||''))return toast('Bu çalışan yetki alanınızda değil');
  var zones=manualZones().filter(function(z){return state.isFullAdmin||!['manager','department_manager'].includes(state.role)||state.managedDepartments.includes(z.department)});
+ if(!zones.length)return toast('Yetki alanınızda görev atanabilecek alan yok');
  var zoneOpts='<option value="">Alan seç</option>'+zones.map(function(z){return '<option value="'+z.id+'">'+esc(z.name)+'</option>'}).join('');
  var today=dateKeyLocal(new Date());
  openModal('<div class="zone-app-card oneoff-task-sheet">'+
@@ -1407,7 +1409,7 @@ function renderStaff(){
   return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div class="staff-card-identity"><span class="staff-shared-icon">'+staffDeptIcon(p)+'</span><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.department||p.role||'Rol belirtilmedi')+'</div></div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
    '<div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div>'+
    '<div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
-   '<div class="card-actions staff-actions"><button class="oneoff-task-btn" onclick="event.stopPropagation();openOneoffTask('+p.id+')">+ Tek Seferlik Görev</button><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Rutin Görev</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
+   '<div class="card-actions staff-actions"><button class="oneoff-task-btn" onclick="event.stopPropagation();openOneoffTask('+p.id+')">+ Anlık Görev</button><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Rutin Görev</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
  }).join(''):'<div class="sub">Personel eklenmedi.</div>'
 }
 
