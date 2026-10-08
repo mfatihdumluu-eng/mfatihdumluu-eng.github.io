@@ -42,9 +42,26 @@
         <div class="worker-profile-copy">
           <span>ÇALIŞAN PORTALI</span>
           <h2>Görev profilini seç</h2>
-          <p>Kasa, Raf, Sebze Meyve, Genel Temizlik veya Depo görevlerini aynı ekrandan test et.</p>
+          <p>Çalışanı seç; seçimden sonra bu ekran kapanacak.</p>
         </div>
         <div id="workerProfileOptions" class="worker-profile-options"></div>
+      </section>
+
+      <section id="workerSelectedHeader" class="worker-selected-header hidden">
+        <div class="worker-selected-zones">
+          <div class="worker-selected-zone-head">
+            <span>SORUMLU OLDUĞU ALANLAR</span>
+            <button type="button" class="worker-change-profile" onclick="changeWorkerProfile()">Profili Değiştir</button>
+          </div>
+          <div id="workerSelectedZones" class="worker-selected-zone-buttons"></div>
+        </div>
+        <div class="worker-selected-person">
+          <span id="workerSelectedIcon" class="worker-selected-icon">👤</span>
+          <div>
+            <b id="workerSelectedName">—</b>
+            <small id="workerSelectedDepartment">—</small>
+          </div>
+        </div>
       </section>
 
       <section id="view-report" class="view">
