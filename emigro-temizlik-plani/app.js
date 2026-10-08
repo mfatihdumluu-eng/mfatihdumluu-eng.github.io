@@ -102,6 +102,7 @@ function renderAll(){
 }
 function renderPlan(){
  const zones=manualZones();$('#zoneCount').textContent=zones.length;
+ const stage=$('.plan-stage');if(stage)stage.classList.toggle('worker-plan-stage',!state.isAdmin);
  const ov=$('#zoneOverlay');ov.innerHTML='';ov.style.display=state.showAreas?'block':'none';
 
  zones.forEach(function(z){
@@ -109,7 +110,7 @@ function renderPlan(){
   const e=document.createElement('div');
   e.className='zone-box'+(!state.isAdmin&&!assigned?' worker-zone-disabled':'')+(!state.isAdmin&&assigned?' worker-zone-active':'');
   e.style.cssText='left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%;--zone:'+(z.color||'#f47a20');
-  e.innerHTML='<span class="zone-label">'+esc(z.name)+'</span>';
+  e.innerHTML='<span class="zone-label">'+esc(z.name)+'</span>'+(!state.isAdmin&&!assigned?'<span class="worker-zone-lock">Pasif</span>':'');
   if(state.isAdmin||assigned)e.onclick=function(){openZoneStatus(z.id)};
   else e.setAttribute('aria-disabled','true');
   ov.append(e)
