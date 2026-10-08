@@ -28,9 +28,15 @@
     </div>
     <div id="authFirstPane" class="hidden">
       <span class="auth-eyebrow">İLK ERİŞİM</span>
-      <h1>System Admin şifresini belirle</h1>
-      <p>Mevcut <b>mfatihdumluu@gmail.com</b> hesabına güvenli şifre belirleme bağlantısı gönderilir.</p>
-      <button type="button" id="sendFirstAccessReset" class="primary auth-submit">E-postaya Bağlantı Gönder</button>
+      <h1>Hesabını aktive et</h1>
+      <p>Yönetim tarafından önceden tanımlanan e-posta adresinle ilk şifreni oluştur.</p>
+      <form id="firstAccessForm">
+        <label>E-posta<input type="email" name="email" autocomplete="email" required></label>
+        <label>Yeni şifre<input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
+        <label>Şifre tekrar<input type="password" name="password2" minlength="8" autocomplete="new-password" required></label>
+        <button class="primary auth-submit">Hesabı Aktive Et</button>
+      </form>
+      <p class="auth-help">Bu e-posta daha önce kayıtlıysa “Şifremi unuttum” seçeneğini kullan.</p>
       <button type="button" class="auth-back" data-auth-back>Girişe dön</button>
     </div>
     <div id="authResetPane" class="hidden">
