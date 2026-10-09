@@ -195,13 +195,7 @@ function applyPlanImage(){
 }
 
 function renderAll(){
-  renderReport();renderTracking();renderCalendar();renderPlan();renderStaff();renderWorkerDemoLaunchers();renderWorkerProfilePicker();renderWorkerNotifications();renderNotifications();renderHistory();
-  var demos=state.zones.filter(function(z){return String(z.code||'').startsWith('DEMO-')});
-  var badge=$('#demoBadge');
-  if(badge){
-    if(demos.length){badge.classList.remove('hidden');badge.textContent='DEMO · '+demos.length+' ALAN'}
-    else badge.classList.add('hidden');
-  }
+  renderReport();renderTracking();renderCalendar();renderPlan();renderStaff();renderWorkerProfilePicker();renderWorkerNotifications();renderNotifications();renderHistory();
 }
 function renderPlan(){
  const zones=manualZones();$('#zoneCount').textContent=zones.length;
@@ -419,100 +413,6 @@ window.editStaff=id=>{
 };
 
 
-async function loadDemoData(){
- if(!confirm('Tam demo verileri yüklensin mi? Demo alanları/personeller güncellenir; kendi manuel alanların korunur.'))return;
- toast('Demo hazırlanıyor...');
- try{
-  const people=[
-   {name:'Ayşe Demir',role:'Temizlik Personeli',phone:'0611111111',active:true},
-   {name:'Mehmet Kaya',role:'Temizlik Personeli',phone:'0622222222',active:true},
-   {name:'Fatma Yılmaz',role:'Temizlik Personeli',phone:'0633333333',active:true},
-   {name:'Ali Can',role:'Yedek Personel',phone:'0644444444',active:true},
-   {name:'Zeynep Arslan',role:'Hijyen Sorumlusu',phone:'0655555555',active:true}
-  ],staffIds={};
-  for(const p of people){
-   var q=await db.from('emigro_cleaning_staff').select('*').eq('name',p.name).limit(1);
-   if(q.error)throw q.error;
-   if(q.data&&q.data[0]){var u=await db.from('emigro_cleaning_staff').update(p).eq('id',q.data[0].id).select().single();if(u.error)throw u.error;staffIds[p.name]=u.data.id}
-   else{var ins=await db.from('emigro_cleaning_staff').insert(p).select().single();if(ins.error)throw ins.error;staffIds[p.name]=ins.data.id}
-  }
-
-  const zones=[
-   {code:'DEMO-GIRIS',name:'Giriş',description:'Kapı önü, paspas, cam altları ve giriş zemini.',color:'#8de4a6',x:6,y:75,w:14,h:12,sort_order:101,priority:'normal',proof_required:false},
-   {code:'DEMO-KASA',name:'Kasa Alanı',description:'Kasa önü, bant çevresi ve müşteri temas noktaları.',color:'#ffab68',x:22,y:68,w:18,h:10,sort_order:102,priority:'high',proof_required:false},
-   {code:'DEMO-SEBZE',name:'Sebze Reyonu',description:'Stand önü, zemin ve dökülen ürün kalıntıları.',color:'#ade37f',x:43,y:43,w:20,h:18,sort_order:103,priority:'high',proof_required:true},
-   {code:'DEMO-KASAP',name:'Kasap Alanı',description:'Kasap önü, temas yüzeyleri ve zemin.',color:'#f78e92',x:42,y:18,w:22,h:17,sort_order:104,priority:'critical',proof_required:true},
-   {code:'DEMO-DIPFRIZ',name:'Dipfriz Alanı',description:'Kapak çevresi, dış yüzey ve zemin.',color:'#6fbce6',x:67,y:28,w:18,h:18,sort_order:105,priority:'normal',proof_required:false},
-   {code:'DEMO-RAFLAR',name:'Orta Raflar',description:'Koridor zemini, raf önleri ve raf altları.',color:'#f4d98e',x:56,y:48,w:26,h:25,sort_order:106,priority:'normal',proof_required:false},
-   {code:'DEMO-NONFOOD',name:'Nonfood',description:'Nonfood koridorları ve raf çevresi.',color:'#cbb9eb',x:8,y:30,w:20,h:25,sort_order:107,priority:'normal',proof_required:false},
-   {code:'DEMO-MUTFAK',name:'Mutfak',description:'Tezgah, lavabo, zemin ve çöp alanı.',color:'#ffb29a',x:7,y:7,w:20,h:15,sort_order:108,priority:'critical',proof_required:true},
-   {code:'DEMO-TUVALET',name:'Tuvalet',description:'Klozet, lavabo, zemin ve sarf kontrolü.',color:'#d8c8ef',x:28,y:7,w:10,h:12,sort_order:109,priority:'critical',proof_required:true},
-   {code:'DEMO-DEPO',name:'Depo',description:'Geçiş yolları, palet çevresi ve zemin.',color:'#d3bda3',x:70,y:6,w:24,h:18,sort_order:110,priority:'high',proof_required:false}
-  ],zoneIds={};
-  for(const z of zones){
-   var zr=await db.from('emigro_cleaning_zones').upsert(Object.assign({},z,{manual:true,active:true,shape:'rect'}),{onConflict:'code'}).select().single();
-   if(zr.error)throw zr.error;zoneIds[z.code]=zr.data.id;
-  }
-
-  var now=new Date(),dow=now.getDay(),dom=now.getDate();
-  const specs=[
-   ['DEMO-GIRIS','Ayşe Demir','Ali Can','Mehmet Kaya','Zeynep Arslan'],
-   ['DEMO-KASA','Mehmet Kaya','Fatma Yılmaz','Ayşe Demir','Ali Can'],
-   ['DEMO-SEBZE','Fatma Yılmaz','Ayşe Demir','Zeynep Arslan','Mehmet Kaya'],
-   ['DEMO-KASAP','Ayşe Demir','Mehmet Kaya','Zeynep Arslan','Fatma Yılmaz'],
-   ['DEMO-DIPFRIZ','Mehmet Kaya','Ali Can','Fatma Yılmaz','Ayşe Demir'],
-   ['DEMO-RAFLAR','Fatma Yılmaz','Ali Can','Mehmet Kaya','Zeynep Arslan'],
-   ['DEMO-NONFOOD','Ali Can','Ayşe Demir','Mehmet Kaya','Fatma Yılmaz'],
-   ['DEMO-MUTFAK','Ayşe Demir','Fatma Yılmaz','Zeynep Arslan','Ali Can'],
-   ['DEMO-TUVALET','Fatma Yılmaz','Ali Can','Zeynep Arslan','Ayşe Demir'],
-   ['DEMO-DEPO','Mehmet Kaya','Ali Can','Fatma Yılmaz','Zeynep Arslan']
-  ];
-  for(let i=0;i<specs.length;i++){
-   const [code,dPrim,dBack,wPrim,mPrim]=specs[i];
-   const row={
-    zone_id:zoneIds[code],
-    primary_staff_id:staffIds[dPrim],backup_staff_id:staffIds[dBack],backup_enabled:true,backup_days:[2,5],
-    daily_enabled:true,daily_days:[0,1,2,3,4,5,6],daily_time:pad2(7+(i%8))+':'+(i%2?'30':'00'),daily_task:zones[i].description,
-    daily_primary_staff_id:staffIds[dPrim],daily_backup_staff_id:staffIds[dBack],daily_backup_days:[2,5],
-    weekly_enabled:true,weekly_days:[dow],weekly_time:pad2(13+(i%5))+':00',weekly_task:'Haftalık detay temizlik: dipler, köşeler ve temas yüzeyleri.',weekly_primary_staff_id:staffIds[wPrim],weekly_backup_staff_id:staffIds[dBack],weekly_backup_days:i%3===0?[dow]:[],
-    monthly_enabled:i<6,monthly_days:[dom],monthly_time:'08:30',monthly_task:'Aylık derin temizlik ve detay kontrolü.',monthly_primary_staff_id:staffIds[mPrim],monthly_backup_staff_id:staffIds[dBack],monthly_backup_days:i%2===0?[dom]:[],
-    updated_at:new Date().toISOString()
-   };
-   var cr=await db.from('emigro_cleaning_zone_cards').upsert(row,{onConflict:'zone_id'});if(cr.error)throw cr.error;
-  }
-
-  // Add one intentionally unassigned weekly demo routine for admin warning.
-  var unr=await db.from('emigro_cleaning_zone_cards').update({weekly_primary_staff_id:null,weekly_backup_staff_id:null,weekly_backup_days:[]}).eq('zone_id',zoneIds['DEMO-DEPO']);if(unr.error)throw unr.error;
-
-  // Demo plan image only if user has not uploaded one.
-  if(!state.settings||!state.settings.plan_image_data){
-   var svg='<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"><rect width="100%" height="100%" fill="#f3f5f6"/><text x="50" y="70" font-family="Arial" font-size="34" font-weight="700" fill="#202d36">EMIGRO DEMO MARKET PLANI</text><rect x="70" y="120" width="250" height="250" fill="#8de4a6" stroke="#202d36"/><text x="150" y="250" font-size="28">GİRİŞ / DEPO</text><rect x="380" y="120" width="300" height="220" fill="#f4d98e" stroke="#202d36"/><text x="470" y="240" font-size="28">RAFLAR</text><rect x="740" y="120" width="180" height="220" fill="#f78e92" stroke="#202d36"/><text x="785" y="240" font-size="24">KASAP</text><rect x="70" y="430" width="250" height="220" fill="#d8c8ef" stroke="#202d36"/><text x="135" y="550" font-size="26">MUTFAK</text><rect x="380" y="430" width="220" height="220" fill="#ade37f" stroke="#202d36"/><text x="430" y="550" font-size="26">SEBZE</text><rect x="660" y="430" width="280" height="220" fill="#6fbce6" stroke="#202d36"/><text x="735" y="550" font-size="26">DİPFRİZ</text></svg>';
-   var sr=await db.from('emigro_cleaning_settings').upsert({id:1,plan_image_data:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),updated_at:new Date().toISOString()});if(sr.error)throw sr.error;
-  }
-
-  await loadAll();
-
-  // Create demo completion/missed records for today.
-  var demoTasks=expectedTasks(dayStart(now),dayEnd(now)).filter(function(t){return String(t.zone.code||'').startsWith('DEMO-')});
-  var proofSvg='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="#e8f7ef"/><text x="400" y="270" text-anchor="middle" font-family="Arial" font-size="42" font-weight="700" fill="#1f7a50">DEMO TEMİZLİK FOTOĞRAFI</text><text x="400" y="330" text-anchor="middle" font-family="Arial" font-size="24" fill="#456">Alan temizlendi</text></svg>');
-  for(let i=0;i<Math.min(5,demoTasks.length);i++){
-   var t=demoTasks[i],done=i<3,row={slot_key:t.key,schedule_id:null,zone_id:t.zone.id,staff_id:(t.assigned||t.primary)?.id||null,work_date:dateKeyLocal(t.date),status:done?'done':'skipped',completed_at:done?new Date().toISOString():null,note:done?'Demo: temizlik tamamlandı.':'Demo: görev zamanında tamamlanmadı.',task_type:t.type,planned_time:t.time,proof_image_data:done?proofSvg:null};
-   var lr=await db.from('emigro_cleaning_logs').upsert(row,{onConflict:'slot_key'});if(lr.error)throw lr.error;
-  }
-  // Historical skips to demonstrate recurring-problem warning.
-  var problemZone=zoneIds['DEMO-TUVALET'];
-  for(let k=1;k<=3;k++){
-   var hd=addLocalDays(now,-k*4),hk=problemZone+':daily:'+dateKeyLocal(hd);
-   var hr=await db.from('emigro_cleaning_logs').upsert({slot_key:hk,schedule_id:null,zone_id:problemZone,staff_id:staffIds['Fatma Yılmaz'],work_date:dateKeyLocal(hd),status:'skipped',note:'Demo: tekrar eden aksama.',task_type:'daily',planned_time:'08:30',proof_image_data:null},{onConflict:'slot_key'});if(hr.error)throw hr.error;
-  }
-
-  await loadAll();
-  var btn=document.querySelector('[data-view="tracking"]');if(btn)btn.click();
-  toast('Demo hazır: alanlar, personeller, görevler ve rapor kayıtları yüklendi');
- }catch(err){
-  console.error(err);toast('Demo yüklenemedi: '+(err.message||'Bilinmeyen hata'))
- }
-}
 $('#planUpload').onchange=async e=>{if(!state.isAdmin){toast('Plan değiştirme yetkisi sadece adminde');e.target.value='';return;}
  const file=e.target.files?.[0];if(!file)return;
  if(file.size>12*1024*1024)return toast('Resim en fazla 12 MB olsun');
@@ -1184,9 +1084,8 @@ function setupRoleUI(){
    var change=$('.worker-change-profile');if(change)change.classList.add('hidden');
  }
  if(manager){
-   if($('#demoBtn'))$('#demoBtn').classList.add('hidden');
    var up=$('.upload-btn');if(up)up.classList.add('hidden');
-   if($('#workerDemoGrid'))$('#workerDemoGrid').closest('.worker-demo-panel')?.classList.add('hidden');
+   if($('#workerÖrnekGrid'))$('#workerDemoGrid').closest('.worker-demo-panel')?.classList.add('hidden');
  }
  if(!state.isFullAdmin){
    if($('#accessAdminPanel'))$('#accessAdminPanel').classList.add('hidden');
@@ -1339,13 +1238,6 @@ window.setSedatEmail=function(){
  }
 };
 
-function renderWorkerDemoLaunchers(){
- var box=$('#workerDemoGrid');if(!box)return;
- box.innerHTML='<button class="worker-demo-card worker-portal-launch" onclick="openWorkerView()">'+
-  '<span class="worker-demo-icon">👥</span>'+
-  '<span><b>Çalışan Portalını Aç</b><small>Kasa · Raf · Sebze Meyve · Genel Temizlik · Depo</small></span>'+
-  '<em>›</em></button>'
-}
 function taskAssignedToWorkerFor(t,id){var w=t.assigned||t.primary;return !!w&&String(w.id)===String(id)}
 function whatsappPhone(phone){
  var d=String(phone||'').replace(/\D/g,'');
@@ -1692,14 +1584,13 @@ function setupWorkerMode(){
    $('#pageSub').textContent='Yukarıdan görev profilini seç.';
  }
  var btn=$('#refreshBtn');if(btn)btn.title='Görevleri yenile';
- if($('#demoBtn'))$('#demoBtn').classList.add('hidden');
  if($('#workerNoticeBar'))$('#workerNoticeBar').classList.remove('hidden');
  checkWorkerReminders();
  if(!window.__workerReminderTimer)window.__workerReminderTimer=setInterval(checkWorkerReminders,60000)
 }
 function initCleaningAdmin(){
   if(!state.isAdmin){
-    ['#drawBtn','#toggleAreasBtn','.upload-btn','#demoBtn','#addStaffBtn','#drawStatus'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
+    ['#drawBtn','#toggleAreasBtn','.upload-btn','#addStaffBtn','#drawStatus'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
     $$('.danger-btn').forEach(function(el){el.classList.add('hidden')});
     $$('.nav').forEach(function(el){
       var allowed=['tracking','calendar','plan','worker-notifications'];
@@ -1735,7 +1626,6 @@ function initCleaningAdmin(){
   if($('#inviteUserBtn')) $('#inviteUserBtn').onclick=openInviteUser;
   if($('#setSedatEmailBtn')) $('#setSedatEmailBtn').onclick=setSedatEmail;
   if($('#refreshBtn')) $('#refreshBtn').onclick=loadAll;
-  if($('#demoBtn')) $('#demoBtn').onclick=loadDemoData;
   if($('#newWarningBtn')) $('#newWarningBtn').onclick=openGeneralWarning;
   if($('#trackingDate')) $('#trackingDate').onchange=renderTracking;
   $$('.tracking-type').forEach(function(b){
