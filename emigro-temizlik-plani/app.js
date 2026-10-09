@@ -10,7 +10,7 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dayNames=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
 
-const ROLE_LABELS={system_admin:'System Admin',boss:'Boss',manager:'Manager',department_manager:'Bölüm Yöneticisi',worker:'Çalışan'};
+const ROLE_LABELS={system_admin:'System Manager',boss:'Admin Manager',manager:'Manager',department_manager:'Birim Yöneticisi',worker:'Çalışan'};
 const DEPARTMENTS=['Kasap','Sebze Meyve','Kasa','Raf','Depo','Genel Temizlik'];
 
 function showAuthMessage(msg,kind){
@@ -1213,8 +1213,8 @@ function hierarchyNodeHtml(u,depth){
    return '<div class="hierarchy-worker"><span>'+staffDeptIcon(p)+'</span><div><b>'+esc(p.name)+'</b><small>'+esc(p.department||'Çalışan')+' · '+stats.done+' yapıldı · '+stats.missed+' aksadı</small></div></div>'
  }).join('')+'</div>':'';
  return '<div class="hierarchy-node depth-'+Math.min(depth||0,4)+'"><div class="hierarchy-manager">'+
-   '<span class="hierarchy-role-icon">'+(u.role==='system_admin'?'⚙️':u.role==='boss'?'👑':u.role==='manager'?'🧭':'🧑‍💼')+'</span>'+
-   '<div><b>'+esc(u.display_name)+'</b><small>'+esc(ROLE_LABELS[u.role]||u.role)+(deps?' · '+esc(deps):'')+'</small></div>'+
+   '<span class="hierarchy-role-icon">'+(u.role==='system_admin'?'⚙️':u.role==='boss'?'🛡️':u.role==='manager'?'🧭':'🧑‍💼')+'</span>'+
+   '<div><b>'+esc(ROLE_LABELS[u.role]||u.role)+'</b><small>'+(u.role==='department_manager'&&deps?esc(deps)+' Birimi':(deps?esc(deps):''))+'</small></div>'+
    '<span class="hierarchy-count">'+(children.length+workers.length)+' alt kayıt</span></div>'+
    workerHtml+(childHtml?'<div class="hierarchy-children">'+childHtml+'</div>':'')+'</div>'
 }
