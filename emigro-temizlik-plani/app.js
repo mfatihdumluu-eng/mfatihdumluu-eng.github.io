@@ -673,7 +673,8 @@ function staffStats(id){
 }
 function renderStaff(){
  if(!$('#staffGrid'))return;
- $('#staffGrid').innerHTML=state.staff.length?state.staff.map(function(p){
+ var activeStaff=state.staff.filter(function(p){return p.active!==false});
+ $('#staffGrid').innerHTML=activeStaff.length?activeStaff.map(function(p){
   var st=staffStats(p.id),primary=manualZones().filter(function(z){return String((cardByZone(z.id)||{}).primary_staff_id)===String(p.id)}),backup=manualZones().filter(function(z){return String((cardByZone(z.id)||{}).backup_staff_id)===String(p.id)});
   return '<article class="staff-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.role||'Rol belirtilmedi')+'</div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div><div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div><div class="responsibility">'+primary.map(function(z){return '<span>Asıl · '+esc(z.name)+'</span>'}).join('')+backup.map(function(z){return '<span>Yedek · '+esc(z.name)+'</span>'}).join('')+'</div><div class="card-actions"><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button></div></article>'
  }).join(''):'<div class="sub">Personel eklenmedi.</div>'
@@ -1126,6 +1127,15 @@ function accessById(id){return state.accessUsers.find(function(u){return String(
 function managerAccessUsers(){
  return state.accessUsers.filter(function(u){return u.active!==false&&['system_admin','boss','manager','department_manager'].includes(u.role)})
 }
+function accessForStaff(staffId){
+ return state.accessUsers.find(function(u){return String(u.staff_id||'')===String(staffId||'')&&u.active!==false})
+}
+window.openStaffRoleAssignment=function(staffId){
+ if(!state.isFullAdmin)return toast('Rol ve bölüm atamasını yalnız System/Admin Manager yapabilir');
+ var u=accessForStaff(staffId);
+ if(!u)return toast('Bu personelin kullanıcı hesabı henüz oluşmadı');
+ editAccessUser(u.id)
+}
 function supervisorLabel(staff){
  var u=accessById(staff&&staff.supervisor_access_id);
  return u?(u.display_name+' · '+(ROLE_LABELS[u.role]||u.role)):'Yönetici atanmamış'
@@ -1224,7 +1234,7 @@ function renderAccessAdmin(){
  var sedatCard=$('#sedatSetupCard');
  if(sedatCard)sedatCard.classList.toggle('hidden',!!(sedat&&sedat.email));
  var list=$('#accessUserList');if(!list)return;
- var visibleUsers=state.accessUsers.filter(function(u){return !(u.active===false&&!u.email&&!u.auth_user_id&&!u.staff_id)});
+ var visibleUsers=state.accessUsers.filter(function(u){return u.active!==false});
  list.innerHTML=visibleUsers.length?visibleUsers.map(function(u){
    var deps=(u.departments||[]).join(', ')||'Tüm alanlar / kapsam yok',parent=accessById(u.parent_access_id);
    return '<article class="access-user-card"><div><b>'+esc(u.display_name)+'</b><span>'+esc(u.email||'E-posta bekleniyor')+'</span><small>'+esc(ROLE_LABELS[u.role]||u.role)+' · '+esc(deps)+'</small></div>'+
@@ -1495,7 +1505,7 @@ function renderStaff(){
   return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div class="staff-card-identity"><span class="staff-shared-icon">'+staffDeptIcon(p)+'</span><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.department||p.role||'Rol belirtilmedi')+'</div></div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
    '<div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div>'+
    '<div class="staff-supervisor-line">Üst: <b>'+esc(supervisorLabel(p))+'</b></div><div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
-   '<div class="card-actions staff-actions"><button class="oneoff-task-btn" onclick="event.stopPropagation();openOneoffTask('+p.id+')">+ Anlık Görev</button><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Rutin Görev</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
+   '<div class="card-actions staff-actions">'+(state.isFullAdmin?'<button class="role-assign-btn" onclick="event.stopPropagation();openStaffRoleAssignment('+p.id+')">Rol & Bölüm Ata</button>':'')+'<button class="oneoff-task-btn" onclick="event.stopPropagation();openOneoffTask('+p.id+')">+ Anlık Görev</button><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Rutin Görev</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
  }).join(''):'<div class="sub">Personel eklenmedi.</div>'
 }
 
