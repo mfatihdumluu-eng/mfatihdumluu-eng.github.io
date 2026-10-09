@@ -221,8 +221,8 @@ function renderPlan(){
 
  if(state.isAdmin){
    $('#zoneMiniList').innerHTML=zones.length?zones.map(function(z){
-     const card=cardByZone(z.id),p=staffById(card&&card.primary_staff_id),b=staffById(card&&card.backup_staff_id);
-     return '<div class="zone-mini" onclick="openZoneStatus('+z.id+')"><span class="zone-mini-dot" style="background:'+(z.color||'#f47a20')+'"></span><div><b>'+esc(z.name)+'</b><small>'+(p?'Asıl: '+esc(p.name):'Asıl yok')+(b?' · Yedek: '+esc(b.name):'')+'</small></div></div>'
+     const card=cardByZone(z.id),p=staffById(card&&card.primary_staff_id),b=staffById(card&&card.backup_staff_id),mgr=accessById(z.manager_access_id);
+     return '<div class="zone-mini" onclick="openZoneStatus('+z.id+')"><span class="zone-mini-dot" style="background:'+(z.color||'#f47a20')+'"></span><div><b>'+esc(z.name)+'</b><small>'+(mgr?'Yönetici: '+esc(mgr.display_name)+' · ':'Yönetici yok · ')+(p?'Asıl: '+esc(p.name):'Asıl yok')+(b?' · Yedek: '+esc(b.name):'')+'</small></div></div>'
    }).join(''):'<div class="sub">Henüz alan tanımlanmadı.</div>';
  }else{
    var mine=zones.filter(function(z){return workerAssignedToZone(z.id)});
@@ -337,6 +337,7 @@ function zoneCardForm(z,c={}){
   <option value="">Seçiniz</option>
   ${DEPARTMENTS.filter(function(d){return state.isFullAdmin||state.role!=='manager'||state.managedDepartments.includes(d)}).map(function(d){return '<option value="'+d+'" '+(z.department===d?'selected':'')+'>'+d+'</option>'}).join('')}
  </select></div>
+ <div class="field"><label>Sorumlu Yönetici</label><select name="manager_access_id">${zoneManagerOptions(z.manager_access_id||(['manager','department_manager'].includes(state.role)?(state.accessProfile&&state.accessProfile.id):null))}</select></div>
  <div class="field"><label>Renk</label><input name="color" type="color" value="${z.color||'#f47a20'}"></div>
  <div class="field"><label>Alan önceliği</label><select name="priority"><option value="normal" ${(z.priority||'normal')==='normal'?'selected':''}>Normal</option><option value="high" ${z.priority==='high'?'selected':''}>Yüksek</option><option value="critical" ${z.priority==='critical'?'selected':''}>Kritik</option></select></div>
  <div class="field"><label>Fotoğraf kanıtı</label><select name="proof_required"><option value="false" ${!z.proof_required?'selected':''}>İsteğe bağlı</option><option value="true" ${z.proof_required?'selected':''}>Zorunlu</option></select></div>
@@ -363,14 +364,14 @@ function zoneCardForm(z,c={}){
  <div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>`
 }
 function openNewZoneModal(box){
- const z={name:'',department:state.role==='manager'&&state.managedDepartments.length===1?state.managedDepartments[0]:'',description:'',color:'#f47a20',priority:'normal',proof_required:false,x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),manual:true,active:true};
+ const z={name:'',department:['manager','department_manager'].includes(state.role)&&state.managedDepartments.length===1?state.managedDepartments[0]:'',manager_access_id:['manager','department_manager'].includes(state.role)?(state.accessProfile&&state.accessProfile.id):null,description:'',color:'#f47a20',priority:'normal',proof_required:false,x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),manual:true,active:true};
  openModal(zoneCardForm(z,{}));bindZoneCardForm(z,true)
 }
 window.openZoneCardModal=id=>{if(!state.isAdmin)return openZoneStatus(id);const z=zoneById(id),c=cardByZone(id)||{};openModal(zoneCardForm(z,c));bindZoneCardForm(z,false,c)};
 function bindZoneCardForm(z,isNew,c={}){
  $('#zoneCardForm').onsubmit=async e=>{
   e.preventDefault();const fd=new FormData(e.target);let zoneId=z.id;
-  const zoneRow={name:fd.get('name'),department:fd.get('department')||null,description:fd.get('description'),color:fd.get('color'),priority:fd.get('priority')||'normal',proof_required:fd.get('proof_required')==='true',manual:true,active:true,x:z.x,y:z.y,w:z.w,h:z.h,shape:'rect',code:z.code||('MANUAL-'+Date.now())};
+  const zoneRow={name:fd.get('name'),department:fd.get('department')||null,manager_access_id:fd.get('manager_access_id')?Number(fd.get('manager_access_id')):null,description:fd.get('description'),color:fd.get('color'),priority:fd.get('priority')||'normal',proof_required:fd.get('proof_required')==='true',manual:true,active:true,x:z.x,y:z.y,w:z.w,h:z.h,shape:'rect',code:z.code||('MANUAL-'+Date.now())};
   if(isNew){const {data,error}=await db.from('emigro_cleaning_zones').insert(zoneRow).select().single();if(error)return toast(error.message);zoneId=data.id}
   else{const {error}=await db.from('emigro_cleaning_zones').update(zoneRow).eq('id',z.id);if(error)return toast(error.message)}
   const cardRow={
@@ -412,8 +413,9 @@ window.editStaff=id=>{
   ${DEPARTMENTS.filter(function(x){return state.isFullAdmin||state.role!=='manager'||state.managedDepartments.includes(x)}).map(function(x){return '<option value="'+x+'" '+(p.department===x?'selected':'')+'>'+x+'</option>'}).join('')}
  </select></div>
  <div class="field"><label>Durum</label><select name="active"><option value="true" ${p.active!==false?'selected':''}>Aktif</option><option value="false" ${p.active===false?'selected':''}>Pasif</option></select></div>
+ <div class="field full"><label>Bağlı Yönetici</label><select name="supervisor_access_id">${staffSupervisorOptions(p.supervisor_access_id||(state.role==='department_manager'?(state.accessProfile&&state.accessProfile.id):null))}</select><div class="field-help">Bu çalışan yalnız bu yönetici ve onun üst yönetim zincirinde görünür.</div></div>
  </div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>`);
- $('#staffForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target),row={name:fd.get('name'),role:fd.get('role'),phone:fd.get('phone'),email:fd.get('email')||null,department:fd.get('department')||null,active:fd.get('active')==='true'};const q=p.id?db.from('emigro_cleaning_staff').update(row).eq('id',p.id):db.from('emigro_cleaning_staff').insert(row);const {error}=await q;if(error)return toast(error.message);closeModal();loadAll()}
+ $('#staffForm').onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target),row={name:fd.get('name'),role:fd.get('role'),phone:fd.get('phone'),email:fd.get('email')||null,department:fd.get('department')||null,supervisor_access_id:fd.get('supervisor_access_id')?Number(fd.get('supervisor_access_id')):null,active:fd.get('active')==='true'};const q=p.id?db.from('emigro_cleaning_staff').update(row).eq('id',p.id):db.from('emigro_cleaning_staff').insert(row);const {error}=await q;if(error)return toast(error.message);closeModal();loadAll()}
 };
 
 
@@ -1396,6 +1398,7 @@ window.openAssignTaskToStaff=function(staffId){
    row[type+'_time']=time;
    row[type+'_task']=taskText;
    row[type+'_proof_required']=fd.get('proof_required')==='true';
+   row[type+'_created_by_access_id']=state.accessProfile&&state.accessProfile.id?Number(state.accessProfile.id):null;
    row[type+'_primary_staff_id']=staffId;
    row[type+'_backup_staff_id']=null;
    row[type+'_backup_days']=[];
@@ -1463,6 +1466,7 @@ window.openOneoffTask=function(staffId){
      work_date:fd.get('work_date'),
      task_time:fd.get('task_time')||null,
      proof_required:fd.get('proof_required')==='true',
+     created_by_access_id:state.accessProfile&&state.accessProfile.id?Number(state.accessProfile.id):null,
      active:true,
      updated_at:new Date().toISOString()
    };
@@ -1484,7 +1488,7 @@ function renderStaff(){
   var st=staffStats(p.id),lines=staffResponsibilityLines(p.id);
   return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div class="staff-card-identity"><span class="staff-shared-icon">'+staffDeptIcon(p)+'</span><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.department||p.role||'Rol belirtilmedi')+'</div></div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
    '<div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div>'+
-   '<div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
+   '<div class="staff-supervisor-line">Üst: <b>'+esc(supervisorLabel(p))+'</b></div><div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
    '<div class="card-actions staff-actions"><button class="oneoff-task-btn" onclick="event.stopPropagation();openOneoffTask('+p.id+')">+ Anlık Görev</button><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Rutin Görev</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
  }).join(''):'<div class="sub">Personel eklenmedi.</div>'
 }
