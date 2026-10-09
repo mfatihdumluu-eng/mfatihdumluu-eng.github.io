@@ -1230,6 +1230,25 @@ function renderManagementHierarchy(){
  tree.innerHTML=roots.length?roots.map(function(u){return hierarchyNodeHtml(u,0)}).join(''):'<div class="sub">Yönetim bağlantısı henüz tanımlanmadı.</div>';
 }
 
+function hierarchyManagerOptions(selected,excludeId){
+ var rows=managerAccessUsers().filter(function(u){return String(u.id)!==String(excludeId||'')});
+ return '<option value="">Üst yönetici seç</option>'+rows.map(function(u){
+   return '<option value="'+u.id+'" '+(String(selected||'')===String(u.id)?'selected':'')+'>'+esc(u.display_name)+' · '+esc(ROLE_LABELS[u.role]||u.role)+'</option>'
+ }).join('')
+}
+function staffSupervisorOptions(selected){
+ var rows=managerAccessUsers().filter(function(u){
+   if(!['manager','department_manager'].includes(u.role))return false;
+   if(state.isFullAdmin)return true;
+   return String(u.id)===String(state.accessProfile&&state.accessProfile.id)||state.accessUsers.some(function(x){return String(x.id)===String(u.id)})
+ });
+ return '<option value="">Bağlı yönetici seç</option>'+rows.map(function(u){
+   return '<option value="'+u.id+'" '+(String(selected||'')===String(u.id)?'selected':'')+'>'+esc(u.display_name)+' · '+esc(ROLE_LABELS[u.role]||u.role)+'</option>'
+ }).join('')
+}
+function zoneManagerOptions(selected){
+ return staffSupervisorOptions(selected)
+}
 function departmentChecks(selected){
  selected=selected||[];
  return DEPARTMENTS.map(function(d){
@@ -1251,7 +1270,7 @@ function renderAccessAdmin(){
  if(sedatCard)sedatCard.classList.toggle('hidden',!!(sedat&&sedat.email));
  var list=$('#accessUserList');if(!list)return;
  list.innerHTML=state.accessUsers.length?state.accessUsers.map(function(u){
-   var deps=(u.departments||[]).join(', ')||'Tüm alanlar / kapsam yok';
+   var deps=(u.departments||[]).join(', ')||'Tüm alanlar / kapsam yok',parent=accessById(u.parent_access_id);
    return '<article class="access-user-card"><div><b>'+esc(u.display_name)+'</b><span>'+esc(u.email||'E-posta bekleniyor')+'</span><small>'+esc(ROLE_LABELS[u.role]||u.role)+' · '+esc(deps)+'</small></div>'+
      '<div><span class="status '+(u.active?'done':'overdue')+'">'+(u.active?'Aktif':'Pasif')+'</span>'+
      (u.email&&u.role!=='system_admin'?'<button onclick="editAccessUser('+u.id+')">Yetkiyi Düzenle</button>':'')+'</div></article>'
@@ -1266,13 +1285,13 @@ window.openInviteUser=function(){
  '<div class="field"><label>Ad Soyad</label><input name="display_name" required></div>'+
  '<div class="field"><label>E-posta</label><input type="email" name="email" required></div>'+
  '<div class="field"><label>Rol</label><select name="role"><option value="worker">Çalışan</option><option value="manager">Manager</option><option value="department_manager">Bölüm Yöneticisi</option>'+bossOption+'</select></div>'+
- '<div class="field"><label>Personel Kartı</label><select name="staff_id">'+staffOpts+'</select></div>'+
+ '<div class="field"><label>Personel Kartı</label><select name="staff_id">'+staffOpts+'</select></div>'+ '<div class="field full"><label>Üst Yönetici</label><select name="parent_access_id">'+hierarchyManagerOptions(null,null)+'</select><small class="sub">Manager → Boss, Bölüm Yöneticisi → Manager, Çalışan → Birim Yöneticisi altında konumlandırılır.</small></div>'+
  '<div class="field full"><label>Yönetebileceği Bölümler</label><div class="checks">'+departmentChecks([])+'</div><small class="sub">Manager birden fazla bölüm alabilir. Bölüm Yöneticisi için tek bölüm seçin.</small></div>'+
  '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Davet Gönder</button></div></form></div>');
  $('#inviteUserForm').onsubmit=async function(e){
    e.preventDefault();var fd=new FormData(e.target);
    try{
-     await invokeUserAdmin({action:'invite',email:fd.get('email'),display_name:fd.get('display_name'),role:fd.get('role'),staff_id:fd.get('staff_id')||null,departments:fd.getAll('departments'),redirect_to:appRedirectUrl()});
+     await invokeUserAdmin({action:'invite',email:fd.get('email'),display_name:fd.get('display_name'),role:fd.get('role'),staff_id:fd.get('staff_id')||null,parent_access_id:fd.get('parent_access_id')||null,departments:fd.getAll('departments'),redirect_to:appRedirectUrl()});
      closeModal();toast('Davet e-postası gönderildi');await loadAll()
    }catch(err){toast(err.message||'Davet gönderilemedi')}
  }
@@ -1284,13 +1303,13 @@ window.editAccessUser=function(id){
  openModal('<h2>Yetkiyi Düzenle</h2><form id="accessEditForm"><div class="form-grid">'+
  '<div class="field full"><label>Kullanıcı</label><div><b>'+esc(u.display_name)+'</b><div class="sub">'+esc(u.email||'')+'</div></div></div>'+
  '<div class="field"><label>Rol</label><select name="role">'+roleOptions+'</select></div>'+
- '<div class="field"><label>Durum</label><select name="active"><option value="true" '+(u.active?'selected':'')+'>Aktif</option><option value="false" '+(!u.active?'selected':'')+'>Pasif</option></select></div>'+
+ '<div class="field"><label>Durum</label><select name="active"><option value="true" '+(u.active?'selected':'')+'>Aktif</option><option value="false" '+(!u.active?'selected':'')+'>Pasif</option></select></div>'+ '<div class="field full"><label>Üst Yönetici</label><select name="parent_access_id">'+hierarchyManagerOptions(u.parent_access_id,u.id)+'</select></div>'+
  '<div class="field full"><label>Yönetebileceği Bölümler</label><div class="checks">'+departmentChecks(u.departments||[])+'</div></div>'+
  '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>');
  $('#accessEditForm').onsubmit=async function(e){
    e.preventDefault();var fd=new FormData(e.target);
    try{
-     await invokeUserAdmin({action:'update_access',access_id:u.id,role:fd.get('role'),active:fd.get('active')==='true',departments:fd.getAll('departments')});
+     await invokeUserAdmin({action:'update_access',access_id:u.id,role:fd.get('role'),active:fd.get('active')==='true',parent_access_id:fd.get('parent_access_id')||null,departments:fd.getAll('departments')});
      closeModal();toast('Yetki güncellendi');await loadAll()
    }catch(err){toast(err.message||'Yetki güncellenemedi')}
  }
