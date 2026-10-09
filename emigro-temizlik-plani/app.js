@@ -87,15 +87,32 @@ async function initAuth(){
  };
  if($('#firstAccessForm'))$('#firstAccessForm').onsubmit=async function(e){
    e.preventDefault();
-   var fd=new FormData(e.target),email=String(fd.get('email')||'').trim().toLowerCase(),p1=String(fd.get('password')||''),p2=String(fd.get('password2')||'');
+   var fd=new FormData(e.target),email=String(fd.get('email')||'').trim().toLowerCase(),p1=String(fd.get('password')||''),p2=String(fd.get('password2')||''),inviteToken=PARAMS.get('invite');
    if(p1!==p2)return showAuthMessage('Şifreler aynı değil.','error');
-   showAuthMessage('Hesap aktive ediliyor...');
-   var r=await db.auth.signUp({email:email,password:p1,options:{emailRedirectTo:appRedirectUrl()}});
+   showAuthMessage(inviteToken?'Davet kabul ediliyor...':'Hesap aktive ediliyor...');
+   var r;
+
+   if(inviteToken){
+     var ar=await db.functions.invoke('cleaning-accept-invite',{body:{invite_token:inviteToken,email:email,password:p1}});
+     if(ar.error){
+       try{
+         if(ar.error.context&&typeof ar.error.context.json==='function'){
+           var ad=await ar.error.context.json();
+           if(ad&&ad.error)return showAuthMessage(ad.error,'error')
+         }
+       }catch(ignore){}
+       return showAuthMessage(ar.error.message||'Davet kabul edilemedi','error')
+     }
+     r=await db.auth.signInWithPassword({email:email,password:p1});
+   }else{
+     r=await db.auth.signUp({email:email,password:p1,options:{emailRedirectTo:appRedirectUrl()}});
+   }
+
    if(r.error)return showAuthMessage(r.error.message,'error');
    if(r.data.session){
      try{await establishAccess();initCleaningAdmin()}catch(err){await db.auth.signOut();showAuthMessage(err.message||'Bu e-posta sisteme davet edilmemiş','error')}
    }else{
-     showAuthMessage('Hesap oluşturuldu. E-postana doğrulama bağlantısı geldiyse onu onayla, sonra giriş yap.')
+     showAuthMessage(inviteToken?'Üyelik oluşturuldu. Şimdi normal giriş ekranından e-posta ve şifrenle giriş yap.':'Hesap oluşturuldu. E-postana doğrulama bağlantısı geldiyse onu onayla, sonra giriş yap.')
    }
  };
  if($('#resetPasswordForm'))$('#resetPasswordForm').onsubmit=async function(e){
@@ -116,8 +133,12 @@ async function initAuth(){
  if(ses.data&&ses.data.session){
    try{await establishAccess();initCleaningAdmin();return}catch(err){await db.auth.signOut();showAuthMessage(err.message||'Erişim reddedildi','error')}
  }
- if(PARAMS.get('recovery')==='1')showAuthPane('#authResetPane');
- else showAuthPane('#authLoginPane')
+ if(PARAMS.get('recovery')==='1'||location.hash.includes('type=recovery'))showAuthPane('#authResetPane');
+ else if(PARAMS.get('invite')){
+   showAuthPane('#authFirstPane');
+   var h=$('#authFirstPane h1');if(h)h.textContent='Davetini kabul et';
+   var p=$('#authFirstPane p');if(p)p.textContent='Kendi e-posta adresin ve şifrenle üyeliğini oluştur. Bundan sonra bu bilgilerle giriş yapacaksın.';
+ }else showAuthPane('#authLoginPane')
 }
 
 
