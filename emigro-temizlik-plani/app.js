@@ -1141,7 +1141,7 @@ function hierarchyNodeHtml(u,depth){
 function renderManagementHierarchy(){
  var panel=$('#managementHierarchyPanel'),tree=$('#managementHierarchyTree');
  if(!panel||!tree)return;
- if(!state.isAdmin){panel.classList.add('hidden');return}
+ if(!state.isFullAdmin){panel.classList.add('hidden');return}
  panel.classList.remove('hidden');
  var roots;
  if(state.isFullAdmin){
@@ -1214,72 +1214,50 @@ function renderAccessAdmin(){
  var sedatCard=$('#sedatSetupCard');
  if(sedatCard)sedatCard.classList.toggle('hidden',!!(sedat&&sedat.email));
  var list=$('#accessUserList');if(!list)return;
- list.innerHTML=state.accessUsers.length?state.accessUsers.map(function(u){
+ var visibleUsers=state.accessUsers.filter(function(u){return !(u.active===false&&!u.email&&!u.auth_user_id&&!u.staff_id)});
+ list.innerHTML=visibleUsers.length?visibleUsers.map(function(u){
    var deps=(u.departments||[]).join(', ')||'Tüm alanlar / kapsam yok',parent=accessById(u.parent_access_id);
    return '<article class="access-user-card"><div><b>'+esc(u.display_name)+'</b><span>'+esc(u.email||'E-posta bekleniyor')+'</span><small>'+esc(ROLE_LABELS[u.role]||u.role)+' · '+esc(deps)+'</small></div>'+
      '<div><span class="status '+(u.active?'done':'overdue')+'">'+(u.active?'Aktif':'Pasif')+'</span>'+
-     (u.role!=='system_admin'?(!u.auth_user_id?'<button onclick="inviteExistingAccess('+u.id+')">E-posta ile Davet</button>':'')+'<button onclick="editAccessUser('+u.id+')">Yetkiyi Düzenle</button>':'')+'</div></article>'
+     (!['system_admin','boss'].includes(u.role)?(!u.auth_user_id?'<button onclick="inviteExistingAccess('+u.id+')">E-posta ile Davet</button>':'')+'<button onclick="editAccessUser('+u.id+')">Yetkiyi Düzenle</button>':'')+'</div></article>'
  }).join(''):'<div class="sub">Henüz kullanıcı yok.</div>'
 }
 window.openInviteUser=function(){
- if(!state.isAdmin)return;
- var full=state.isFullAdmin;
- var roleOptions='<option value="worker">Çalışan</option>'+(full?'<option value="manager">Manager</option><option value="department_manager">Birim Yöneticisi</option>':'');
- openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">KULLANICI DAVETİ</span><h2>Yeni kullanıcı</h2><p>E-posta veya WhatsApp ile davet gönder. Giriş her zaman e-posta + şifre ile yapılır.</p></div>'+
+ if(!state.isFullAdmin)return;
+ openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">KULLANICI DAVETİ</span><h2>Yeni kullanıcı</h2><p>Önce kullanıcıyı sisteme ekleyin. Bölüm ve yönetici yetkisini daha sonra kişinin kartından belirleyin.</p></div>'+
  '<form id="inviteUserForm"><div class="form-grid">'+
  '<div class="field"><label>Ad Soyad</label><input name="display_name" required></div>'+
  '<div class="field"><label>Telefon / WhatsApp</label><input name="phone" placeholder="06..."></div>'+
  '<div class="field full"><label>E-posta</label><input type="email" name="email" placeholder="E-posta ile davette zorunlu"></div>'+
- '<div class="field"><label>Rol</label><select name="role" id="inviteRole">'+roleOptions+'</select></div>'+
- '<div class="field"><label>Üst Yönetici</label><select name="parent_access_id" id="inviteParent"></select></div>'+
- '<div class="field full"><label>Bölüm</label><div class="checks">'+departmentChecks([])+'</div><small class="sub">Çalışan ve Birim Yöneticisi için tek bölüm seç. Manager birden fazla bölüm alabilir.</small></div>'+
- '</div><div class="notify-channel-grid">'+
+ '</div>'+
+ '<div class="invite-info-box"><b>Yetki sonradan verilecek</b><span>Kullanıcı ilk olarak normal çalışan hesabı olarak oluşur. System Manager / Admin Manager daha sonra bölümünü ve gerekiyorsa Manager veya Birim Yöneticisi yetkisini seçer.</span></div>'+
+ '<div class="notify-channel-grid">'+
  '<button type="submit" name="invite_channel" value="email" class="notify-channel-card system-channel"><span>✉️</span><b>E-posta ile Davet</b><small>Üyelik bağlantısı e-postaya gider.</small></button>'+
  '<button type="submit" name="invite_channel" value="whatsapp" class="notify-channel-card whatsapp-channel"><span>💬</span><b>WhatsApp ile Davet</b><small>Özel üyelik linkini WhatsApp ile gönder.</small></button>'+
  '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button></div></form></div>');
 
- var form=$('#inviteUserForm'),roleSel=$('#inviteRole'),parentSel=$('#inviteParent');
- function syncParent(){
-   var preferred=!state.isFullAdmin&&['manager','department_manager'].includes(state.role)?state.accessProfile.id:null;
-   parentSel.innerHTML=hierarchyManagerOptions(preferred,null,roleSel.value);
-   if(preferred){parentSel.value=String(preferred);parentSel.disabled=true}
- }
- roleSel.onchange=syncParent;syncParent();
-
+ var form=$('#inviteUserForm');
  form.onsubmit=async function(e){
    e.preventDefault();
    var fd=new FormData(form),channel=e.submitter&&e.submitter.value||'email';
-   var role=fd.get('role'),departments=fd.getAll('departments'),parentId=parentSel.value||null;
-   var email=String(fd.get('email')||'').trim(),phone=String(fd.get('phone')||'').trim();
-   if((role==='worker'||role==='department_manager')&&departments.length!==1)return toast('Bu rol için tek bölüm seç');
-   if(role==='manager'&&!departments.length)return toast('Manager için en az bir bölüm seç');
+   var email=String(fd.get('email')||'').trim(),phone=String(fd.get('phone')||'').trim(),name=String(fd.get('display_name')||'').trim();
    try{
      if(channel==='email'){
        if(!email)return toast('E-posta adresini yaz');
        await invokeUserAdmin({
          action:'invite',
          email:email,
-         display_name:fd.get('display_name'),
+         display_name:name,
          phone:phone,
-         role:role,
-         staff_id:null,
-         parent_access_id:parentId,
-         departments:departments,
          redirect_to:appRedirectUrl()
        });
        closeModal();toast('Davet e-postası gönderildi');await loadAll()
      }else{
        if(!phone)return toast('WhatsApp telefonunu yaz');
-       var invite=await invokeWhatsappInvite({
-         display_name:fd.get('display_name'),
-         phone:phone,
-         role:role,
-         parent_access_id:parentId,
-         departments:departments
-       });
+       var invite=await invokeWhatsappInvite({display_name:name,phone:phone});
        var direct=location.origin+location.pathname+'?invite='+encodeURIComponent(invite.invite_token);
        var wphone=whatsappPhone(phone);
-       var msg='EMIGRO Temizlik sistemine davet edildiniz.\n\nÜyeliğinizi kendi e-posta adresiniz ve şifrenizle oluşturmak için:\n'+direct;
+       var msg='EMIGRO Temizlik sistemine davet edildiniz.\n\nKendi e-posta adresiniz ve şifrenizle üyelik oluşturmak için:\n'+direct;
        closeModal();await loadAll();
        if(wphone)window.open('https://wa.me/'+wphone+'?text='+encodeURIComponent(msg),'_blank');
        toast('WhatsApp daveti hazırlandı')
@@ -1304,26 +1282,43 @@ window.inviteExistingAccess=function(id){
 };
 window.editAccessUser=function(id){
  var u=state.accessUsers.find(function(x){return String(x.id)===String(id)});if(!u||!state.isFullAdmin)return;
- var roleOptions='<option value="worker" '+(u.role==='worker'?'selected':'')+'>Çalışan</option><option value="manager" '+(u.role==='manager'?'selected':'')+'>Manager</option><option value="department_manager" '+(u.role==='department_manager'?'selected':'')+'>Bölüm Yöneticisi</option>'+
-   (state.role==='system_admin'?'<option value="boss" '+(u.role==='boss'?'selected':'')+'>Boss</option>':'');
- openModal('<h2>Yetkiyi Düzenle</h2><form id="accessEditForm"><div class="form-grid">'+
- '<div class="field full"><label>Kullanıcı</label><div><b>'+esc(u.display_name)+'</b><div class="sub">'+esc(u.email||'')+'</div></div></div>'+
- '<div class="field"><label>Rol</label><select name="role" id="accessRole">'+roleOptions+'</select></div>'+
- '<div class="field"><label>Durum</label><select name="active"><option value="true" '+(u.active?'selected':'')+'>Aktif</option><option value="false" '+(!u.active?'selected':'')+'>Pasif</option></select></div>'+ '<div class="field full"><label>Üst Yönetici</label><select name="parent_access_id" id="accessParent">'+hierarchyManagerOptions(u.parent_access_id,u.id,u.role)+'</select></div>'+
- '<div class="field full"><label>Yönetebileceği Bölümler</label><div class="checks">'+departmentChecks(u.departments||[])+'</div></div>'+
- '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>');
- var accessRole=$('#accessRole'),accessParent=$('#accessParent');
- if(accessRole&&accessParent)accessRole.onchange=function(){
-   accessParent.innerHTML=hierarchyManagerOptions(null,u.id,accessRole.value)
- };
+ if(['system_admin','boss'].includes(u.role))return toast('Bu ana yönetici hesabı buradan değiştirilemez');
+ var roleOptions=
+   '<option value="worker" '+(u.role==='worker'?'selected':'')+'>Çalışan</option>'+
+   '<option value="department_manager" '+(u.role==='department_manager'?'selected':'')+'>Birim Yöneticisi</option>'+
+   '<option value="manager" '+(u.role==='manager'?'selected':'')+'>Manager</option>';
+
+ openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">KULLANICI AYARI</span><h2>'+esc(u.display_name)+'</h2><p>Önce bölümünü seçin; gerekiyorsa aynı kişiyi o bölümün yöneticisi yapın.</p></div>'+
+ '<form id="accessEditForm"><div class="form-grid">'+
+ '<div class="field full"><label>Kullanıcı</label><div class="access-edit-user"><b>'+esc(u.display_name)+'</b><span>'+esc(u.email||'Üyelik bekleniyor')+'</span></div></div>'+
+ '<div class="field"><label>Yetki</label><select name="role" id="accessRole">'+roleOptions+'</select></div>'+
+ '<div class="field"><label>Durum</label><select name="active"><option value="true" '+(u.active?'selected':'')+'>Aktif</option><option value="false" '+(!u.active?'selected':'')+'>Pasif</option></select></div>'+
+ '<div class="field full"><label>Bölüm / Birim</label><div class="checks">'+departmentChecks(u.departments||[])+'</div><small class="sub">Çalışan ve Birim Yöneticisi için tek bölüm seçilir. Manager birden fazla bölümden sorumlu olabilir.</small></div>'+
+ '<div class="field full"><div id="accessRoleHelp" class="invite-info-box"></div></div>'+
+ '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form></div>');
+
+ var roleSel=$('#accessRole'),help=$('#accessRoleHelp');
+ function syncHelp(){
+   if(!help)return;
+   help.innerHTML=roleSel.value==='department_manager'
+     ?'<b>Birim Yöneticisi</b><span>Seçilen bölümdeki çalışanlar ve alanlar otomatik olarak bu kişinin altına bağlanır. Bu kişi aynı zamanda çalışan kartını korur.</span>'
+     :roleSel.value==='manager'
+       ?'<b>Manager</b><span>Seçilen birim yöneticileri ve bölümler bu Manager altında toplanır.</span>'
+       :'<b>Çalışan</b><span>Seçilen bölümde normal çalışan olarak görev alır. Varsa o bölümün Birim Yöneticisine otomatik bağlanır.</span>';
+ }
+ roleSel.onchange=syncHelp;syncHelp();
+
  $('#accessEditForm').onsubmit=async function(e){
-   e.preventDefault();var fd=new FormData(e.target);
+   e.preventDefault();var fd=new FormData(e.target),role=fd.get('role'),departments=fd.getAll('departments');
+   if((role==='worker'||role==='department_manager')&&departments.length!==1)return toast('Bu yetki için tek bölüm seç');
+   if(role==='manager'&&!departments.length)return toast('Manager için en az bir bölüm seç');
    try{
-     await invokeUserAdmin({action:'update_access',access_id:u.id,role:fd.get('role'),active:fd.get('active')==='true',parent_access_id:fd.get('parent_access_id')||null,departments:fd.getAll('departments')});
-     closeModal();toast('Yetki güncellendi');await loadAll()
+     await invokeUserAdmin({action:'update_access',access_id:u.id,role:role,active:fd.get('active')==='true',departments:departments});
+     closeModal();toast('Kullanıcı görevi ve bölümü güncellendi');await loadAll()
    }catch(err){toast(err.message||'Yetki güncellenemedi')}
  }
 };
+
 window.setSedatEmail=function(){
  if(state.role!=='system_admin')return;
  openModal('<h2>Sedat · Boss hesabı</h2><form id="sedatEmailForm"><div class="field"><label>E-posta</label><input type="email" name="email" required></div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Davet Gönder</button></div></form>');
