@@ -33,10 +33,11 @@ async function establishAccess(){
  if(!profile)throw new Error('Yetki profili bulunamadı');
  state.accessProfile=profile;
  state.role=profile.role;
- state.isFullAdmin=['system_admin','boss'].includes(profile.role);
- state.isAdmin=profile.role!=='worker';
+ var ownWorkerMode=PARAMS.get('mode')==='worker'&&!!profile.staff_id;
+ state.isFullAdmin=!ownWorkerMode&&['system_admin','boss'].includes(profile.role);
+ state.isAdmin=!ownWorkerMode&&profile.role!=='worker';
  state.managedDepartments=profile.departments||[];
- state.workerStaffId=profile.role==='worker'?Number(profile.staff_id)||null:null;
+ state.workerStaffId=profile.staff_id?Number(profile.staff_id)||null:null;
  state.authReady=true;
  $('#authGate')?.classList.add('hidden');
  $('#appShell')?.classList.remove('hidden');
@@ -46,6 +47,15 @@ async function establishAccess(){
    $('#sessionRole').textContent=ROLE_LABELS[profile.role]||profile.role;
  }
  $('#logoutBtn')?.classList.remove('hidden');
+ if(profile.staff_id&&profile.role!=='worker'&&PARAMS.get('mode')!=='worker'){
+   var top=$('.top-actions');
+   if(top&&!$('#myTasksBtn')){
+     var mb=document.createElement('button');
+     mb.id='myTasksBtn';mb.className='icon-action';mb.title='Kendi Görevlerim';mb.textContent='✓';
+     mb.onclick=function(){location.href=location.pathname+'?mode=worker'};
+     top.insertBefore(mb,$('#logoutBtn'))
+   }
+ }
  document.body.classList.toggle('full-admin',state.isFullAdmin);
  document.body.classList.toggle('manager-mode',['manager','department_manager'].includes(state.role));
  document.body.classList.toggle('authenticated-worker',state.role==='worker');
