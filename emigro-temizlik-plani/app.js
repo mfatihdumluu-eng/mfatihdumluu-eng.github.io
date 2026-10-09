@@ -179,12 +179,12 @@ async function loadAll(){
    db.from('emigro_cleaning_task_tags').select('*').order('sort_order'),
    db.from('emigro_cleaning_oneoff_tasks').select('*').eq('active',true).order('work_date'),
    db.from('emigro_cleaning_settings').select('*').eq('id',1).single(),
-   state.isFullAdmin?db.from('emigro_cleaning_user_access').select('*').order('display_name'):Promise.resolve({data:[],error:null})
+   state.isAdmin?db.from('emigro_cleaning_user_access').select('*').order('display_name'):Promise.resolve({data:[],error:null})
   ]);
   [z,p,c,l,n,t,o,s,a].forEach(r=>{if(r.error)throw r.error});
   state.zones=z.data||[];state.staff=p.data||[];state.cards=c.data||[];state.logs=l.data||[];state.notifications=n.data||[];state.taskTags=t.data||[];state.oneoffTasks=o.data||[];state.settings=s.data||{};state.accessUsers=a.data||[];
   $('#dbState').textContent='● Veritabanı bağlı';
-  applyPlanImage();renderAll();setupRoleUI();setupWorkerMode();renderAccessAdmin();openTaskDeepLink();
+  applyPlanImage();renderAll();setupRoleUI();setupWorkerMode();renderManagementHierarchy();renderAccessAdmin();openTaskDeepLink();
  }catch(e){console.error(e);$('#dbState').textContent='● Bağlantı hatası';toast('Veritabanı bağlantı hatası')}
 }
 
@@ -1190,6 +1190,46 @@ function setupRoleUI(){
    if($('#accessAdminPanel'))$('#accessAdminPanel').classList.add('hidden');
  }
 }
+function accessById(id){return state.accessUsers.find(function(u){return String(u.id)===String(id)})}
+function managerAccessUsers(){
+ return state.accessUsers.filter(function(u){return u.active!==false&&['system_admin','boss','manager','department_manager'].includes(u.role)})
+}
+function supervisorLabel(staff){
+ var u=accessById(staff&&staff.supervisor_access_id);
+ return u?(u.display_name+' · '+(ROLE_LABELS[u.role]||u.role)):'Yönetici atanmamış'
+}
+function accessChildren(parentId){
+ return state.accessUsers.filter(function(u){return u.active!==false&&String(u.parent_access_id||'')===String(parentId||'')})
+}
+function hierarchyNodeHtml(u,depth){
+ var deps=(u.departments||[]).join(', ');
+ var children=accessChildren(u.id).filter(function(x){return x.role!=='worker'});
+ var workers=state.staff.filter(function(p){return p.active!==false&&String(p.supervisor_access_id||'')===String(u.id)});
+ var childHtml=children.map(function(c){return hierarchyNodeHtml(c,(depth||0)+1)}).join('');
+ var workerHtml=workers.length?'<div class="hierarchy-workers">'+workers.map(function(p){
+   var stats=staffStats(p.id);
+   return '<div class="hierarchy-worker"><span>'+staffDeptIcon(p)+'</span><div><b>'+esc(p.name)+'</b><small>'+esc(p.department||'Çalışan')+' · '+stats.done+' yapıldı · '+stats.missed+' aksadı</small></div></div>'
+ }).join('')+'</div>':'';
+ return '<div class="hierarchy-node depth-'+Math.min(depth||0,4)+'"><div class="hierarchy-manager">'+
+   '<span class="hierarchy-role-icon">'+(u.role==='system_admin'?'⚙️':u.role==='boss'?'👑':u.role==='manager'?'🧭':'🧑‍💼')+'</span>'+
+   '<div><b>'+esc(u.display_name)+'</b><small>'+esc(ROLE_LABELS[u.role]||u.role)+(deps?' · '+esc(deps):'')+'</small></div>'+
+   '<span class="hierarchy-count">'+(children.length+workers.length)+' alt kayıt</span></div>'+
+   workerHtml+(childHtml?'<div class="hierarchy-children">'+childHtml+'</div>':'')+'</div>'
+}
+function renderManagementHierarchy(){
+ var panel=$('#managementHierarchyPanel'),tree=$('#managementHierarchyTree');
+ if(!panel||!tree)return;
+ if(!state.isAdmin){panel.classList.add('hidden');return}
+ panel.classList.remove('hidden');
+ var roots;
+ if(state.isFullAdmin){
+   roots=state.accessUsers.filter(function(u){return u.active!==false&&!u.parent_access_id&&['system_admin','boss','manager','department_manager'].includes(u.role)})
+ }else{
+   roots=state.accessUsers.filter(function(u){return String(u.id)===String(state.accessProfile&&state.accessProfile.id)})
+ }
+ tree.innerHTML=roots.length?roots.map(function(u){return hierarchyNodeHtml(u,0)}).join(''):'<div class="sub">Yönetim bağlantısı henüz tanımlanmadı.</div>';
+}
+
 function departmentChecks(selected){
  selected=selected||[];
  return DEPARTMENTS.map(function(d){
