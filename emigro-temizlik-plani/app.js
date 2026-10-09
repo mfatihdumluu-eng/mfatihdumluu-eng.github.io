@@ -1131,8 +1131,9 @@ function renderManagementHierarchy(){
  tree.innerHTML=roots.length?roots.map(function(u){return hierarchyNodeHtml(u,0)}).join(''):'<div class="sub">Yönetim bağlantısı henüz tanımlanmadı.</div>';
 }
 
-function hierarchyManagerOptions(selected,excludeId){
- var rows=managerAccessUsers().filter(function(u){return String(u.id)!==String(excludeId||'')});
+function hierarchyManagerOptions(selected,excludeId,childRole){
+ var allowed=childRole==='manager'?['system_admin','boss']:childRole==='department_manager'?['manager']:childRole==='worker'?['manager','department_manager']:['system_admin','boss','manager','department_manager'];
+ var rows=managerAccessUsers().filter(function(u){return String(u.id)!==String(excludeId||'')&&allowed.includes(u.role)});
  return '<option value="">Üst yönetici seç</option>'+rows.map(function(u){
    return '<option value="'+u.id+'" '+(String(selected||'')===String(u.id)?'selected':'')+'>'+esc(u.display_name)+' · '+esc(ROLE_LABELS[u.role]||u.role)+'</option>'
  }).join('')
@@ -1158,13 +1159,35 @@ function departmentChecks(selected){
 }
 async function invokeUserAdmin(body){
  var r=await db.functions.invoke('cleaning-user-admin',{body:body});
- if(r.error)throw r.error;
+ if(r.error){
+   try{
+     if(r.error.context&&typeof r.error.context.json==='function'){
+       var details=await r.error.context.json();
+       if(details&&details.error)throw new Error(details.error)
+     }
+   }catch(err){if(err&&err.message)throw err}
+   throw new Error(r.error.message||'İşlem başarısız')
+ }
+ if(r.data&&r.data.error)throw new Error(r.data.error);
+ return r.data
+}
+async function invokeWhatsappInvite(body){
+ var r=await db.functions.invoke('cleaning-create-whatsapp-invite',{body:body});
+ if(r.error){
+   try{
+     if(r.error.context&&typeof r.error.context.json==='function'){
+       var details=await r.error.context.json();
+       if(details&&details.error)throw new Error(details.error)
+     }
+   }catch(err){if(err&&err.message)throw err}
+   throw new Error(r.error.message||'WhatsApp daveti oluşturulamadı')
+ }
  if(r.data&&r.data.error)throw new Error(r.data.error);
  return r.data
 }
 function renderAccessAdmin(){
  var panel=$('#accessAdminPanel');if(!panel)return;
- if(!state.isFullAdmin){panel.classList.add('hidden');return}
+ if(!state.isAdmin){panel.classList.add('hidden');return}
  panel.classList.remove('hidden');
  var sedat=state.accessUsers.find(function(x){return x.role==='boss'&&String(x.display_name).toLowerCase()==='sedat'});
  var sedatCard=$('#sedatSetupCard');
@@ -1178,25 +1201,72 @@ function renderAccessAdmin(){
  }).join(''):'<div class="sub">Henüz kullanıcı yok.</div>'
 }
 window.openInviteUser=function(){
- if(!state.isFullAdmin)return;
- var staffOpts='<option value="">Personel kartı bağlama</option>'+state.staff.filter(function(p){return p.active}).map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+' · '+esc(p.department||'')+'</option>'}).join('');
- var bossOption=state.role==='system_admin'?'<option value="boss">Boss</option>':'';
- openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">KULLANICI DAVETİ</span><h2>Yeni kullanıcı</h2><p>E-posta ile güvenli davet gönderilir.</p></div>'+
+ if(!state.isAdmin)return;
+ var full=state.isFullAdmin;
+ var roleOptions='<option value="worker">Çalışan</option>'+(full?'<option value="manager">Manager</option><option value="department_manager">Birim Yöneticisi</option>':'');
+ openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">KULLANICI DAVETİ</span><h2>Yeni kullanıcı</h2><p>E-posta veya WhatsApp ile davet gönder. Giriş her zaman e-posta + şifre ile yapılır.</p></div>'+
  '<form id="inviteUserForm"><div class="form-grid">'+
  '<div class="field"><label>Ad Soyad</label><input name="display_name" required></div>'+
- '<div class="field"><label>E-posta</label><input type="email" name="email" required></div>'+
- '<div class="field"><label>Rol</label><select name="role"><option value="worker">Çalışan</option><option value="manager">Manager</option><option value="department_manager">Bölüm Yöneticisi</option>'+bossOption+'</select></div>'+
- '<div class="field"><label>Personel Kartı</label><select name="staff_id">'+staffOpts+'</select></div>'+ '<div class="field full"><label>Üst Yönetici</label><select name="parent_access_id">'+hierarchyManagerOptions(null,null)+'</select><small class="sub">Manager → Boss, Bölüm Yöneticisi → Manager, Çalışan → Birim Yöneticisi altında konumlandırılır.</small></div>'+
- '<div class="field full"><label>Yönetebileceği Bölümler</label><div class="checks">'+departmentChecks([])+'</div><small class="sub">Manager birden fazla bölüm alabilir. Bölüm Yöneticisi için tek bölüm seçin.</small></div>'+
- '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Davet Gönder</button></div></form></div>');
- $('#inviteUserForm').onsubmit=async function(e){
-   e.preventDefault();var fd=new FormData(e.target);
+ '<div class="field"><label>Telefon / WhatsApp</label><input name="phone" placeholder="06..."></div>'+
+ '<div class="field full"><label>E-posta</label><input type="email" name="email" placeholder="E-posta ile davette zorunlu"></div>'+
+ '<div class="field"><label>Rol</label><select name="role" id="inviteRole">'+roleOptions+'</select></div>'+
+ '<div class="field"><label>Üst Yönetici</label><select name="parent_access_id" id="inviteParent"></select></div>'+
+ '<div class="field full"><label>Bölüm</label><div class="checks">'+departmentChecks([])+'</div><small class="sub">Çalışan ve Birim Yöneticisi için tek bölüm seç. Manager birden fazla bölüm alabilir.</small></div>'+
+ '</div><div class="notify-channel-grid">'+
+ '<button type="submit" name="invite_channel" value="email" class="notify-channel-card system-channel"><span>✉️</span><b>E-posta ile Davet</b><small>Üyelik bağlantısı e-postaya gider.</small></button>'+
+ '<button type="submit" name="invite_channel" value="whatsapp" class="notify-channel-card whatsapp-channel"><span>💬</span><b>WhatsApp ile Davet</b><small>Özel üyelik linkini WhatsApp ile gönder.</small></button>'+
+ '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button></div></form></div>');
+
+ var form=$('#inviteUserForm'),roleSel=$('#inviteRole'),parentSel=$('#inviteParent');
+ function syncParent(){
+   var preferred=!state.isFullAdmin&&['manager','department_manager'].includes(state.role)?state.accessProfile.id:null;
+   parentSel.innerHTML=hierarchyManagerOptions(preferred,null,roleSel.value);
+   if(preferred){parentSel.value=String(preferred);parentSel.disabled=true}
+ }
+ roleSel.onchange=syncParent;syncParent();
+
+ form.onsubmit=async function(e){
+   e.preventDefault();
+   var fd=new FormData(form),channel=e.submitter&&e.submitter.value||'email';
+   var role=fd.get('role'),departments=fd.getAll('departments'),parentId=parentSel.value||null;
+   var email=String(fd.get('email')||'').trim(),phone=String(fd.get('phone')||'').trim();
+   if((role==='worker'||role==='department_manager')&&departments.length!==1)return toast('Bu rol için tek bölüm seç');
+   if(role==='manager'&&!departments.length)return toast('Manager için en az bir bölüm seç');
    try{
-     await invokeUserAdmin({action:'invite',email:fd.get('email'),display_name:fd.get('display_name'),role:fd.get('role'),staff_id:fd.get('staff_id')||null,parent_access_id:fd.get('parent_access_id')||null,departments:fd.getAll('departments'),redirect_to:appRedirectUrl()});
-     closeModal();toast('Davet e-postası gönderildi');await loadAll()
+     if(channel==='email'){
+       if(!email)return toast('E-posta adresini yaz');
+       await invokeUserAdmin({
+         action:'invite',
+         email:email,
+         display_name:fd.get('display_name'),
+         phone:phone,
+         role:role,
+         staff_id:null,
+         parent_access_id:parentId,
+         departments:departments,
+         redirect_to:appRedirectUrl()
+       });
+       closeModal();toast('Davet e-postası gönderildi');await loadAll()
+     }else{
+       if(!phone)return toast('WhatsApp telefonunu yaz');
+       var invite=await invokeWhatsappInvite({
+         display_name:fd.get('display_name'),
+         phone:phone,
+         role:role,
+         parent_access_id:parentId,
+         departments:departments
+       });
+       var direct=location.origin+location.pathname+'?invite='+encodeURIComponent(invite.invite_token);
+       var wphone=whatsappPhone(phone);
+       var msg='EMIGRO Temizlik sistemine davet edildiniz.\n\nÜyeliğinizi kendi e-posta adresiniz ve şifrenizle oluşturmak için:\n'+direct;
+       closeModal();await loadAll();
+       if(wphone)window.open('https://wa.me/'+wphone+'?text='+encodeURIComponent(msg),'_blank');
+       toast('WhatsApp daveti hazırlandı')
+     }
    }catch(err){toast(err.message||'Davet gönderilemedi')}
  }
 };
+
 window.inviteExistingAccess=function(id){
  var u=state.accessUsers.find(function(x){return String(x.id)===String(id)});if(!u||!state.isFullAdmin)return;
  openModal('<h2>'+esc(u.display_name)+' · Davet</h2><form id="existingAccessInviteForm"><div class="form-grid">'+
@@ -1217,10 +1287,14 @@ window.editAccessUser=function(id){
    (state.role==='system_admin'?'<option value="boss" '+(u.role==='boss'?'selected':'')+'>Boss</option>':'');
  openModal('<h2>Yetkiyi Düzenle</h2><form id="accessEditForm"><div class="form-grid">'+
  '<div class="field full"><label>Kullanıcı</label><div><b>'+esc(u.display_name)+'</b><div class="sub">'+esc(u.email||'')+'</div></div></div>'+
- '<div class="field"><label>Rol</label><select name="role">'+roleOptions+'</select></div>'+
- '<div class="field"><label>Durum</label><select name="active"><option value="true" '+(u.active?'selected':'')+'>Aktif</option><option value="false" '+(!u.active?'selected':'')+'>Pasif</option></select></div>'+ '<div class="field full"><label>Üst Yönetici</label><select name="parent_access_id">'+hierarchyManagerOptions(u.parent_access_id,u.id)+'</select></div>'+
+ '<div class="field"><label>Rol</label><select name="role" id="accessRole">'+roleOptions+'</select></div>'+
+ '<div class="field"><label>Durum</label><select name="active"><option value="true" '+(u.active?'selected':'')+'>Aktif</option><option value="false" '+(!u.active?'selected':'')+'>Pasif</option></select></div>'+ '<div class="field full"><label>Üst Yönetici</label><select name="parent_access_id" id="accessParent">'+hierarchyManagerOptions(u.parent_access_id,u.id,u.role)+'</select></div>'+
  '<div class="field full"><label>Yönetebileceği Bölümler</label><div class="checks">'+departmentChecks(u.departments||[])+'</div></div>'+
  '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>');
+ var accessRole=$('#accessRole'),accessParent=$('#accessParent');
+ if(accessRole&&accessParent)accessRole.onchange=function(){
+   accessParent.innerHTML=hierarchyManagerOptions(null,u.id,accessRole.value)
+ };
  $('#accessEditForm').onsubmit=async function(e){
    e.preventDefault();var fd=new FormData(e.target);
    try{
