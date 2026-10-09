@@ -1275,7 +1275,7 @@ function renderAccessAdmin(){
    var deps=(u.departments||[]).join(', ')||'Tüm alanlar / kapsam yok',parent=accessById(u.parent_access_id);
    return '<article class="access-user-card"><div><b>'+esc(u.display_name)+'</b><span>'+esc(u.email||'E-posta bekleniyor')+'</span><small>'+esc(ROLE_LABELS[u.role]||u.role)+' · '+esc(deps)+'</small></div>'+
      '<div><span class="status '+(u.active?'done':'overdue')+'">'+(u.active?'Aktif':'Pasif')+'</span>'+
-     (u.email&&u.role!=='system_admin'?'<button onclick="editAccessUser('+u.id+')">Yetkiyi Düzenle</button>':'')+'</div></article>'
+     (u.role!=='system_admin'?(!u.auth_user_id?'<button onclick="inviteExistingAccess('+u.id+')">E-posta ile Davet</button>':'')+'<button onclick="editAccessUser('+u.id+')">Yetkiyi Düzenle</button>':'')+'</div></article>'
  }).join(''):'<div class="sub">Henüz kullanıcı yok.</div>'
 }
 window.openInviteUser=function(){
@@ -1295,6 +1295,20 @@ window.openInviteUser=function(){
    try{
      await invokeUserAdmin({action:'invite',email:fd.get('email'),display_name:fd.get('display_name'),role:fd.get('role'),staff_id:fd.get('staff_id')||null,parent_access_id:fd.get('parent_access_id')||null,departments:fd.getAll('departments'),redirect_to:appRedirectUrl()});
      closeModal();toast('Davet e-postası gönderildi');await loadAll()
+   }catch(err){toast(err.message||'Davet gönderilemedi')}
+ }
+};
+window.inviteExistingAccess=function(id){
+ var u=state.accessUsers.find(function(x){return String(x.id)===String(id)});if(!u||!state.isFullAdmin)return;
+ openModal('<h2>'+esc(u.display_name)+' · Davet</h2><form id="existingAccessInviteForm"><div class="form-grid">'+
+ '<div class="field full"><label>E-posta</label><input type="email" name="email" value="'+esc(u.email||'')+'" required></div>'+
+ '<div class="field full"><div class="sub">'+esc(ROLE_LABELS[u.role]||u.role)+' · '+esc((u.departments||[]).join(', ')||'Tüm alanlar')+'</div></div>'+
+ '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Davet Gönder</button></div></form>');
+ $('#existingAccessInviteForm').onsubmit=async function(e){
+   e.preventDefault();var fd=new FormData(e.target);
+   try{
+     await invokeUserAdmin({action:'activate_access',access_id:u.id,email:fd.get('email'),redirect_to:appRedirectUrl()});
+     closeModal();toast('Yönetici daveti gönderildi');await loadAll()
    }catch(err){toast(err.message||'Davet gönderilemedi')}
  }
 };
