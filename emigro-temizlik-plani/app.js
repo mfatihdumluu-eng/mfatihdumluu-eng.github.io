@@ -568,7 +568,7 @@ function makeTask(zone,card,type,d){
   backupActive:backupActive,
   taskText:card[type+'_task']||'',
   tags:tagsFor(zone.id,type),
-  proofRequired:typeof card[type+'_proof_required']==='boolean'?card[type+'_proof_required']:!!zone.proof_required
+  proofRequired:!!zone.proof_required||!!card[type+'_proof_required']
  }
 }
 function makeOneoffTask(row){
@@ -588,7 +588,7 @@ function makeOneoffTask(row){
    backupActive:false,
    taskText:row.task_text||row.title||'Tek seferlik görev',
    tags:[],
-   proofRequired:!!row.proof_required,
+   proofRequired:!!row.proof_required||!!zone.proof_required,
    title:row.title||'Tek Seferlik Görev'
  }
 }
