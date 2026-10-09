@@ -1608,3 +1608,115 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
   .access-user-card>div:last-child{width:100%;justify-content:space-between}
   .session-badge{display:none!important}
 }
+
+
+/* MANAGEMENT HIERARCHY */
+.management-hierarchy-panel{
+  margin-top:18px;
+  padding:16px;
+  border:1px solid #e4e7ec;
+  border-radius:18px;
+  background:#fff;
+}
+.management-hierarchy-tree{
+  display:grid;
+  gap:14px;
+}
+.hierarchy-node{
+  position:relative;
+  display:grid;
+  gap:10px;
+}
+.hierarchy-manager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:58px;
+  padding:11px 13px;
+  border:1px solid #dfe5e2;
+  border-radius:14px;
+  background:#f8faf9;
+}
+.hierarchy-role-icon{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  background:#eef7f2;
+  font-size:18px;
+}
+.hierarchy-manager>div{
+  flex:1;
+  min-width:0;
+}
+.hierarchy-manager b{
+  display:block;
+  font-size:12px;
+  color:#101828;
+}
+.hierarchy-manager small{
+  display:block;
+  margin-top:3px;
+  font-size:10px;
+  color:#667085;
+}
+.hierarchy-count{
+  white-space:nowrap;
+  font-size:9px;
+  font-weight:800;
+  color:#667085;
+}
+.hierarchy-children{
+  display:grid;
+  gap:10px;
+  margin-left:28px;
+  padding-left:16px;
+  border-left:2px solid #dce7e1;
+}
+.hierarchy-workers{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:7px;
+  margin-left:28px;
+}
+.hierarchy-worker{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:46px;
+  padding:9px 10px;
+  border:1px solid #eaecf0;
+  border-radius:12px;
+  background:#fff;
+}
+.hierarchy-worker>span{
+  font-size:18px;
+}
+.hierarchy-worker b{
+  display:block;
+  font-size:11px;
+}
+.hierarchy-worker small{
+  display:block;
+  margin-top:2px;
+  font-size:9px;
+  color:#667085;
+}
+.staff-supervisor-line{
+  margin:8px 0;
+  padding:7px 9px;
+  border-radius:10px;
+  background:#f8fafc;
+  font-size:10px;
+  color:#667085;
+}
+.staff-supervisor-line b{
+  color:#344054;
+}
+@media(max-width:600px){
+  .management-hierarchy-panel{padding:12px}
+  .hierarchy-children{margin-left:12px;padding-left:10px}
+  .hierarchy-workers{grid-template-columns:1fr;margin-left:12px}
+  .hierarchy-count{display:none}
+}
