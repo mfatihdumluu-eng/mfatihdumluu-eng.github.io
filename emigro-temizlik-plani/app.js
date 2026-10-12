@@ -298,13 +298,6 @@ function renderCards(){
  }).join(''):'<div class="sub">Planda alan seçtikçe burada görünecek.</div>';
 }
 
-function renderStaff(){
- $('#staffGrid').innerHTML=state.staff.length?state.staff.map(p=>`<article class="staff-card"><h3>${esc(p.name)}</h3><p>${esc(p.role||'Rol belirtilmedi')}${p.phone?' · '+esc(p.phone):''}</p><div class="card-actions"><button onclick="editStaff(${p.id})">Düzenle</button></div></article>`).join(''):'<div style="font-size:11px;color:#6f7d86">Personel eklenmedi.</div>'
-}
-function renderHistory(){
- $('#historyBody').innerHTML=state.logs.length?state.logs.map(l=>`<tr><td>${l.work_date}</td><td>${esc(zoneById(l.zone_id)?.name||'')}</td><td>${esc(staffById(l.staff_id)?.name||'')}</td><td>${l.status==='done'?'Tamamlandı':'Atlandı'}</td><td>${esc(l.note||'')}</td></tr>`).join(''):'<tr><td colspan="5">Kayıt yok.</td></tr>'
-}
-
 function posPct(e){
  const r=$('#planStage').getBoundingClientRect();
  return {x:Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)),y:Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100))}
@@ -704,15 +697,6 @@ function staffStats(id){
  var now=new Date(),tasks=expectedTasks(monthStart(now),now),primary=tasks.filter(function(t){return String((t.primary&&t.primary.id)||'')===String(id)}),done=state.logs.filter(function(l){return l.status==='done'&&String(l.staff_id)===String(id)&&l.work_date>=dateKeyLocal(monthStart(now))&&l.work_date<=dateKeyLocal(now)}).length,miss=primary.filter(function(t){return statusFor(t).key==='overdue'}).length;
  return {assigned:primary.length,done:done,missed:miss}
 }
-function renderStaff(){
- if(!$('#staffGrid'))return;
- var activeStaff=state.staff.filter(function(p){return p.active!==false});
- $('#staffGrid').innerHTML=activeStaff.length?activeStaff.map(function(p){
-  var st=staffStats(p.id),primary=manualZones().filter(function(z){return String((cardByZone(z.id)||{}).primary_staff_id)===String(p.id)}),backup=manualZones().filter(function(z){return String((cardByZone(z.id)||{}).backup_staff_id)===String(p.id)});
-  return '<article class="staff-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.role||'Rol belirtilmedi')+'</div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div><div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div><div class="responsibility">'+primary.map(function(z){return '<span>Asıl · '+esc(z.name)+'</span>'}).join('')+backup.map(function(z){return '<span>Yedek · '+esc(z.name)+'</span>'}).join('')+'</div><div class="card-actions"><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button></div></article>'
- }).join(''):'<div class="sub">Personel eklenmedi.</div>'
-}
-
 function assignmentRowsForPerson(personId){
  return manualZones().map(function(z){
   var c=cardByZone(z.id)||{},isPrimary=String(c.primary_staff_id||'')===String(personId),isBackup=String(c.backup_staff_id||'')===String(personId);
