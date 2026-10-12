@@ -220,7 +220,7 @@ async function loadAll(){
  }catch(e){console.error(e);$('#dbState').textContent='● Bağlantı hatası';toast('Veritabanı bağlantı hatası')}
 }
 
-const DEFAULT_PLAN_SRC='./emigro-market-plan.svg?v=1';
+const DEFAULT_PLAN_SRC='./emigro-market-plan.svg?v=2';
 function applyPlanImage(){
  const img=$('#planImg'),empty=$('#emptyPlan');if(!img)return;
  const data=state.settings?.plan_image_data;
@@ -428,10 +428,15 @@ window.editStaff=id=>{
 
 $('#planUpload').onchange=async e=>{if(!state.isFullAdmin){toast('Plan değiştirme yetkisi yalnız System/Admin Manager’da');e.target.value='';return;}
  const file=e.target.files?.[0];if(!file)return;
- if(file.size>12*1024*1024)return toast('Resim en fazla 12 MB olsun');
- const data=await compressImage(file);
+ if(file.size>12*1024*1024)return toast('Plan dosyası en fazla 12 MB olsun');
+ var data;
+ if(file.type==='image/svg+xml'||/\.svg$/i.test(file.name)){
+   data=await new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){resolve(String(r.result||''))};r.onerror=reject;r.readAsDataURL(file)})
+ }else{
+   data=await compressImage(file)
+ }
  const {error}=await db.from('emigro_cleaning_settings').upsert({id:1,plan_image_data:data,updated_at:new Date().toISOString()});if(error)return toast(error.message);
- toast('Plan resmi kaydedildi');loadAll()
+ toast('Plan kaydedildi');loadAll()
 };
 function compressImage(file){
  return new Promise((resolve,reject)=>{
