@@ -310,25 +310,25 @@ function posPct(e){
  return {x:Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)),y:Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100))}
 }
 function startDraw(redrawZoneId=null){
- if(!state.isAdmin)return toast('Alan seçme yetkisi sadece adminde');
+ if(!state.isFullAdmin)return toast('Alan düzenleme yetkisi yalnız System/Admin Manager’da');
  if(!state.settings?.plan_image_data)return toast('Önce plan resmini yükle');
  state.drawMode=true;state.drawStart=null;state.redrawZoneId=redrawZoneId;$('#planStage').classList.add('drawing');
  $('#drawBtn').textContent='İptal';
  $('#drawStatus').textContent=redrawZoneId?'Alan için yeni sınırı mouse ile çiz.':'Mouse ile alanın çevresini çiz.';
 }
 function startZoneRedraw(id){
- if(!state.isAdmin)return toast('Alan değiştirme yetkisi sadece adminde');
+ if(!state.isFullAdmin)return toast('Alan düzenleme yetkisi yalnız System/Admin Manager’da');
  closeModal();startDraw(id);toast('Yeni alan sınırını çiz');
 }
 window.startZoneRedraw=startZoneRedraw
 function cancelDraw(){state.drawMode=false;state.drawStart=null;state.redrawZoneId=null;$('#planStage').classList.remove('drawing');$('#drawRect').classList.add('hidden');$('#drawBtn').textContent='+ Alan Seç';$('#drawStatus').textContent='Alan seçmek için “Alan Seç”e bas.'}
 $('#planStage').addEventListener('pointerdown',e=>{
- if(!state.isAdmin)return;
+ if(!state.isFullAdmin)return;
  if(!state.drawMode)return;
  e.preventDefault();state.drawStart=posPct(e);const d=$('#drawRect');d.classList.remove('hidden');d.style.left=state.drawStart.x+'%';d.style.top=state.drawStart.y+'%';d.style.width='0%';d.style.height='0%'
 });
 $('#planStage').addEventListener('pointermove',e=>{
- if(!state.isAdmin)return;
+ if(!state.isFullAdmin)return;
  if(!state.drawMode||!state.drawStart)return;const p=posPct(e),x=Math.min(p.x,state.drawStart.x),y=Math.min(p.y,state.drawStart.y),w=Math.abs(p.x-state.drawStart.x),h=Math.abs(p.y-state.drawStart.y),d=$('#drawRect');d.style.left=x+'%';d.style.top=y+'%';d.style.width=w+'%';d.style.height=h+'%'
 });
 $('#planStage').addEventListener('pointerup',async e=>{
@@ -428,6 +428,7 @@ function bindZoneCardForm(z,isNew,c={}){
 window.deleteZone=async id=>{if(!state.isAdmin)return toast('Alan silme yetkisi sadece adminde');if(!confirm('Bu seçili alan tamamen silinsin mi? Alan tanımı ve rutini kaldırılacak.'))return;const {error}=await db.from('emigro_cleaning_zones').delete().eq('id',id);if(error)return toast(error.message);loadAll()};
 
 window.editStaff=id=>{
+ if(!state.isFullAdmin)return toast('Personel bilgilerini yalnız System/Admin Manager düzenleyebilir');
  const p=state.staff.find(x=>x.id===id)||{};
  openModal(`<h2>${p.id?'Personeli Düzenle':'Personel Ekle'}</h2><form id="staffForm"><div class="form-grid">
  <div class="field"><label>Ad Soyad</label><input name="name" required value="${esc(p.name||'')}"></div>
@@ -445,7 +446,7 @@ window.editStaff=id=>{
 };
 
 
-$('#planUpload').onchange=async e=>{if(!state.isAdmin){toast('Plan değiştirme yetkisi sadece adminde');e.target.value='';return;}
+$('#planUpload').onchange=async e=>{if(!state.isFullAdmin){toast('Plan değiştirme yetkisi yalnız System/Admin Manager’da');e.target.value='';return;}
  const file=e.target.files?.[0];if(!file)return;
  if(file.size>12*1024*1024)return toast('Resim en fazla 12 MB olsun');
  const data=await compressImage(file);
@@ -833,7 +834,7 @@ window.openZoneStatus=function(id){
  var backupDays=(b&&c.backup_enabled)?(c.backup_days||[]):[];
  var primaryDays=[0,1,2,3,4,5,6].filter(function(d){return !backupDays.includes(d)});
 
- var adminSettings=state.isAdmin
+ var adminSettings=state.isFullAdmin
   ? '<details class="zone-settings"><summary>⚙ Ayarlar</summary><div class="zone-settings-menu">'+
     '<button class="ghost" onclick="openZoneCardModal('+z.id+')">Tanımlamayı Düzenle</button>'+
     '<button class="ghost" onclick="startZoneRedraw('+z.id+')">Alanı Yeniden Seç</button>'+
@@ -857,9 +858,10 @@ window.openZoneStatus=function(id){
  if(box){box.classList.add('zone-sheet','zone-detail-sheet')}
 };
 window.openZoneAssignee=function(zoneId){
- if(!state.isAdmin)return toast('Kişi atama yetkisi sadece adminde');
+ if(!state.isFullAdmin)return toast('Bu eski atama ekranı yalnız System/Admin Manager için kullanılabilir');
  var z=zoneById(zoneId),c=cardByZone(zoneId)||{};
- var staff=state.staff.filter(function(p){return p.active});
+ if(!z)return;
+ var staff=state.staff.filter(function(p){return canAssignStaffClient(p)&&p.department===z.department});
  var options='<option value="">Atanmadı</option>'+staff.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
 
  function personSelects(type,title){
@@ -1025,6 +1027,7 @@ function openTaskNotificationCard(task){
  if(!state.isAdmin)return;
  var person=task.assigned||task.primary;
  if(!person)return toast('Bu görev için sorumlu kişi tanımlı değil');
+ if(!state.isFullAdmin&&!canAssignStaffClient(person))return toast('Bu personele bildirim gönderme yetkiniz yok');
  var z=task.zone||{},taskLabel=typeNames[task.type]||'Temizlik';
  var status=statusFor(task);
  var defaultTitle=status.key==='overdue'?'Temizlik yapılmadı':'Görev hatırlatması';
@@ -1085,8 +1088,10 @@ function openTaskNotificationCard(task){
  var box=$('#modal .modal-box');if(box)box.classList.add('zone-sheet','task-notify-modal');
 }
 window.openGeneralWarning=function(){
- var opts=state.staff.filter(function(p){return p.active}).map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
- var zopts='<option value="">Genel / alan yok</option>'+manualZones().map(function(z){return '<option value="'+z.id+'">'+esc(z.name)+'</option>'}).join('');
+ var people=state.staff.filter(canAssignStaffClient);
+ if(!people.length)return toast('Bildirim gönderebileceğiniz çalışan yok');
+ var opts=people.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
+ var zopts='<option value="">Genel / alan yok</option>'+manualZones().filter(canManageZoneClient).map(function(z){return '<option value="'+z.id+'">'+esc(z.name)+'</option>'}).join('');
  openModal('<h2>Yeni Bildirim</h2><form id="generalWarningForm"><div class="form-grid">'+
  '<div class="field"><label>Kişi</label><select name="staff_id" required>'+opts+'</select></div>'+
  '<div class="field"><label>Alan</label><select name="zone_id">'+zopts+'</select></div>'+
@@ -1164,8 +1169,7 @@ function setupRoleUI(){
    var change=$('.worker-change-profile');if(change)change.classList.add('hidden');
  }
  if(manager){
-   var up=$('.upload-btn');if(up)up.classList.add('hidden');
-   if($('#workerÖrnekGrid'))$('#workerDemoGrid').closest('.worker-demo-panel')?.classList.add('hidden');
+   ['.upload-btn','#drawBtn','#toggleAreasBtn','#drawStatus','#addStaffBtn'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
  }
  if(!state.isFullAdmin){
    if($('#accessAdminPanel'))$('#accessAdminPanel').classList.add('hidden');
@@ -1243,7 +1247,7 @@ function hierarchyNodeHtml(u,depth){
 function renderManagementHierarchy(){
  var panel=$('#managementHierarchyPanel'),tree=$('#managementHierarchyTree');
  if(!panel||!tree)return;
- if(!state.isFullAdmin){panel.classList.add('hidden');return}
+ if(!state.isAdmin){panel.classList.add('hidden');return}
  panel.classList.remove('hidden');
  var roots;
  if(state.isFullAdmin){
@@ -1310,7 +1314,7 @@ async function invokeWhatsappInvite(body){
 }
 function renderAccessAdmin(){
  var panel=$('#accessAdminPanel');if(!panel)return;
- if(!state.isAdmin){panel.classList.add('hidden');return}
+ if(!state.isFullAdmin){panel.classList.add('hidden');return}
  panel.classList.remove('hidden');
  var sedat=state.accessUsers.find(function(x){return x.role==='boss'&&String(x.display_name).toLowerCase()==='sedat'});
  var sedatCard=$('#sedatSetupCard');
@@ -1580,13 +1584,30 @@ window.openOneoffTask=function(staffId){
 
 function renderStaff(){
  if(!$('#staffGrid'))return;
- $('#staffGrid').innerHTML=state.staff.length?state.staff.map(function(p){
-  var st=staffStats(p.id),lines=staffResponsibilityLines(p.id);
-  return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')"><div class="staff-card-top"><div class="staff-card-identity"><span class="staff-shared-icon">'+staffDeptIcon(p)+'</span><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.department||p.role||'Rol belirtilmedi')+'</div></div></div><span class="pill">'+(p.active?'Aktif':'Pasif')+'</span></div>'+
+ var people=state.staff.filter(function(p){return p.active!==false});
+ $('#staffGrid').innerHTML=people.length?people.map(function(p){
+  var st=staffStats(p.id),lines=staffResponsibilityLines(p.id),ua=accessForStaff(p.id);
+  var self=!!state.workerStaffId&&String(state.workerStaffId)===String(p.id);
+  var assignable=canAssignStaffClient(p);
+  var roleLabel=ua?ROLE_LABELS[ua.role]||ua.role:(p.role||'Çalışan');
+  var accountReady=!!(ua&&ua.auth_user_id&&p.department);
+  var actions='';
+  if(state.isFullAdmin&&ua)actions+='<button class="role-assign-btn" onclick="event.stopPropagation();openStaffRoleAssignment('+p.id+')">Rol & Bölüm Ata</button>';
+  if(assignable){
+    actions+='<button class="oneoff-task-btn" onclick="event.stopPropagation();openOneoffTask('+p.id+')">+ Anlık Görev</button>';
+    actions+='<button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Rutin Görev</button>';
+  }
+  if(self&&accountReady)actions+='<button onclick="event.stopPropagation();location.href=location.pathname+\'?mode=worker\'">Kendi Görevlerim</button>';
+  if(state.isFullAdmin)actions+='<button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button>';
+  if(!actions)actions='<span class="sub">'+(accountReady?'Bu kullanıcıya görev atama yetkiniz yok.':'Üyelik/bölüm tanımı tamamlanmalı.')+'</span>';
+  return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')">'+
+   '<div class="staff-card-top"><div class="staff-card-identity"><span class="staff-shared-icon">'+staffDeptIcon(p)+'</span><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.department||'Bölüm atanmamış')+' · '+esc(roleLabel)+'</div></div></div>'+
+   '<span class="pill '+(accountReady?'':'pending')+'">'+(accountReady?'Aktif':'Kurulum Bekliyor')+'</span></div>'+
    '<div class="staff-metrics"><div><b>'+st.assigned+'</b><span>Bu ay görev</span></div><div><b>'+st.done+'</b><span>Yaptı</span></div><div><b>'+st.missed+'</b><span>Aksadı</span></div></div>'+
-   '<div class="staff-supervisor-line">Üst: <b>'+esc(supervisorLabel(p))+'</b></div><div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev alanı yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
-   '<div class="card-actions staff-actions">'+(state.isFullAdmin?'<button class="role-assign-btn" onclick="event.stopPropagation();openStaffRoleAssignment('+p.id+')">Rol & Bölüm Ata</button>':'')+'<button class="oneoff-task-btn" onclick="event.stopPropagation();openOneoffTask('+p.id+')">+ Anlık Görev</button><button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Rutin Görev</button><button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button><button onclick="event.stopPropagation();openWorkerView('+p.id+')">Kullanıcı Ekranı</button></div></article>'
- }).join(''):'<div class="sub">Personel eklenmedi.</div>'
+   '<div class="staff-supervisor-line">Üst: <b>'+esc(supervisorLabel(p))+'</b></div>'+
+   '<div class="staff-auto-assignments">'+(lines.length?lines.slice(0,6).map(function(x){return '<div><b>'+esc(x.zone.name)+'</b><span>'+typeNames[x.type]+' · '+x.role+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div>'}).join(''):'<div class="sub">Tanımlı görev yok.</div>')+(lines.length>6?'<small>+'+(lines.length-6)+' görev daha</small>':'')+'</div>'+
+   '<div class="card-actions staff-actions">'+actions+'</div></article>'
+ }).join(''):'<div class="sub">Aktif personel yok.</div>'
 }
 
 window.openWorkerView=function(id){
@@ -1815,7 +1836,7 @@ function initCleaningAdmin(){
     $('#toggleAreasBtn').textContent=state.showAreas?'Alanları Gizle':'Alanları Göster';
     renderPlan();
   };
-  if($('#addStaffBtn')) $('#addStaffBtn').onclick=function(){editStaff(null)};
+  if($('#addStaffBtn')) $('#addStaffBtn').onclick=function(){if(state.isFullAdmin)editStaff(null)};
   if($('#inviteUserBtn')) $('#inviteUserBtn').onclick=openInviteUser;
   if($('#setSedatEmailBtn')) $('#setSedatEmailBtn').onclick=setSedatEmail;
   if($('#refreshBtn')) $('#refreshBtn').onclick=loadAll;
