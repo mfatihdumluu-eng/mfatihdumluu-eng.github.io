@@ -220,10 +220,13 @@ async function loadAll(){
  }catch(e){console.error(e);$('#dbState').textContent='● Bağlantı hatası';toast('Veritabanı bağlantı hatası')}
 }
 
+const DEFAULT_PLAN_SRC='./emigro-market-plan.svg?v=1';
 function applyPlanImage(){
+ const img=$('#planImg'),empty=$('#emptyPlan');if(!img)return;
  const data=state.settings?.plan_image_data;
- if(data){$('#planImg').src=data;$('#planImg').classList.remove('hidden');$('#emptyPlan').classList.add('hidden')}
- else{$('#planImg').classList.add('hidden');$('#emptyPlan').classList.remove('hidden')}
+ img.src=data||DEFAULT_PLAN_SRC;
+ img.classList.remove('hidden');
+ if(empty)empty.classList.add('hidden');
 }
 
 function renderAll(){
