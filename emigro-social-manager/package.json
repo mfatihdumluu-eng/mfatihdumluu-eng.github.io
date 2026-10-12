@@ -1,0 +1,8 @@
+{
+  "name": "emigro-social-manager",
+  "version": "2.0.0",
+  "private": true,
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.1"
+  }
+}
