@@ -187,7 +187,7 @@
       <section id="view-plan" class="view">
         <div class="upload-card">
           <div><h2>Market Planı</h2><p>Orijinal SVG planı kullanılır. Alanlar plan bozulmadan üst katmandan seçilir.</p></div>
-          <label class="upload-btn">Plan Değiştir<input id="planUpload" type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp"></label>
+          <label class="upload-btn">SVG Değiştir<input id="planUpload" type="file" accept="image/svg+xml,.svg"></label>
         </div>
         <div class="plan-toolbar">
           <button id="drawBtn" class="primary">+ Alan Seç</button>
@@ -195,7 +195,7 @@
           <span id="drawStatus">Alan seçmek için “Alan Seç”e bas.</span>
         </div>
         <div class="plan-layout">
-          <div class="plan-card"><div id="planStage" class="plan-stage"><div id="emptyPlan" class="empty-plan">Önce plan resmini yükle.</div><img id="planImg" class="hidden" alt="Market planı"><div id="zoneOverlay" class="zone-overlay"></div><div id="drawRect" class="draw-rect hidden"></div></div></div>
+          <div class="plan-card"><div id="planStage" class="plan-stage"><div id="emptyPlan" class="empty-plan">SVG planı yükleniyor.</div><img id="planImg" class="hidden" alt="EMIGRO Market Yerleşim Planı"><div id="zoneOverlay" class="zone-overlay" aria-label="Seçilebilir market alanları"></div><div id="drawRect" class="draw-rect hidden"></div></div></div>
           <aside class="zones-panel"><div class="panel-head"><b>Tanımlı Alanlar</b><span id="zoneCount">0</span></div><div id="zoneMiniList"></div></aside>
         </div>
       </section>
