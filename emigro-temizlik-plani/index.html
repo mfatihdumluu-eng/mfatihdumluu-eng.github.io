@@ -190,7 +190,8 @@
           <label class="upload-btn">SVG Değiştir<input id="planUpload" type="file" accept="image/svg+xml,.svg"></label>
         </div>
         <div class="plan-toolbar">
-          <button id="drawBtn" class="primary">✎ Serbest Alan Çiz</button>
+          <button id="drawBtn" class="primary" type="button">✎ Serbest Çiz</button>
+          <button id="rectDrawBtn" class="ghost" type="button">▭ Kare / Dikdörtgen</button>
           <button id="toggleAreasBtn" class="ghost">Alanları Gizle</button>
           <button id="panBtn" class="ghost" type="button" title="Planı mouse ile sürükle">✋ Kaydır</button>
           <div class="plan-zoom-controls" aria-label="Plan yakınlaştırma kontrolleri">
@@ -199,7 +200,7 @@
             <button id="zoomInBtn" class="ghost" type="button" title="Büyüt">+</button>
             <button id="zoomFitBtn" class="ghost" type="button">Sığdır</button>
           </div>
-          <span id="drawStatus">Kaydırmak için “✋ Kaydır”ı açıp planı tutup sürükle. Alan çizmek için “Serbest Alan Çiz”i kullan.</span>
+          <span id="drawStatus">✋ Kaydır ile planı sürükle. ✎ Serbest Çiz ile istediğin şekli, ▭ Kare / Dikdörtgen ile hızlı kutu alanı çiz.</span>
         </div>
         <div class="plan-layout">
           <div class="plan-card"><div id="planStage" class="plan-stage"><div id="emptyPlan" class="empty-plan">SVG planı yükleniyor.</div><img id="planImg" class="hidden" alt="EMIGRO Market Yerleşim Planı"><div id="zoneOverlay" class="zone-overlay" aria-label="Seçilebilir market alanları"></div><svg id="freeDrawOverlay" class="free-draw-overlay hidden" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon id="freeDrawPolygon" points=""></polygon><polyline id="freeDrawLine" points=""></polyline></svg><div id="drawRect" class="draw-rect hidden"></div></div></div>
