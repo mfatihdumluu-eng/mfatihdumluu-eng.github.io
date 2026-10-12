@@ -1366,6 +1366,58 @@ function renderAccessAdmin(){
      (!['system_admin','boss'].includes(u.role)?(!u.auth_user_id?'<button onclick="inviteExistingAccess('+u.id+')">E-posta ile Davet</button>':'')+'<button onclick="editAccessUser('+u.id+')">Yetkiyi Düzenle</button>':'')+'</div></article>'
  }).join(''):'<div class="sub">Henüz kullanıcı yok.</div>'
 }
+window.openStaffInvite=function(staffId){
+ if(!state.isFullAdmin)return toast('Personel davetini yalnız System/Admin Manager gönderebilir');
+ var p=staffById(staffId);if(!p)return toast('Personel bulunamadı');
+ var ua=accessForStaff(staffId);
+ if(ua&&ua.auth_user_id)return toast('Bu personelin hesabı zaten aktif');
+
+ openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">PERSONEL DAVETİ</span><h2>'+esc(p.name)+'</h2><p>Bu mevcut personel kartını kullanarak davet gönderilir; yeni bir personel kartı oluşturulmaz.</p></div>'+
+ '<form id="staffInviteForm"><div class="form-grid">'+
+ '<div class="field"><label>Telefon / WhatsApp</label><input name="phone" value="'+esc(p.phone||'')+'" placeholder="06..."></div>'+
+ '<div class="field"><label>E-posta</label><input type="email" name="email" value="'+esc((ua&&ua.email)||p.email||'')+'" placeholder="E-posta ile davet için"></div>'+
+ '</div>'+
+ '<div class="notify-channel-grid">'+
+ '<button type="submit" name="invite_channel" value="email" class="notify-channel-card system-channel"><span>✉️</span><b>E-posta ile Davet</b><small>Bu personel kartına hesap bağlanır.</small></button>'+
+ '<button type="submit" name="invite_channel" value="whatsapp" class="notify-channel-card whatsapp-channel"><span>💬</span><b>WhatsApp ile Davet</b><small>Bu personel kartına özel üyelik linki oluşturulur.</small></button>'+
+ '</div><div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button></div></form></div>');
+
+ var form=$('#staffInviteForm');
+ form.onsubmit=async function(e){
+   e.preventDefault();
+   var fd=new FormData(form),channel=e.submitter&&e.submitter.value||'email';
+   var email=String(fd.get('email')||'').trim(),phone=String(fd.get('phone')||'').trim();
+   try{
+     if(channel==='email'){
+       if(!email)return toast('E-posta adresini yaz');
+       await invokeUserAdmin({action:'invite_staff',staff_id:p.id,email:email,redirect_to:appRedirectUrl()});
+       closeModal();toast('Davet e-postası gönderildi');await loadAll();
+     }else{
+       if(!phone)return toast('WhatsApp telefonunu yaz');
+       var invite=await invokeWhatsappInvite({staff_id:p.id,display_name:p.name,phone:phone});
+       var direct=location.origin+location.pathname+'?invite='+encodeURIComponent(invite.invite_token);
+       var wphone=whatsappPhone(phone);
+       var msg='EMIGRO Temizlik sistemine davet edildiniz.\n\nKendi e-posta adresiniz ve şifrenizle üyelik oluşturmak için:\n'+direct;
+       closeModal();await loadAll();
+       if(wphone)window.open('https://wa.me/'+wphone+'?text='+encodeURIComponent(msg),'_blank');
+       toast('WhatsApp daveti hazırlandı');
+     }
+   }catch(err){toast(err.message||'Davet gönderilemedi')}
+ };
+};
+
+window.deleteStaff=async function(staffId){
+ if(!state.isFullAdmin)return toast('Personel silme yetkisi yalnız System/Admin Manager’da');
+ var p=staffById(staffId);if(!p)return toast('Personel bulunamadı');
+ var msg='“'+p.name+'” personel kartı sistemden kaldırılsın mı?\n\nAktif görev atamaları kapatılacak ve kart listeden kaldırılacak. Geçmiş tamamlanma kayıtları korunur.';
+ if(!confirm(msg))return;
+ try{
+   await invokeUserAdmin({action:'delete_staff',staff_id:p.id});
+   toast('Personel kaldırıldı');
+   await loadAll();
+ }catch(err){toast(err.message||'Personel kaldırılamadı')}
+};
+
 window.openInviteUser=function(){
  if(!state.isFullAdmin)return;
  openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">KULLANICI DAVETİ</span><h2>Yeni kullanıcı</h2><p>Önce kullanıcıyı sisteme ekleyin. Bölüm ve yönetici yetkisini daha sonra kişinin kartından belirleyin.</p></div>'+
@@ -1628,15 +1680,20 @@ function renderStaff(){
   var self=!!state.workerStaffId&&String(state.workerStaffId)===String(p.id);
   var assignable=canAssignStaffClient(p);
   var roleLabel=ua?ROLE_LABELS[ua.role]||ua.role:(p.role||'Çalışan');
-  var accountReady=!!(ua&&ua.auth_user_id&&p.department);
+  var hasAccount=!!(ua&&ua.auth_user_id);
+  var accountReady=!!(hasAccount&&p.department);
   var actions='';
+  if(state.isFullAdmin&&!hasAccount)actions+='<button class="staff-invite-btn" onclick="event.stopPropagation();openStaffInvite('+p.id+')">✉ Davet Et</button>';
   if(state.isFullAdmin&&ua)actions+='<button class="role-assign-btn" onclick="event.stopPropagation();openStaffRoleAssignment('+p.id+')">Rol & Bölüm Ata</button>';
   if(assignable){
     actions+='<button class="oneoff-task-btn" onclick="event.stopPropagation();openOneoffTask('+p.id+')">+ Anlık Görev</button>';
     actions+='<button class="assign-task-btn" onclick="event.stopPropagation();openAssignTaskToStaff('+p.id+')">+ Rutin Görev</button>';
   }
   if(self&&accountReady)actions+='<button onclick="event.stopPropagation();location.href=location.pathname+\'?mode=worker\'">Kendi Görevlerim</button>';
-  if(state.isFullAdmin)actions+='<button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button>';
+  if(state.isFullAdmin){
+    actions+='<button onclick="event.stopPropagation();editStaff('+p.id+')">Düzenle</button>';
+    actions+='<button class="danger-btn staff-delete-btn" onclick="event.stopPropagation();deleteStaff('+p.id+')">Sil</button>';
+  }
   if(!actions)actions='<span class="sub">'+(accountReady?'Bu kullanıcıya görev atama yetkiniz yok.':'Üyelik/bölüm tanımı tamamlanmalı.')+'</span>';
   return '<article class="staff-card staff-responsibility-card" onclick="openPerson('+p.id+')">'+
    '<div class="staff-card-top"><div class="staff-card-identity"><span class="staff-shared-icon">'+staffDeptIcon(p)+'</span><div><h3>'+esc(p.name)+'</h3><div class="desc">'+esc(p.department||'Bölüm atanmamış')+' · '+esc(roleLabel)+'</div></div></div>'+
