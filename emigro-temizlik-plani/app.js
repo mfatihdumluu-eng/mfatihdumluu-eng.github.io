@@ -172,12 +172,30 @@ function workerTasksForDate(date){
 function workerAssignedToZone(zoneId){
  if(state.isAdmin)return true;
  if(!state.workerStaffId)return false;
- return workerTasksForDate(new Date()).some(function(t){return String(t.zone.id)===String(zoneId)})
+ var sid=String(state.workerStaffId),zid=String(zoneId),today=dateKeyLocal(new Date());
+ if(state.routineTasks.some(function(t){
+   return t.active!==false&&String(t.zone_id)===zid&&(String(t.staff_id)===sid||String(t.backup_staff_id||'')===sid)
+ }))return true;
+ if(state.oneoffTasks.some(function(t){
+   return t.active!==false&&String(t.zone_id)===zid&&String(t.staff_id)===sid&&String(t.work_date||'')>=today
+ }))return true;
+ var card=cardByZone(zoneId);
+ if(card){
+   var ids=[card.primary_staff_id,card.backup_staff_id,card.daily_primary_staff_id,card.daily_backup_staff_id,card.weekly_primary_staff_id,card.weekly_backup_staff_id,card.monthly_primary_staff_id,card.monthly_backup_staff_id].filter(Boolean).map(String);
+   if(ids.includes(sid))return true;
+ }
+ return workerTasksForDate(new Date()).some(function(t){return String(t.zone.id)===zid})
 }
 function workerZoneTypes(zoneId){
- var out=[];
+ var out=[],sid=String(state.workerStaffId),zid=String(zoneId),today=dateKeyLocal(new Date());
  workerTasksForDate(new Date()).forEach(function(t){
-   if(String(t.zone.id)===String(zoneId)&&!out.includes(t.type))out.push(t.type)
+   if(String(t.zone.id)===zid&&!out.includes(t.type))out.push(t.type)
+ });
+ state.routineTasks.forEach(function(t){
+   if(t.active!==false&&String(t.zone_id)===zid&&(String(t.staff_id)===sid||String(t.backup_staff_id||'')===sid)&&!out.includes(t.frequency))out.push(t.frequency)
+ });
+ state.oneoffTasks.forEach(function(t){
+   if(t.active!==false&&String(t.zone_id)===zid&&String(t.staff_id)===sid&&String(t.work_date||'')>=today&&!out.includes('oneoff'))out.push('oneoff')
  });
  return out
 }
@@ -946,12 +964,15 @@ function zoneTasksInRange(zoneId,from,to){
  return expectedTasks(from,to).filter(function(t){return String(t.zone.id)===String(zoneId)})
 }
 function taskMiniHtml(t){
- var st=statusFor(t),l=st.log,photo=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
+ var st=statusFor(t),l=st.log,photo=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="event.stopPropagation();showPhoto(\''+t.key+'\')">':'';
  var warn=st.key!=='done'&&state.isAdmin&&canNotifyTaskClient(t)?'<button class="task-warn-btn" onclick="event.stopPropagation();openWarningForTask(\''+t.key+'\')">Bildirim Gönder</button>':'';
- return '<article class="zone-task-card '+st.key+'">'+
-   '<div class="zone-task-head"><div><span class="task-kind">'+typeNames[t.type]+'</span><b>'+(t.time?t.time.slice(0,5):'Saat yok')+'</b></div><span class="task-status '+st.key+'">'+st.label+'</span></div>'+
+ var mine=!state.isAdmin&&taskAssignedToWorker(t);
+ var complete=st.key!=='done'&&mine?'<button class="primary worker-done-btn" onclick="event.stopPropagation();openComplete(\''+t.key+'\')">'+(t.proofRequired?'📷 Yapıldı · Fotoğraf Çek':'✓ Yaptım')+'</button>':'';
+ return '<article class="zone-task-card '+st.key+(mine?' worker-own-task':'')+'">'+
+   '<div class="zone-task-head"><div><span class="task-kind">'+typeNames[t.type]+'</span><b>'+(t.time?t.time.slice(0,5):'Saat yok')+'</b></div><span class="task-status '+st.key+'">'+(mine&&st.key!=='done'?'Sende · '+st.label:st.label)+'</span></div>'+
    '<p>'+esc(t.taskText||'Görev açıklaması yok')+'</p>'+
-   '<div class="zone-task-foot"><span>'+shortDate(t.date)+'</span><div class="zone-task-actions">'+photo+warn+'</div></div>'+
+   (mine&&t.proofRequired&&st.key!=='done'?'<div class="worker-proof-note">📷 Tamamlamak için fotoğraf zorunlu.</div>':'')+
+   '<div class="zone-task-foot"><span>'+shortDate(t.date)+'</span><div class="zone-task-actions">'+photo+complete+warn+'</div></div>'+
   '</article>'
 }
 window.openZoneStatus=function(id){
