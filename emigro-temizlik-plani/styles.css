@@ -1949,3 +1949,22 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
   opacity:1!important;
   filter:none!important;
 }
+
+
+/* STAFF CARD ACTIONS */
+.staff-actions{
+  flex-wrap:wrap!important;
+}
+.staff-invite-btn{
+  background:#ecfdf3!important;
+  border-color:#abefc6!important;
+  color:#067647!important;
+  font-weight:800!important;
+}
+.staff-delete-btn{
+  margin-left:auto;
+}
+@media(max-width:600px){
+  .staff-actions .staff-delete-btn{margin-left:0}
+  .staff-actions button{min-height:38px}
+}
