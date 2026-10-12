@@ -793,8 +793,8 @@ function taskMiniHtml(t){
 }
 window.openZoneStatus=function(id){
  if(!state.isAdmin&&!workerAssignedToZone(id))return toast('Bu alan sana atanmadı');
- var z=zoneById(id),c=cardByZone(id)||{};if(!z)return;
- var p=staffById(c.primary_staff_id),b=staffById(c.backup_staff_id),now=new Date();
+ var z=zoneById(id);if(!z)return;
+ var now=new Date();
  var today=zoneTasksInRange(id,dayStart(now),dayEnd(now));
  var week=zoneTasksInRange(id,weekStart(now),weekEnd(now));
  var month=zoneTasksInRange(id,monthStart(now),monthEnd(now));
@@ -815,8 +815,11 @@ window.openZoneStatus=function(id){
    return '<div class="recent-clean-row"><div><b>'+(typeNames[l.task_type]||'Temizlik')+'</b><span>'+l.work_date+' · '+esc((who&&who.name)||'')+'</span></div><span class="status '+(l.status==='done'?'done':'overdue')+'">'+(l.status==='done'?'Yapıldı':'Yapılmadı')+'</span>'+proof+'</div>'
  }).join(''):'<div class="empty-state-mini">Henüz kayıt yok.</div>';
 
- var backupDays=(b&&c.backup_enabled)?(c.backup_days||[]):[];
- var primaryDays=[0,1,2,3,4,5,6].filter(function(d){return !backupDays.includes(d)});
+ var routineRows=state.routineTasks.filter(function(r){return r.active!==false&&String(r.zone_id)===String(id)}).map(function(r){
+   var person=staffById(r.staff_id),days=r.frequency==='monthly'?fmtMonthDays(r.days||[]):fmtDays(r.days||[]);
+   return '<div class="recent-clean-row"><div><b>'+esc((person&&person.name)||'Atanmamış')+' · '+esc(typeNames[r.frequency]||r.frequency)+'</b><span>'+(r.task_time?String(r.task_time).slice(0,5):'Saat yok')+' · '+esc(days||'Gün yok')+'</span><small>'+esc(r.task_text||'Görev açıklaması yok')+'</small></div><span class="status pending">'+(r.proof_required||z.proof_required?'Fotoğraf zorunlu':'Normal')+'</span></div>'
+ }).join('');
+ if(!routineRows)routineRows='<div class="empty-state-mini">Bu alan için henüz rutin görev tanımlanmadı.</div>';
 
  var adminSettings=state.isFullAdmin
   ? '<details class="zone-settings"><summary>⚙ Ayarlar</summary><div class="zone-settings-menu">'+
@@ -828,14 +831,11 @@ window.openZoneStatus=function(id){
 
  openModal('<div class="zone-app-card compact-zone-card">'+
    '<header class="zone-detail-header"><div><span class="eyebrow">ALAN DURUMU</span><h2>'+esc(z.name)+'</h2><p>'+esc(z.description||'Alan açıklaması yok')+'</p></div><span class="zone-overall '+overall.key+'">'+overall.label+'</span></header>'+
-   '<section class="assignee-card compact-assignees"><div class="assignee-title"><div><b>Temizlik Sorumluları</b><span>Aktif oldukları günler</span></div></div>'+
-    '<div class="people"><div class="person-box"><label>Asıl sorumlu</label><b>'+esc((p&&p.name)||'Atanmadı')+'</b>'+(p?'<small>'+fmtDays(primaryDays)+'</small>':'')+'</div>'+
-    '<div class="person-box"><label>Yedek sorumlu</label><b>'+esc((b&&b.name)||'Atanmadı')+'</b>'+(b&&backupDays.length?'<small>'+fmtDays(backupDays)+'</small>':'')+'</div></div>'+
-   '</section>'+
+   '<section class="zone-section"><div class="zone-section-head"><div><h3>Tanımlı Rutin Görevler</h3><p>Bu alandaki gerçek görev ve sorumlular</p></div></div><div class="recent-clean-list">'+routineRows+'</div></section>'+
    '<section class="zone-period-summary compact-summary">'+sum(week,'daily')+sum(week,'weekly')+sum(month,'monthly')+'</section>'+
    '<section class="zone-section"><div class="zone-section-head"><div><h3>Bugünkü Durum</h3><p>Planlanan işler</p></div></div><div class="zone-task-list compact-task-list">'+todayRows+'</div></section>'+
    '<section class="zone-section recent-section"><div class="zone-section-head"><div><h3>Son Kayıtlar</h3><p>Son işlemler</p></div></div><div class="recent-clean-list">'+recentRows+'</div></section>'+
-   '<div class="zone-main-actions compact-actions">'+(state.isAdmin?'<button class="primary notify-main" onclick="openWarning('+z.id+',null,null)">Bildirim Gönder</button>':'')+adminSettings+'</div>'+
+   '<div class="zone-main-actions compact-actions">'+adminSettings+'</div>'+
   '</div>');
 
  var box=$('#modal .modal-box');
@@ -975,9 +975,9 @@ function renderWorkerNotifications(){
 window.openNotificationTask=function(key){
  var t=taskByKey(key);if(!t)return toast('Görev bulunamadı');
  if(!state.isAdmin&&!taskAssignedToWorker(t))return toast('Bu görev sana atanmadı');
- state.trackingType=t.type;
+ state.trackingType=t.type==='oneoff'?'daily':t.type;
  var inp=$('#trackingDate');if(inp)inp.value=dateKeyLocal(t.date);
- $$('.tracking-type').forEach(function(b){b.classList.toggle('active',b.dataset.trackingType===t.type)});
+ $('.tracking-type').forEach(function(b){b.classList.toggle('active',b.dataset.trackingType===state.trackingType)});
  renderTracking();
  var nav=document.querySelector('.nav[data-view="tracking"]');if(nav)nav.click();
  openZoneStatus(t.zone.id)
