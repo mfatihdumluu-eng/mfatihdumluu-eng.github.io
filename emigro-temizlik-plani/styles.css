@@ -1881,3 +1881,12 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
 .plan-card{
   scrollbar-width:thin;
 }
+
+
+/* DRAW MODE BUTTON STATES */
+#drawBtn.active,
+#rectDrawBtn.active{
+  background:#101828!important;
+  color:#fff!important;
+  border-color:#101828!important;
+}
