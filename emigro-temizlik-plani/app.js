@@ -5,7 +5,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const PARAMS=new URLSearchParams(location.search);
 const ADMIN_MODE=PARAMS.get('mode')!=='worker';
 const WORKER_ID=Number(PARAMS.get('staff')||0)||null;
-const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],routineTasks:[],oneoffTasks:[],accessUsers:[],settings:null,drawMode:false,drawStart:null,drawPoints:[],drawPointerId:null,showAreas:true,isAdmin:false,isFullAdmin:false,role:null,accessProfile:null,managedDepartments:[],redrawZoneId:null,workerStaffId:null,authReady:false,selectedZoneId:null,planZoom:1};
+const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],routineTasks:[],oneoffTasks:[],accessUsers:[],settings:null,drawMode:false,drawStart:null,drawPoints:[],drawPointerId:null,panMode:false,panPointerId:null,panStart:null,showAreas:true,isAdmin:false,isFullAdmin:false,role:null,accessProfile:null,managedDepartments:[],redrawZoneId:null,workerStaffId:null,authReady:false,selectedZoneId:null,planZoom:1};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dayNames=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
@@ -332,6 +332,47 @@ function fitPlan(){
  setPlanZoom(1);
  card.scrollLeft=0;card.scrollTop=0;
 }
+
+function setPanMode(enabled){
+ state.panMode=!!enabled;
+ const stage=$('#planStage'),btn=$('#panBtn');
+ if(stage)stage.classList.toggle('pan-mode',state.panMode);
+ if(btn){
+   btn.classList.toggle('active',state.panMode);
+   btn.setAttribute('aria-pressed',state.panMode?'true':'false');
+   btn.textContent=state.panMode?'✋ Kaydırma Açık':'✋ Kaydır';
+ }
+ if($('#drawStatus')&&!state.drawMode){
+   $('#drawStatus').textContent=state.panMode?'Planı mouse ile tutup istediğin yöne sürükle. Bitince “Kaydırma Açık”a tekrar bas.':'Kaydırmak için “✋ Kaydır”ı aç. Alan çizmek için “Serbest Alan Çiz”i kullan.';
+ }
+}
+function startPlanPan(e){
+ if(state.drawMode||!state.panMode)return false;
+ const card=$('.plan-card');if(!card)return false;
+ state.panPointerId=e.pointerId;
+ state.panStart={x:e.clientX,y:e.clientY,left:card.scrollLeft,top:card.scrollTop};
+ $('#planStage')?.classList.add('is-panning');
+ try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
+ e.preventDefault();
+ e.stopPropagation();
+ return true
+}
+function movePlanPan(e){
+ if(state.panPointerId===null||e.pointerId!==state.panPointerId||!state.panStart)return false;
+ const card=$('.plan-card');if(!card)return false;
+ card.scrollLeft=state.panStart.left-(e.clientX-state.panStart.x);
+ card.scrollTop=state.panStart.top-(e.clientY-state.panStart.y);
+ e.preventDefault();
+ return true
+}
+function endPlanPan(e){
+ if(state.panPointerId===null||e.pointerId!==state.panPointerId)return false;
+ try{e.currentTarget.releasePointerCapture(e.pointerId)}catch(_){}
+ state.panPointerId=null;state.panStart=null;
+ $('#planStage')?.classList.remove('is-panning');
+ e.preventDefault();
+ return true
+}
 function drawPointDistance(a,b){
  const dx=a.x-b.x,dy=a.y-b.y;
  return Math.sqrt(dx*dx+dy*dy)
@@ -353,6 +394,7 @@ function polygonBox(points){
 }
 function startDraw(redrawZoneId=null){
  if(!state.isFullAdmin)return toast('Alan düzenleme yetkisi yalnız System/Admin Manager’da');
+ setPanMode(false);
  if(!$('#planImg')||$('#planImg').classList.contains('hidden'))return toast('Plan yüklenemedi');
  state.drawMode=true;state.drawStart=null;state.drawPoints=[];state.drawPointerId=null;state.redrawZoneId=redrawZoneId;$('#planStage').classList.add('drawing');
  $('#drawBtn').textContent='İptal';
@@ -372,9 +414,10 @@ function cancelDraw(){
  $('#freeDrawPolygon')?.setAttribute('points','');
  $('#freeDrawLine')?.setAttribute('points','');
  $('#drawBtn').textContent='✎ Serbest Alan Çiz';
- $('#drawStatus').textContent='“Serbest Alan Çiz”e bas, mouse\'u basılı tutup alanın çevresini çiz.'
+ $('#drawStatus').textContent='Kaydırmak için “✋ Kaydır”ı aç. Alan çizmek için “Serbest Alan Çiz”i kullan.'
 }
 $('#planStage').addEventListener('pointerdown',e=>{
+ if(startPlanPan(e))return;
  if(!state.isFullAdmin||!state.drawMode)return;
  if(e.button!==undefined&&e.button!==0)return;
  e.preventDefault();
@@ -385,6 +428,7 @@ $('#planStage').addEventListener('pointerdown',e=>{
  previewFreeDraw()
 });
 $('#planStage').addEventListener('pointermove',e=>{
+ if(movePlanPan(e))return;
  if(!state.isFullAdmin||!state.drawMode||state.drawPointerId===null||e.pointerId!==state.drawPointerId)return;
  e.preventDefault();
  const p=posPct(e),last=state.drawPoints[state.drawPoints.length-1];
@@ -394,6 +438,7 @@ $('#planStage').addEventListener('pointermove',e=>{
  }
 });
 $('#planStage').addEventListener('pointerup',async e=>{
+ if(endPlanPan(e))return;
  if(!state.isFullAdmin||!state.drawMode||state.drawPointerId===null||e.pointerId!==state.drawPointerId)return;
  e.preventDefault();
  const last=posPct(e);
@@ -413,7 +458,7 @@ $('#planStage').addEventListener('pointerup',async e=>{
  }
  openNewZoneModal(box)
 });
-$('#planStage').addEventListener('pointercancel',function(){if(state.drawMode)cancelDraw()});
+$('#planStage').addEventListener('pointercancel',function(e){if(state.panPointerId!==null)endPlanPan(e);if(state.drawMode)cancelDraw()});
 function staffOptions(selected){
  return '<option value="">Atanmadı</option>'+state.staff.filter(p=>p.active).map(p=>`<option value="${p.id}" ${String(selected)===String(p.id)?'selected':''}>${esc(p.name)}</option>`).join('')
 }
@@ -1764,12 +1809,14 @@ function initCleaningAdmin(){
   if($('#zoomInBtn')) $('#zoomInBtn').onclick=function(){setPlanZoom(state.planZoom+.15)};
   if($('#zoomResetBtn')) $('#zoomResetBtn').onclick=function(){setPlanZoom(1)};
   if($('#zoomFitBtn')) $('#zoomFitBtn').onclick=fitPlan;
+  if($('#panBtn')) $('#panBtn').onclick=function(){setPanMode(!state.panMode)};
   if($('.plan-card')) $('.plan-card').addEventListener('wheel',function(e){
     if(!(e.ctrlKey||e.metaKey))return;
     e.preventDefault();
     setPlanZoom(state.planZoom+(e.deltaY<0?.1:-.1))
   },{passive:false});
   setPlanZoom(state.planZoom);
+  setPanMode(state.panMode);
   if($('#toggleAreasBtn')) $('#toggleAreasBtn').onclick=function(){
     state.showAreas=!state.showAreas;
     $('#toggleAreasBtn').textContent=state.showAreas?'Alanları Gizle':'Alanları Göster';
