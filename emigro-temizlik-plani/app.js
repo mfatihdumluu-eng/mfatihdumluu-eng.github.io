@@ -420,13 +420,24 @@ function startZoneRedraw(id){
  closeModal();startDraw(id,type);toast(type==='rect'?'Alanı kare/dikdörtgen olarak yeniden çiz':'Alanı serbest çizimle yeniden çiz');
 }
 window.startZoneRedraw=startZoneRedraw
-function cancelDraw(){
- state.drawMode=false;state.drawType=null;state.drawStart=null;state.drawPoints=[];state.drawPointerId=null;state.redrawZoneId=null;
- $('#planStage').classList.remove('drawing');
+function resetDrawStroke(){
+ state.drawStart=null;state.drawPoints=[];state.drawPointerId=null;state.redrawZoneId=null;
  $('#drawRect').classList.add('hidden');
  $('#freeDrawOverlay')?.classList.add('hidden');
  $('#freeDrawPolygon')?.setAttribute('points','');
  $('#freeDrawLine')?.setAttribute('points','');
+ if(state.drawMode){
+   $('#planStage').classList.add('drawing');
+   syncDrawButtons();
+   $('#drawStatus').textContent=state.drawType==='rect'
+     ?'▭ Kare / Dikdörtgen aktif. Yeni alan için bir köşeden karşı köşeye sürükle.'
+     :'✎ Serbest Çiz aktif. Yeni alan için mouse’u basılı tutup çevresini çiz.';
+ }
+}
+function cancelDraw(){
+ state.drawMode=false;state.drawType=null;
+ resetDrawStroke();
+ $('#planStage').classList.remove('drawing');
  syncDrawButtons();
  $('#drawStatus').textContent='✋ Kaydır ile planı sürükle. ✎ Serbest Çiz veya ▭ Kare / Dikdörtgen ile alan oluştur.'
 }
@@ -464,7 +475,7 @@ $('#planStage').addEventListener('pointerup',async e=>{
  if(type==='rect'){
    const p=posPct(e),box={x:Math.min(p.x,state.drawStart.x),y:Math.min(p.y,state.drawStart.y),w:Math.abs(p.x-state.drawStart.x),h:Math.abs(p.y-state.drawStart.y),polygon_points:[]};
    try{e.currentTarget.releasePointerCapture(e.pointerId)}catch(_){}
-   cancelDraw();
+   resetDrawStroke();
    if(box.w<.8||box.h<.8)return toast('Alan çok küçük');
    if(redrawId){
      const row={x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),shape:'rect',polygon_points:[]};
@@ -478,7 +489,7 @@ $('#planStage').addEventListener('pointerup',async e=>{
  if(!state.drawPoints.length||drawPointDistance(last,state.drawPoints[state.drawPoints.length-1])>.1)state.drawPoints.push(last);
  const points=state.drawPoints.slice();
  try{e.currentTarget.releasePointerCapture(e.pointerId)}catch(_){}
- cancelDraw();
+ resetDrawStroke();
  if(points.length<3)return toast('Alan çizimi çok kısa');
  const box=polygonBox(points);
  if(box.w<.8||box.h<.8)return toast('Alan çok küçük');
@@ -490,7 +501,7 @@ $('#planStage').addEventListener('pointerup',async e=>{
  }
  openNewZoneModal(box)
 });
-$('#planStage').addEventListener('pointercancel',function(e){if(state.panPointerId!==null)endPlanPan(e);if(state.drawMode)cancelDraw()});
+$('#planStage').addEventListener('pointercancel',function(e){if(state.panPointerId!==null)endPlanPan(e);if(state.drawMode)resetDrawStroke()});
 function staffOptions(selected){
  return '<option value="">Atanmadı</option>'+state.staff.filter(p=>p.active).map(p=>`<option value="${p.id}" ${String(selected)===String(p.id)?'selected':''}>${esc(p.name)}</option>`).join('')
 }
@@ -1842,7 +1853,7 @@ function initCleaningAdmin(){
   if($('#zoomInBtn')) $('#zoomInBtn').onclick=function(){setPlanZoom(state.planZoom+.15)};
   if($('#zoomResetBtn')) $('#zoomResetBtn').onclick=function(){setPlanZoom(1)};
   if($('#zoomFitBtn')) $('#zoomFitBtn').onclick=fitPlan;
-  if($('#panBtn')) $('#panBtn').onclick=function(){setPanMode(!state.panMode)};
+  if($('#panBtn')) $('#panBtn').onclick=function(){const next=!state.panMode;if(next&&state.drawMode)cancelDraw();setPanMode(next)};
   if($('.plan-card')) $('.plan-card').addEventListener('wheel',function(e){
     if(!(e.ctrlKey||e.metaKey))return;
     e.preventDefault();
