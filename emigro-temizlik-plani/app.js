@@ -250,7 +250,8 @@ function renderPlan(){
   const polygon=Array.isArray(z.polygon_points)&&z.polygon_points.length>=3?z.polygon_points:null;
   e.className='zone-box'+(polygon?' polygon-zone':'')+(String(state.selectedZoneId)===String(z.id)?' is-selected':'')+(!state.isAdmin&&!assigned?' worker-zone-disabled':'')+(!state.isAdmin&&assigned?' worker-zone-active':'');
   e.style.cssText='left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%;--zone:'+(z.color||'#f47a20')+(polygon?';--polygon:'+polygon.map(function(p){return Number(p.x).toFixed(2)+'% '+Number(p.y).toFixed(2)+'%'}).join(','):'');
-  e.innerHTML='<span class="zone-label">'+esc(z.name)+'</span>'+(!state.isAdmin&&!assigned?'<span class="worker-zone-lock">Pasif</span>':'');
+  const polygonVisual=polygon?'<svg class="zone-polygon-visual" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="'+polygon.map(function(p){return Number(p.x).toFixed(2)+','+Number(p.y).toFixed(2)}).join(' ')+'"></polygon></svg>':'';
+  e.innerHTML=polygonVisual+'<span class="zone-label">'+esc(z.name)+'</span>'+(!state.isAdmin&&!assigned?'<span class="worker-zone-lock">Pasif</span>':'');
   e.setAttribute('role','button');
   e.setAttribute('aria-label',z.name+' alanını aç');
   if(state.isAdmin||assigned){
