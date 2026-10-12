@@ -5,7 +5,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const PARAMS=new URLSearchParams(location.search);
 const ADMIN_MODE=PARAMS.get('mode')!=='worker';
 const WORKER_ID=Number(PARAMS.get('staff')||0)||null;
-const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],routineTasks:[],oneoffTasks:[],accessUsers:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:false,isFullAdmin:false,role:null,accessProfile:null,managedDepartments:[],redrawZoneId:null,workerStaffId:null,authReady:false,selectedZoneId:null};
+const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],routineTasks:[],oneoffTasks:[],accessUsers:[],settings:null,drawMode:false,drawStart:null,drawPoints:[],drawPointerId:null,showAreas:true,isAdmin:false,isFullAdmin:false,role:null,accessProfile:null,managedDepartments:[],redrawZoneId:null,workerStaffId:null,authReady:false,selectedZoneId:null,planZoom:1};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dayNames=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
@@ -247,8 +247,9 @@ function renderPlan(){
  zones.forEach(function(z){
   var assigned=workerAssignedToZone(z.id);
   const e=document.createElement('div');
-  e.className='zone-box'+(String(state.selectedZoneId)===String(z.id)?' is-selected':'')+(!state.isAdmin&&!assigned?' worker-zone-disabled':'')+(!state.isAdmin&&assigned?' worker-zone-active':'');
-  e.style.cssText='left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%;--zone:'+(z.color||'#f47a20');
+  const polygon=Array.isArray(z.polygon_points)&&z.polygon_points.length>=3?z.polygon_points:null;
+  e.className='zone-box'+(polygon?' polygon-zone':'')+(String(state.selectedZoneId)===String(z.id)?' is-selected':'')+(!state.isAdmin&&!assigned?' worker-zone-disabled':'')+(!state.isAdmin&&assigned?' worker-zone-active':'');
+  e.style.cssText='left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%;--zone:'+(z.color||'#f47a20')+(polygon?';--polygon:'+polygon.map(function(p){return Number(p.x).toFixed(2)+'% '+Number(p.y).toFixed(2)+'%'}).join(','):'');
   e.innerHTML='<span class="zone-label">'+esc(z.name)+'</span>'+(!state.isAdmin&&!assigned?'<span class="worker-zone-lock">Pasif</span>':'');
   e.setAttribute('role','button');
   e.setAttribute('aria-label',z.name+' alanını aç');
@@ -318,44 +319,100 @@ function posPct(e){
  const r=$('#planStage').getBoundingClientRect();
  return {x:Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)),y:Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100))}
 }
+function setPlanZoom(value){
+ state.planZoom=Math.max(.5,Math.min(2.5,Number(value)||1));
+ const stage=$('#planStage'),label=$('#zoomResetBtn');
+ if(stage)stage.style.width=(state.planZoom*100).toFixed(0)+'%';
+ if(label)label.textContent=Math.round(state.planZoom*100)+'%';
+}
+function fitPlan(){
+ const card=$('.plan-card'),stage=$('#planStage');
+ if(!card||!stage)return;
+ setPlanZoom(1);
+ card.scrollLeft=0;card.scrollTop=0;
+}
+function drawPointDistance(a,b){
+ const dx=a.x-b.x,dy=a.y-b.y;
+ return Math.sqrt(dx*dx+dy*dy)
+}
+function previewFreeDraw(){
+ const svg=$('#freeDrawOverlay'),poly=$('#freeDrawPolygon'),line=$('#freeDrawLine');
+ if(!svg||!poly||!line)return;
+ const pts=state.drawPoints.map(function(p){return p.x.toFixed(2)+','+p.y.toFixed(2)}).join(' ');
+ svg.classList.toggle('hidden',!state.drawMode||!state.drawPoints.length);
+ poly.setAttribute('points',state.drawPoints.length>2?pts:'');
+ line.setAttribute('points',pts)
+}
+function polygonBox(points){
+ const xs=points.map(function(p){return p.x}),ys=points.map(function(p){return p.y});
+ const x=Math.min.apply(null,xs),y=Math.min.apply(null,ys),maxX=Math.max.apply(null,xs),maxY=Math.max.apply(null,ys);
+ const w=maxX-x,h=maxY-y;
+ const normalized=points.map(function(p){return {x:+(((p.x-x)/w)*100).toFixed(3),y:+(((p.y-y)/h)*100).toFixed(3)}})
+ return {x:+x.toFixed(3),y:+y.toFixed(3),w:+w.toFixed(3),h:+h.toFixed(3),polygon_points:normalized}
+}
 function startDraw(redrawZoneId=null){
  if(!state.isFullAdmin)return toast('Alan düzenleme yetkisi yalnız System/Admin Manager’da');
  if(!$('#planImg')||$('#planImg').classList.contains('hidden'))return toast('Plan yüklenemedi');
- state.drawMode=true;state.drawStart=null;state.redrawZoneId=redrawZoneId;$('#planStage').classList.add('drawing');
+ state.drawMode=true;state.drawStart=null;state.drawPoints=[];state.drawPointerId=null;state.redrawZoneId=redrawZoneId;$('#planStage').classList.add('drawing');
  $('#drawBtn').textContent='İptal';
- $('#drawStatus').textContent=redrawZoneId?'Alan için yeni sınırı mouse ile çiz.':'Mouse ile alanın çevresini çiz.';
+ $('#drawStatus').textContent=redrawZoneId?'Mouse’u basılı tutup alanın yeni sınırını serbestçe çiz.':'Mouse’u basılı tutup alanın çevresini serbestçe çiz. Bırakınca alan kapanır.';
+ previewFreeDraw()
 }
 function startZoneRedraw(id){
  if(!state.isFullAdmin)return toast('Alan düzenleme yetkisi yalnız System/Admin Manager’da');
- closeModal();startDraw(id);toast('Yeni alan sınırını çiz');
+ closeModal();startDraw(id);toast('Alanı serbest çizimle yeniden çiz');
 }
 window.startZoneRedraw=startZoneRedraw
-function cancelDraw(){state.drawMode=false;state.drawStart=null;state.redrawZoneId=null;$('#planStage').classList.remove('drawing');$('#drawRect').classList.add('hidden');$('#drawBtn').textContent='+ Alan Seç';$('#drawStatus').textContent='Alan seçmek için “Alan Seç”e bas.'}
+function cancelDraw(){
+ state.drawMode=false;state.drawStart=null;state.drawPoints=[];state.drawPointerId=null;state.redrawZoneId=null;
+ $('#planStage').classList.remove('drawing');
+ $('#drawRect').classList.add('hidden');
+ $('#freeDrawOverlay')?.classList.add('hidden');
+ $('#freeDrawPolygon')?.setAttribute('points','');
+ $('#freeDrawLine')?.setAttribute('points','');
+ $('#drawBtn').textContent='✎ Serbest Alan Çiz';
+ $('#drawStatus').textContent='“Serbest Alan Çiz”e bas, mouse\'u basılı tutup alanın çevresini çiz.'
+}
 $('#planStage').addEventListener('pointerdown',e=>{
- if(!state.isFullAdmin)return;
- if(!state.drawMode)return;
- e.preventDefault();state.drawStart=posPct(e);const d=$('#drawRect');d.classList.remove('hidden');d.style.left=state.drawStart.x+'%';d.style.top=state.drawStart.y+'%';d.style.width='0%';d.style.height='0%'
+ if(!state.isFullAdmin||!state.drawMode)return;
+ if(e.button!==undefined&&e.button!==0)return;
+ e.preventDefault();
+ state.drawPointerId=e.pointerId;
+ state.drawPoints=[posPct(e)];
+ state.drawStart=state.drawPoints[0];
+ try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
+ previewFreeDraw()
 });
 $('#planStage').addEventListener('pointermove',e=>{
- if(!state.isFullAdmin)return;
- if(!state.drawMode||!state.drawStart)return;const p=posPct(e),x=Math.min(p.x,state.drawStart.x),y=Math.min(p.y,state.drawStart.y),w=Math.abs(p.x-state.drawStart.x),h=Math.abs(p.y-state.drawStart.y),d=$('#drawRect');d.style.left=x+'%';d.style.top=y+'%';d.style.width=w+'%';d.style.height=h+'%'
+ if(!state.isFullAdmin||!state.drawMode||state.drawPointerId===null||e.pointerId!==state.drawPointerId)return;
+ e.preventDefault();
+ const p=posPct(e),last=state.drawPoints[state.drawPoints.length-1];
+ if(!last||drawPointDistance(p,last)>=.28){
+   state.drawPoints.push(p);
+   previewFreeDraw()
+ }
 });
 $('#planStage').addEventListener('pointerup',async e=>{
- if(!state.isAdmin)return;
- if(!state.drawMode||!state.drawStart)return;
- const p=posPct(e),box={x:Math.min(p.x,state.drawStart.x),y:Math.min(p.y,state.drawStart.y),w:Math.abs(p.x-state.drawStart.x),h:Math.abs(p.y-state.drawStart.y)};
+ if(!state.isFullAdmin||!state.drawMode||state.drawPointerId===null||e.pointerId!==state.drawPointerId)return;
+ e.preventDefault();
+ const last=posPct(e);
+ if(!state.drawPoints.length||drawPointDistance(last,state.drawPoints[state.drawPoints.length-1])>.1)state.drawPoints.push(last);
+ const points=state.drawPoints.slice();
  const redrawId=state.redrawZoneId;
+ try{e.currentTarget.releasePointerCapture(e.pointerId)}catch(_){}
  cancelDraw();
- if(box.w<1||box.h<1)return toast('Alan çok küçük');
+ if(points.length<3)return toast('Alan çizimi çok kısa');
+ const box=polygonBox(points);
+ if(box.w<.8||box.h<.8)return toast('Alan çok küçük');
  if(redrawId){
-   const row={x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3)};
+   const row={x:box.x,y:box.y,w:box.w,h:box.h,shape:'polygon',polygon_points:box.polygon_points};
    const r=await db.from('emigro_cleaning_zones').update(row).eq('id',redrawId);
    if(r.error)return toast(r.error.message);
-   toast('Alan konumu güncellendi');await loadAll();return;
+   toast('Serbest alan güncellendi');await loadAll();return;
  }
  openNewZoneModal(box)
 });
-
+$('#planStage').addEventListener('pointercancel',function(){if(state.drawMode)cancelDraw()});
 function staffOptions(selected){
  return '<option value="">Atanmadı</option>'+state.staff.filter(p=>p.active).map(p=>`<option value="${p.id}" ${String(selected)===String(p.id)?'selected':''}>${esc(p.name)}</option>`).join('')
 }
@@ -383,7 +440,7 @@ function zoneCardForm(z,c={}){
 }
 
 function openNewZoneModal(box){
- const z={name:'',department:'',manager_access_id:null,description:'',color:'#f47a20',priority:'normal',proof_required:false,x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),manual:true,active:true};
+ const z={name:'',department:'',manager_access_id:null,description:'',color:'#f47a20',priority:'normal',proof_required:false,x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),polygon_points:box.polygon_points||[],shape:(box.polygon_points&&box.polygon_points.length?'polygon':'rect'),manual:true,active:true};
  openModal(zoneCardForm(z,{}));bindZoneCardForm(z,true)
 }
 window.openZoneCardModal=id=>{if(!state.isFullAdmin)return openZoneStatus(id);const z=zoneById(id),c=cardByZone(id)||{};openModal(zoneCardForm(z,c));bindZoneCardForm(z,false,c)};
@@ -403,7 +460,8 @@ function bindZoneCardForm(z,isNew,c={}){
     manual:true,
     active:true,
     x:z.x,y:z.y,w:z.w,h:z.h,
-    shape:'rect',
+    shape:z.shape||((z.polygon_points&&z.polygon_points.length)?'polygon':'rect'),
+    polygon_points:Array.isArray(z.polygon_points)?z.polygon_points:[],
     code:z.code||('MANUAL-'+Date.now())
   };
   if(isNew){
@@ -1701,6 +1759,16 @@ function initCleaningAdmin(){
   });
 
   if($('#drawBtn')) $('#drawBtn').onclick=function(){state.drawMode?cancelDraw():startDraw()};
+  if($('#zoomOutBtn')) $('#zoomOutBtn').onclick=function(){setPlanZoom(state.planZoom-.15)};
+  if($('#zoomInBtn')) $('#zoomInBtn').onclick=function(){setPlanZoom(state.planZoom+.15)};
+  if($('#zoomResetBtn')) $('#zoomResetBtn').onclick=function(){setPlanZoom(1)};
+  if($('#zoomFitBtn')) $('#zoomFitBtn').onclick=fitPlan;
+  if($('.plan-card')) $('.plan-card').addEventListener('wheel',function(e){
+    if(!(e.ctrlKey||e.metaKey))return;
+    e.preventDefault();
+    setPlanZoom(state.planZoom+(e.deltaY<0?.1:-.1))
+  },{passive:false});
+  setPlanZoom(state.planZoom);
   if($('#toggleAreasBtn')) $('#toggleAreasBtn').onclick=function(){
     state.showAreas=!state.showAreas;
     $('#toggleAreasBtn').textContent=state.showAreas?'Alanları Gizle':'Alanları Göster';
