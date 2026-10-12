@@ -1918,3 +1918,34 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
   outline:3px solid rgba(7,148,85,.22)!important;
   outline-offset:1px!important;
 }
+
+
+/* WORKER UNASSIGNED ZONES: FORCE GREY + PASSIVE */
+.worker-mode .zone-box.worker-zone-disabled{
+  --zone:#98a2b3!important;
+  opacity:.28!important;
+  filter:grayscale(1)!important;
+  background:rgba(152,162,179,.14)!important;
+  border-color:#98a2b3!important;
+  box-shadow:none!important;
+  outline:none!important;
+  pointer-events:none!important;
+  cursor:not-allowed!important;
+}
+.worker-mode .zone-box.worker-zone-disabled .zone-polygon-visual polygon{
+  fill:rgba(152,162,179,.16)!important;
+  stroke:#98a2b3!important;
+}
+.worker-mode .zone-box.worker-zone-disabled .zone-label{
+  background:rgba(242,244,247,.94)!important;
+  color:#667085!important;
+  border:1px solid #d0d5dd!important;
+}
+.worker-mode .zone-box.worker-zone-disabled .worker-zone-lock{
+  color:#667085!important;
+  background:#f2f4f7!important;
+}
+.worker-mode .zone-box.worker-zone-active{
+  opacity:1!important;
+  filter:none!important;
+}
