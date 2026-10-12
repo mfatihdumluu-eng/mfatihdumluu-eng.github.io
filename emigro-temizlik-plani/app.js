@@ -5,7 +5,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const PARAMS=new URLSearchParams(location.search);
 const ADMIN_MODE=PARAMS.get('mode')!=='worker';
 const WORKER_ID=Number(PARAMS.get('staff')||0)||null;
-const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],routineTasks:[],oneoffTasks:[],accessUsers:[],settings:null,drawMode:false,drawStart:null,drawPoints:[],drawPointerId:null,panMode:false,panPointerId:null,panStart:null,showAreas:true,isAdmin:false,isFullAdmin:false,role:null,accessProfile:null,managedDepartments:[],redrawZoneId:null,workerStaffId:null,authReady:false,selectedZoneId:null,planZoom:1};
+const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],routineTasks:[],oneoffTasks:[],accessUsers:[],settings:null,drawMode:false,drawType:null,drawStart:null,drawPoints:[],drawPointerId:null,panMode:false,panPointerId:null,panStart:null,showAreas:true,isAdmin:false,isFullAdmin:false,role:null,accessProfile:null,managedDepartments:[],redrawZoneId:null,workerStaffId:null,authReady:false,selectedZoneId:null,planZoom:1};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dayNames=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
@@ -392,29 +392,43 @@ function polygonBox(points){
  const normalized=points.map(function(p){return {x:+(((p.x-x)/w)*100).toFixed(3),y:+(((p.y-y)/h)*100).toFixed(3)}})
  return {x:+x.toFixed(3),y:+y.toFixed(3),w:+w.toFixed(3),h:+h.toFixed(3),polygon_points:normalized}
 }
-function startDraw(redrawZoneId=null){
+function syncDrawButtons(){
+ const free=$('#drawBtn'),rect=$('#rectDrawBtn');
+ if(free){
+   free.classList.toggle('active',state.drawMode&&state.drawType==='polygon');
+   free.textContent=state.drawMode&&state.drawType==='polygon'?'İptal':'✎ Serbest Çiz';
+ }
+ if(rect){
+   rect.classList.toggle('active',state.drawMode&&state.drawType==='rect');
+   rect.textContent=state.drawMode&&state.drawType==='rect'?'İptal':'▭ Kare / Dikdörtgen';
+ }
+}
+function startDraw(redrawZoneId=null,type='polygon'){
  if(!state.isFullAdmin)return toast('Alan düzenleme yetkisi yalnız System/Admin Manager’da');
  setPanMode(false);
  if(!$('#planImg')||$('#planImg').classList.contains('hidden'))return toast('Plan yüklenemedi');
- state.drawMode=true;state.drawStart=null;state.drawPoints=[];state.drawPointerId=null;state.redrawZoneId=redrawZoneId;$('#planStage').classList.add('drawing');
- $('#drawBtn').textContent='İptal';
- $('#drawStatus').textContent=redrawZoneId?'Mouse’u basılı tutup alanın yeni sınırını serbestçe çiz.':'Mouse’u basılı tutup alanın çevresini serbestçe çiz. Bırakınca alan kapanır.';
- previewFreeDraw()
+ state.drawMode=true;state.drawType=type;state.drawStart=null;state.drawPoints=[];state.drawPointerId=null;state.redrawZoneId=redrawZoneId;$('#planStage').classList.add('drawing');
+ syncDrawButtons();
+ $('#drawStatus').textContent=type==='rect'
+   ?(redrawZoneId?'Mouse ile yeni kare/dikdörtgen sınırı sürükle.':'Bir köşeden karşı köşeye sürükleyerek kare/dikdörtgen alan çiz.')
+   :(redrawZoneId?'Mouse’u basılı tutup alanın yeni sınırını serbestçe çiz.':'Mouse’u basılı tutup alanın çevresini serbestçe çiz. Bırakınca alan kapanır.');
+ if(type==='polygon')previewFreeDraw()
 }
 function startZoneRedraw(id){
  if(!state.isFullAdmin)return toast('Alan düzenleme yetkisi yalnız System/Admin Manager’da');
- closeModal();startDraw(id);toast('Alanı serbest çizimle yeniden çiz');
+ const z=zoneById(id),type=z&&z.shape==='rect'?'rect':'polygon';
+ closeModal();startDraw(id,type);toast(type==='rect'?'Alanı kare/dikdörtgen olarak yeniden çiz':'Alanı serbest çizimle yeniden çiz');
 }
 window.startZoneRedraw=startZoneRedraw
 function cancelDraw(){
- state.drawMode=false;state.drawStart=null;state.drawPoints=[];state.drawPointerId=null;state.redrawZoneId=null;
+ state.drawMode=false;state.drawType=null;state.drawStart=null;state.drawPoints=[];state.drawPointerId=null;state.redrawZoneId=null;
  $('#planStage').classList.remove('drawing');
  $('#drawRect').classList.add('hidden');
  $('#freeDrawOverlay')?.classList.add('hidden');
  $('#freeDrawPolygon')?.setAttribute('points','');
  $('#freeDrawLine')?.setAttribute('points','');
- $('#drawBtn').textContent='✎ Serbest Alan Çiz';
- $('#drawStatus').textContent='Kaydırmak için “✋ Kaydır”ı aç. Alan çizmek için “Serbest Alan Çiz”i kullan.'
+ syncDrawButtons();
+ $('#drawStatus').textContent='✋ Kaydır ile planı sürükle. ✎ Serbest Çiz veya ▭ Kare / Dikdörtgen ile alan oluştur.'
 }
 $('#planStage').addEventListener('pointerdown',e=>{
  if(startPlanPan(e))return;
@@ -422,29 +436,47 @@ $('#planStage').addEventListener('pointerdown',e=>{
  if(e.button!==undefined&&e.button!==0)return;
  e.preventDefault();
  state.drawPointerId=e.pointerId;
- state.drawPoints=[posPct(e)];
- state.drawStart=state.drawPoints[0];
+ state.drawStart=posPct(e);
+ state.drawPoints=state.drawType==='polygon'?[state.drawStart]:[];
  try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
- previewFreeDraw()
+ if(state.drawType==='rect'){
+   const d=$('#drawRect');d.classList.remove('hidden');d.style.left=state.drawStart.x+'%';d.style.top=state.drawStart.y+'%';d.style.width='0%';d.style.height='0%'
+ }else previewFreeDraw()
 });
 $('#planStage').addEventListener('pointermove',e=>{
  if(movePlanPan(e))return;
  if(!state.isFullAdmin||!state.drawMode||state.drawPointerId===null||e.pointerId!==state.drawPointerId)return;
  e.preventDefault();
- const p=posPct(e),last=state.drawPoints[state.drawPoints.length-1];
- if(!last||drawPointDistance(p,last)>=.28){
-   state.drawPoints.push(p);
-   previewFreeDraw()
+ const p=posPct(e);
+ if(state.drawType==='rect'){
+   const x=Math.min(p.x,state.drawStart.x),y=Math.min(p.y,state.drawStart.y),w=Math.abs(p.x-state.drawStart.x),h=Math.abs(p.y-state.drawStart.y),d=$('#drawRect');
+   d.style.left=x+'%';d.style.top=y+'%';d.style.width=w+'%';d.style.height=h+'%'
+ }else{
+   const last=state.drawPoints[state.drawPoints.length-1];
+   if(!last||drawPointDistance(p,last)>=.28){state.drawPoints.push(p);previewFreeDraw()}
  }
 });
 $('#planStage').addEventListener('pointerup',async e=>{
  if(endPlanPan(e))return;
  if(!state.isFullAdmin||!state.drawMode||state.drawPointerId===null||e.pointerId!==state.drawPointerId)return;
  e.preventDefault();
+ const redrawId=state.redrawZoneId,type=state.drawType;
+ if(type==='rect'){
+   const p=posPct(e),box={x:Math.min(p.x,state.drawStart.x),y:Math.min(p.y,state.drawStart.y),w:Math.abs(p.x-state.drawStart.x),h:Math.abs(p.y-state.drawStart.y),polygon_points:[]};
+   try{e.currentTarget.releasePointerCapture(e.pointerId)}catch(_){}
+   cancelDraw();
+   if(box.w<.8||box.h<.8)return toast('Alan çok küçük');
+   if(redrawId){
+     const row={x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),shape:'rect',polygon_points:[]};
+     const r=await db.from('emigro_cleaning_zones').update(row).eq('id',redrawId);
+     if(r.error)return toast(r.error.message);
+     toast('Kare/dikdörtgen alan güncellendi');await loadAll();return;
+   }
+   openNewZoneModal(box);return;
+ }
  const last=posPct(e);
  if(!state.drawPoints.length||drawPointDistance(last,state.drawPoints[state.drawPoints.length-1])>.1)state.drawPoints.push(last);
  const points=state.drawPoints.slice();
- const redrawId=state.redrawZoneId;
  try{e.currentTarget.releasePointerCapture(e.pointerId)}catch(_){}
  cancelDraw();
  if(points.length<3)return toast('Alan çizimi çok kısa');
@@ -1778,7 +1810,7 @@ function setupWorkerMode(){
 }
 function initCleaningAdmin(){
   if(!state.isAdmin){
-    ['#drawBtn','#toggleAreasBtn','.upload-btn','#addStaffBtn','#drawStatus'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
+    ['#drawBtn','#rectDrawBtn','#toggleAreasBtn','.upload-btn','#addStaffBtn','#drawStatus'].forEach(function(sel){var el=$(sel);if(el)el.classList.add('hidden')});
     $$('.danger-btn').forEach(function(el){el.classList.add('hidden')});
     $$('.nav').forEach(function(el){
       var allowed=['tracking','calendar','plan','worker-notifications'];
@@ -1804,7 +1836,8 @@ function initCleaningAdmin(){
     }
   });
 
-  if($('#drawBtn')) $('#drawBtn').onclick=function(){state.drawMode?cancelDraw():startDraw()};
+  if($('#drawBtn')) $('#drawBtn').onclick=function(){state.drawMode&&state.drawType==='polygon'?cancelDraw():startDraw(null,'polygon')};
+  if($('#rectDrawBtn')) $('#rectDrawBtn').onclick=function(){state.drawMode&&state.drawType==='rect'?cancelDraw():startDraw(null,'rect')};
   if($('#zoomOutBtn')) $('#zoomOutBtn').onclick=function(){setPlanZoom(state.planZoom-.15)};
   if($('#zoomInBtn')) $('#zoomInBtn').onclick=function(){setPlanZoom(state.planZoom+.15)};
   if($('#zoomResetBtn')) $('#zoomResetBtn').onclick=function(){setPlanZoom(1)};
