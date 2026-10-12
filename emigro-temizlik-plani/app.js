@@ -357,75 +357,59 @@ function monthDayChecks(arr=[]){
  return Array.from({length:31},(_,i)=>i+1).map(i=>`<label class="check"><input type="checkbox" name="monthly_days" value="${i}" ${arr.includes(i)?'checked':''}> ${i}</label>`).join('')
 }
 function zoneCardForm(z,c={}){
- return `<h2>${z.id?'Alan Kartı':'Yeni Alan'}</h2><form id="zoneCardForm"><div class="form-grid">
+ return `<h2>${z.id?'Alan Ayarları':'Yeni Alan'}</h2><form id="zoneCardForm"><div class="form-grid">
  <div class="field"><label>Alan adı</label><input name="name" required value="${esc(z.name||'')}"></div>
  <div class="field"><label>Bölüm</label><select name="department" required>
   <option value="">Seçiniz</option>
-  ${DEPARTMENTS.filter(function(d){return state.isFullAdmin||state.role!=='manager'||state.managedDepartments.includes(d)}).map(function(d){return '<option value="'+d+'" '+(z.department===d?'selected':'')+'>'+d+'</option>'}).join('')}
+  ${DEPARTMENTS.map(function(d){return '<option value="'+d+'" '+(z.department===d?'selected':'')+'>'+d+'</option>'}).join('')}
  </select></div>
- <div class="field"><label>Sorumlu Yönetici</label><select name="manager_access_id">${zoneManagerOptions(z.manager_access_id||(['manager','department_manager'].includes(state.role)?(state.accessProfile&&state.accessProfile.id):null))}</select></div>
+ <div class="field"><label>Sorumlu Yönetici</label><select name="manager_access_id">${zoneManagerOptions(z.manager_access_id||null)}</select></div>
  <div class="field"><label>Renk</label><input name="color" type="color" value="${z.color||'#f47a20'}"></div>
  <div class="field"><label>Alan önceliği</label><select name="priority"><option value="normal" ${(z.priority||'normal')==='normal'?'selected':''}>Normal</option><option value="high" ${z.priority==='high'?'selected':''}>Yüksek</option><option value="critical" ${z.priority==='critical'?'selected':''}>Kritik</option></select></div>
- <div class="field"><label>Fotoğraf kanıtı</label><select name="proof_required"><option value="false" ${!z.proof_required?'selected':''}>İsteğe bağlı</option><option value="true" ${z.proof_required?'selected':''}>Zorunlu</option></select></div>
- <div class="field full"><label>Tanım / temizlenecekler</label><textarea name="description">${esc(z.description||'')}</textarea></div>
-
- <div class="field full"><label>Günlük</label><label class="check"><input type="checkbox" name="daily_enabled" ${c.daily_enabled?'checked':''}> Aktif</label><div class="checks">${weekdayChecks('daily_days',c.daily_days||[1,2,3,4,5,6,0])}</div></div>
- <div class="field"><label>Günlük saat</label><input type="time" name="daily_time" value="${c.daily_time?.slice(0,5)||''}"></div>
- <div class="field"><label>Günlük fotoğraf</label><select name="daily_proof_required"><option value="false" ${!c.daily_proof_required?'selected':''}>İsteğe bağlı</option><option value="true" ${c.daily_proof_required?'selected':''}>Zorunlu</option></select></div>
- <div class="field full"><label>Günlük ne yapılacak?</label><textarea name="daily_task" placeholder="Örn. zemin süpür, paspas yap...">${esc(c.daily_task||'')}</textarea></div>
- <div class="field full"><label>Günlük sabit görevler</label><textarea name="daily_tags" placeholder="Her satıra bir görev yazın. Örn. Kasap tezgâhını temizle&#10;Yerleri paspasla">${esc(tagsFor(z.id,'daily').map(function(x){return x.label}).join('\n'))}</textarea></div>
-
- <div class="field full"><label>Haftalık</label><label class="check"><input type="checkbox" name="weekly_enabled" ${c.weekly_enabled?'checked':''}> Aktif</label><div class="checks">${weekdayChecks('weekly_days',c.weekly_days||[])}</div></div>
- <div class="field"><label>Haftalık saat</label><input type="time" name="weekly_time" value="${c.weekly_time?.slice(0,5)||''}"></div>
- <div class="field"><label>Haftalık fotoğraf</label><select name="weekly_proof_required"><option value="false" ${!c.weekly_proof_required?'selected':''}>İsteğe bağlı</option><option value="true" ${c.weekly_proof_required?'selected':''}>Zorunlu</option></select></div>
- <div class="field full"><label>Haftalık ne yapılacak?</label><textarea name="weekly_task" placeholder="Örn. raf altlarını temizle...">${esc(c.weekly_task||'')}</textarea></div>
- <div class="field full"><label>Haftalık sabit görevler</label><textarea name="weekly_tags">${esc(tagsFor(z.id,'weekly').map(function(x){return x.label}).join('\n'))}</textarea></div>
-
- <div class="field full"><label>Aylık</label><label class="check"><input type="checkbox" name="monthly_enabled" ${c.monthly_enabled?'checked':''}> Aktif</label><div class="checks">${monthDayChecks(c.monthly_days||[])}</div></div>
- <div class="field"><label>Aylık saat</label><input type="time" name="monthly_time" value="${c.monthly_time?.slice(0,5)||''}"></div>
- <div class="field"><label>Aylık fotoğraf</label><select name="monthly_proof_required"><option value="false" ${!c.monthly_proof_required?'selected':''}>İsteğe bağlı</option><option value="true" ${c.monthly_proof_required?'selected':''}>Zorunlu</option></select></div>
- <div class="field full"><label>Aylık ne yapılacak?</label><textarea name="monthly_task" placeholder="Örn. derin temizlik...">${esc(c.monthly_task||'')}</textarea></div>
- <div class="field full"><label>Aylık sabit görevler</label><textarea name="monthly_tags">${esc(tagsFor(z.id,'monthly').map(function(x){return x.label}).join('\n'))}</textarea></div>
+ <div class="field"><label>Fotoğraf kanıtı</label><select name="proof_required"><option value="false" ${!z.proof_required?'selected':''}>İsteğe bağlı</option><option value="true" ${z.proof_required?'selected':''}>Bu alandaki tüm görevlerde zorunlu</option></select></div>
+ <div class="field full"><label>Alan açıklaması</label><textarea name="description">${esc(z.description||'')}</textarea></div>
+ <div class="field full"><div class="invite-info-box"><b>Görevler personel kartından atanır</b><span>Rutin ve anlık görevler bu alanda değil, ilgili çalışanın kartındaki görev butonlarından oluşturulur. Böylece bir alanda birden fazla çalışan ve görev tutulabilir.</span></div></div>
  </div>
- <div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Kaydet</button></div></form>`
+ <div class="form-actions"><button type="button" class="ghost" onclick="closeModal()">İptal</button><button class="primary">Alanı Kaydet</button></div></form>`
 }
+
 function openNewZoneModal(box){
- const z={name:'',department:['manager','department_manager'].includes(state.role)&&state.managedDepartments.length===1?state.managedDepartments[0]:'',manager_access_id:['manager','department_manager'].includes(state.role)?(state.accessProfile&&state.accessProfile.id):null,description:'',color:'#f47a20',priority:'normal',proof_required:false,x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),manual:true,active:true};
+ const z={name:'',department:'',manager_access_id:null,description:'',color:'#f47a20',priority:'normal',proof_required:false,x:+box.x.toFixed(3),y:+box.y.toFixed(3),w:+box.w.toFixed(3),h:+box.h.toFixed(3),manual:true,active:true};
  openModal(zoneCardForm(z,{}));bindZoneCardForm(z,true)
 }
-window.openZoneCardModal=id=>{if(!state.isAdmin)return openZoneStatus(id);const z=zoneById(id),c=cardByZone(id)||{};openModal(zoneCardForm(z,c));bindZoneCardForm(z,false,c)};
+window.openZoneCardModal=id=>{if(!state.isFullAdmin)return openZoneStatus(id);const z=zoneById(id),c=cardByZone(id)||{};openModal(zoneCardForm(z,c));bindZoneCardForm(z,false,c)};
 function bindZoneCardForm(z,isNew,c={}){
- $('#zoneCardForm').onsubmit=async e=>{
-  e.preventDefault();const fd=new FormData(e.target);let zoneId=z.id;
-  const zoneRow={name:fd.get('name'),department:fd.get('department')||null,manager_access_id:fd.get('manager_access_id')?Number(fd.get('manager_access_id')):null,description:fd.get('description'),color:fd.get('color'),priority:fd.get('priority')||'normal',proof_required:fd.get('proof_required')==='true',manual:true,active:true,x:z.x,y:z.y,w:z.w,h:z.h,shape:'rect',code:z.code||('MANUAL-'+Date.now())};
-  if(isNew){const {data,error}=await db.from('emigro_cleaning_zones').insert(zoneRow).select().single();if(error)return toast(error.message);zoneId=data.id}
-  else{const {error}=await db.from('emigro_cleaning_zones').update(zoneRow).eq('id',z.id);if(error)return toast(error.message)}
-  const cardRow={
-   zone_id:zoneId,
-   primary_staff_id:c.primary_staff_id||null,
-   backup_staff_id:c.backup_staff_id||null,
-   backup_enabled:!!c.backup_enabled,
-   backup_days:c.backup_days||[],
-   daily_enabled:fd.has('daily_enabled'),daily_days:fd.getAll('daily_days').length?fd.getAll('daily_days').map(Number):(c.daily_days||[]),daily_time:fd.get('daily_time')||null,daily_proof_required:fd.get('daily_proof_required')==='true',
-   weekly_enabled:fd.has('weekly_enabled'),weekly_days:fd.getAll('weekly_days').length?fd.getAll('weekly_days').map(Number):(c.weekly_days||[]),weekly_time:fd.get('weekly_time')||null,weekly_proof_required:fd.get('weekly_proof_required')==='true',
-   monthly_enabled:fd.has('monthly_enabled'),monthly_days:fd.getAll('monthly_days').length?fd.getAll('monthly_days').map(Number):(c.monthly_days||[]),monthly_time:fd.get('monthly_time')||null,monthly_proof_required:fd.get('monthly_proof_required')==='true',
-   daily_task:fd.get('daily_task')||'',
-   weekly_task:fd.get('weekly_task')||'',
-   monthly_task:fd.get('monthly_task')||'',
-   updated_at:new Date().toISOString()
+ $('#zoneCardForm').onsubmit=async function(e){
+  e.preventDefault();
+  if(!state.isFullAdmin)return toast('Alan ayarlarını yalnız System/Admin Manager değiştirebilir');
+  var fd=new FormData(e.target),zoneId=z.id;
+  var zoneRow={
+    name:fd.get('name'),
+    department:fd.get('department')||null,
+    manager_access_id:fd.get('manager_access_id')?Number(fd.get('manager_access_id')):null,
+    description:fd.get('description')||'',
+    color:fd.get('color')||'#f47a20',
+    priority:fd.get('priority')||'normal',
+    proof_required:fd.get('proof_required')==='true',
+    manual:true,
+    active:true,
+    x:z.x,y:z.y,w:z.w,h:z.h,
+    shape:'rect',
+    code:z.code||('MANUAL-'+Date.now())
   };
-  const {error}=await db.from('emigro_cleaning_zone_cards').upsert(cardRow,{onConflict:'zone_id'});if(error)return toast(error.message);
-  for(const tp of ['daily','weekly','monthly']){
-    var del=await db.from('emigro_cleaning_task_tags').delete().eq('zone_id',zoneId).eq('task_type',tp);if(del.error)return toast(del.error.message);
-    var labels=String(fd.get(tp+'_tags')||'').split(/\n+/).map(function(x){return x.trim()}).filter(Boolean);
-    if(labels.length){
-      var ins=await db.from('emigro_cleaning_task_tags').insert(labels.map(function(label,i){return {zone_id:zoneId,task_type:tp,label:label,active:true,sort_order:i}}));if(ins.error)return toast(ins.error.message)
-    }
+  if(isNew){
+    var ins=await db.from('emigro_cleaning_zones').insert(zoneRow).select().single();
+    if(ins.error)return toast(ins.error.message);
+    zoneId=ins.data.id
+  }else{
+    var up=await db.from('emigro_cleaning_zones').update(zoneRow).eq('id',z.id);
+    if(up.error)return toast(up.error.message)
   }
-  closeModal();toast('Alan kartı ve sabit görevler kaydedildi');loadAll()
+  closeModal();toast('Alan ayarları kaydedildi');await loadAll()
  }
 }
-window.deleteZone=async id=>{if(!state.isAdmin)return toast('Alan silme yetkisi sadece adminde');if(!confirm('Bu seçili alan tamamen silinsin mi? Alan tanımı ve rutini kaldırılacak.'))return;const {error}=await db.from('emigro_cleaning_zones').delete().eq('id',id);if(error)return toast(error.message);loadAll()};
+
+window.deleteZone=async id=>{if(!state.isFullAdmin)return toast('Alan silme yetkisi yalnız System/Admin Manager’da');if(!confirm('Bu seçili alan tamamen silinsin mi? Alan tanımı ve rutini kaldırılacak.'))return;const {error}=await db.from('emigro_cleaning_zones').delete().eq('id',id);if(error)return toast(error.message);loadAll()};
 
 window.editStaff=id=>{
  if(!state.isFullAdmin)return toast('Personel bilgilerini yalnız System/Admin Manager düzenleyebilir');
@@ -856,143 +840,6 @@ window.openZoneStatus=function(id){
 
  var box=$('#modal .modal-box');
  if(box){box.classList.add('zone-sheet','zone-detail-sheet')}
-};
-window.openZoneAssignee=function(zoneId){
- if(!state.isFullAdmin)return toast('Bu eski atama ekranı yalnız System/Admin Manager için kullanılabilir');
- var z=zoneById(zoneId),c=cardByZone(zoneId)||{};
- if(!z)return;
- var staff=state.staff.filter(function(p){return canAssignStaffClient(p)&&p.department===z.department});
- var options='<option value="">Atanmadı</option>'+staff.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');
-
- function personSelects(type,title){
-  var pval=c[type+'_primary_staff_id']||(type==='daily'?c.primary_staff_id:null)||'';
-  var bval=c[type+'_backup_staff_id']||(type==='daily'?c.backup_staff_id:null)||'';
-  return '<div class="freq-person-head"><div><b>'+title+'</b><span>'+(
-    type==='daily'?'Her gün için sorumlu kişi seçilir.':
-    type==='weekly'?'Haftalık özel temizlik için ayrı sorumlu tanımlayın.':
-    'Aylık özel temizlik için ayrı sorumlu tanımlayın.'
-  )+'</span></div></div>'+
-  '<div class="assignment-person-grid">'+
-   '<div class="field"><label>Asıl temizleyen</label><select id="'+type+'Primary" name="'+type+'_primary">'+options+'</select></div>'+
-   '<div class="field"><label>Yedek temizleyen</label><select id="'+type+'Backup" name="'+type+'_backup">'+options+'</select></div>'+
-  '</div>'+
-  '<input type="hidden" id="'+type+'PrimaryValue" value="'+pval+'"><input type="hidden" id="'+type+'BackupValue" value="'+bval+'">'
- }
-
- openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">PERSONEL ATAMA</span><h2>'+esc((z&&z.name)||'Alan')+'</h2><p>Günlük, haftalık ve aylık temizliklerde farklı sorumlular tanımlayabilirsiniz.</p></div>'+
-  '<form id="zoneAssigneeForm">'+
-   '<div class="freq-tabs">'+
-    '<button type="button" class="freq-tab active" data-freq="daily">Günlük</button>'+
-    '<button type="button" class="freq-tab" data-freq="weekly">Haftalık</button>'+
-    '<button type="button" class="freq-tab" data-freq="monthly">Aylık</button>'+
-   '</div>'+
-
-   '<section class="freq-panel active" data-freq-panel="daily">'+
-    personSelects('daily','Günlük Temizlik')+
-    '<div class="day-owner-card"><div class="day-owner-head"><div><b>Haftalık Sorumluluk</b><span>Her gün yalnızca Asıl veya Yedek görevli olur.</span></div><span id="dailyOwnerHint" class="backup-status-pill"></span></div>'+
-     '<div id="dailyOwnerGrid" class="day-owner-grid"></div>'+
-    '</div>'+
-   '</section>'+
-
-   '<section class="freq-panel" data-freq-panel="weekly">'+
-    personSelects('weekly','Haftalık Özel Temizlik')+
-    '<div class="special-assignment-card"><div class="special-head"><b>Rutinde Tanımlı Günler</b><span>'+fmtDays(c.weekly_days||[])+'</span></div>'+
-     '<p>Yedek kullanmak istiyorsanız aşağıdan yedeğin devralacağı haftalık günleri seçin.</p>'+
-     '<div class="checks special-day-checks">'+weekdayChecks('weekly_backup_days',c.weekly_backup_days||[])+'</div>'+
-    '</div>'+
-   '</section>'+
-
-   '<section class="freq-panel" data-freq-panel="monthly">'+
-    personSelects('monthly','Aylık Özel Temizlik')+
-    '<div class="special-assignment-card"><div class="special-head"><b>Rutinde Tanımlı Ay Günleri</b><span>'+fmtMonthDays(c.monthly_days||[])+'</span></div>'+
-     '<p>Yedeğin devralacağı ay günlerini seçebilirsiniz.</p>'+
-     '<div class="checks special-day-checks month-special-days">'+monthDayChecks(c.monthly_backup_days||[])+'</div>'+
-    '</div>'+
-   '</section>'+
-
-   '<div class="form-actions"><button type="button" class="ghost" onclick="openZoneStatus('+zoneId+')">Geri</button><button class="primary">Atamaları Kaydet</button></div>'+
-  '</form></div>');
-
- var form=$('#zoneAssigneeForm');
-
- ['daily','weekly','monthly'].forEach(function(type){
-   var p=$('#'+type+'Primary'),b=$('#'+type+'Backup');
-   p.value=$('#'+type+'PrimaryValue').value;
-   b.value=$('#'+type+'BackupValue').value;
-   function guard(){
-     if(p.value&&b.value&&p.value===b.value){b.value='';toast('Asıl ve yedek aynı kişi olamaz')}
-   }
-   p.onchange=guard;b.onchange=guard;
- });
-
- var dailyGrid=$('#dailyOwnerGrid'),dailyP=$('#dailyPrimary'),dailyB=$('#dailyBackup'),dailyHint=$('#dailyOwnerHint');
- function dailyBackupDaysFromState(){
-   var d=c.daily_backup_days||[];
-   if(!d.length&&c.backup_enabled)d=c.backup_days||[];
-   return d
- }
- function renderDailyOwners(){
-  var bd=dailyBackupDaysFromState();
-  dailyGrid.innerHTML=dayNames.map(function(day,i){
-    var useBackup=!!dailyB.value&&bd.includes(i);
-    return '<div class="day-owner-row" data-day="'+i+'"><div class="day-name">'+day+'</div><div class="owner-toggle">'+
-     '<label class="owner-choice '+(!useBackup?'selected':'')+'"><input type="radio" name="daily_owner_'+i+'" value="primary" '+(!useBackup?'checked':'')+'>Asıl</label>'+
-     '<label class="owner-choice '+(useBackup?'selected':'')+' '+(!dailyB.value?'disabled':'')+'"><input type="radio" name="daily_owner_'+i+'" value="backup" '+(useBackup?'checked':'')+' '+(!dailyB.value?'disabled':'')+'>Yedek</label>'+
-     '</div><div class="day-owner-person">'+(useBackup?esc(staffById(dailyB.value)?.name||'Yedek'):esc(staffById(dailyP.value)?.name||'Asıl seçilmedi'))+'</div></div>'
-  }).join('');
-  dailyGrid.querySelectorAll('input[type="radio"]').forEach(function(r){
-    r.onchange=function(){
-      var row=r.closest('.day-owner-row');
-      row.querySelectorAll('.owner-choice').forEach(function(l){l.classList.remove('selected')});
-      r.closest('.owner-choice').classList.add('selected');
-      var who=r.value==='backup'?staffById(dailyB.value):staffById(dailyP.value);
-      row.querySelector('.day-owner-person').textContent=(who&&who.name)||(r.value==='backup'?'Yedek':'Asıl seçilmedi');
-      updateDailyHint()
-    }
-  });
-  updateDailyHint()
- }
- function updateDailyHint(){
-   var bc=0;dailyGrid.querySelectorAll('.day-owner-row').forEach(function(row){var x=row.querySelector('input:checked');if(x&&x.value==='backup')bc++});
-   dailyHint.textContent=bc?(7-bc)+' gün Asıl · '+bc+' gün Yedek':'7 gün Asıl'
- }
- dailyP.onchange=function(){if(dailyP.value&&dailyB.value===dailyP.value){dailyB.value='';toast('Asıl ve yedek aynı kişi olamaz')}renderDailyOwners()};
- dailyB.onchange=function(){if(dailyB.value&&dailyP.value===dailyB.value){dailyB.value='';toast('Asıl ve yedek aynı kişi olamaz')}renderDailyOwners()};
- renderDailyOwners();
-
- $$('.freq-tab').forEach(function(btn){
-  btn.onclick=function(){
-   $$('.freq-tab').forEach(function(x){x.classList.toggle('active',x===btn)});
-   $$('.freq-panel').forEach(function(x){x.classList.toggle('active',x.dataset.freqPanel===btn.dataset.freq)})
-  }
- });
-
- form.onsubmit=async function(e){
-  e.preventDefault();
-  var dailyPrimary=dailyP.value?+dailyP.value:null,dailyBackup=dailyB.value?+dailyB.value:null,dailyBackupDays=[];
-  dailyGrid.querySelectorAll('.day-owner-row').forEach(function(row){var x=row.querySelector('input:checked');if(x&&x.value==='backup')dailyBackupDays.push(Number(row.dataset.day))});
-  if(dailyBackupDays.length&&!dailyBackup)return toast('Günlük yedek günleri var ama yedek kişi seçilmedi');
-
-  var weeklyPrimary=$('#weeklyPrimary').value?+$('#weeklyPrimary').value:null,weeklyBackup=$('#weeklyBackup').value?+$('#weeklyBackup').value:null;
-  var weeklyBackupDays=[...form.querySelectorAll('input[name="weekly_backup_days"]:checked')].map(function(x){return Number(x.value)});
-  if(weeklyBackupDays.length&&!weeklyBackup)return toast('Haftalık yedek günleri var ama yedek kişi seçilmedi');
-
-  var monthlyPrimary=$('#monthlyPrimary').value?+$('#monthlyPrimary').value:null,monthlyBackup=$('#monthlyBackup').value?+$('#monthlyBackup').value:null;
-  var monthlyBackupDays=[...form.querySelectorAll('input[name="monthly_days"]:checked')].map(function(x){return Number(x.value)});
-  if(monthlyBackupDays.length&&!monthlyBackup)return toast('Aylık yedek günleri var ama yedek kişi seçilmedi');
-
-  var row={
-   primary_staff_id:dailyPrimary,backup_staff_id:dailyBackup,backup_enabled:!!dailyBackup&&dailyBackupDays.length>0,backup_days:dailyBackupDays,
-   daily_primary_staff_id:dailyPrimary,daily_backup_staff_id:dailyBackup,daily_backup_days:dailyBackupDays,
-   weekly_primary_staff_id:weeklyPrimary,weekly_backup_staff_id:weeklyBackup,weekly_backup_days:weeklyBackupDays,
-   monthly_primary_staff_id:monthlyPrimary,monthly_backup_staff_id:monthlyBackup,monthly_backup_days:monthlyBackupDays,
-   updated_at:new Date().toISOString()
-  };
-  var q=cardByZone(zoneId)?db.from('emigro_cleaning_zone_cards').update(row).eq('zone_id',zoneId):db.from('emigro_cleaning_zone_cards').insert(Object.assign({zone_id:zoneId},row));
-  var r=await q;if(r.error)return toast(r.error.message);
-  toast('Günlük, haftalık ve aylık sorumlular kaydedildi');await loadAll();openZoneStatus(zoneId)
- };
- var box=$('#modal .modal-box');if(box)box.classList.add('zone-sheet');
 };
 window.openWarningForTask=function(key){
  var t=taskByKey(key);if(!t)return;
