@@ -1858,3 +1858,26 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
   border-color:color-mix(in srgb,var(--zone) 42%,transparent)!important;
   background:color-mix(in srgb,var(--zone) 7%,transparent)!important;
 }
+
+
+/* HAND PAN MODE */
+#panBtn.active{
+  background:#101828!important;
+  color:#fff!important;
+  border-color:#101828!important;
+}
+.plan-stage.pan-mode{
+  cursor:grab!important;
+}
+.plan-stage.pan-mode.is-panning{
+  cursor:grabbing!important;
+}
+.plan-stage.pan-mode .zone-overlay{
+  pointer-events:none!important;
+}
+.plan-stage.pan-mode .zone-box{
+  pointer-events:none!important;
+}
+.plan-card{
+  scrollbar-width:thin;
+}
