@@ -5,7 +5,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const PARAMS=new URLSearchParams(location.search);
 const ADMIN_MODE=PARAMS.get('mode')!=='worker';
 const WORKER_ID=Number(PARAMS.get('staff')||0)||null;
-const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],routineTasks:[],oneoffTasks:[],accessUsers:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:false,isFullAdmin:false,role:null,accessProfile:null,managedDepartments:[],redrawZoneId:null,workerStaffId:null,authReady:false};
+const state={zones:[],staff:[],cards:[],logs:[],notifications:[],taskTags:[],routineTasks:[],oneoffTasks:[],accessUsers:[],settings:null,drawMode:false,drawStart:null,showAreas:true,isAdmin:false,isFullAdmin:false,role:null,accessProfile:null,managedDepartments:[],redrawZoneId:null,workerStaffId:null,authReady:false,selectedZoneId:null};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const dayNames=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
@@ -220,11 +220,18 @@ async function loadAll(){
  }catch(e){console.error(e);$('#dbState').textContent='● Bağlantı hatası';toast('Veritabanı bağlantı hatası')}
 }
 
-const DEFAULT_PLAN_SRC='./emigro-market-plan.svg?v=2';
+const DEFAULT_PLAN_SRC='./emigro-market-plan.svg?v=3';
 function applyPlanImage(){
  const img=$('#planImg'),empty=$('#emptyPlan');if(!img)return;
- const data=state.settings?.plan_image_data;
- img.src=data||DEFAULT_PLAN_SRC;
+ const data=String(state.settings?.plan_image_data||'');
+ // Eski PNG/JPG planlar SVG'nin önüne geçmesin. Yeni özel plan kullanılacaksa SVG olmalı.
+ const customSvg=/^data:image\/svg\+xml/i.test(data);
+ const nextSrc=customSvg?data:DEFAULT_PLAN_SRC;
+ if(img.src!==new URL(nextSrc,location.href).href){
+   img.onload=function(){renderPlan()};
+   img.onerror=function(){if(empty){empty.textContent='SVG planı yüklenemedi.';empty.classList.remove('hidden')}};
+   img.src=nextSrc;
+ }
  img.classList.remove('hidden');
  if(empty)empty.classList.add('hidden');
 }
@@ -240,11 +247,17 @@ function renderPlan(){
  zones.forEach(function(z){
   var assigned=workerAssignedToZone(z.id);
   const e=document.createElement('div');
-  e.className='zone-box'+(!state.isAdmin&&!assigned?' worker-zone-disabled':'')+(!state.isAdmin&&assigned?' worker-zone-active':'');
+  e.className='zone-box'+(String(state.selectedZoneId)===String(z.id)?' is-selected':'')+(!state.isAdmin&&!assigned?' worker-zone-disabled':'')+(!state.isAdmin&&assigned?' worker-zone-active':'');
   e.style.cssText='left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%;--zone:'+(z.color||'#f47a20');
   e.innerHTML='<span class="zone-label">'+esc(z.name)+'</span>'+(!state.isAdmin&&!assigned?'<span class="worker-zone-lock">Pasif</span>':'');
-  if(state.isAdmin||assigned)e.onclick=function(){openZoneStatus(z.id)};
-  else e.setAttribute('aria-disabled','true');
+  e.setAttribute('role','button');
+  e.setAttribute('aria-label',z.name+' alanını aç');
+  if(state.isAdmin||assigned){
+    e.tabIndex=0;
+    const activate=function(){state.selectedZoneId=z.id;renderPlan();openZoneStatus(z.id)};
+    e.onclick=activate;
+    e.onkeydown=function(ev){if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();activate()}};
+  }else e.setAttribute('aria-disabled','true');
   ov.append(e)
  });
 
@@ -307,7 +320,7 @@ function posPct(e){
 }
 function startDraw(redrawZoneId=null){
  if(!state.isFullAdmin)return toast('Alan düzenleme yetkisi yalnız System/Admin Manager’da');
- if(!state.settings?.plan_image_data)return toast('Önce plan resmini yükle');
+ if(!$('#planImg')||$('#planImg').classList.contains('hidden'))return toast('Plan yüklenemedi');
  state.drawMode=true;state.drawStart=null;state.redrawZoneId=redrawZoneId;$('#planStage').classList.add('drawing');
  $('#drawBtn').textContent='İptal';
  $('#drawStatus').textContent=redrawZoneId?'Alan için yeni sınırı mouse ile çiz.':'Mouse ile alanın çevresini çiz.';
@@ -428,15 +441,11 @@ window.editStaff=id=>{
 
 $('#planUpload').onchange=async e=>{if(!state.isFullAdmin){toast('Plan değiştirme yetkisi yalnız System/Admin Manager’da');e.target.value='';return;}
  const file=e.target.files?.[0];if(!file)return;
- if(file.size>12*1024*1024)return toast('Plan dosyası en fazla 12 MB olsun');
- var data;
- if(file.type==='image/svg+xml'||/\.svg$/i.test(file.name)){
-   data=await new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){resolve(String(r.result||''))};r.onerror=reject;r.readAsDataURL(file)})
- }else{
-   data=await compressImage(file)
- }
+ if(!(file.type==='image/svg+xml'||/\.svg$/i.test(file.name))){e.target.value='';return toast('Bu panelde plan dosyası SVG olmalı');}
+ if(file.size>12*1024*1024){e.target.value='';return toast('Plan dosyası en fazla 12 MB olsun');}
+ const data=await new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){resolve(String(r.result||''))};r.onerror=reject;r.readAsDataURL(file)});
  const {error}=await db.from('emigro_cleaning_settings').upsert({id:1,plan_image_data:data,updated_at:new Date().toISOString()});if(error)return toast(error.message);
- toast('Plan kaydedildi');loadAll()
+ toast('SVG plan kaydedildi');loadAll()
 };
 function compressImage(file){
  return new Promise((resolve,reject)=>{
