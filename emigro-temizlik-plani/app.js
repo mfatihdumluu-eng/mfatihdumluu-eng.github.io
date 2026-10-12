@@ -606,7 +606,7 @@ function reportRowHtml(t){
  var action='';
  if(st.key!=='done'){
    action=state.isAdmin
-     ? '<button class="ghost" onclick="openWarningForTask(\''+t.key+'\')">Bildirim Gönder</button>'
+     ? (canNotifyTaskClient(t)?'<button class="ghost" onclick="openWarningForTask(\''+t.key+'\')">Bildirim Gönder</button>':'')
      : '<button onclick="openComplete(\''+t.key+'\')">Yaptım</button>';
  }else if(proof){
    action='<button onclick="showPhoto(\''+t.key+'\')">Kanıt</button>';
@@ -648,7 +648,7 @@ function renderTracking(){
    var actions=st.key==='done'
      ? (proof||'<span class="sub">Fotoğraf yok</span>')
      : (state.isAdmin
-        ? '<button class="ghost compact-btn" onclick="openWarningForTask(\''+t.key+'\')">Bildirim Gönder</button>'
+        ? (canNotifyTaskClient(t)?'<button class="ghost compact-btn" onclick="openWarningForTask(\''+t.key+'\')">Bildirim Gönder</button>':'')
         : '<button class="primary compact-btn" onclick="openComplete(\''+t.key+'\')">Yaptım</button>');
    return '<article class="today-task '+st.key+' priority-'+(t.zone.priority||'normal')+'" onclick="openZoneStatus('+t.zone.id+')"><div class="today-task-main"><div class="today-task-top"><span class="calendar-type-label">'+typeNames[t.type]+'</span>'+(t.zone.priority!=='normal'?'<span class="priority-badge '+t.zone.priority+'">'+(t.zone.priority==='critical'?'Kritik':'Yüksek')+'</span>':'')+'</div><h3>'+esc(t.zone.name)+'</h3><p>'+esc(t.taskText||'Görev açıklaması yok')+'</p>'+(t.tags&&t.tags.length?'<div class="task-tag-list">'+t.tags.map(function(x){return '<span>'+esc(x.label)+'</span>'}).join('')+'</div>':'')+'<div class="today-meta">🕒 '+(t.time?t.time.slice(0,5):'—')+' · 👤 '+esc((who&&who.name)||'Atanmamış')+'</div></div><div class="today-task-actions" onclick="event.stopPropagation()">'+actions+'</div></article>'
  }
@@ -738,10 +738,25 @@ window.editPersonAssignments=function(id){
 };
 
 window.openPerson=function(id){
- var p=staffById(id);if(!p)return;var now=new Date(),all=expectedTasks(monthStart(now),now),primary=all.filter(function(t){return String((t.primary&&t.primary.id)||'')===String(id)}),activity=state.logs.filter(function(l){return String(l.staff_id)===String(id)&&l.slot_key&&l.work_date>=dateKeyLocal(monthStart(now))}).sort(function(a,b){return b.work_date.localeCompare(a.work_date)}),pz=manualZones().filter(function(z){return String((cardByZone(z.id)||{}).primary_staff_id)===String(id)}),bz=manualZones().filter(function(z){return String((cardByZone(z.id)||{}).backup_staff_id)===String(id)}),miss=primary.filter(function(t){return statusFor(t).key==='overdue'});
- var rows=activity.length?activity.map(function(l){var z=zoneById(l.zone_id),photo=l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+l.slot_key+'\')">':'';return '<article class="report-row '+(l.status==='done'?'done':'overdue')+'"><div><h3>'+esc((z&&z.name)||'')+' · '+(typeNames[l.task_type]||'')+'</h3><div class="sub">'+l.work_date+' · '+esc(l.note||'')+'</div></div><div><span class="status '+(l.status==='done'?'done':'overdue')+'">'+(l.status==='done'?'Yapıldı':'Yapılmadı')+'</span></div><div></div><div></div><div class="row-actions">'+photo+'</div></article>'}).join(''):'<div class="sub">Bu ay kayıt yok.</div>';
- openModal('<h2>'+esc(p.name)+'</h2><div class="people"><div class="person-box"><label>Asıl sorumluluk</label><b>'+ (pz.map(function(z){return esc(z.name)}).join(', ')||'—') +'</b></div><div class="person-box"><label>Yedek sorumluluk</label><b>'+ (bz.map(function(z){return esc(z.name)}).join(', ')||'—') +'</b></div></div><div class="type-summary"><article><span>Bu ay planlanan</span><b>'+primary.length+'</b></article><article><span>Yaptığı</span><b>'+activity.filter(function(x){return x.status==='done'}).length+'</b></article><article><span>Aksayan</span><b>'+miss.length+'</b></article></div><div class="section-head"><div><h2>Bu Ay Aktivite</h2></div></div><div class="report-list">'+rows+'</div>')
+ var p=staffById(id);if(!p)return;
+ var ua=accessForStaff(id),now=new Date(),all=expectedTasks(monthStart(now),now);
+ var mine=all.filter(function(t){return String(((t.assigned||t.primary)||{}).id||'')===String(id)});
+ var activity=state.logs.filter(function(l){return String(l.staff_id)===String(id)&&l.slot_key&&l.work_date>=dateKeyLocal(monthStart(now))}).sort(function(a,b){return b.work_date.localeCompare(a.work_date)});
+ var miss=mine.filter(function(t){return statusFor(t).key==='overdue'});
+ var lines=staffResponsibilityLines(id);
+ var responsibility=lines.length?lines.map(function(x){
+   return '<div class="assignment-row"><div><b>'+esc(x.zone.name)+'</b><span>'+esc(typeNames[x.type]||x.type)+' · '+(x.type==='monthly'?fmtMonthDays(x.days):fmtDays(x.days))+'</span></div><span class="status pending">'+esc(x.role)+'</span></div>'
+ }).join(''):'<div class="sub">Tanımlı rutin görev yok.</div>';
+ var rows=activity.length?activity.map(function(l){
+   var z=zoneById(l.zone_id),photo=l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+l.slot_key+'\')">':'';
+   return '<article class="report-row '+(l.status==='done'?'done':'overdue')+'"><div><h3>'+esc((z&&z.name)||'')+' · '+(typeNames[l.task_type]||'')+'</h3><div class="sub">'+l.work_date+' · '+esc(l.note||'')+'</div></div><div><span class="status '+(l.status==='done'?'done':'overdue')+'">'+(l.status==='done'?'Yapıldı':'Yapılmadı')+'</span></div><div></div><div></div><div class="row-actions">'+photo+'</div></article>'
+ }).join(''):'<div class="sub">Bu ay kayıt yok.</div>';
+ openModal('<div class="zone-app-card"><div class="app-head"><span class="eyebrow">PERSONEL</span><h2>'+esc(p.name)+'</h2><p>'+esc(p.department||'Bölüm atanmamış')+' · '+esc(ua?(ROLE_LABELS[ua.role]||ua.role):(p.role||'Çalışan'))+'</p></div>'+
+ '<div class="type-summary"><article><span>Bu ay planlanan</span><b>'+mine.length+'</b></article><article><span>Yaptığı</span><b>'+activity.filter(function(x){return x.status==='done'}).length+'</b></article><article><span>Aksayan</span><b>'+miss.length+'</b></article></div>'+
+ '<div class="section-head"><div><h2>Rutin Görevleri</h2></div></div><div class="assignment-list">'+responsibility+'</div>'+
+ '<div class="section-head"><div><h2>Bu Ay Aktivite</h2></div></div><div class="report-list">'+rows+'</div></div>')
 };
+
 function renderHistory(){
  if(!$('#historyBody'))return;
  var logs=state.logs.filter(function(l){return l.slot_key});
@@ -768,7 +783,7 @@ function zoneTasksInRange(zoneId,from,to){
 }
 function taskMiniHtml(t){
  var st=statusFor(t),l=st.log,photo=l&&l.proof_image_data?'<img class="proof-thumb" src="'+l.proof_image_data+'" onclick="showPhoto(\''+t.key+'\')">':'';
- var warn=st.key!=='done'&&state.isAdmin?'<button class="task-warn-btn" onclick="event.stopPropagation();openWarningForTask(\''+t.key+'\')">Bildirim Gönder</button>':'';
+ var warn=st.key!=='done'&&state.isAdmin&&canNotifyTaskClient(t)?'<button class="task-warn-btn" onclick="event.stopPropagation();openWarningForTask(\''+t.key+'\')">Bildirim Gönder</button>':'';
  return '<article class="zone-task-card '+st.key+'">'+
    '<div class="zone-task-head"><div><span class="task-kind">'+typeNames[t.type]+'</span><b>'+(t.time?t.time.slice(0,5):'Saat yok')+'</b></div><span class="task-status '+st.key+'">'+st.label+'</span></div>'+
    '<p>'+esc(t.taskText||'Görev açıklaması yok')+'</p>'+
@@ -858,7 +873,7 @@ function openTaskNotificationCard(task){
  if(!state.isAdmin)return;
  var person=task.assigned||task.primary;
  if(!person)return toast('Bu görev için sorumlu kişi tanımlı değil');
- if(!state.isFullAdmin&&!canAssignStaffClient(person))return toast('Bu personele bildirim gönderme yetkiniz yok');
+ if(!canNotifyTaskClient(task))return toast('Bu personele bildirim gönderme yetkiniz yok');
  var z=task.zone||{},taskLabel=typeNames[task.type]||'Temizlik';
  var status=statusFor(task);
  var defaultTitle=status.key==='overdue'?'Temizlik yapılmadı':'Görev hatırlatması';
@@ -1038,7 +1053,14 @@ function canAssignStaffClient(person){
  if(state.isFullAdmin)return true;
  if(!['manager','department_manager'].includes(state.role))return false;
  return !!person.supervisor_access_id&&accessChainIncludesCurrent(person.supervisor_access_id)
+}function canNotifyTaskClient(task){
+ var person=task&&(task.assigned||task.primary);
+ if(!person)return false;
+ var ua=accessForStaff(person.id);
+ if(!ua||ua.active===false||!ua.auth_user_id)return false;
+ return state.isFullAdmin||canAssignStaffClient(person)
 }
+
 function canManageZoneClient(zone){
  if(!zone||zone.active===false)return false;
  if(state.isFullAdmin)return true;
