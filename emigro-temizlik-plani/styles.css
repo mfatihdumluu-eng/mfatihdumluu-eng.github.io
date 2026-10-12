@@ -1826,3 +1826,35 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
   .plan-zoom-controls{margin-left:0}
   .plan-toolbar{align-items:flex-start}
 }
+
+
+/* SAVED FREEHAND AREAS MUST STAY VISIBLE */
+.zone-box.polygon-zone{
+  background:transparent!important;
+  border:0!important;
+}
+.zone-polygon-visual{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  overflow:visible;
+  pointer-events:none;
+}
+.zone-polygon-visual polygon{
+  fill:color-mix(in srgb,var(--zone) 14%,transparent);
+  stroke:var(--zone);
+  stroke-width:1.6;
+  vector-effect:non-scaling-stroke;
+  stroke-linejoin:round;
+}
+.zone-box.polygon-zone:hover .zone-polygon-visual polygon,
+.zone-box.polygon-zone:focus-visible .zone-polygon-visual polygon,
+.zone-box.polygon-zone.is-selected .zone-polygon-visual polygon{
+  fill:color-mix(in srgb,var(--zone) 24%,transparent);
+  stroke-width:2.4;
+}
+.zone-box:not(.polygon-zone){
+  border-color:color-mix(in srgb,var(--zone) 42%,transparent)!important;
+  background:color-mix(in srgb,var(--zone) 7%,transparent)!important;
+}
