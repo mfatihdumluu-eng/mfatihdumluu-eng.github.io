@@ -1890,3 +1890,31 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
   color:#fff!important;
   border-color:#101828!important;
 }
+
+
+/* WORKER TASK ACTION */
+.worker-own-task{
+  border:1px solid #b7ddc8!important;
+  background:#f5fbf7!important;
+}
+.worker-proof-note{
+  margin:8px 0;
+  padding:8px 10px;
+  border-radius:8px;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  font-size:10px;
+  line-height:1.35;
+  font-weight:700;
+}
+.worker-done-btn{
+  min-height:38px!important;
+  padding:9px 13px!important;
+  font-weight:800!important;
+  white-space:nowrap;
+}
+.worker-zone-active{
+  outline:3px solid rgba(7,148,85,.22)!important;
+  outline-offset:1px!important;
+}
