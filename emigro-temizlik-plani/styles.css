@@ -1757,3 +1757,20 @@ input,select,textarea{min-height:50px!important;border:1px solid #d0d5dd!importa
   border-color:transparent!important;
   background:transparent!important;
 }
+
+
+/* SVG PLAN - SELECTED AREA FEEDBACK */
+.zone-box.is-selected{
+  border-color:var(--zone)!important;
+  background:color-mix(in srgb,var(--zone) 18%,transparent)!important;
+  box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--zone) 58%,transparent),0 0 0 2px rgba(255,255,255,.92)!important;
+  z-index:10!important;
+}
+.zone-box.is-selected .zone-label{
+  opacity:1!important;
+  transform:none!important;
+  background:#fff!important;
+}
+.plan-stage img{
+  object-fit:contain;
+}
