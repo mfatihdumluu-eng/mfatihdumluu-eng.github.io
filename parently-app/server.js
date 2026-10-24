@@ -4,6 +4,7 @@ import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import pg from "pg";
+import { installDbTransfer } from "./db-transfer.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,8 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const DATA_FILE = path.join(__dirname, "data.json");
 const pool = process.env.DATABASE_URL ? new pg.Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }) : null;
+
+installDbTransfer(app, pool);
 
 app.use(express.json({limit:"18mb"}));
 app.use(express.static(path.join(__dirname, "public"),{
