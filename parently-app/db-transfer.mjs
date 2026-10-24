@@ -15,7 +15,7 @@ const qid = s => '"' + s.replaceAll('"', '""') + '"';
 const sha = b => crypto.createHash('sha256').update(b).digest('hex');
 function pgEnv(url) {
   const u = new URL(url);
-  return { PGHOST:u.hostname, PGPORT:u.port||'5432', PGDATABASE:decodeURIComponent(u.pathname.slice(1)), PGUSER:decodeURIComponent(u.username), PGPASSWORD:decodeURIComponent(u.password), PGSSLMODE:u.searchParams.get('sslmode')||(u.hostname.endsWith('.neon.tech')?'verify-full':'prefer'), PGCONNECT_TIMEOUT:'20', PGCHANNELBINDING:u.searchParams.get('channel_binding')||'prefer' };
+  return { PGHOST:u.hostname, PGPORT:u.port||'5432', PGDATABASE:decodeURIComponent(u.pathname.slice(1)), PGUSER:decodeURIComponent(u.username), PGPASSWORD:decodeURIComponent(u.password), PGSSLMODE:u.searchParams.get('sslmode')||(u.hostname.endsWith('.neon.tech')?'verify-full':'prefer'), PGCONNECT_TIMEOUT:'20', PGCHANNELBINDING:u.searchParams.get('channel_binding')||'prefer', ...(u.hostname.endsWith('.neon.tech')?{PGSSLROOTCERT:'system'}:{}) };
 }
 const schemasWhere = "n.nspname !~ '^pg_' AND n.nspname NOT IN ('information_schema', 'neon')";
 let binaries;
@@ -136,6 +136,7 @@ function targetUrl() {
   return u.href;
 }
 async function compare() {
+  fs.mkdirSync(root, { recursive: true, mode: 0o700 });
   const s = await connect(sourceUrl()), t = await connect(targetUrl());
   try {
     await s.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
@@ -186,6 +187,11 @@ export function installDbTransfer(app, pool) {
     try {
       if (req.method === 'GET' && req.path === '/status') return res.json({ ...state, maintenance: process.env.PARENTLY_MAINTENANCE === '1', currentHost: new URL(process.env.DATABASE_URL).hostname, envKeys: Object.keys(process.env).filter(k=>!k.startsWith('npm_')).sort() });
       if (req.method === 'GET' && req.path === '/connection') return res.json({ url: process.env.DATABASE_URL });
+      if (req.method === 'GET' && req.path === '/tls') {
+        const c = await pool.connect();
+        try { return res.json({ encrypted:c.connection.stream.encrypted===true, authorized:c.connection.stream.authorized===true, serverVersion:(await c.query("SELECT current_setting('server_version') AS v")).rows[0].v }); }
+        finally { c.release(); }
+      }
       const files = { '/file/dump': dumpFile, '/file/manifest': manifestFile, '/file/verification': path.join(root,'verification.json'), '/file/error': path.join(root,'command-error.txt'), '/file/toc': path.join(root,'archive-list.txt') };
       if (req.method === 'GET' && files[req.path] && fs.existsSync(files[req.path])) return res.download(files[req.path]);
       const jobs = { '/run/backup': takeBackup, '/run/restore': restore, '/run/verify': compare };
@@ -216,3 +222,4 @@ export function installDbTransfer(app, pool) {
     storage.run(c,()=>next());
   });
 }
+
