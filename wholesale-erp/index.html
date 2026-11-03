@@ -303,8 +303,8 @@ const CATALOG={
 };
 const categoryList=()=>Object.keys(CATALOG);
 const subcategoryList=c=>Object.keys(CATALOG[c]||{});
-function demoCatalog120(){
- if(!confirm('120 örnek ürün ve kategori yapısı eklensin mi? Mevcut kayıtlar korunur.'))return;
+function demoCatalog120(silent=false){
+ if(!silent&&!confirm('120 örnek ürün ve kategori yapısı eklensin mi? Mevcut kayıtlar korunur.'))return;
  let added=0,idx=0;
  for(const [category,subs] of Object.entries(CATALOG))for(const [subcategory,names] of Object.entries(subs))for(const name of names){
   idx++;const sku='DEMO-KAT-'+String(idx).padStart(3,'0');
@@ -313,7 +313,7 @@ function demoCatalog120(){
   const p={id:id(),name,sku,barcode:'871'+String(1000000000+idx).padStart(10,'0'),packBarcode:'872'+String(1000000000+idx).padStart(10,'0'),boxBarcode:'873'+String(1000000000+idx).padStart(10,'0'),packSize:6,boxSize:12,category,subcategory,vat:category==='Temizlik'||category==='Kişisel Bakım'||category==='Ev ve Ambalaj'?21:9,purchase,cost,wholesale,largeStore:Number((wholesale*1.06).toFixed(2)),retail:Number((wholesale*1.25).toFixed(2)),minimum:Number((wholesale*.95).toFixed(2)),minStock:20,image:'',tiers:[{min:12,price:Number((wholesale*.97).toFixed(2))},{min:48,price:Number((wholesale*.93).toFixed(2))}]};
   db.products.push(p);db.movements.push({id:id(),productId:p.id,warehouse:'Satılabilir',qty:15+(idx*13)%170,date:date(),reason:'Örnek katalog başlangıç stoku'});added++;
  }
- save();render();toast(added+' örnek ürün eklendi');
+ save();if(!silent){render();toast(added+' örnek ürün eklendi')}
 }
 let invFilter={q:'',cat:'',sub:'',state:'all',page:1};
 function inventoryProductList(){
@@ -353,6 +353,8 @@ openForm=function(type,recordId){
  const updateSub=()=>{const old=subSelect.value||sub.value;const opts=[...new Set([...subcategoryList(catSelect.value),...db.products.filter(p=>p.category===catSelect.value).map(p=>p.subcategory).filter(Boolean)])];subSelect.innerHTML='<option value="">Alt kategori seçin</option>'+opts.map(s=>'<option value="'+e(s)+'" '+(s===old?'selected':'')+'>'+e(s)+'</option>').join('')};
  catSelect.addEventListener('change',()=>{subSelect.value='';updateSub()});updateSub();
 };
+// İlk ziyaret sırasında örnek kataloğu otomatik oluştur; mevcut ürünleri koru.
+if(!db.products.some(p=>String(p.sku||'').startsWith('DEMO-KAT-')))demoCatalog120(true);
 const previousRenderCatalog=render;
 render=function(){previousRenderCatalog();if(page==='stock'){document.getElementById('view').innerHTML=inventoryView()}};
 render();
