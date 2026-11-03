@@ -198,4 +198,98 @@ updateLine=function(el){baseUpdateLine(el);const row=el.closest('.invoiceLine');
 const baseAddLine=addLine;
 addLine=function(){baseAddLine();const row=[...document.querySelectorAll('.invoiceLine')].at(-1);if(row){row.querySelector('[name=qty]').addEventListener('change',()=>updateLine(row.querySelector('[name=productId]')))}};
 render();
+
+/* Operational controls, audit trail and printable reporting */
+if(!Array.isArray(db.audit))db.audit=[];
+function audit(action,detail){db.audit.unshift({id:id(),date:new Date().toLocaleString('tr-TR'),action,detail});db.audit=db.audit.slice(0,500);save()}
+function safeStockForOrder(o){
+ const needed={};for(const l of o.lines||[])needed[l.productId]=(needed[l.productId]||0)+num(l.qty);
+ return Object.entries(needed).filter(([pid,qty])=>qty>stock(pid)).map(([pid,qty])=>product(pid).name+': gerekli '+qty+', mevcut '+stock(pid));
+}
+function invoiceGuard(){
+ const form=document.getElementById('editor');if(!form||!form.querySelector('.invoiceLine'))return;
+ const prev=form.onsubmit;
+ form.onsubmit=function(ev){
+  const rows=[...form.querySelectorAll('.invoiceLine')].map(r=>({productId:r.querySelector('[name=productId]').value,qty:num(r.querySelector('[name=qty]').value)})).filter(l=>l.productId&&l.qty>0);
+  const desired=form.querySelector('[name=status]')?.value;
+  const needs={};rows.forEach(l=>needs[l.productId]=(needs[l.productId]||0)+l.qty);
+  const errors=Object.entries(needs).filter(([pid,qty])=>qty>stock(pid)).map(([pid,qty])=>product(pid).name+' ('+qty+' isteniyor, '+stock(pid)+' mevcut)');
+  if(desired==='Kesinleşti'&&errors.length){ev.preventDefault();toast('Stok yetersiz: '+errors.join('; '));return}
+  const before=db.orders.length;prev.call(form,ev);if(db.orders.length>before){const o=db.orders.at(-1);audit('Fatura oluşturuldu',o.number+' · '+customer(o.customerId).name+' · '+money(total(o)))}
+ };
+}
+const originalInvoiceForm=invoiceForm;
+invoiceForm=function(){originalInvoiceForm();invoiceGuard()};
+const originalSetOrderStatus=setOrderStatus;
+setOrderStatus=function(k){
+ const o=by('orders',k);if(!o)return;
+ if(o.status==='Taslak'){const issues=safeStockForOrder(o);if(issues.length){toast('Stok yetersiz: '+issues.join('; '));return}}
+ const previous=o.status;originalSetOrderStatus(k);
+ if(o.status!==previous)audit('Fatura durumu',o.number+': '+previous+' → '+o.status);
+};
+const originalDeleteRecord=deleteRecord;
+deleteRecord=function(type,k){const item=by(type,k),name=item?.name||'';const existed=!!item;originalDeleteRecord(type,k);if(existed&&!by(type,k))audit('Kayıt silindi',type+' · '+name)};
+const originalOpenFormEnhanced=openForm;
+openForm=function(type,recordId){
+ originalOpenFormEnhanced(type,recordId);
+ const form=document.getElementById('editor');if(!form||type==='orders')return;
+ const prev=form.onsubmit;
+ form.onsubmit=function(ev){const before=(db[type]||[]).length;prev.call(form,ev);if(!document.getElementById('editor'))audit(recordId?'Kayıt düzenlendi':'Yeni kayıt',type+' · '+(recordId||'')+(db[type]?.length>before?' · eklendi':''))};
+};
+const originalRenderEnhanced=render;
+render=function(){
+ originalRenderEnhanced();
+ if(page==='orders')enhanceOrders();
+ if(page==='customers')enhanceCustomerAccounts();
+ if(page==='reports')enhanceReports();
+ if(page==='settings')enhanceSettings();
+ if(page==='dashboard')enhanceDashboardMore();
+};
+function enhanceOrders(){
+ const p=document.querySelector('#view .panel');if(!p)return;
+ const unpaid=db.orders.filter(o=>o.status==='Kesinleşti'),drafts=db.orders.filter(o=>o.status==='Taslak');
+ const unpaidSum=unpaid.reduce((s,o)=>s+total(o)+vatTotal(o),0);
+ p.insertAdjacentHTML('afterbegin','<div class="stat-grid"><div class="stat-mini">Tahsilat bekleyen<b>'+money(unpaidSum)+'</b></div><div class="stat-mini">Ödenmemiş fatura<b>'+unpaid.length+'</b></div><div class="stat-mini">Taslak fatura<b>'+drafts.length+'</b></div></div><div class="toolbar-wrap"><button class="btn" onclick="exportInvoicesCSV()">↓ Faturaları CSV İndir</button><button class="btn" onclick="printSalesReport()">⎙ Satış Özeti Yazdır</button></div><p class="form-hint">Durum butonu: Taslak → Kesinleşti → Ödendi. Kesinleşen faturalar stoktan düşer.</p>');
+}
+function enhanceCustomerAccounts(){
+ const p=document.querySelector('#view .panel');if(!p)return;
+ const debt=db.orders.filter(o=>o.status==='Kesinleşti').reduce((s,o)=>s+total(o)+vatTotal(o),0);
+ p.insertAdjacentHTML('afterbegin','<div class="stat-grid"><div class="stat-mini">Toplam müşteri<b>'+db.customers.length+'</b></div><div class="stat-mini">Tahsil edilecek<b>'+money(debt)+'</b></div><div class="stat-mini">Onay bekleyen<b>'+db.customers.filter(c=>c.status==='Onay Bekliyor').length+'</b></div></div><div class="toolbar-wrap"><button class="btn" onclick="exportCustomersCSV()">↓ Müşterileri CSV İndir</button></div>');
+ for(const row of p.querySelectorAll('tbody tr')){const b=row.querySelector('button[onclick*="openForm"]');if(!b)continue;const m=b.getAttribute('onclick').match(/'customers','([^']+)'/);if(!m)continue;row.lastElementChild.insertAdjacentHTML('beforeend',btn('Cari',"showCustomerAccount('"+m[1]+"')"))}
+}
+function showCustomerAccount(k){
+ const c=customer(k),orders=db.orders.filter(o=>o.customerId===k),debt=orders.filter(o=>o.status==='Kesinleşti').reduce((s,o)=>s+total(o)+vatTotal(o),0);
+ const rows=orders.map(o=>'<tr><td>'+e(o.date)+'</td><td>'+e(o.number)+'</td><td>'+money(total(o)+vatTotal(o))+'</td><td>'+e(o.status)+'</td></tr>').join('');
+ document.getElementById('overlay').innerHTML='<div class="modalback" onclick="closeModal(event)"><div class="modal"><div class="flex"><h2>'+e(c.name)+' · Cari Hesap</h2>'+btn('Kapat','closeModal()')+'</div><div class="stat-grid"><div class="stat-mini">Fatura sayısı<b>'+orders.length+'</b></div><div class="stat-mini">Açık bakiye<b>'+money(debt)+'</b></div><div class="stat-mini">Kredi limiti<b>'+money(c.credit)+'</b></div></div><div class="scroll"><table><thead><tr><th>Tarih</th><th>Fatura</th><th>KDV dahil</th><th>Durum</th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="form-hint">Bu cari hesap yalnızca oluşturulan faturaların durumuna göre hesaplanır; banka hareketleriyle eşleşmez.</p></div></div>';
+}
+function csvDownload(name,cols,rows){
+ const csv='\ufeff'+[cols,...rows].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=name;a.click();URL.revokeObjectURL(a.href);
+}
+function exportInvoicesCSV(){csvDownload('faturalar.csv',['Fatura','Tarih','Müşteri','Durum','KDV Hariç','KDV','KDV Dahil'],db.orders.map(o=>[o.number,o.date,customer(o.customerId).name,o.status,total(o),vatTotal(o),total(o)+vatTotal(o)]))}
+function exportCustomersCSV(){csvDownload('musteriler.csv',['Şirket','E-posta','Telefon','Şehir','KDV No','Fiyat Grubu','Durum','Açık Bakiye'],db.customers.map(c=>[c.name,c.email,c.phone,c.city,c.vat,c.tier,c.status,db.orders.filter(o=>o.customerId===c.id&&o.status==='Kesinleşti').reduce((s,o)=>s+total(o)+vatTotal(o),0)]))}
+function printSalesReport(){
+ const w=window.open('','_blank');if(!w)return toast('Açılır pencereye izin verin');
+ const rows=db.orders.map(o=>'<tr><td>'+e(o.number)+'</td><td>'+e(o.date)+'</td><td>'+e(customer(o.customerId).name)+'</td><td>'+e(o.status)+'</td><td>'+money(total(o)+vatTotal(o))+'</td></tr>').join('');
+ w.document.write('<html lang="tr"><meta charset="utf-8"><title>Satış Raporu</title><style>body{font:13px Arial;padding:25px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left}</style><h1>Satış ve Fatura Özeti</h1><p>'+e(db.settings.company)+' · '+new Date().toLocaleDateString('tr-TR')+'</p><table><tr><th>Fatura</th><th>Tarih</th><th>Müşteri</th><th>Durum</th><th>Tutar</th></tr>'+rows+'</table></html>');w.document.close();w.print();
+}
+function enhanceReports(){
+ const p=document.querySelector('#view .panel');if(!p)return;
+ const sold=db.orders.filter(o=>o.status!=='Taslak');
+ const revenue=sold.reduce((s,o)=>s+total(o),0);
+ const cost=sold.reduce((s,o)=>s+o.lines.reduce((a,l)=>a+num(l.qty)*num(l.cost),0),0);
+ const profit=revenue-cost,margin=revenue>0?profit/revenue*100:0;
+ p.insertAdjacentHTML('beforebegin','<div class="panel"><h3>Kârlılık Özeti</h3><div class="stat-grid"><div class="stat-mini">KDV hariç ciro<b>'+money(revenue)+'</b></div><div class="stat-mini">Brüt kâr<b>'+money(profit)+'</b></div><div class="stat-mini">Brüt kâr marjı<b>%'+margin.toFixed(1)+'</b></div></div><div class="toolbar-wrap"><button class="btn" onclick="exportInvoicesCSV()">↓ Satış CSV</button><button class="btn" onclick="printSalesReport()">⎙ Yazdır</button></div></div>');
+}
+function enhanceSettings(){
+ const p=document.querySelectorAll('#view .panel')[1];if(!p)return;
+ p.insertAdjacentHTML('beforeend','<hr><h3>İşlem Geçmişi</h3><p class="form-hint">Bu geçmiş yalnızca bu tarayıcıda tutulur; güvenli sunucu denetim kaydı değildir.</p><div class="scroll" style="max-height:300px"><table><thead><tr><th>Tarih</th><th>İşlem</th><th>Açıklama</th></tr></thead><tbody>'+db.audit.slice(0,60).map(a=>'<tr><td>'+e(a.date)+'</td><td>'+e(a.action)+'</td><td>'+e(a.detail)+'</td></tr>').join('')+'</tbody></table></div>');
+}
+function enhanceDashboardMore(){
+ const overdue=db.products.filter(p=>stock(p.id)<=num(p.minStock)).slice(0,5);
+ if(!overdue.length)return;
+ const v=document.getElementById('view');
+ v.insertAdjacentHTML('beforeend','<div class="panel"><h3>⚠ Kritik Stok Listesi</h3>'+tbl(['Ürün','Mevcut','Minimum','Eksik Adet'],overdue.map(p=>'<tr>'+cell(e(p.name))+cell(stock(p.id))+cell(e(p.minStock))+cell(Math.max(0,num(p.minStock)-stock(p.id)))+'</tr>'))+'</div>');
+}
+render();
 </script></body></html>
