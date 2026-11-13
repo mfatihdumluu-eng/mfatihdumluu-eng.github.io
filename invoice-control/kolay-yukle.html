@@ -180,58 +180,56 @@ function parseInvoiceAmount(raw){
  return Number.isFinite(n)?n:null;
 }
 function parseText(t){
- const output=[],lines=String(t||'').replace(/\r/g,'\n').split(/\n/).map(s=>s.replace(/[|│]/g,' ').replace(/\s+/g,' ').trim()).filter(Boolean);
- const stop=/^(?:subtotaal|subtotal|totaal|total|btw|vat|korting|discount|factuur|invoice|iban|bank|kvk|notitie|omschrijving|bedrag|amount|telefoon|whatsapp|pagina|bewaar|aflever)/i;
- const currency='(?:€\\s*)?';
- const num='(\\d{1,9}(?:[.,]\\d{3})*[.,]\\d{2,4})';
- function push(qty,name,price,total=null,rate=null,ean=''){
-  const q=parseInvoiceAmount(qty),p=parseInvoiceAmount(price),v=total==null?null:parseInvoiceAmount(total);
-  const clean=String(name||'').replace(/^\s*[✓√\/]+\s*/,'').replace(/\s+/g,' ').trim();
-  if(!clean||clean.length<4||!/[a-zA-ZğüşöçıĞÜŞÖÇİ]/.test(clean)||!(q>0)||p===null||p<0)return false;
-  if(v!==null&&Math.abs(q*p-v)>Math.max(.13,Math.abs(v)*.04))return false;
-  output.push({ean,name:clean,qty:q,price:p,vatRate:rate!==null&&rate!==''&&[0,9,21].includes(Number(rate))?Number(rate):null});
+ const results=[];
+ const text=String(t||'').replace(/\r/g,'\n').replace(/[│|]/g,' ')
+   .replace(/[\u200b\u200e\u200f]/g,'');
+ // OCR sometimes joins the end of a row to the next quantity-first product.
+ // Split ONLY on a new plausible product: qty x <letters>, not quantities inside packs.
+ const separated=text.replace(/([^\n])\s+(\d{1,4}\s*[x×]\s+(?=(?:Pakket|Doyum|Premium|[A-ZÀ-Þ][a-zà-ÿ]{3,})\b))/g,'$1\n$2');
+ const rawLines=separated.split(/\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+ const stop=/^(?:subtotaal|subtotal|totaal|total|btw|vat|korting|discount|factuur|invoice|iban|bank|kvk|notitie|omschrijving|bedrag|amount|telefoon|whatsapp|pagina|bewaar|aflever|factuurdatum|vervaldatum)/i;
+ const rows=[];let pending='';
+ for(const line of rawLines){
+  const start=/^\d{1,5}\s*[x×]\s+(?:[A-Za-zÀ-ž]|[\/√✓]+\s*[A-Za-zÀ-ž])/i.test(line);
+  if(start){if(pending)rows.push(pending);pending=line;continue}
+  if(!pending){rows.push(line);continue}
+  if(stop.test(line)){rows.push(pending);pending='';rows.push(line);continue}
+  // Only continue wrapped descriptions, never merge a second product into the first.
+  if(pending.length+line.length<300 && !/\d+\s*[x×]\s+(?=[A-Za-zÀ-ž])/i.test(line))pending+=' '+line;
+  else{rows.push(pending);pending=''}
+ }
+ if(pending)rows.push(pending);
+ function add(qty,name,unit,total,rate=null,ean=''){
+  const q=parseInvoiceAmount(qty),p=parseInvoiceAmount(unit),amount=parseInvoiceAmount(total);
+  const clean=String(name||'').replace(/^[\/✓√\\\s]+/g,'').replace(/\s+/g,' ').trim();
+  if(!(q>0)||!(p>=0)||!Number.isFinite(amount)||!clean||clean.length<4||clean.length>165)return false;
+  if(!/[A-Za-zÀ-žğüşöçıĞÜŞÖÇİ]/.test(clean))return false;
+  if(/(?:€|eur|\d+\s*[x×]\s+(?:Pakket|Doyum|Premium))/.test(clean))return false;
+  // Invoice line must reconcile exactly (max 2 cents, to allow invoice rounding).
+  if(Math.abs(Math.round(q*p*100)/100-amount)>.021)return false;
+  results.push({ean,name:clean,qty:q,price:p,vatRate:[0,9,21].includes(Number(rate))&&rate!=null?Number(rate):null,lineTotal:amount,verifiedRow:true});
   return true;
  }
- const patterns=[
-  // qty, description, unit price, row total, BTW -- Dutch column layout
-  new RegExp('^(\\d+(?:[.,]\\d+)?)\\s*[x×]\\s+(.{4,}?)\\s+'+currency+num+'\\s+'+currency+num+'\\s*(?:(0|9|21)\\s*%)?$','i'),
-  // qty, description, unit price, BTW
-  new RegExp('^(\\d+(?:[.,]\\d+)?)\\s*[x×]\\s+(.{4,}?)\\s+'+currency+num+'\\s*(?:(0|9|21)\\s*%)?$','i'),
- ];
- // OCR often splits wrapped descriptions across lines. Gather a row until the next numbered quantity.
- const rows=[];let current='';
- for(const line of lines){
-  const isStart=/^\d{1,5}\s*[x×]\s+[A-Za-zÀ-ÿ]/i.test(line);
-  if(isStart){if(current)rows.push(current);current=line}
-  else if(current){
-   if(stop.test(line)){rows.push(current);current='';continue}
-   // A wrapped description or trailing price-only line belongs to the current item.
-   if(current.length<290)current+=' '+line;
-  }else rows.push(line);
- }
- if(current)rows.push(current);
  for(const line of rows){
-  if(stop.test(line)||line.length<8)continue;
-  let matched=false;
-  for(let k=0;k<patterns.length;k++){
-   const m=line.match(patterns[k]);
-   if(m){
-    matched=push(m[1],m[2],m[3],k===0?m[4]:null,k===0?m[5]:m[4]);
-    if(matched)break;
+  if(stop.test(line))continue;
+  // Require a row amount in addition to a unit price. If one is missing, do not guess.
+  const first=line.match(/^(\d{1,5}(?:[.,]\d+)?)\s*[x×]\s+(.+)$/i);
+  if(first){
+   const rest=first[2].replace(/\s+(?:0|9|21)\s*%\s*$/,'').trim();
+   const rate=line.match(/\s(0|9|21)\s*%\s*$/)?.[1]??null;
+   const money=[...rest.matchAll(/(?:€\s*)?(-?\d{1,7}(?:[.,]\d{3})*[.,]\d{2,4})(?=\s|$)/g)];
+   if(money.length>=2){
+    const last=money[money.length-1],previous=money[money.length-2];
+    const name=rest.slice(0,previous.index).trim();
+    if(add(first[1],name,previous[1],last[1],rate))continue;
    }
+   continue;
   }
-  if(matched)continue;
-  // qty first, followed by description and OCR price columns without € symbol.
-  let m=line.match(/^(\d{1,5})\s*[x×]\s+(.{4,}?)\s+(\d+[.,]\d{2})\s+(\d{1,6}(?:[.,]\d{3})*[.,]\d{2})\s*(?:9\s*%)?$/i);
-  if(m&&push(m[1],m[2],m[3],m[4],/9\s*%$/.test(line)?9:null))continue;
-  // EAN + description + quantity + unit price, for other supplier layouts.
-  m=line.match(/^(\d{8,14})\s+(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s*(?:x|×|st|pcs|stuk)?\s+(?:€\s*)?(\d+[.,]\d{1,4})(?:\s+(?:€\s*)?(\d+[.,]\d{2}))?$/i);
-  if(m&&push(m[3],m[2],m[4],m[5],null,m[1]))continue;
-  // Product at beginning, qty × unit, optional total.
-  m=line.match(/^(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s*[x×]\s*(?:€\s*)?(\d+[.,]\d{1,4})(?:\s+(?:€\s*)?(\d+[.,]\d{2}))?$/i);
-  if(m)push(m[2],m[1],m[3],m[4]);
+  // Barcode-first rows with explicit quantity, unit price and total.
+  const m=line.match(/^(\d{8,14})\s+(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s+(?:€\s*)?(\d+[.,]\d{2,4})\s+(?:€\s*)?(\d+[.,]\d{2})(?:\s+(0|9|21)\s*%)?$/i);
+  if(m)add(m[3],m[2],m[4],m[5],m[6]??null,m[1]);
  }
- return output.slice(0,500);
+ return results.slice(0,500);
 }
 function detectInvoiceFields(t){
  const lines=String(t||'').replace(/\r/g,'\n').split(/\n/).map(s=>s.trim()).filter(Boolean);
