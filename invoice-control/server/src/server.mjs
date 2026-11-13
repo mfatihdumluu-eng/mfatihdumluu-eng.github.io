@@ -38,11 +38,11 @@ app.get('/health',async()=>({ok:true,service:'invoice-control'}));
 // because an API key was pasted or stored.
 async function requireSystemSession(req,reply){
  const token=req.cookies?.invoice_sid;
- if(!token)return deny(reply,401,'Sistem admini girişi gerekli');
+ if(!token){deny(reply,401,'Sistem admini girişi gerekli');return null}
  const hash=createHash('sha256').update(token).digest('hex');
  const r=await db.query('SELECT u.id,u.name,u.role FROM sessions s JOIN users u ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active=true',[hash]);
- if(!r.rowCount)return deny(reply,401,'Oturum süresi doldu');
- if(r.rows[0].role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ if(!r.rowCount){deny(reply,401,'Oturum süresi doldu');return null}
+ if(r.rows[0].role!=='system'){deny(reply,403,'Yalnızca Sistem Admini');return null}
  return r.rows[0];
 }
 app.get('/admin/mindee',async(req,reply)=>{
