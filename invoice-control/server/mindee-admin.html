@@ -1,0 +1,56 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Mindee API | Sistem Yönetimi</title><style>
+:root{font:15px system-ui,-apple-system,Arial,sans-serif;background:#f5f7fb;color:#283651}*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #e3e9f4;padding:18px max(16px,calc((100vw - 880px)/2));display:flex;align-items:center;justify-content:space-between}header strong{color:#3b4cc5}main{max-width:880px;margin:auto;padding:25px 16px}.card{background:#fff;border:1px solid #dfe6f2;border-radius:16px;padding:25px;box-shadow:0 5px 21px #1d30550a}h1{font-size:27px;margin:0 0 9px}h2{font-size:18px}p{line-height:1.6;color:#6e7d95;font-size:13px}.pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:22px;font-size:12px;font-weight:800;border:1px solid #f4c0c8;background:#fff1f3;color:#ad2c45}.pill.green{border-color:#a5dbc2;background:#eafbf2;color:#0a8050}.dot{width:9px;height:9px;background:currentColor;border-radius:50%}.box{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{font-weight:750;font-size:12px;color:#64768f;display:grid;gap:7px;margin:17px 0}.field input{border:1px solid #d7e0ec;border-radius:9px;padding:13px;font-size:14px;width:100%;background:white;color:#25334c}.actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:22px}.btn{border:0;border-radius:9px;padding:12px 17px;background:#4355c8;color:white;font-weight:800;font-size:13px;cursor:pointer}.btn.secondary{background:#edf0ff;color:#4054bc}.btn.danger{background:#fff0f2;color:#ae334b}.btn:disabled{opacity:.5;cursor:wait}.notice{border:1px solid #d8e2f3;background:#f5f8ff;padding:13px 16px;border-radius:10px;margin:16px 0;color:#536985;font-size:12px;line-height:1.5}.notice.error{border-color:#efc7cf;background:#fff2f4;color:#9c3248}.small{font-size:11px;color:#8a99ac}.hidden{display:none}.section{border-top:1px solid #edf0f5;margin-top:23px;padding-top:16px}a{color:#4054bf}.status{font-size:13px;color:#75849b}@media(max-width:650px){.box{grid-template-columns:1fr}.card{padding:18px}}</style></head>
+<body><header><strong>✓ Invoice Control · Sistem Yönetimi</strong><a href="/api/me">Hesabım</a></header><main>
+<div class="card"><h1>Mindee API Bağlantısı</h1><p>Fatura PDF ve fotoğraf okuma entegrasyonunun API anahtarını yalnızca Sistem Admini yönetebilir. Anahtar sunucuda şifreli tutulur; tarayıcıya yeniden gönderilmez.</p>
+<div id="status" class="pill"><span class="dot"></span><span id="statusText">Bağlantı kontrol ediliyor…</span></div><p id="checkedAt" class="small"></p>
+<div class="notice" id="message">Bağlantı durumu Mindee V2 üzerinden doğrulanır. Yeşil yalnızca Mindee API başarılı cevap verdiğinde gösterilir.</div>
+<label class="field">Mindee API Anahtarı (app.mindee.com)
+<input type="password" id="key" autocomplete="new-password" placeholder="md_••••••••••" spellcheck="false">
+</label>
+<label class="field">Model ID (isteğe bağlı, sonraki fatura çıkarımı için)
+<input type="text" id="model" maxlength="120" placeholder="Mindee model kimliği" autocomplete="off" spellcheck="false">
+</label>
+<div class="actions"><button type="button" class="btn" id="save">Anahtarı Kaydet ve Bağlantıyı Test Et</button><button type="button" class="btn secondary" id="check">Bağlantıyı Yeniden Kontrol Et</button><button type="button" class="btn danger" id="remove">Bağlantıyı Kaldır</button></div>
+<div class="section"><h2>Bağlantı Açıklaması</h2><p><b>Yeşil:</b> Mindee V2 anahtar doğrulaması başarılı. <b>Kırmızı:</b> geçersiz anahtar, erişim hatası, kopuk sunucu veya kontrol edilemeyen bağlantı.</p><p>Bu ekran yalnızca bağlantıyı ve anahtar erişimini doğrular; fatura çıkarımı henüz otomatik etkinleşmez. Bunun için Mindee modelinin seçilip belge çıkarma akışına bağlanması gerekir.</p><p>API anahtarını <a href="https://app.mindee.com/" target="_blank" rel="noopener noreferrer">app.mindee.com</a> hesabındaki API Keys bölümünden alabilirsin. Bu anahtarı GitHub'a veya herkese açık bir sayfaya yazma.</p><div class="small" id="serverConfig"></div></div>
+</div></main><script>
+const $=id=>document.getElementById(id),base='/api/admin/mindee';
+function show(state,msg='',time='',model=''){
+ const connected=state==='connected';$('status').className='pill'+(connected?' green':'');
+ $('statusText').textContent=connected?'BAĞLI — YEŞİL':'BAĞLANTI YOK — KIRMIZI';
+ $('message').className='notice'+(!connected?' error':'');$('message').textContent=msg|| (connected?'Mindee API doğrulandı.':'Mindee bağlantısı yok veya doğrulanamadı.');
+ $('checkedAt').textContent=time?'Son kontrol: '+new Date(time).toLocaleString('tr-TR'):'Henüz başarılı doğrulama yok.';
+ if(model!==undefined)$('model').value=model||'';
+}
+function loading(on){for(const id of ['save','check','remove'])$(id).disabled=on}
+async function request(url,method='GET',data){
+ const resp=await fetch(url,{method,credentials:'same-origin',cache:'no-store',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});
+ const json=await resp.json().catch(()=>({error:'Sunucudan geçersiz yanıt alındı'}));
+ if(!resp.ok)throw Error(json.error||json.message||'HTTP '+resp.status);
+ return json;
+}
+async function refresh(live=true){
+ loading(true);
+ try{const data=await request(base+'/status'+(live?'?check=1':''));show(data.status,data.message,data.checkedAt,data.modelId)}
+ catch(err){show('disconnected','Bağlantı kontrol edilemedi: '+err.message)}
+ finally{loading(false)}
+}
+$('save').onclick=async()=>{
+ const key=$('key').value.trim(),modelId=$('model').value.trim();
+ if(!key){show('disconnected','Mindee API anahtarını girin.');return}
+ loading(true);
+ try{
+  const response=await request(base+'/settings','POST',{apiKey:key,modelId});
+  $('key').value='';show(response.status,response.message,response.checkedAt,response.modelId)
+ }catch(err){show('disconnected',err.message)}
+ finally{loading(false)}
+};
+$('check').onclick=()=>refresh(true);
+$('remove').onclick=async()=>{
+ if(!confirm('Mindee API anahtarı ve bağlantısını kaldırmak istiyor musunuz?'))return;
+ loading(true);
+ try{await request(base+'/settings','DELETE');$('key').value='';show('disconnected','Mindee bağlantısı kaldırıldı.',null,'')}
+ catch(err){show('disconnected',err.message)}
+ finally{loading(false)}
+};
+refresh(true);
+</script></body></html>
