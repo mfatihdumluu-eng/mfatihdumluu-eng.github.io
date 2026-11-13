@@ -61,14 +61,27 @@ app.get('/api/suppliers/:id',async(req,reply)=>{
 app.patch('/api/suppliers/:id',async(req,reply)=>{
  if(!isAdmin(req.user))return deny(reply,403,'Firma kartını yalnızca admin güncelleyebilir');
  const keys=['name','kvk','vat_id','email','company_email','contact_person','address','phone','website'];
- const values=[],columns=[];let input=req.body||{};
+ const values=[],columns=[];const input=req.body||{};
  for(const key of keys){
    if(!(key in input))continue;
    const value=input[key]===null?'':input[key];
    if(typeof value!=='string'||value.length>500)return deny(reply,400,'Alan türü veya uzunluğu geçersiz: '+key);
    if(key==='name'&&value.trim().length<2)return deny(reply,400,'Firma adı en az iki karakter olmalı');
    if(['email','company_email'].includes(key)&&value.trim()&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()))return deny(reply,400,'Geçersiz e-posta');
-   values.push(value.trim()||null);columns.push(key+'=,async(req,reply)=>{if(req.user.role!=='system')return deny(reply,403,'Sistem admini gerekli');return{items:(await db.query('SELECT id,name,email,role,branch_id,active FROM users ORDER BY role,email')).rows}});
+   values.push(value.trim()||null);
+   columns.push(key+'=$'+values.length);
+ }
+ if(!columns.length)return deny(reply,400,'Güncellenecek alan bulunamadı');
+ values.push(req.params.id);
+ const r=await db.query('UPDATE suppliers SET '+columns.join(',')+' WHERE id=$'+values.length+' RETURNING id,name,kvk,vat_id,email,company_email,contact_person,address,phone,website,active',values);
+ if(!r.rowCount)return deny(reply,404,'Tedarikçi bulunamadı');
+ await audit(req.user.id,'update','supplier',req.params.id,{fields:keys.filter(key=>key in input)});
+ return{supplier:r.rows[0]};
+});
+app.get('/api/users',async(req,reply)=>{
+ if(req.user.role!=='system')return deny(reply,403,'Sistem admini gerekli');
+ return{items:(await db.query('SELECT id,name,email,role,branch_id,active FROM users ORDER BY role,email')).rows};
+});
 app.get('/api/invoices',async(req,reply)=>{
  const {month,branch_id,supplier_id}=req.query||{};if(!monthOk(month))return deny(reply,400,'YYYY-MM gerekli');
  if(branch_id&&!hasBranch(req.user,branch_id))return deny(reply,403,'Şube erişimi yok');
