@@ -1,0 +1,36 @@
+const {JSDOM}=require('jsdom');
+const fs=require('node:fs');
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const html=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
+const errors=[];
+const dom=new JSDOM(html,{runScripts:'dangerously',url:'https://example.test/invoice-control/',pretendToBeVisual:true,beforeParse(w){
+ w.alert=()=>{};w.confirm=()=>true;w.scrollTo=()=>{};w.addEventListener('error',e=>errors.push(String(e.message||e.error)));
+}});
+const {window:w}=dom;
+if(errors.length)throw Error('Browser startup errors: '+errors.join('; '));
+const root=w.document.getElementById('root');
+assert(root,'Root panel exists');
+assert(root.textContent.includes('Fatura Sorgula'),'Initial invoice search should render');
+w.role='admin'; // top-level let bindings are not always window properties; use eval.
+w.eval("role='admin';month='2026-11';page='invoices';render();invoiceSearchInput('Coca Cola 1L')");
+assert(w.document.getElementById('invoice-search-results').textContent.includes('Ürün Eşleşmeleri'),'Coca Cola should return product card');
+w.eval("openProductCard('5449000000996')");
+assert(root.textContent.includes('Coca Cola 1L'),'Product card should show name');
+assert(root.textContent.includes('Holland Dairy BV'),'First supplier present');
+assert(root.textContent.includes('Van Dijk Foodservice'),'Second supplier present');
+assert(root.textContent.includes('INV-2611-101-1'),'First invoice appears');
+assert(root.textContent.includes('INV-2611-203-1'),'Second invoice appears');
+w.eval("productCardInvoiceOpen('INV-2611-203-1')");
+assert(root.textContent.includes('Fatura INV-2611-203-1'),'Invoice open from product card');
+w.eval("invoiceDetailBack()");
+assert(root.textContent.includes('ÜRÜN KARTI'),'Back should return to product card');
+w.eval("role='branch';branch=0;page='invoices';search='Coca Cola';render();openProductCard('5449000000996')");
+assert(root.textContent.includes('INV-2611-101-1'),'Own invoice visible');
+assert(!root.textContent.includes('INV-2611-203-1'),'Other branch invoice private');
+w.eval("role='admin';page='invoices';search='';invoiceSearchAllTime=true;render()");
+assert(root.textContent.includes('INV-2610-101-1'),'Admin all-time view');
+w.eval("role='branch';branch=0;page='invoices';render()");
+assert(!root.textContent.includes('INV-2610-101-1'),'Branch remains month-only');
+console.log('PASS: UI startup, product search, cross-supplier cards, invoice navigation, role visibility, date scopes');
+dom.window.close();
