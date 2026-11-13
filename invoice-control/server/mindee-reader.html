@@ -1,6 +1,6 @@
 <!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Mindee Fatura Okuyucu | Invoice Control</title><style>*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#26354c;font:14px system-ui,Arial,sans-serif}header{background:white;border-bottom:1px solid #e1e7f1;padding:16px max(16px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}a{color:#3e4fc7}main{max-width:1100px;margin:auto;padding:20px 16px}.card{border:1px solid #e1e6f0;background:white;border-radius:14px;padding:22px;margin:15px 0}h1{font-size:25px;margin:0 0 7px}h2{font-size:17px;margin:0 0 12px}p{color:#708097;line-height:1.6}label{display:grid;gap:8px;font-weight:750;font-size:12px;margin:12px 0}input{padding:11px;border:1px solid #d8e0ed;border-radius:8px;width:100%;font:inherit;background:white;color:#22324a}input[type=file]{padding:18px;border:2px dashed #aebde2}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.btn{border:0;border-radius:9px;padding:12px 17px;font-weight:800;color:white;background:#4154c4;cursor:pointer}.btn:disabled{opacity:.45;cursor:wait}.btn.secondary{background:#e9eeff;color:#3448ba}.status{border-radius:10px;padding:12px 15px;margin:12px 0;background:#f0f4ff;color:#40517f}.status.err{background:#fff1f3;color:#a72d4a}.status.ok{background:#edfbf2;color:#0b784b}.preview{max-height:540px;width:100%;border-radius:10px;border:1px solid #dde5f0;object-fit:contain}table{width:100%;border-collapse:collapse;min-width:760px}td,th{border-bottom:1px solid #edf0f5;padding:9px;text-align:left}th{font-size:12px;color:#667895}td input{padding:7px;min-width:85px}.scroll{overflow:auto}.warn{border-left:4px solid #df4857;background:#fff5f6;padding:12px;margin:10px 0;color:#9f2c45}.good{border-left:4px solid #2b9567;background:#f1fbf5;padding:12px;color:#137a51}.hidden{display:none}.pill{display:inline-block;border-radius:20px;padding:7px 11px;font-weight:800;background:#fff0f2;color:#ac3850}.pill.green{background:#e5f9ef;color:#107a4c}.muted{font-size:12px;color:#8594a9}@media(max-width:650px){.grid{grid-template-columns:1fr}}</style></head><body>
-<header><strong>✓ Invoice Control — Mindee OCR</strong><div><a href="/admin/mindee">API Ayarları</a> · <a href="https://mfatihdumluu-eng.github.io/invoice-control/">Ana Panel</a></div></header>
-<main><div class="card"><h1>PDF / Resimden Fatura Oku</h1><p>Dosya Mindee V2 modeline gönderilir. Sonuçlar düzenlenebilir; kontrol etmeden kaydedilmez. Bu ekran belgeyi otomatik olarak başka kullanıcılarla paylaşmaz.</p><span id="connection" class="pill">Bağlantı kontrol ediliyor</span><div id="status" class="status">Dosyanı seçerek başla. Model ID, Sistem Admini Mindee ayarlarında kayıtlı olmalıdır.</div>
+<header><strong>✓ Invoice Control — Mindee OCR</strong><div><a href="/admin/mindee">API Ayarları</a> · <a href="/admin/invoices">Kaydedilen Faturalar</a> · <a href="https://mfatihdumluu-eng.github.io/invoice-control/">Ana Panel</a></div></header>
+<main><div class="card"><h1>PDF / Resimden Fatura Oku</h1><p>Dosya Mindee V2 modeline gönderilir. Sonuçlar düzenlenebilir; kontrol etmeden kaydedilmez. Bu ekran belgeyi otomatik olarak başka kullanıcılarla paylaşmaz.</p><span id="connection" class="pill">Bağlantı kontrol ediliyor</span><div id="status" class="status">Dosyanı seçerek başla. Modelini API Ayarları sayfasından seçebilirsin; kayıtlı API anahtarını tekrar girmen gerekmez.</div>
 <label>Fatura dosyası (PDF, JPG, PNG, WebP; en fazla 10 MB)<input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"></label>
 <button class="btn" id="extract">Mindee ile Faturayı Oku</button> <span id="filename" class="muted"></span>
 </div>
@@ -8,8 +8,8 @@
 <h2>3 · Fatura Bilgilerini Kontrol Et</h2><div id="messages"></div>
 <div class="grid"><label>Tedarikçi<input id="supplier"></label><label>Fatura numarası<input id="invoiceNumber"></label><label>Fatura tarihi<input type="date" id="date"></label><label>Son ödeme tarihi<input type="date" id="dueDate"></label><label>Ara toplam (BTW hariç) €<input id="net" type="number" step=".01"></label><label>BTW toplamı €<input id="tax" type="number" step=".01"></label><label>İskonto €<input id="discount" type="number" step=".01"></label><label>Genel toplam €<input id="gross" type="number" step=".01"></label></div>
 <h2>Ürünler</h2><div class="scroll"><table><thead><tr><th>Ürün adı</th><th>Adet</th><th>Birim fiyat (€)</th><th>Satır toplamı (€)</th><th>BTW %</th><th>Kontrol</th></tr></thead><tbody id="items"></tbody></table></div><div id="reconcile"></div>
-<div style="margin-top:17px"><button class="btn secondary" id="add">+ Satır Ekle</button> <button class="btn" id="copy">Kontrol verilerini kopyala</button></div>
-<p class="muted">Kontrol verileri yalnızca bu sayfada görüntülenir. Sistem faturayı henüz veritabanına kaydetmez. Kaydetmeden önce ürün adetleri, fiyatlar, iskonto ve genel toplamın gerçek fatura ile uyuştuğundan emin ol.</p>
+<div style="margin-top:17px"><button class="btn secondary" id="add">+ Satır Ekle</button> <button class="btn" id="saveInvoice">Faturayı Listeye Kaydet</button> <button class="btn secondary" id="copy">Kontrol verilerini kopyala</button></div>
+<p class="muted">Fatura yalnızca <b>Faturayı Listeye Kaydet</b> düğmesine basıldığında özel sunucu arşivine alınır. Fiyat karşılaştırmasında kullanılmadan önce ayrıca inceleme gerektirir.</p>
 </div></main>
 <script>
 const $=id=>document.getElementById(id),state={items:[],original:null};
@@ -74,6 +74,24 @@ $('extract').onclick=async()=>{
 $('add').onclick=()=>{state.items.push({name:'',qty:null,price:null,lineTotal:null,vatRate:null});renderItems()};
 ['net','tax','gross','discount'].forEach(id=>$(id).addEventListener('input',reconcile));
 $('file').onchange=e=>{$('filename').textContent=e.target.files?.[0]?.name||''};
+$('saveInvoice').onclick=async()=>{
+ const btn=$('saveInvoice');btn.disabled=true;
+ const invoice={
+  supplier:$('supplier').value.trim(),invoiceNumber:$('invoiceNumber').value.trim(),
+  date:$('date').value,dueDate:$('dueDate').value,
+  totalNet:$('net').value,totalTax:$('tax').value,totalGross:$('gross').value,
+  discount:$('discount').value,items:state.items,warnings:state.original?.warnings||[]
+ };
+ try{
+  const res=await fetch('/api/admin/mindee/invoices',{method:'POST',credentials:'same-origin',
+   headers:{'Content-Type':'application/json'},body:JSON.stringify(invoice)});
+  const data=await res.json().catch(()=>({error:'Sunucu yanıtı çözümlenemedi'}));
+  if(!res.ok)throw Error(data.error||'Kaydetme başarısız');
+  $('messages').innerHTML='<div class="good">✓ Fatura sunucuya kaydedildi. <a href="/admin/invoices">Kaydedilen Faturalara Git →</a></div>';
+  show('Fatura kaydedildi. İnceleme listesinde açabilirsin.');
+ }catch(e){show('Fatura kaydedilemedi: '+e.message,true)}
+ finally{btn.disabled=false}
+};
 $('copy').onclick=async()=>{
  const invoice={supplier:$('supplier').value,invoiceNumber:$('invoiceNumber').value,date:$('date').value,dueDate:$('dueDate').value,
  totalNet:$('net').value,totalTax:$('tax').value,totalGross:$('gross').value,discount:$('discount').value,
