@@ -326,10 +326,26 @@ list.map(i=>'<tr class="clickable" onclick="viewInvoice(\''+esc(i.id)+'\')"><td>
 function invoicesForCurrentSearch(){
  return allInvoices().filter(i=>(role!=='branch'||i.branch===branch)&&((role!=='branch'&&invoiceSearchAllTime)||i.month===month)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
+function invoiceMatchingProducts(){
+ const q=normalizeProductName(search),found=[];
+ if(!q)return '';
+ const pool=invoicesForCurrentSearch();
+ for(const p of products){
+  if(!normalizeProductName(p.name+' '+p.ean).includes(q))continue;
+  const lines=allLines(pool).filter(x=>x.ean===p.ean);
+  if(!lines.length)continue;
+  const supplierCount=new Set(lines.map(x=>x.supplier)).size;
+  found.push({p,supplierCount,lines});
+ }
+ if(!found.length)return '';
+ return '<div class="card" style="margin-top:14px"><div class="panel-head"><h2>Ürün Eşleşmeleri – Ürün Kartına Git</h2>'+badge(found.length+' ürün','purple')+'</div>'+
+ '<div class="supplier-grid">'+found.slice(0,12).map(x=>'<button class="card supplier-card" style="min-height:120px" onclick="openProductCard(\''+esc(x.p.ean)+'\')"><div class="tiny">EAN '+esc(x.p.ean)+'</div><div class="cardtitle" style="margin:12px 0">'+esc(x.p.name)+'</div><div class="row between"><span class="tiny">'+x.supplierCount+' tedarikçi · '+x.lines.length+' satır</span><strong class="link">Ürün Kartı →</strong></div></button>').join('')+'</div></div>';
+}
+
 function invoiceSearchInput(value){
  search=value;
  const area=document.getElementById('invoice-search-results');
- if(area)area.innerHTML=invoiceTable(invoicesForCurrentSearch());
+ if(area)area.innerHTML=invoiceTable(invoicesForCurrentSearch())+invoiceMatchingProducts();
  const counter=document.getElementById('invoice-count');
  if(counter)counter.textContent=invoiceResultCount()+' eşleşen fatura';
 }
@@ -349,7 +365,7 @@ function invoicePage(){
  (role==='branch'?badge(branches[branch],'purple'):'<select class="select" onchange="window.branchFilter=this.value;render()"><option value="all">Tüm Şubeler</option>'+branches.map((b,i)=>'<option value="'+i+'" '+(window.branchFilter==i?'selected':'')+'>'+esc(b)+'</option>').join('')+'</select>')+
  (role==='branch'?'': '<button class="btn '+(invoiceSearchAllTime?'light':'')+'" onclick="setInvoiceSearchPeriod(false)">Ay İçinde ('+month+')</button><button class="btn '+(invoiceSearchAllTime?'':'light')+'" onclick="setInvoiceSearchPeriod(true)">Tüm Zamanlar</button>')+'</div>'+
  '<div class="note" style="margin-bottom:15px">Ürün veya EAN aratıldığında ürünün geçtiği faturalar listelenir. Faturayı açıp ürünün adına basarak satın alma geçmişini görebilirsiniz.</div>'+
- '<div id="invoice-search-results">'+invoiceTable(list)+'</div></div>';
+ '<div id="invoice-search-results">'+invoiceTable(list)+invoiceMatchingProducts()+'</div></div>';
 }
 let currentInvoice=null;function viewInvoice(id){const inv=allInvoices().find(x=>x.id===id);if(!inv||!branchCanRead(inv.branch))return;invoiceReturnPage=page==='productCard'?'productCard':'invoices';currentInvoice=id;page='invoiceDetail';render();window.scrollTo(0,0)}
 function invoiceDetail(){
