@@ -36,17 +36,26 @@ app.get('/health',async()=>({ok:true,service:'invoice-control'}));
 // Mindee V2: status is always based on an actual 200 response to
 // GET https://api-v2.mindee.net/v2/search/models. Never report green just
 // because an API key was pasted or stored.
-async function requireSystemSession(req,reply){
+async function requireSystemSession(req,reply,{redirectToLogin=false}={}){
  const token=req.cookies?.invoice_sid;
- if(!token){deny(reply,401,'Sistem admini girişi gerekli');return null}
+ if(!token){if(redirectToLogin)reply.redirect('/admin/login');else deny(reply,401,'Sistem admini girişi gerekli');return null}
  const hash=createHash('sha256').update(token).digest('hex');
  const r=await db.query('SELECT u.id,u.name,u.role FROM sessions s JOIN users u ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active=true',[hash]);
- if(!r.rowCount){deny(reply,401,'Oturum süresi doldu');return null}
+ if(!r.rowCount){if(redirectToLogin)reply.redirect('/admin/login');else deny(reply,401,'Oturum süresi doldu');return null}
  if(r.rows[0].role!=='system'){deny(reply,403,'Yalnızca Sistem Admini');return null}
  return r.rows[0];
 }
+app.get('/admin/login',async(req,reply)=>{
+ const html=await readFile(new URL('../mindee-login.html',import.meta.url),'utf8');
+ return reply.type('text/html; charset=utf-8')
+  .header('Cache-Control','no-store, private')
+  .header('Referrer-Policy','no-referrer')
+  .header('X-Frame-Options','DENY')
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .send(html);
+});
 app.get('/admin/mindee',async(req,reply)=>{
- const user=await requireSystemSession(req,reply);if(!user)return;
+ const user=await requireSystemSession(req,reply,{redirectToLogin:true});if(!user)return;
  const html=await readFile(new URL('../mindee-admin.html',import.meta.url),'utf8');
  return reply.type('text/html; charset=utf-8')
   .header('Cache-Control','no-store, private')
