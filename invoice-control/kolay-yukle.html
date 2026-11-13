@@ -198,7 +198,7 @@ function parseText(t){
  // Split ONLY on a new plausible product: qty x <letters>, not quantities inside packs.
  const separated=text.replace(/([^\n])\s+(\d{1,4}\s*[x×]\s+(?=(?:Pakket|Doyum|Premium|[A-ZÀ-Þ][a-zà-ÿ]{3,})\b))/g,'$1\n$2');
  const rawLines=separated.split(/\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
- const stop=/^(?:subtotaal|subtotal|totaal|total|btw|vat|korting|discount|factuur|invoice|iban|bank|kvk|notitie|omschrijving|bedrag|amount|telefoon|whatsapp|pagina|bewaar|aflever|factuurdatum|vervaldatum)/i;
+ const stop=/^(?:-?\d+(?:[.,]\d+)?\s*%\s*[x×]?\s*korting\b|subtotaal|subtotal|totaal|total|btw|vat|korting|discount|factuur|invoice|iban|bank|kvk|notitie|omschrijving|bedrag|amount|telefoon|whatsapp|pagina|bewaar|aflever|factuurdatum|vervaldatum)/i;
  const rows=[];let pending='';
  for(const line of rawLines){
   const start=/^\d{1,5}\s*[x×]\s+(?:[A-Za-zÀ-ž]|[\/√✓]+\s*[A-Za-zÀ-ž])/i.test(line);
@@ -389,6 +389,7 @@ function missingFields(requireLines=true){
  if(!$('number').value.trim())issues.push('Fatura numarası yazılmadı');
  if(!$('date').value)issues.push('Fatura tarihi seçilmedi');
  if(requireLines){
+  if(mode==='scan')issues.push(...invoiceReconciliationIssues(true));
   if(!items.length)issues.push('Belgeden ürün satırları okunamadı. "＋ Ürün Ekle" ile satır ekle veya "Taslak Kaydet" kullan');
   items.forEach((x,i)=>{
    if(!String(x.name||'').trim())issues.push((i+1)+'. satır: ürün adı eksik');
@@ -424,7 +425,7 @@ async function save(automatic=false,draft=false){
   docId='invfile-'+Date.now()+'-'+Math.random().toString(36).slice(2);
   try{await saveOriginal(docId,file)}catch(err){notify('Orijinal belge saklanamadı: '+err.message,true);return}
  }
- const rec={id:number,invoiceNo:number,supplier,branch,date,month:date.slice(0,7),items:items.map(x=>({ean:String(x.ean||''),name:String(x.name||''),qty:Number(x.qty),price:Number(x.price),vatRate:x.vatRate,product:-1})),invoiceSummary:{document:summaryInputs(),calculated:calculatedTotals()},
+ const rec={id:number,invoiceNo:number,supplier,branch,date,month:date.slice(0,7),items:items.map(x=>({ean:String(x.ean||''),name:String(x.name||''),qty:Number(x.qty),price:Number(x.price),vatRate:x.vatRate,verifiedRow:Boolean(x.verifiedRow),product:-1})),invoiceSummary:{document:summaryInputs(),calculated:calculatedTotals()},
  source:file?.name||'taslak',documentName:file?.name||'',docId,rawText:$('raw').value,status:draft?'Taslak':'Onaylandı',approval:draft?'Ürün doğrulaması bekleniyor':automatic?'Metin dosyası otomatik':'Kullanıcı onayı'};
  try{localStorage.setItem(K,JSON.stringify([...existing,rec].slice(-150)))}catch(err){notify('Kaydedilemedi: '+err.message,true);return}
  saved=true;editingId=number;existingDocId=docId;$('approve').disabled=true;$('draft').disabled=true;
@@ -457,9 +458,10 @@ function applyRecognizedText(forceReplace=false){
  renderRows();
  describeMappedValues(fields,lines);
  const notes=[];
+ if(lines.length)notes.push(...invoiceReconciliationIssues(true));
  if(!fields.number&&!$('number').value.trim())notes.push('Fatura No bulunamadı');
  if(!fields.supplier&&!$('supplier').value)notes.push('Tedarikçi seçilmedi');
- if(!lines.length)notes.push('Ürün satırı ayrıştırılamadı');
+ if(!lines.length)notes.push('Ürün satırı ayrıştırılamadı. Ürünler ve tutarlar doğrulanmadan kayıt onaylanamaz.');
  $('ocrBadge').textContent=notes.length?'Kontrol gerekiyor':'Metin eşleştirildi';
  $('ocrMessage').className='notice'+(notes.length?' warn':' ok');
  $('ocrMessage').textContent=lines.length+' ürün satırı eşleştirildi. '+(notes.length?notes.join(' · ')+'. Gerekirse metni veya satırları düzeltip tekrar dene.':'Fatura bilgilerini ve tutarları belgeyle karşılaştırıp onaylayın.');
