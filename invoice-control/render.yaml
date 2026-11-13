@@ -1,0 +1,27 @@
+# Invoice Control API only. Existing database invoice-control-db is linked by name.
+# Blueprint adopt mode must be reviewed before applying to the existing API service.
+services:
+  - type: web
+    name: invoice-control-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: cd invoice-control/server && npm install --omit=dev
+    startCommand: cd invoice-control/server && node src/bootstrap.mjs && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: invoice-control-db
+          property: connectionString
+      - key: MINDEE_ENCRYPTION_KEY
+        generateValue: true
+      - key: INVOICE_SYSTEM_EMAIL
+        value: mfatihdumluu@gmail.com
+      - key: INVOICE_SYSTEM_PASSWORD
+        generateValue: true
