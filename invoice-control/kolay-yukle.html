@@ -5,7 +5,7 @@
 <section class="card"><h2>2 · Dosyayı seç</h2><label id="drop" class="drop"><span style="font-size:32px;color:#4356cc">⇧</span><b>PDF, Fotoğraf, CSV, TXT veya UBL/XML</b><small>Dosyayı buraya sürükleyin veya seçin · en fazla 10 MB</small><input id="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.csv,.txt,.xml,.ubl,image/*" style="display:none"></label><p id="status" class="status">Henüz dosya seçilmedi.</p></section>
 <section class="card hidden" id="review"><div class="row between"><h2>3 · Kontrol et ve kaydet</h2><span id="mode" class="chip">Onay bekliyor</span></div><p id="hint">Okunan ürünleri kontrol et. Eksik veya yanlış satır varsa düzelt.</p>
 <div class="two"><div><div class="tablewrap"><table><thead><tr><th>EAN</th><th>Ürün</th><th>Adet</th><th>Birim fiyat (€)</th><th></th></tr></thead><tbody id="rows"></tbody></table></div><div class="row" style="margin:13px 0"><button class="btn light" id="add">＋ Ürün Ekle</button><span id="count" class="counter"></span></div><label class="field">Belgeden çıkan metin (eksik alan varsa buradan kontrol et)<textarea id="raw" placeholder="Çıkarılan fatura metni..." style="height:110px"></textarea></label>
-<div class="row" style="margin-top:16px"><button class="btn" id="approve">✓ Kontrol Ettim, Kaydet</button><button class="btn white" id="cancel">Dosyayı Değiştir</button></div><div id="feedback" class="notice hidden" style="margin-top:13px"></div></div>
+<div class="row" style="margin-top:16px"><button class="btn" id="approve">✓ Kontrol Ettim, Kaydet</button><button class="btn light" id="draft">Taslak Kaydet (Sonra Tamamla)</button><button class="btn white" id="cancel">Dosyayı Değiştir</button></div><div id="feedback" class="notice hidden" style="margin-top:13px"></div><div id="missing" class="notice warn hidden" style="margin-top:13px"></div></div>
 <div><h2>Orijinal Fatura</h2><div id="preview" class="preview"><span class="sub">Dosya önizlemesi</span></div><p>Kaydedilen orijinal PDF veya görsel daha sonra görüntülenebilir.</p></div></div></section>
 <div class="footer">PDF/resim metin okuma denenebilir; her fatura biçimi otomatik tanınamayabilir. OCR sonucu mutlaka doğrulanmalıdır. CSV/XML/TXT geçerli alanlarla otomatik kaydedilir.</div></main>
 <script>
@@ -13,7 +13,7 @@ const K='invoice-control-demo-invoices-v1',DB='invoice-control-original-document
 const BR=['Dordrecht – Wielwijk','Dordrecht – Merwedepolder Oost','Schiedam','Utrecht','Breda','Bergen op Zoom','Gorinchem','Tilburg','Eindhoven'];
 const SUP=['Holland Dairy BV','Van Dijk Foodservice','Freshline Groothandel','Euro Foods BV','Delta Distributie','Noord Trade'];
 const $=id=>document.getElementById(id),safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let file=null,url=null,items=[],mode='',busy=false,saved=false;
+let file=null,url=null,items=[],mode='',busy=false,saved=false,editingId=null,existingDocId=null;
 $('branch').innerHTML=BR.map((x,i)=>'<option value="'+i+'">'+safe(x)+'</option>').join('');
 $('supplier').innerHTML='<option value="">Tedarikçi seçin</option>'+SUP.map((x,i)=>'<option value="'+(i+1)+'">'+safe(x)+'</option>').join('');
 function notify(text,bad=false){$('status').textContent=text;$('status').style.color=bad?'#b83e52':'#69778e'}
@@ -62,31 +62,69 @@ async function extractPdf(f){
 }
 async function extractOcr(source){if(!window.Tesseract)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(Error('OCR kütüphanesi yüklenemedi'));document.head.append(s)});const worker=await window.Tesseract.createWorker('eng+nld');try{let r=await worker.recognize(source);return r.data.text||''}finally{await worker.terminate()}}
 function originalPreview(f){if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(f);let box=$('preview');if(f.type.startsWith('image/'))box.innerHTML='<img alt="Fatura önizlemesi" src="'+url+'">';else if(f.type==='application/pdf'||f.name.endsWith('.pdf'))box.innerHTML='<iframe title="PDF fatura" src="'+url+'"></iframe>';else box.innerHTML='<div style="padding:16px">Metin tabanlı dosya: '+safe(f.name)+'</div>'}
-function canSave(){return $('supplier').value&&$('number').value.trim()&&$('date').value&&items.length&&items.every(x=>x.name&&Number(x.qty)>0&&Number(x.price)>=0&&Number.isFinite(Number(x.price)))}
+function missingFields(requireLines=true){
+ const issues=[];
+ if(!$('supplier').value)issues.push('Tedarikçi seçilmedi');
+ if(!$('number').value.trim())issues.push('Fatura numarası yazılmadı');
+ if(!$('date').value)issues.push('Fatura tarihi seçilmedi');
+ if(requireLines){
+  if(!items.length)issues.push('Belgeden ürün satırları okunamadı. "＋ Ürün Ekle" ile satır ekle veya "Taslak Kaydet" kullan');
+  items.forEach((x,i)=>{
+   if(!String(x.name||'').trim())issues.push((i+1)+'. satır: ürün adı eksik');
+   if(!(Number(x.qty)>0)||!Number.isFinite(Number(x.qty)))issues.push((i+1)+'. satır: miktar eksik veya geçersiz');
+   if(!Number.isFinite(Number(x.price))||Number(x.price)<0)issues.push((i+1)+'. satır: birim fiyat geçersiz');
+  });
+ }
+ return issues;
+}
+function showMissing(needLines=true){
+ const issues=missingFields(needLines),el=$('missing');
+ el.classList.toggle('hidden',!issues.length);
+ el.innerHTML=issues.length?'<b>Eksik bilgileri düzeltin:</b><ul style="margin:7px 0 0;padding-left:18px">'+issues.map(s=>'<li>'+safe(s)+'</li>').join('')+'</ul>':'';
+ return issues;
+}
+function canSave(){return !missingFields().length}
+
 function openDb(){return new Promise((resolve,reject)=>{const x=indexedDB.open(DB,1);x.onupgradeneeded=()=>x.result.createObjectStore(STORE);x.onsuccess=()=>resolve(x.result);x.onerror=()=>reject(x.error)})}
 async function saveOriginal(id,blob){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(blob,id);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}})}
-async function save(automatic=false){if(saved)return; if(!canSave()){notify('Tedarikçi, fatura numarası ve ürün satırları eksik. Önce bunları düzeltin.',true);return}
+async function save(automatic=false,draft=false){
+ if(saved)return;
+ const problems=showMissing(!draft);
+ if(problems.length){notify('Eksik alanlar yukarıda tek tek gösterildi. Lütfen düzeltin.',true);$('review').scrollIntoView({behavior:'smooth',block:'start'});return}
  const number=$('number').value.trim(),supplier=+$('supplier').value,branch=+$('branch').value,date=$('date').value;
- let existing=readRecords();if(existing.some(x=>x.id===number&&x.supplier===supplier&&x.branch===branch)){notify('Bu fatura numarası aynı şube ve tedarikçi için zaten kaydedilmiş.',true);return}
- let docId=file?'invfile-'+Date.now()+'-'+Math.random().toString(36).slice(2):null;
- if(docId){try{await saveOriginal(docId,file)}catch(err){notify('Orijinal belge kaydedilemedi: '+err.message,true);return}}
- const record={id:number,invoiceNo:number,supplier,branch,date,month:date.slice(0,7),items:items.map(x=>({ean:x.ean,name:x.name,qty:Number(x.qty),price:Number(x.price),product:-1})),source:file?.name||'manuel',documentName:file?.name||'',docId,rawText:$('raw').value,status:'Onaylandı',approval:automatic?'Metin dosyası otomatik':'Kullanıcı onayı'};
- try{localStorage.setItem(K,JSON.stringify([...existing,record].slice(-150)))}catch(err){notify('Fatura kaydedilemedi: '+err.message,true);return}
- saved=true;$('approve').disabled=true;const message=$('feedback');message.className='notice ok';message.innerHTML='<b>✓ Fatura kaydedildi.</b> '+(automatic?'Metin dosyası otomatik işlendi.':'Onayınızla kaydedildi.')+' <a href="./?v=kolay1">Fatura Listesini Aç →</a> · <a href="./belge.html?doc='+encodeURIComponent(docId||'')+'">Orijinali Aç →</a>';notify('Fatura kaydedildi.','false')
+ let existing=readRecords();
+ const matching=existing.find(x=>x.id===number&&x.supplier===supplier&&x.branch===branch);
+ if(matching&&(!editingId||matching.id!==editingId)){
+  notify('Bu tedarikçi ve şubede aynı fatura numarası zaten kayıtlı: '+number,true);return;
+ }
+ if(editingId)existing=existing.filter(x=>!(x.id===editingId&&x.supplier===supplier&&x.branch===branch));
+ let docId=existingDocId;
+ if(file){
+  docId='invfile-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+  try{await saveOriginal(docId,file)}catch(err){notify('Orijinal belge saklanamadı: '+err.message,true);return}
+ }
+ const rec={id:number,invoiceNo:number,supplier,branch,date,month:date.slice(0,7),items:items.map(x=>({ean:String(x.ean||''),name:String(x.name||''),qty:Number(x.qty),price:Number(x.price),product:-1})),
+ source:file?.name||'taslak',documentName:file?.name||'',docId,rawText:$('raw').value,status:draft?'Taslak':'Onaylandı',approval:draft?'Ürün doğrulaması bekleniyor':automatic?'Metin dosyası otomatik':'Kullanıcı onayı'};
+ try{localStorage.setItem(K,JSON.stringify([...existing,rec].slice(-150)))}catch(err){notify('Kaydedilemedi: '+err.message,true);return}
+ saved=true;editingId=number;existingDocId=docId;$('approve').disabled=true;$('draft').disabled=true;
+ const message=$('feedback');message.className='notice ok';
+ message.innerHTML='<b>✓ '+(draft?'Fatura taslak olarak kaydedildi.':'Fatura onaylandı ve kaydedildi.')+'</b> '+(draft?'Ürünler tamamlanınca taslağı açarak onaylayabilirsin.':automatic?'Metin dosyasındaki geçerli satırlar otomatik kaydedildi.':'Belge kullanıcı onayıyla kaydedildi.')+
+ ' <a href="./?v=kolay2">Faturaları Aç →</a> '+(docId?' · <a href="./belge.html?doc='+encodeURIComponent(docId)+'">Orijinali Aç →</a>':'');
+ notify(draft?'Taslak güvenle bu tarayıcıya kaydedildi.':'Fatura başarıyla kaydedildi.');
 }
 async function load(f){
  if(!f)return;if(f.size>10*1024*1024){notify('En fazla 10 MB dosya seçin.',true);return}
- if(busy)return;busy=true;file=f;items=[];saved=false;renderRows();originalPreview(f);$('review').classList.remove('hidden');$('feedback').classList.add('hidden');$('approve').disabled=false;
+ if(busy)return;busy=true;file=f;items=[];saved=false;editingId=null;existingDocId=null;renderRows();originalPreview(f);$('review').classList.remove('hidden');$('feedback').classList.add('hidden');$('approve').disabled=false;
  const ext=f.name.split('.').pop().toLowerCase();mode=['csv','txt','xml','ubl'].includes(ext)?'text':'scan';
  $('mode').textContent=mode==='text'?'Metin dosyası: otomatik':'PDF / Resim: onay gerekli';notify('Dosya okunuyor...');
  try{const t=mode==='text'?await f.text():ext==='pdf'?await extractPdf(f):await extractOcr(f);$('raw').value=t;
  if(ext==='csv')items=parseCSV(t);else if(['xml','ubl'].includes(ext))items=parseXml(t);else items=parseText(t);
  renderRows();notify(items.length+' ürün satırı bulundu.'+(mode==='scan'?' Kontrol edip onaylayın.':' Geçerli bilgiler varsa otomatik kaydedilecek.'));
  if(mode==='text'&&canSave())await save(true);
- else if(mode==='text')notify('Metin dosyasında eksik bilgiler var. Düzelterek onaylayın.',true);
- else if(!items.length)notify('PDF/resim açıldı fakat ürün satırları güvenilir biçimde okunamadı. Satırları elle ekleyin.',true);
- }catch(e){notify('Belge okuma hatası: '+e.message+'. Satırları elle ekleyebilirsiniz.',true)}
+ else if(mode==='text'){showMissing();notify('Metin dosyası okundu ama zorunlu bilgiler eksik. Bunları tamamlayabilir veya taslak kaydedebilirsin.',true);}
+ else if(!items.length){showMissing();notify('Belgenin orijinali önizlemede duruyor. Ürün satırları otomatik bulunamadı; taslak kaydedip sonra tamamlayabilirsin.',true);}
+ }catch(e){showMissing();notify('Belge okuma başarısız: '+e.message+'. Orijinal belgeyi Taslak Kaydet ile saklayabilirsin.',true)}
  finally{busy=false}
 }
-$('file').onchange=e=>load(e.target.files?.[0]);$('drop').ondragover=e=>{e.preventDefault();$('drop').classList.add('drag')};$('drop').ondragleave=()=>$('drop').classList.remove('drag');$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('drag');load(e.dataTransfer.files?.[0])};$('approve').onclick=()=>save(false);$('add').onclick=()=>{items.push({ean:'',name:'',qty:1,price:0});renderRows()};$('cancel').onclick=()=>{$('file').value='';$('review').classList.add('hidden');file=null;saved=false};$('branch').onchange=()=>{};$('supplier').onchange=()=>{};renderRows();
+$('file').onchange=e=>load(e.target.files?.[0]);$('drop').ondragover=e=>{e.preventDefault();$('drop').classList.add('drag')};$('drop').ondragleave=()=>$('drop').classList.remove('drag');$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('drag');load(e.dataTransfer.files?.[0])};$('approve').onclick=()=>save(false);$('draft').onclick=()=>save(false,true);$('add').onclick=()=>{items.push({ean:'',name:'',qty:1,price:0});renderRows()};$('cancel').onclick=()=>{$('file').value='';$('review').classList.add('hidden');file=null;saved=false;editingId=null;existingDocId=null};$('branch').onchange=()=>{};$('supplier').onchange=()=>{};renderRows();
 </script></body></html>
