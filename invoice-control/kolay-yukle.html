@@ -108,7 +108,7 @@ function setDocumentSummary(value={}){
  if(!$('currency').value)$('currency').value='EUR';
  updateSummary();
 }
-function reset(){file=null;mode='';saved=false;items=[];$('file').value='';$('review').classList.add('hidden');$('feedback').classList.add('hidden');if(url)URL.revokeObjectURL(url);url=null;renderRows();notify('Henüz dosya seçilmedi.')}
+function reset(){file=null;mode='';saved=false;items=[];setDocumentSummary({currency:'EUR'});$('file').value='';$('review').classList.add('hidden');$('feedback').classList.add('hidden');if(url)URL.revokeObjectURL(url);url=null;renderRows();notify('Henüz dosya seçilmedi.')}
 function parseCSV(text){
  const lines=String(text).replace(/^\ufeff/,'').split(/\r?\n/).filter(x=>x.trim());
  if(lines.length<2)throw Error('CSV başlık veya satır yok');
@@ -133,14 +133,84 @@ function parseCSV(text){
  return lines.slice(1,501).map(line=>{
   const cells=split(line);
   const ean=e<0?'':String(cells[e]||'').trim();
+  const rateIndex=find(['btw','btwpercentage','b t w','vat','vatrate','taxrate','kdvorani']);
+  const rateRaw=rateIndex>=0?String(cells[rateIndex]||'').replace('%','').trim():'';
+  const rate=rateRaw===''?null:numOrNaN(rateRaw);
   const name=n<0?'':String(cells[n]||'').trim();
   const qty=parseNumeric(cells[q]);
   const price=parseNumeric(cells[p]);
-  return {ean,name:name||ean,qty,price};
+  return {ean,name:name||ean,qty,price,vatRate:[0,9,21].includes(rate)?rate:null};
  }).filter(x=>x.name||x.ean);
 }
 function parseText(t){const result=[];for(const line of t.split(/\r?\n/)){const m=line.match(/^\s*(\d{8,14})\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+(\d+[.,]\d{1,4})\s*$/);if(m)result.push({ean:m[1],name:m[2],qty:parseNumeric(m[3]),price:parseNumeric(m[4])})}return result}
-function parseXml(t){const xml=new DOMParser().parseFromString(t,'application/xml');if(xml.getElementsByTagName('parsererror').length)throw Error('XML geçersiz');const lines=Array.from(xml.getElementsByTagName('*')).filter(x=>x.localName==='InvoiceLine');return lines.map(l=>{const nodes=Array.from(l.getElementsByTagName('*')),get=n=>nodes.find(x=>x.localName===n)?.textContent?.trim()||'';return{ean:get('ID'),name:get('Name')||get('Description')||'Ürün',qty:parseNumeric(get('InvoicedQuantity')),price:parseNumeric(get('PriceAmount'))}}).filter(x=>x.qty>0)}
+function parseXml(t){
+ const xml=new DOMParser().parseFromString(t,'application/xml');
+ if(xml.getElementsByTagName('parsererror').length)throw Error('XML geçersiz');
+ const all=Array.from(xml.getElementsByTagName('*'));
+ const direct=(root,name)=>Array.from(root.children||[]).find(x=>x.localName===name)||null;
+ const childText=(root,name)=>direct(root,name)?.textContent?.trim()||'';
+ const find=(root,name)=>Array.from(root.getElementsByTagName('*')).find(x=>x.localName===name)||null;
+ const val=(root,name)=>find(root,name)?.textContent?.trim()||'';
+ const monetary=find(xml,'LegalMonetaryTotal');
+ const taxTotal=find(xml,'TaxTotal');
+ const details=taxTotal?Array.from(taxTotal.children||[]).filter(n=>n.localName==='TaxSubtotal'):[];
+ const parsed={net:monetary?numOrNaN(childText(monetary,'TaxExclusiveAmount')):null,
+   gross:monetary?numOrNaN(childText(monetary,'PayableAmount')):null,
+   vat:taxTotal?numOrNaN(childText(taxTotal,'TaxAmount')):null,
+   discount:monetary?numOrNaN(childText(monetary,'AllowanceTotalAmount')):null,
+   dueDate:val(xml,'DueDate'),iban:val(find(xml,'PayeeFinancialAccount')||xml,'ID'),currency:'EUR',vat9:null,vat21:null};
+ let vat9=0,vat21=0,has9=false,has21=false;
+ details.forEach(d=>{const rate=Number(val(d,'Percent')),amount=numOrNaN(childText(d,'TaxAmount'));if(rate===9&&amount!==null){vat9+=amount;has9=true}if(rate===21&&amount!==null){vat21+=amount;has21=true}});
+ parsed.vat9=has9?sumRound(vat9):null;parsed.vat21=has21?sumRound(vat21):null;
+ parsed.currency=direct(monetary||xml,'PayableAmount')?.getAttribute('currencyID')||'EUR';
+ const lines=all.filter(x=>x.localName==='InvoiceLine');
+ const itemsParsed=lines.map(l=>{
+  const item=find(l,'Item'),price=find(l,'Price'),taxCategory=item?find(item,'ClassifiedTaxCategory'):null;
+  const rate=taxCategory?numOrNaN(val(taxCategory,'Percent')):null;
+  const ean=item?val(find(item,'StandardItemIdentification')||item,'ID'):'';
+  return {ean,name:item?(val(item,'Name')||val(item,'Description')||'Ürün'):'Ürün',
+   qty:numOrNaN(childText(l,'InvoicedQuantity'))||0,
+   price:price?numOrNaN(val(price,'PriceAmount'))||0:0,
+   vatRate:[0,9,21].includes(rate)?rate:null};
+ }).filter(x=>x.qty>0);
+ return{items:itemsParsed,summary:parsed};
+}
+function numOrNaN(value){
+ if(value==null||String(value).trim()==='')return null;
+ const n=Number(String(value).trim().replace(',','.'));return Number.isFinite(n)?n:null;
+}
+function extractTotalsFromText(text){
+ const lines=String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const money='(-?\\d{1,3}(?:[. ]\\d{3})*(?:,\\d{2})|-?\\d+(?:[.,]\\d{2}))';
+ const result={};
+ function parseAmount(raw){
+  let s=String(raw).replace(/\s/g,'');
+  if(s.includes(',')&&s.includes('.'))s=s.lastIndexOf(',')>s.lastIndexOf('.')?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');
+  else if(s.includes(','))s=s.replace(',','.');
+  return Number(s);
+ }
+ const rules=[
+  ['gross',/(?:totaal te betalen|te betalen bedrag|total amount due|amount payable|factuurtotaal|factuur totaal|totaal incl(?:usief)?\.? btw|total incl(?:uding)? vat|genel toplam|ödenecek toplam)/i],
+  ['net',/(?:totaal excl(?:usief)?\.? btw|totaal zonder btw|subtotal excl(?:uding)? vat|subtotaal|ara toplam|netto bedrag)/i],
+  ['vat',/(?:totaal btw|btw totaal|total vat|total tax|toplam kdv|total btw)/i],
+  ['discount',/(?:korting totaal|total discount|indirim toplamı)/i],
+  ['vat9',/(?:btw[\s:]*(?:9\s*%|9,0\s*%)|(?:9\s*%)\s*btw)/i],
+  ['vat21',/(?:btw[\s:]*(?:21\s*%|21,0\s*%)|(?:21\s*%)\s*btw)/i]
+ ];
+ for(const line of lines){
+  for(const [key,matcher] of rules){
+   if(result[key]!=null||!matcher.test(line))continue;
+   // Extract the rightmost amount after the label; never infer missing data.
+   const suffix=line.slice(line.search(matcher)+line.match(matcher)[0].length);
+   const amounts=[...suffix.matchAll(new RegExp(money,'g'))].map(x=>x[1]);
+   if(amounts.length){const n=parseAmount(amounts[amounts.length-1]);if(Number.isFinite(n))result[key]=n}
+  }
+  if(!result.dueDate){const m=line.match(/(?:vervaldatum|due date|son ödeme tarihi)\s*:?\s*(\d{4}-\d{2}-\d{2})/i);if(m)result.dueDate=m[1]}
+  if(!result.iban){const m=line.match(/\b(?:NL\d{2}[A-Z]{4}\d{10})\b/i);if(m)result.iban=m[0]}
+ }
+ result.currency='EUR';
+ return result;
+}
 async function extractPdf(f){
  const pdf=await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs');pdf.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
  const document=await pdf.getDocument({data:await f.arrayBuffer()}).promise;let parts=[];
@@ -190,7 +260,7 @@ async function save(automatic=false,draft=false){
   docId='invfile-'+Date.now()+'-'+Math.random().toString(36).slice(2);
   try{await saveOriginal(docId,file)}catch(err){notify('Orijinal belge saklanamadı: '+err.message,true);return}
  }
- const rec={id:number,invoiceNo:number,supplier,branch,date,month:date.slice(0,7),items:items.map(x=>({ean:String(x.ean||''),name:String(x.name||''),qty:Number(x.qty),price:Number(x.price),product:-1})),
+ const rec={id:number,invoiceNo:number,supplier,branch,date,month:date.slice(0,7),items:items.map(x=>({ean:String(x.ean||''),name:String(x.name||''),qty:Number(x.qty),price:Number(x.price),vatRate:x.vatRate,product:-1})),invoiceSummary:{document:summaryInputs(),calculated:calculatedTotals()},
  source:file?.name||'taslak',documentName:file?.name||'',docId,rawText:$('raw').value,status:draft?'Taslak':'Onaylandı',approval:draft?'Ürün doğrulaması bekleniyor':automatic?'Metin dosyası otomatik':'Kullanıcı onayı'};
  try{localStorage.setItem(K,JSON.stringify([...existing,rec].slice(-150)))}catch(err){notify('Kaydedilemedi: '+err.message,true);return}
  saved=true;editingId=number;existingDocId=docId;$('approve').disabled=true;$('draft').disabled=true;
@@ -201,11 +271,13 @@ async function save(automatic=false,draft=false){
 }
 async function load(f){
  if(!f)return;if(f.size>10*1024*1024){notify('En fazla 10 MB dosya seçin.',true);return}
- if(busy)return;busy=true;file=f;items=[];saved=false;editingId=null;existingDocId=null;renderRows();originalPreview(f);$('review').classList.remove('hidden');$('feedback').classList.add('hidden');$('approve').disabled=false;
+ if(busy)return;busy=true;file=f;items=[];setDocumentSummary({currency:'EUR'});saved=false;editingId=null;existingDocId=null;renderRows();originalPreview(f);$('review').classList.remove('hidden');$('feedback').classList.add('hidden');$('approve').disabled=false;
  const ext=f.name.split('.').pop().toLowerCase();mode=['csv','txt','xml','ubl'].includes(ext)?'text':'scan';
  $('mode').textContent=mode==='text'?'Metin dosyası: otomatik':'PDF / Resim: onay gerekli';notify('Dosya okunuyor...');
  try{const t=mode==='text'?await f.text():ext==='pdf'?await extractPdf(f):await extractOcr(f);$('raw').value=t;
- if(ext==='csv')items=parseCSV(t);else if(['xml','ubl'].includes(ext))items=parseXml(t);else items=parseText(t);
+ if(ext==='csv'){items=parseCSV(t);setDocumentSummary(extractTotalsFromText(t))}
+ else if(['xml','ubl'].includes(ext)){const parsed=parseXml(t);items=parsed.items;setDocumentSummary(parsed.summary)}
+ else{items=parseText(t);setDocumentSummary(extractTotalsFromText(t))}
  renderRows();notify(items.length+' ürün satırı bulundu.'+(mode==='scan'?' Kontrol edip onaylayın.':' Geçerli bilgiler varsa otomatik kaydedilecek.'));
  if(mode==='text'&&canSave())await save(true);
  else if(mode==='text'){showMissing();notify('Metin dosyası okundu ama zorunlu bilgiler eksik. Bunları tamamlayabilir veya taslak kaydedebilirsin.',true);}
@@ -213,5 +285,6 @@ async function load(f){
  }catch(e){showMissing();notify('Belge okuma başarısız: '+e.message+'. Orijinal belgeyi Taslak Kaydet ile saklayabilirsin.',true)}
  finally{busy=false}
 }
-$('file').onchange=e=>load(e.target.files?.[0]);$('drop').ondragover=e=>{e.preventDefault();$('drop').classList.add('drag')};$('drop').ondragleave=()=>$('drop').classList.remove('drag');$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('drag');load(e.dataTransfer.files?.[0])};$('approve').onclick=()=>save(false);$('draft').onclick=()=>save(false,true);$('add').onclick=()=>{items.push({ean:'',name:'',qty:1,price:0});renderRows()};$('cancel').onclick=()=>{$('file').value='';$('review').classList.add('hidden');file=null;saved=false;editingId=null;existingDocId=null};$('branch').onchange=()=>{};$('supplier').onchange=()=>{};renderRows();
+$('file').onchange=e=>load(e.target.files?.[0]);$('drop').ondragover=e=>{e.preventDefault();$('drop').classList.add('drag')};$('drop').ondragleave=()=>$('drop').classList.remove('drag');$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('drag');load(e.dataTransfer.files?.[0])};$('approve').onclick=()=>save(false);$('draft').onclick=()=>save(false,true);$('add').onclick=()=>{items.push({ean:'',name:'',qty:1,price:0,vatRate:null});renderRows()};$('cancel').onclick=()=>{$('file').value='';$('review').classList.add('hidden');file=null;saved=false;editingId=null;existingDocId=null};$('branch').onchange=()=>{};$('supplier').onchange=()=>{};['docNet','docDiscount','docVat','docVat9','docVat21','docGross','dueDate','iban','currency'].forEach(id=>$(id).addEventListener('input',updateSummary));
+renderRows();
 </script></body></html>
