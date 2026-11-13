@@ -1,5 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE TABLE IF NOT EXISTS branches (id serial PRIMARY KEY, name text NOT NULL UNIQUE);
+CREATE TABLE IF NOT EXISTS branches (id serial PRIMARY KEY, name text NOT NULL UNIQUE, address text);
 CREATE TABLE IF NOT EXISTS users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text NOT NULL UNIQUE, name text NOT NULL,
