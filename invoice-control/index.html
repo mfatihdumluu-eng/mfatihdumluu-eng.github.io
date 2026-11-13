@@ -101,6 +101,86 @@ function discrepancyPage(){
  [...byBranch.entries()].sort((a,b)=>a[0]-b[0]).map(([id,x])=>'<tr><td>'+esc(branches[id])+'</td><td>'+euro(x.price)+'</td><td>'+euro(x.price-base)+'</td></tr>').join(''))+'</tbody></table></div></div>'
 }
 
+
+const SUPPLIER_META_KEY='invoice-control-supplier-metadata-v2';
+const ERROR_STATUS_KEY='invoice-control-findings-v2';
+const DRAFT_MAIL_KEY='invoice-control-email-drafts-v2';
+const supplierDemoMeta={
+  1:{address:'Örnek adres (gerçek adres girilmedi)',contact:'Firma temsilcisi belirtilmedi',email:'',companyEmail:'',website:'',phone:''},
+  2:{address:'Örnek adres (gerçek adres girilmedi)',contact:'Firma temsilcisi belirtilmedi',email:'',companyEmail:'',website:'',phone:''},
+  3:{address:'Örnek adres (gerçek adres girilmedi)',contact:'Firma temsilcisi belirtilmedi',email:'',companyEmail:'',website:'',phone:''},
+  4:{address:'Örnek adres (gerçek adres girilmedi)',contact:'Firma temsilcisi belirtilmedi',email:'',companyEmail:'',website:'',phone:''},
+  5:{address:'Örnek adres (gerçek adres girilmedi)',contact:'Firma temsilcisi belirtilmedi',email:'',companyEmail:'',website:'',phone:''},
+  6:{address:'Örnek adres (gerçek adres girilmedi)',contact:'Firma temsilcisi belirtilmedi',email:'',companyEmail:'',website:'',phone:''}
+};
+function getJsonData(key,fallback){try{const d=JSON.parse(localStorage.getItem(key)||'null');return d&&typeof d==='object'?d:fallback}catch{return fallback}}
+function metaForSupplier(id){const s=suppliers.find(x=>x.id===Number(id));return {...(supplierDemoMeta[id]||{address:'Adres belirtilmedi',contact:'Sorumlu belirtilmedi',email:'',companyEmail:'',website:'',phone:''}),...(getJsonData(SUPPLIER_META_KEY,{})[id]||{}),name:s?.name||'Tedarikçi',initials:s?.initials||'TF',category:s?.category||'Tedarikçi'}}
+function saveSupplierMeta(id){
+ if(role==='branch')return;
+ const fields=['name','category','address','contact','email','companyEmail','phone','website'];
+ const d={};for(const key of fields){const input=document.getElementById('meta-'+key);d[key]=String(input?.value||'').trim().slice(0,key==='address'?240:160)}
+ if(!d.name||d.name.length<2){alert('Firma adı zorunlu.');return}
+ for(const key of ['email','companyEmail'])if(d[key]&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d[key])){alert('Geçersiz e-posta: '+key);return}
+ const data=getJsonData(SUPPLIER_META_KEY,{});data[id]=d;try{localStorage.setItem(SUPPLIER_META_KEY,JSON.stringify(data))}catch(e){alert('Tarayıcı kaydı yapılamadı.');return}
+ const s=suppliers.find(x=>x.id===Number(id));if(s){s.name=d.name;s.category=d.category||s.category;s.email=d.email}
+ render();alert('Tedarikçi kartı demo olarak bu tarayıcıda kaydedildi.')
+}
+function findingKey(supplier,ean,monthValue=month){return [monthValue,supplier,ean].join(':')}
+function getFindingStatus(supplier,ean){return getJsonData(ERROR_STATUS_KEY,{})[findingKey(supplier,ean)]||'İncelenecek'}
+function setFindingStatus(supplier,ean,status){if(role==='branch')return;const d=getJsonData(ERROR_STATUS_KEY,{});d[findingKey(supplier,ean)]=status;localStorage.setItem(ERROR_STATUS_KEY,JSON.stringify(d));render()}
+function visibleErrors(){return compare().filter(x=>role!=='branch'||x.items.some(y=>y.branch===branch))}
+function findingImpact(x){return role==='branch'?x.lines.filter(y=>y.branch===branch).reduce((v,y)=>v+Math.max(0,y.price-x.min)*y.qty,0):x.impact}
+function findingSeverity(x){const amount=findingImpact(x);return x.spread>=10||amount>=100?'Yüksek':x.spread>=5||amount>=25?'Orta':'Düşük'}
+function errorsPage(){
+ const all=visibleErrors();
+ const high=all.filter(x=>findingSeverity(x)==='Yüksek').length;
+ const total=all.reduce((v,x)=>v+findingImpact(x),0);
+ return head('Hatalar ve Kontrol Gerektiren Farklar','Öncelikli fiyat uyuşmazlıklarını incele, faturaları karşılaştır, gerekirse tedarikçiye yaz')+
+ '<div class="error-bar"><div class="row between"><div><b class="error-number">⚠ '+all.length+' kontrol gerektiren fark</b><p style="color:#94515b">Olası fazla faturalama ve fiyat farklılıkları. Bunlar doğrulanmış hata değildir.</p></div><button class="btn" onclick="go(\'alerts\')">Tüm Farkları Listele →</button></div></div>'+
+ '<div class="grid4">'+[['Kontrol Gerektiren',all.length],['Yüksek Öncelik',high],['Olası Toplam Fark',euro(total)],['İncelendi',all.filter(x=>getFindingStatus(x.supplier,x.ean)==='İncelendi').length]].map(([k,v])=>'<div class="card"><div class="tiny">'+esc(k)+'</div><h2 style="font-size:23px;margin-top:11px">'+v+'</h2></div>').join('')+'</div>'+
+ '<div class="card"><div class="panel-head"><h2>Hata / Uyarı Listesi</h2>'+badge(all.length+' tespit','red')+'</div>'+
+ (all.length?all.map(x=>'<div class="error-item"><div class="row between"><div><h3>'+esc(products[x.product]?.name||x.ean)+'</h3><div class="tiny">'+esc(supplierName(x.supplier))+' · '+esc(x.ean)+'</div></div><span class="error-label">'+esc(findingSeverity(x))+' öncelik</span></div>'+
+ '<div class="row between" style="margin-top:14px"><div class="tiny">En düşük: '+euro(x.min)+' · En yüksek: '+euro(x.max)+' · <b style="color:#bc3547">+'+x.spread.toFixed(1)+'%</b></div><strong class="error-value">'+euro(findingImpact(x))+'</strong></div>'+
+ '<div class="row" style="margin-top:13px">'+badge(getFindingStatus(x.supplier,x.ean),getFindingStatus(x.supplier,x.ean)==='İncelendi'?'green':'red')+
+ discrepancyAction(x.supplier,x.ean)+(role==='branch'?'':'<button class="btn white" onclick="showSupplier('+x.supplier+');supplierTab=\'differences\';render()">Tedarikçiyi Aç</button><button class="btn light" onclick="openSupplierMessage('+x.supplier+',\''+esc(x.ean)+'\')">Tedarikçiye Yaz ✉</button><button class="btn white" onclick="setFindingStatus('+x.supplier+',\''+esc(x.ean)+'\',\'İncelendi\')">İncelendi</button>')+'</div></div>').join(''):'<div class="empty">Seçilen ayda kontrol gerektiren fark yok.</div>')+'</div>';
+}
+let mailSupplierId=null,mailEan=null;
+function openSupplierMessage(id,ean=null){if(role==='branch')return;mailSupplierId=Number(id);mailEan=ean;page='supplierMessage';render();window.scrollTo(0,0)}
+function emailContent(id,ean){
+ const s=metaForSupplier(id),x=compare().find(x=>x.supplier===id&&(!ean||x.ean===ean)),ref=x?('Ürün: '+(products[x.product]?.name||x.ean)+' / EAN: '+x.ean+'\nEn düşük fiyat: '+euro(x.min)+'\nEn yüksek fiyat: '+euro(x.max)+'\nTeorik fark: '+euro(x.impact)+'\n'):'';
+ return 'Sayın '+(s.contact&&s.contact!=='Firma temsilcisi belirtilmedi'?s.contact:'yetkili')+',\n\n'+
+ 'Faturalarınızın aylık kontrolünde açıklama gerektiren fiyat farklılıkları tespit ettik.\n'+ref+
+ 'İlgili fiyat anlaşmalarını ve faturaları kontrol ederek varsa düzeltme/creditnota bilgisi paylaşabilir misiniz?\n\nTeşekkürler.\nSatın Alma / Fatura Kontrol';
+}
+function supplierMessagePage(){
+ if(role==='branch')return '<div class="note">Bu ekran yalnızca adminler içindir.</div>';
+ const id=mailSupplierId,s=metaForSupplier(id||supplierId),to=s.companyEmail||s.email;
+ return '<button class="back" onclick="showSupplier('+Number(id||supplierId)+')">← Firma Kartına Dön</button>'+
+ head('Tedarikçiye Düzeltme Mesajı','Firma bilgileri üzerinden e-posta taslağı hazırla; otomatik gönderim yapılmaz')+
+ '<div class="card"><div class="supplier-profile"><div class="supplier-identity"><div class="row"><div class="supplier-logo">'+esc(s.initials)+'</div><div><h2>'+esc(s.name)+'</h2><p>'+esc(s.category)+'</p></div></div><div class="supplier-details"><span>Şirket e-postası</span><strong>'+esc(to||'Henüz girilmedi')+'</strong></div><div class="supplier-details"><span>Sorumlu kişi</span><strong>'+esc(s.contact)+'</strong></div><div class="supplier-details"><span>Fiziki adres</span><strong>'+esc(s.address)+'</strong></div></div>'+
+ '<div><h2 style="margin-bottom:14px">İtiraz / Düzeltme Taslağı</h2><div class="supplier-form">'+
+ '<label class="full">Alıcı e-posta<input id="mail-to" type="email" value="'+esc(to||'')+'" placeholder="fatura@tedarikci.nl"></label>'+
+ '<label class="full">Konu<input id="mail-subject" value="'+esc('Fatura fiyat farkı incelemesi – '+(month==='2026-11'?'Kasım 2026':'Ekim 2026'))+'"></label>'+
+ '<label class="full">Mesaj<textarea id="mail-body">'+esc(emailContent(Number(id||supplierId),mailEan))+'</textarea></label>'+
+ '</div><div class="row" style="margin-top:14px"><button class="btn" onclick="saveMailDraft()">Taslağı Kaydet</button><button class="btn light" onclick="openMailClient()">E-posta Uygulamasında Aç ↗</button></div>'+
+ '<div class="info-note" style="margin-top:12px">Bu demo gerçek e-posta göndermez. Taslak yalnızca bu tarayıcıda saklanır. E-posta uygulaması açılması otomatik gönderim anlamına gelmez. Gerçek sistemde admin onayından sonra sunucu ile gönderilecektir.</div></div></div></div>'+
+ '<div class="card"><h2>Kaydedilen Taslaklar</h2>'+getMailDraftTable(id)+'</div>';
+}
+function mailInputs(){return{to:String(document.getElementById('mail-to')?.value||'').trim(),subject:String(document.getElementById('mail-subject')?.value||'').trim(),body:String(document.getElementById('mail-body')?.value||'').trim()}}
+function saveMailDraft(){if(role==='branch')return;const x=mailInputs();if(!x.subject||!x.body){alert('Konu ve mesaj zorunlu');return}const drafts=getJsonData(DRAFT_MAIL_KEY,[]);if(!Array.isArray(drafts))return;drafts.push({id:Date.now(),supplier:Number(mailSupplierId||supplierId),ean:mailEan||null,...x,created:new Date().toISOString()});localStorage.setItem(DRAFT_MAIL_KEY,JSON.stringify(drafts.slice(-100)));render();alert('Taslak kaydedildi. Henüz gönderilmedi.')}
+function openMailClient(){if(role==='branch')return;const x=mailInputs();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x.to)){alert('Önce geçerli şirket e-posta adresi girin.');return}if(!x.subject||!x.body){alert('Konu ve mesaj zorunlu');return}const href='mailto:'+encodeURIComponent(x.to)+'?subject='+encodeURIComponent(x.subject)+'&body='+encodeURIComponent(x.body);window.location.href=href}
+function getMailDraftTable(supplier){const drafts=getJsonData(DRAFT_MAIL_KEY,[]);const list=(Array.isArray(drafts)?drafts:[]).filter(x=>x.supplier===Number(supplier)).slice(-10).reverse();return list.length?'<div class="tablewrap"><table><thead><tr><th>Oluşturulma</th><th>Alıcı</th><th>Konu</th><th>Durum</th></tr></thead><tbody>'+list.map(x=>'<tr><td>'+esc(x.created?.slice(0,16)||'')+'</td><td>'+esc(x.to)+'</td><td>'+esc(x.subject)+'</td><td>'+badge('Taslak','orange')+'</td></tr>').join('')+'</tbody></table></div>':'<div class="empty">Henüz taslak oluşturulmadı.</div>'}
+function supplierProfile(s){
+ const m=metaForSupplier(s.id);
+ const summary='<div class="supplier-identity"><div class="row"><div class="supplier-logo">'+esc(s.initials)+'</div><div><h2>'+esc(m.name)+'</h2><p>'+esc(m.category)+'</p></div></div>'+
+ [['Fiziki adres',m.address],['Sorumlu kişi',m.contact],['Şirket e-postası',m.companyEmail||'Henüz girilmedi'],['İletişim e-postası',m.email||'Henüz girilmedi'],['Telefon',m.phone||'Belirtilmedi'],['Web sitesi',m.website||'Belirtilmedi']].map(([k,v])=>'<div class="supplier-details"><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></div>').join('')+
+ (role==='branch'?'<div class="note" style="margin-top:14px">İletişim bilgileri yalnızca görüntülenir.</div>':'<div class="row" style="margin-top:16px"><button class="btn" onclick="openSupplierMessage('+s.id+')">✉ Tedarikçiye Yaz</button></div>')+'</div>';
+ const fields=[['name','Firma / Marka Adı'],['category','Kategori'],['address','Fiziki Adres'],['contact','Sorumlu Kişi'],['companyEmail','Şirket E-postası'],['email','İletişim E-postası'],['phone','Telefon'],['website','Web Sitesi']];
+ const form=role==='branch'?'<div class="note">Kart bilgilerini yalnızca admin düzenleyebilir. Başka şubelerin fatura bilgileri burada gösterilmez.</div>':
+ '<div class="card"><h2>Firma Kartını Düzenle</h2><p>Bilgileri admin olarak güncelle. Bu demoda gerçek firma iletişim bilgileri girilmemiştir.</p><div class="supplier-form">'+fields.map(([key,label])=>'<label class="'+(key==='address'?'full':'')+'">'+label+'<input id="meta-'+key+'" value="'+esc(m[key]||'')+'" placeholder="'+esc(label)+'"></label>').join('')+'</div><button class="btn" style="margin-top:16px" onclick="saveSupplierMeta('+s.id+')">Kartı Kaydet</button></div>';
+ return '<div class="supplier-profile"><div>'+summary+'</div><div>'+form+'</div></div>'
+}
+
 function nav(){const items=[['dashboard','◫','Genel Bakış'],['branches','▦','Şubeler'],['finder','⌕','Akıllı Fatura Arama'],['suppliers','▦','Tedarikçiler'],['invoices','▤','Faturalar'],['products','⌕','Ürün Ara'],['compare','⇄','Şubeleri Karşılaştır'],['errors','⛔','Hatalar'],['alerts','⚠','Fiyat Farkları'],...(role==='branch'?[]:[['reports','▥','Raporlar']]),['upload','⇧','Fatura Yükle']];const admins=[['users','♙','Demo Kullanıcılar'],['settings','⚙','Ayarlar']];document.getElementById('nav').innerHTML=items.map(x=>'<button class="nav '+(page===x[0]?'active':'')+(x[0]==='errors'?' nav-alert':'')+'" data-route="'+x[0]+'"><span class="ico">'+x[1]+'</span>'+x[2]+'</button>').join('');document.getElementById('adminnav').innerHTML=admins.filter(x=>role!=='branch').map(x=>'<button class="nav '+(page===x[0]?'active':'')+'" data-route="'+x[0]+'"><span class="ico">'+x[1]+'</span>'+x[2]+'</button>').join('');document.querySelectorAll('[data-route]').forEach(el=>el.onclick=()=>go(el.dataset.route))}
 function go(p){page=p;search='';document.getElementById('sidebar').classList.remove('open');render();window.scrollTo(0,0)}
 function head(name,sub,right=''){return '<div class="head"><div><div class="eyebrow">INVOICE CONTROL / '+esc(name.toUpperCase())+'</div><h1>'+esc(name)+'</h1><p>'+sub+'</p></div>'+right+'</div>'}
@@ -232,9 +312,9 @@ function branchesPage(){
 function render(){
 if(role==='branch'){finderBranch=branch;window.branchFilter='all';if(['users','settings','reports'].includes(page))page='finder'}
 nav();
-const titles={errors:'Hatalar',branches:'Şubeler',discrepancy:'Fiyat Farkı Detayı',finder:'Fatura Sorgula',supplierDetail:'Tedarikçi Detayı',invoiceDetail:'Fatura Detayı',dashboard:'Genel Bakış',suppliers:'Tedarikçiler',invoices:'Faturalar',products:'Ürün Ara',compare:'Şubeleri Karşılaştır',alerts:'Fiyat Farkları',reports:'Raporlar',users:'Demo Kullanıcılar',upload:'Fatura Yükle',settings:'Ayarlar'};
+const titles={supplierMessage:'Tedarikçiye Yaz',errors:'Hatalar',branches:'Şubeler',discrepancy:'Fiyat Farkı Detayı',finder:'Fatura Sorgula',supplierDetail:'Tedarikçi Detayı',invoiceDetail:'Fatura Detayı',dashboard:'Genel Bakış',suppliers:'Tedarikçiler',invoices:'Faturalar',products:'Ürün Ara',compare:'Şubeleri Karşılaştır',alerts:'Fiyat Farkları',reports:'Raporlar',users:'Demo Kullanıcılar',upload:'Fatura Yükle',settings:'Ayarlar'};
 document.getElementById('breadcrumb').textContent=titles[page]||'Genel Bakış';
-const pages={errors:errorsPage,discrepancy:discrepancyPage,branches:branchesPage,finder:finderPage,dashboard:dashboards,suppliers:supplierPage,supplierDetail,invoices:invoicePage,invoiceDetail,products:productsPage,compare:comparePage,alerts:alertsPage,reports,users,upload:uploadPage,settings};
+const pages={supplierMessage:supplierMessagePage,errors:errorsPage,discrepancy:discrepancyPage,branches:branchesPage,finder:finderPage,dashboard:dashboards,suppliers:supplierPage,supplierDetail,invoices:invoicePage,invoiceDetail,products:productsPage,compare:comparePage,alerts:alertsPage,reports,users,upload:uploadPage,settings};
 document.getElementById('root').innerHTML=(pages[page]||finderPage)()+'<div class="footer">Invoice Control · Türkçe Demo · Bu ekrandaki rol seçimi gerçek güvenlik sağlamaz. Gerçek sistemde izinler API üzerinden uygulanır.</div>'
 }
 document.getElementById('role').onchange=e=>{const chosen=e.target.value;role=chosen.startsWith('branch-')?'branch':chosen;if(role==='branch')branch=Number(chosen.slice(7));finderBranch=branch;window.branchFilter='all';discrepancySelection=null;finderSelectedInvoice=null;page='finder';render()};document.getElementById('month').onchange=e=>{month=e.target.value;render()};render();
