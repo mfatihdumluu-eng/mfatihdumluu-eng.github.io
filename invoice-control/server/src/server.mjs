@@ -42,7 +42,7 @@ app.post('/api/login',{config:{rateLimit:{max:10,timeWindow:'5 minutes'}}},async
 });
 app.post('/api/logout',async(req,reply)=>{await db.query('DELETE FROM sessions WHERE token_hash=$1',[req.tokenHash]);reply.clearCookie('invoice_sid',{path:'/'});return{ok:true}});
 app.get('/api/me',async(req)=>({user:req.user}));
-app.get('/api/branches',async(req)=>{const p=isAdmin(req.user)?[]:[req.user.branch_id];const q=isAdmin(req.user)?'SELECT id,name FROM branches ORDER BY id':'SELECT id,name FROM branches WHERE id=$1';return{items:(await db.query(q,p)).rows}});
+app.get('/api/branches',async(req)=>{const p=isAdmin(req.user)?[]:[req.user.branch_id];const q=isAdmin(req.user)?'SELECT id,name,address FROM branches ORDER BY id':'SELECT id,name,address FROM branches WHERE id=$1';return{items:(await db.query(q,p)).rows}});
 app.get('/api/suppliers',async()=>({items:(await db.query('SELECT id,name,kvk,vat_id,email,active FROM suppliers ORDER BY name')).rows}));
 app.post('/api/suppliers',async(req,reply)=>{
  if(!isAdmin(req.user))return deny(reply,403,'Admin gerekli');
