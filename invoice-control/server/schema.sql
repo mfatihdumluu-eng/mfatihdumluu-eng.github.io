@@ -108,3 +108,25 @@ CREATE TABLE IF NOT EXISTS service_integrations (
   updated_by uuid REFERENCES users(id),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Mindee OCR review records are persisted independently of price-comparison invoices.
+-- A record can only be created after the operator explicitly clicks Save.
+CREATE TABLE IF NOT EXISTS mindee_invoice_reviews (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ created_by uuid NOT NULL REFERENCES users(id),
+ supplier_name text NOT NULL,
+ invoice_number text NOT NULL,
+ invoice_date date,
+ due_date date,
+ currency text NOT NULL DEFAULT 'EUR',
+ total_net numeric(14,2),
+ total_tax numeric(14,2),
+ total_gross numeric(14,2),
+ discount numeric(14,2),
+ items jsonb NOT NULL DEFAULT '[]'::jsonb,
+ warnings jsonb NOT NULL DEFAULT '[]'::jsonb,
+ status text NOT NULL DEFAULT 'review' CHECK(status IN('review','approved')),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_mindee_review_created ON mindee_invoice_reviews(created_at DESC);
