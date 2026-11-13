@@ -1,0 +1,22 @@
+name: Invoice Control browser UI checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'invoice-control/index.html'
+      - 'invoice-control/ui-check.cjs'
+      - '.github/workflows/invoice-ui-check.yml'
+  workflow_dispatch:
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install isolated DOM test dependency
+        working-directory: invoice-control
+        run: npm install --no-save --no-package-lock jsdom@26
+      - name: Run DOM and navigation smoke test
+        run: node invoice-control/ui-check.cjs
