@@ -39,7 +39,7 @@
 .info-note{padding:11px;border:1px solid #e1e5f0;background:#fafbfe;border-radius:9px;color:#66758e;font-size:12px}
 @media(max-width:800px){.supplier-profile{grid-template-columns:1fr}.supplier-form{grid-template-columns:1fr}.supplier-form .full,.supplier-form textarea{grid-column:auto}.supplier-details{grid-template-columns:100px 1fr}}
 </style></head><body>
-<div class="layout"><aside class="side" id="sidebar"><div class="logo"><div class="mark">✓</div>Invoice Control</div><div class="navhead">ÇALIŞMA ALANI</div><nav id="nav"></nav><div class="navhead">YÖNETİM</div><nav id="adminnav"></nav><div class="sidefoot"><div class="row"><div class="avatar">SA</div><div><strong class="tiny" style="color:#344256">Demo yönetici</strong><div class="tiny">Örnek test ortamı</div></div></div></div></aside><div class="main"><header class="top"><div class="row"><button class="btn white mobile-menu" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><span class="topname" id="breadcrumb">Dashboard</span></div><div class="topright"><select class="select" id="role"><option value="system">Sistem Yöneticisi</option><option value="admin">Admin</option><option value="branch-0">Şube 1</option><option value="branch-1">Şube 2</option><option value="branch-2">Şube 3</option><option value="branch-3">Şube 4</option><option value="branch-4">Şube 5</option><option value="branch-5">Şube 6</option><option value="branch-6">Şube 7</option><option value="branch-7">Şube 8</option><option value="branch-8">Şube 9</option></select><select class="select" id="month"><option value="2026-11">Kas 2026</option><option value="2026-10">Eki 2026</option></select><span class="chip">● DEMO</span></div></header><main class="work" id="root"></main></div></div>
+<div class="layout"><aside class="side" id="sidebar"><div class="logo"><div class="mark">✓</div>Invoice Control</div><div class="navhead">ÇALIŞMA ALANI</div><nav id="nav"></nav><div class="navhead">YÖNETİM</div><nav id="adminnav"></nav><div class="sidefoot"><div class="row"><div class="avatar">SA</div><div><strong class="tiny" style="color:#344256">Demo yönetici</strong><div class="tiny">Örnek test ortamı</div></div></div></div></aside><div class="main"><header class="top"><div class="row"><button class="btn white mobile-menu" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><span class="topname" id="breadcrumb">Dashboard</span></div><div class="topright"><button id="top-errors" class="btn" style="background:#c9394f" onclick="errorSupplierFilter='all';go('errors')">⛔ Hatalar</button><select class="select" id="role"><option value="system">Sistem Yöneticisi</option><option value="admin">Admin</option><option value="branch-0">Şube 1</option><option value="branch-1">Şube 2</option><option value="branch-2">Şube 3</option><option value="branch-3">Şube 4</option><option value="branch-4">Şube 5</option><option value="branch-5">Şube 6</option><option value="branch-6">Şube 7</option><option value="branch-7">Şube 8</option><option value="branch-8">Şube 9</option></select><select class="select" id="month"><option value="2026-11">Kas 2026</option><option value="2026-10">Eki 2026</option></select><span class="chip">● DEMO</span></div></header><main class="work" id="root"></main></div></div>
 <script>
 const branches=['Dordrecht – Wielwijk','Dordrecht – Merwedepolder Oost','Schiedam','Utrecht','Breda','Bergen op Zoom','Gorinchem','Tilburg','Eindhoven'];
 const branchAddresses=['Admiraalsplein 85-87, 3317 BC Dordrecht','Rivierenplein 20, 3313 HD Dordrecht',"'s-Gravelandseweg 668, 3119 NA Schiedam",'Van Heuven Goedhartlaan 77A, 3527 CG Utrecht','Charleroistraat 172, 4826 LP Breda','Piusplein 12 (Kamperfoeliestraat 50), 4621 EA Bergen op Zoom','Piazza Center 96, 4204 BT Gorinchem','Wilhelminapark, 5041 ED Tilburg','Adres henüz belirtilmedi'];
@@ -118,7 +118,7 @@ function metaForSupplier(id){const s=suppliers.find(x=>x.id===Number(id));return
 function saveSupplierMeta(id){
  if(role==='branch')return;
  const fields=['name','category','address','contact','email','companyEmail','phone','website'];
- const d={};for(const key of fields){const input=document.getElementById('meta-'+key);d[key]=String(input?.value||'').trim().slice(0,key==='address'?240:160)}
+ const d={...(getJsonData(SUPPLIER_META_KEY,{})[id]||{})};for(const key of fields){const input=document.getElementById('meta-'+key);d[key]=String(input?.value||'').trim().slice(0,key==='address'?240:160)}
  if(!d.name||d.name.length<2){alert('Firma adı zorunlu.');return}
  for(const key of ['email','companyEmail'])if(d[key]&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d[key])){alert('Geçersiz e-posta: '+key);return}
  const data=getJsonData(SUPPLIER_META_KEY,{});data[id]=d;try{localStorage.setItem(SUPPLIER_META_KEY,JSON.stringify(data))}catch(e){alert('Tarayıcı kaydı yapılamadı.');return}
@@ -158,7 +158,7 @@ function supplierMessagePage(){
  const id=mailSupplierId,s=metaForSupplier(id||supplierId),to=s.companyEmail||s.email;
  return '<button class="back" onclick="showSupplier('+Number(id||supplierId)+')">← Firma Kartına Dön</button>'+
  head('Tedarikçiye Düzeltme Mesajı','Firma bilgileri üzerinden e-posta taslağı hazırla; otomatik gönderim yapılmaz')+
- '<div class="card"><div class="supplier-profile"><div class="supplier-identity"><div class="row"><div class="supplier-logo">'+esc(s.initials)+'</div><div><h2>'+esc(s.name)+'</h2><p>'+esc(s.category)+'</p></div></div><div class="supplier-details"><span>Şirket e-postası</span><strong>'+esc(to||'Henüz girilmedi')+'</strong></div><div class="supplier-details"><span>Sorumlu kişi</span><strong>'+esc(s.contact)+'</strong></div><div class="supplier-details"><span>Fiziki adres</span><strong>'+esc(s.address)+'</strong></div></div>'+
+ '<div class="card"><div class="supplier-profile"><div class="supplier-identity"><div class="row"><div class="supplier-logo">'+logoForSupplier(s.id,s.initials)+'</div><div><h2>'+esc(s.name)+'</h2><p>'+esc(s.category)+'</p></div></div><div class="supplier-details"><span>Şirket e-postası</span><strong>'+esc(to||'Henüz girilmedi')+'</strong></div><div class="supplier-details"><span>Sorumlu kişi</span><strong>'+esc(s.contact)+'</strong></div><div class="supplier-details"><span>Fiziki adres</span><strong>'+esc(s.address)+'</strong></div></div>'+
  '<div><h2 style="margin-bottom:14px">İtiraz / Düzeltme Taslağı</h2><div class="supplier-form">'+
  '<label class="full">Alıcı e-posta<input id="mail-to" type="email" value="'+esc(to||'')+'" placeholder="fatura@tedarikci.nl"></label>'+
  '<label class="full">Konu<input id="mail-subject" value="'+esc('Fatura fiyat farkı incelemesi – '+(month==='2026-11'?'Kasım 2026':'Ekim 2026'))+'"></label>'+
@@ -171,6 +171,20 @@ function mailInputs(){return{to:String(document.getElementById('mail-to')?.value
 function saveMailDraft(){if(role==='branch')return;const x=mailInputs();if(!x.subject||!x.body){alert('Konu ve mesaj zorunlu');return}const drafts=getJsonData(DRAFT_MAIL_KEY,[]);if(!Array.isArray(drafts))return;drafts.push({id:Date.now(),supplier:Number(mailSupplierId||supplierId),ean:mailEan||null,...x,created:new Date().toISOString()});localStorage.setItem(DRAFT_MAIL_KEY,JSON.stringify(drafts.slice(-100)));render();alert('Taslak kaydedildi. Henüz gönderilmedi.')}
 function openMailClient(){if(role==='branch')return;const x=mailInputs();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x.to)){alert('Önce geçerli şirket e-posta adresi girin.');return}if(!x.subject||!x.body){alert('Konu ve mesaj zorunlu');return}const href='mailto:'+encodeURIComponent(x.to)+'?subject='+encodeURIComponent(x.subject)+'&body='+encodeURIComponent(x.body);window.location.href=href}
 function getMailDraftTable(supplier){const drafts=getJsonData(DRAFT_MAIL_KEY,[]);const list=(Array.isArray(drafts)?drafts:[]).filter(x=>x.supplier===Number(supplier)).slice(-10).reverse();return list.length?'<div class="tablewrap"><table><thead><tr><th>Oluşturulma</th><th>Alıcı</th><th>Konu</th><th>Durum</th></tr></thead><tbody>'+list.map(x=>'<tr><td>'+esc(x.created?.slice(0,16)||'')+'</td><td>'+esc(x.to)+'</td><td>'+esc(x.subject)+'</td><td>'+badge('Taslak','orange')+'</td></tr>').join('')+'</tbody></table></div>':'<div class="empty">Henüz taslak oluşturulmadı.</div>'}
+
+function logoForSupplier(id,initials){
+ const image=getJsonData(SUPPLIER_META_KEY,{})[id]?.logoData;
+ if(typeof image==='string'&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image))return '<img src="'+image+'" alt="'+esc(initials)+' firma logosu" style="width:100%;height:100%;object-fit:contain;border-radius:11px">';
+ return esc(initials);
+}
+function saveSupplierLogo(id,file){
+ if(role==='branch'||!file)return;
+ if(file.size>200000||!['image/png','image/jpeg','image/webp'].includes(file.type)){alert('PNG, JPG veya WebP formatında en fazla 200 KB dosya yükleyin.');return}
+ const reader=new FileReader();
+ reader.onload=()=>{const data=getJsonData(SUPPLIER_META_KEY,{});data[id]={...(data[id]||{}),logoData:String(reader.result)};try{localStorage.setItem(SUPPLIER_META_KEY,JSON.stringify(data));render()}catch{alert('Logo kaydedilemedi; daha küçük bir dosya deneyin.')}};
+ reader.readAsDataURL(file);
+}
+
 function supplierProfile(s){
  const m=metaForSupplier(s.id);
  const summary='<div class="supplier-identity"><div class="row"><div class="supplier-logo">'+esc(s.initials)+'</div><div><h2>'+esc(m.name)+'</h2><p>'+esc(m.category)+'</p></div></div>'+
@@ -178,7 +192,7 @@ function supplierProfile(s){
  (role==='branch'?'<div class="note" style="margin-top:14px">İletişim bilgileri yalnızca görüntülenir.</div>':'<div class="row" style="margin-top:16px"><button class="btn" onclick="openSupplierMessage('+s.id+')">✉ Tedarikçiye Yaz</button></div>')+'</div>';
  const fields=[['name','Firma / Marka Adı'],['category','Kategori'],['address','Fiziki Adres'],['contact','Sorumlu Kişi'],['companyEmail','Şirket E-postası'],['email','İletişim E-postası'],['phone','Telefon'],['website','Web Sitesi']];
  const form=role==='branch'?'<div class="note">Kart bilgilerini yalnızca admin düzenleyebilir. Başka şubelerin fatura bilgileri burada gösterilmez.</div>':
- '<div class="card"><h2>Firma Kartını Düzenle</h2><p>Bilgileri admin olarak güncelle. Bu demoda gerçek firma iletişim bilgileri girilmemiştir.</p><div class="supplier-form">'+fields.map(([key,label])=>'<label class="'+(key==='address'?'full':'')+'">'+label+'<input id="meta-'+key+'" value="'+esc(m[key]||'')+'" placeholder="'+esc(label)+'"></label>').join('')+'</div><button class="btn" style="margin-top:16px" onclick="saveSupplierMeta('+s.id+')">Kartı Kaydet</button></div>';
+ '<div class="card"><h2>Firma Kartını Düzenle</h2><p>Bilgileri admin olarak güncelle. Bu demoda gerçek firma iletişim bilgileri girilmemiştir.</p><label class="field" style="display:block;margin-bottom:13px">Firma / Marka Logosu (PNG, JPG, WebP, en fazla 200 KB)<input type="file" accept="image/png,image/jpeg,image/webp" style="display:block;margin-top:7px;font-size:12px" onchange="saveSupplierLogo('+s.id+',this.files?.[0])"></label><div class="supplier-form">'+fields.map(([key,label])=>'<label class="'+(key==='address'?'full':'')+'">'+label+'<input id="meta-'+key+'" value="'+esc(m[key]||'')+'" placeholder="'+esc(label)+'"></label>').join('')+'</div><button class="btn" style="margin-top:16px" onclick="saveSupplierMeta('+s.id+')">Kartı Kaydet</button></div>';
  return '<div class="supplier-profile"><div>'+summary+'</div><div>'+form+'</div></div>'
 }
 
@@ -187,7 +201,7 @@ function go(p){page=p;if(p==='errors'&&errorSupplierFilter===undefined)errorSupp
 function head(name,sub,right=''){return '<div class="head"><div><div class="eyebrow">INVOICE CONTROL / '+esc(name.toUpperCase())+'</div><h1>'+esc(name)+'</h1><p>'+sub+'</p></div>'+right+'</div>'}
 function supplierCard(s){
  const ii=invoiceList().filter(i=>i.supplier===s.id),meta=metaForSupplier(s.id),total=ii.reduce((sum,i)=>sum+invoiceTotal(i),0),issues=visibleErrors().filter(x=>x.supplier===s.id).length;
- return '<button class="card supplier-card" onclick="showSupplier('+s.id+')"><div class="row between"><div class="supplier-icon">'+esc(s.initials)+'</div>'+badge(issues+' kontrol uyarısı',issues?'red':'green')+'</div>'+
+ return '<button class="card supplier-card" onclick="showSupplier('+s.id+')"><div class="row between"><div class="supplier-icon">'+logoForSupplier(s.id,s.initials)+'</div>'+badge(issues+' kontrol uyarısı',issues?'red':'green')+'</div>'+
  '<div class="cardtitle" style="margin-top:18px">'+esc(meta.name)+'</div><p>'+esc(meta.category)+'</p><div class="tiny" style="margin-top:7px">Sorumlu: '+esc(meta.contact)+'</div>'+
  '<div class="row between" style="margin-top:15px"><span class="tiny">'+ii.length+' fatura</span><strong style="font-size:12px">'+euro(total)+'</strong></div></button>'
 }
@@ -335,7 +349,7 @@ function render(){
 if(role==='branch'){finderBranch=branch;window.branchFilter='all';if(['users','settings','reports'].includes(page))page='finder'}
 nav();
 const titles={supplierMessage:'Tedarikçiye Yaz',errors:'Hatalar',branches:'Şubeler',discrepancy:'Fiyat Farkı Detayı',finder:'Fatura Sorgula',supplierDetail:'Tedarikçi Detayı',invoiceDetail:'Fatura Detayı',dashboard:'Genel Bakış',suppliers:'Tedarikçiler',invoices:'Faturalar',products:'Ürün Ara',compare:'Şubeleri Karşılaştır',alerts:'Fiyat Farkları',reports:'Raporlar',users:'Demo Kullanıcılar',upload:'Fatura Yükle',settings:'Ayarlar'};
-document.getElementById('breadcrumb').textContent=titles[page]||'Genel Bakış';
+document.getElementById('breadcrumb').textContent=titles[page]||'Genel Bakış';const errBtn=document.getElementById('top-errors');if(errBtn)errBtn.textContent='⛔ Hatalar ('+visibleErrors().length+')';
 const pages={supplierMessage:supplierMessagePage,errors:errorsPage,discrepancy:discrepancyPage,branches:branchesPage,finder:finderPage,dashboard:dashboards,suppliers:supplierPage,supplierDetail,invoices:invoicePage,invoiceDetail,products:productsPage,compare:comparePage,alerts:alertsPage,reports,users,upload:uploadPage,settings};
 document.getElementById('root').innerHTML=(pages[page]||finderPage)()+'<div class="footer">Invoice Control · Türkçe Demo · Bu ekrandaki rol seçimi gerçek güvenlik sağlamaz. Gerçek sistemde izinler API üzerinden uygulanır.</div>'
 }
