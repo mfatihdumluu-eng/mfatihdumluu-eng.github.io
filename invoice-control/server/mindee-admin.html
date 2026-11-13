@@ -5,13 +5,11 @@
 <div id="status" class="pill"><span class="dot"></span><span id="statusText">Bağlantı kontrol ediliyor…</span></div><p id="checkedAt" class="small"></p>
 <div class="notice" id="message">Bağlantı durumu Mindee V2 üzerinden doğrulanır. Yeşil yalnızca Mindee API başarılı cevap verdiğinde gösterilir.</div>
 <label class="field">Mindee API Anahtarı (app.mindee.com)
-<input type="password" id="key" autocomplete="new-password" placeholder="md_••••••••••" spellcheck="false">
+<input type="password" id="key" autocomplete="new-password" placeholder="Kaydedilmiş anahtar varsa boş bırak (md_...)" spellcheck="false"><span class="small" id="keyState">Kayıtlı anahtar kontrol ediliyor…</span>
 </label>
-<label class="field">Model ID (isteğe bağlı, sonraki fatura çıkarımı için)
-<input type="text" id="model" maxlength="120" placeholder="Mindee model kimliği" autocomplete="off" spellcheck="false">
-</label>
-<div class="actions"><button type="button" class="btn" id="save">Anahtarı Kaydet ve Bağlantıyı Test Et</button><button type="button" class="btn secondary" id="check">Bağlantıyı Yeniden Kontrol Et</button><button type="button" class="btn danger" id="remove">Bağlantıyı Kaldır</button></div>
-<div class="section"><h2>Fatura Okuma</h2><p>API anahtarını ve <b>Invoice Model ID</b> kaydettikten sonra Mindee ile PDF/fotoğrafı oku.</p><a class="btn" href="/admin/invoice-reader" style="display:inline-block;text-decoration:none">Mindee ile Fatura Oku →</a></div><div class="section"><h2>Bağlantı Açıklaması</h2><p><b>Yeşil:</b> Mindee V2 anahtar doğrulaması başarılı. <b>Kırmızı:</b> geçersiz anahtar, erişim hatası, kopuk sunucu veya kontrol edilemeyen bağlantı.</p><p>Bağlantı doğrulandıktan ve bir Invoice Model ID girildikten sonra yukarıdaki <b>Mindee ile Fatura Oku</b> ekranından PDF/fotoğraf gönderebilirsin. Sonuçlar kaydedilmeden önce elle kontrol edilir.</p><p>API anahtarını <a href="https://app.mindee.com/" target="_blank" rel="noopener noreferrer">app.mindee.com</a> hesabındaki API Keys bölümünden alabilirsin. Bu anahtarı GitHub'a veya herkese açık bir sayfaya yazma.</p><div class="small" id="serverConfig"></div></div>
+<label class="field">Fatura okuma modeli <select id="modelSelect" style="padding:13px;border:1px solid #d7e0ec;border-radius:9px;background:white;width:100%;color:#25334c"><option value="">— Mindee modellerini getir —</option></select><span class="small" id="modelMessage">Mindee hesabındaki modeller listelenir. Fatura için uygun Extraction modelini seç.</span></label><label class="field">Model ID (listede yoksa elle gir)<input type="text" id="model" maxlength="120" placeholder="Mindee model kimliği" autocomplete="off" spellcheck="false"></label>
+<div class="actions"><button type="button" class="btn" id="save">Anahtarı Kaydet ve Bağlantıyı Test Et</button><button type="button" class="btn secondary" id="check">Bağlantıyı Yeniden Kontrol Et</button><button type="button" class="btn secondary" id="loadModels">Modelleri Getir</button><button type="button" class="btn danger" id="remove">Bağlantıyı Kaldır</button></div>
+<div class="section"><h2>Fatura Okuma</h2><p>API anahtarını <b>bir kez</b> kaydet. Modeli seç ve değişiklikleri kaydet. Sayfayı yenileyince anahtar tekrar istenmez.</p><a href="/admin/invoices" style="margin-right:15px">Kaydedilen Faturalar</a><a class="btn" href="/admin/invoice-reader" style="display:inline-block;text-decoration:none">Mindee ile Fatura Oku →</a></div><div class="section"><h2>Bağlantı Açıklaması</h2><p><b>Yeşil:</b> Mindee V2 anahtar doğrulaması başarılı. <b>Kırmızı:</b> geçersiz anahtar, erişim hatası, kopuk sunucu veya kontrol edilemeyen bağlantı.</p><p>Bağlantı doğrulandıktan ve bir Invoice Model ID girildikten sonra yukarıdaki <b>Mindee ile Fatura Oku</b> ekranından PDF/fotoğraf gönderebilirsin. Sonuçlar kaydedilmeden önce elle kontrol edilir.</p><p>API anahtarını <a href="https://app.mindee.com/" target="_blank" rel="noopener noreferrer">app.mindee.com</a> hesabındaki API Keys bölümünden alabilirsin. Bu anahtarı GitHub'a veya herkese açık bir sayfaya yazma.</p><div class="small" id="serverConfig"></div></div>
 </div></main><script>
 const $=id=>document.getElementById(id),base='/api/admin/mindee';
 function show(state,msg='',time='',model=''){
@@ -19,9 +17,13 @@ function show(state,msg='',time='',model=''){
  $('statusText').textContent=connected?'BAĞLI — YEŞİL':'BAĞLANTI YOK — KIRMIZI';
  $('message').className='notice'+(!connected?' error':'');$('message').textContent=msg|| (connected?'Mindee API doğrulandı.':'Mindee bağlantısı yok veya doğrulanamadı.');
  $('checkedAt').textContent=time?'Son kontrol: '+new Date(time).toLocaleString('tr-TR'):'Henüz başarılı doğrulama yok.';
- if(model!==undefined)$('model').value=model||'';
+ if(model!==undefined){$('model').value=model||'';syncModelSelection(model||'')}
 }
-function loading(on){for(const id of ['save','check','remove'])$(id).disabled=on}
+function loading(on){for(const id of ['save','check','remove','loadModels'])$(id).disabled=on}
+function syncModelSelection(id){const sel=$('modelSelect');if([...sel.options].some(x=>x.value===id))sel.value=id;else sel.value=''}
+$('modelSelect').onchange=()=>{if($('modelSelect').value)$('model').value=$('modelSelect').value};
+async function loadModels(){try{const data=await request(base+'/models');const sel=$('modelSelect');sel.innerHTML='<option value="">— Model seç —</option>';for(const item of data.items||[]){const opt=document.createElement('option');opt.value=item.id;opt.textContent=item.name+' ('+item.id+')';sel.append(opt)}$('modelMessage').textContent=(data.items||[]).length+' model bulundu. Fatura çıkarımı için Extraction modelini seç.';if((data.items||[]).length===1&&!$('model').value)$('model').value=data.items[0].id;syncModelSelection($('model').value)}catch(e){$('modelMessage').textContent='Model listesi alınamadı: '+e.message}}
+$('loadModels').onclick=loadModels;
 async function request(url,method='GET',data){
  const resp=await fetch(url,{method,credentials:'same-origin',cache:'no-store',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});
  const json=await resp.json().catch(()=>({error:'Sunucudan geçersiz yanıt alındı'}));
@@ -30,17 +32,17 @@ async function request(url,method='GET',data){
 }
 async function refresh(live=true){
  loading(true);
- try{const data=await request(base+'/status'+(live?'?check=1':''));show(data.status,data.message,data.checkedAt,data.modelId)}
+ try{const data=await request(base+'/status'+(live?'?check=1':''));show(data.status,data.message,data.checkedAt,data.modelId);$('keyState').textContent=data.configured?'✓ API anahtarı sunucuda kayıtlı. Yeniden girmen gerekmiyor.':'API anahtarı henüz eklenmedi.';if(data.configured)await loadModels()}
  catch(err){show('disconnected','Bağlantı kontrol edilemedi: '+err.message)}
  finally{loading(false)}
 }
 $('save').onclick=async()=>{
  const key=$('key').value.trim(),modelId=$('model').value.trim();
- if(!key){show('disconnected','Mindee API anahtarını girin.');return}
+ if(!key&&!$('keyState').textContent.includes('kayıtlı')){show('disconnected','API anahtarını ilk kurulum için gir.');return}
  loading(true);
  try{
   const response=await request(base+'/settings','POST',{apiKey:key,modelId});
-  $('key').value='';show(response.status,response.message,response.checkedAt,response.modelId)
+  $('key').value='';$('keyState').textContent='✓ API anahtarı sunucuda kayıtlı. Yeniden girmen gerekmiyor.';show(response.status,response.message,response.checkedAt,response.modelId);await loadModels()
  }catch(err){show('disconnected',err.message)}
  finally{loading(false)}
 };
@@ -48,7 +50,7 @@ $('check').onclick=()=>refresh(true);
 $('remove').onclick=async()=>{
  if(!confirm('Mindee API anahtarı ve bağlantısını kaldırmak istiyor musunuz?'))return;
  loading(true);
- try{await request(base+'/settings','DELETE');$('key').value='';show('disconnected','Mindee bağlantısı kaldırıldı.',null,'')}
+ try{await request(base+'/settings','DELETE');$('key').value='';$('keyState').textContent='API anahtarı henüz eklenmedi.';show('disconnected','Mindee bağlantısı kaldırıldı.',null,'')}
  catch(err){show('disconnected',err.message)}
  finally{loading(false)}
 };
