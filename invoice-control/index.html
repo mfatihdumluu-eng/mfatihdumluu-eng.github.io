@@ -329,7 +329,26 @@ return head('Faturalar',role==='branch'?'Yalnızca kendi şubenizin faturaları'
 '<div class="card"><div class="panel-head"><h2>Fatura Listesi</h2>'+badge(ii.length+' fatura','purple')+'</div><div class="filters"><input class="input" placeholder="⌕ Fatura, EAN veya ürün ara..." value="'+esc(search)+'" oninput="search=this.value;render()">'+(role==='branch'?badge(branches[branch],'purple'):'<select class="select" onchange="window.branchFilter=this.value;render()"><option value="all">Tüm Şubeler</option>'+branches.map((b,i)=>'<option value="'+i+'" '+(window.branchFilter==i?'selected':'')+'>'+esc(b)+'</option>').join('')+'</select>')+'</div>'+invoiceTable(ii)+'</div>'
 }
 let currentInvoice=null;function viewInvoice(id){currentInvoice=id;page='invoiceDetail';render();window.scrollTo(0,0)}
-function invoiceDetail(){let i=allInvoices().find(x=>x.id===currentInvoice);if(!i||role==='branch'&&i.branch!==branch)return '<div class="note">Geen toegang tot deze factuur.</div>';let detail=i.items.map(x=>{let rows=compare().filter(z=>z.supplier===i.supplier&&z.ean===x.ean),comparison=rows[0];return '<tr><td>'+esc(x.ean)+'</td><td><b>'+esc(products[x.product]?.name||'Onbekend')+'</b></td><td>'+x.qty+'</td><td>'+euro(x.price)+'</td><td>'+euro(x.qty*x.price)+'</td><td>'+(comparison?badge('Vergelijk: '+euro(comparison.min)+' – '+euro(comparison.max),'red'):badge('Geen verschil','green'))+'</td></tr>'}).join('');return '<button class="back" onclick="go(\'invoices\')">← Tüm Faturalar</button>'+head('Factuur '+i.id,'Leverancier: '+supplierName(i.supplier)+' · '+branches[i.branch]+' · '+i.date,'<button class="btn light" onclick="showSupplier('+i.supplier+')">Tedarikçiyi Aç →</button>')+'<div class="grid4">'+[['Tedarikçi',supplierName(i.supplier),'purple'],['Şube',branches[i.branch],'purple'],['Regels',i.items.length,'purple'],['KDV Hariç Toplam',euro(invoiceTotal(i)),'green']].map(x=>'<div class="card"><div class="tiny">'+x[0]+'</div><h2 style="margin-top:10px">'+esc(x[1])+'</h2></div>').join('')+'</div><div class="card"><h2 style="margin-bottom:14px">Fatura Kalemleri ve Aylık Karşılaştırma</h2><div class="tablewrap"><table><thead><tr><th>EAN</th><th>Product</th><th>Aantal</th><th>Birim Fiyat</th><th>Satır Toplamı</th><th>Referentie</th></tr></thead><tbody>'+detail+'</tbody></table></div><div class="note" style="margin-top:18px">Demo-inhoud. Geen originele PDF gekoppeld. Prijsverschillen worden niet automatisch als factuurfout beschouwd.</div></div>'}
+function invoiceDetail(){
+ const invoice=allInvoices().find(i=>i.id===currentInvoice);
+ if(!invoice||!branchCanRead(invoice.branch))return '<div class="note">Bu faturayı görüntüleme yetkiniz yok.</div>';
+ const detail=invoice.items.map(line=>{
+  const product=products[line.product]||products.find(p=>p.ean===line.ean),ref=compare().find(x=>x.supplier===invoice.supplier&&x.ean===line.ean);
+  const name=product?.name||line.name||'Tanımsız ürün';
+  return '<tr><td>'+esc(line.ean)+'</td><td><button class="product-tap" onclick="openProductCard(\''+esc(line.ean)+'\',\''+esc(invoice.id)+'\')">'+esc(name)+' ↗</button></td><td>'+line.qty+'</td><td>'+euro(line.price)+'</td><td>'+euro(line.qty*line.price)+'</td><td>'+(ref?badge('En düşük: '+euro(ref.min),ref.min+.025<line.price?'red':'green'):badge('Fark yok','green'))+'</td></tr>'
+ }).join('');
+ return '<button class="back" onclick="invoiceDetailBack()">← '+(invoiceReturnPage==='productCard'?'Ürün Kartına Dön':'Fatura Listesine Dön')+'</button>'+
+ head('Fatura '+invoice.id,supplierName(invoice.supplier)+' · '+branches[invoice.branch]+' · '+invoice.date,
+ '<button class="btn light" onclick="showSupplier('+invoice.supplier+')">Tedarikçi Kartı →</button>')+
+ '<div class="grid4">'+[['Tedarikçi',supplierName(invoice.supplier)],['Şube',branches[invoice.branch]],['Ürün satırı',invoice.items.length],['KDV Hariç Toplam',euro(invoiceTotal(invoice))]].map(([label,val])=>'<div class="card"><div class="tiny">'+esc(label)+'</div><h2 style="margin-top:12px">'+esc(val)+'</h2></div>').join('')+'</div>'+
+ '<div class="card"><div class="panel-head"><h2>Faturadaki Ürünler</h2>'+badge('Ürüne tıkla → son faturaları gör','purple')+'</div><div class="finder-highlight">Bir ürün adına tıklayın: aynı ürünün önceki faturalarını, tedarikçilerini ve alış fiyatlarını içeren ürün kartı açılır. Oradan başka bir faturaya geçip tekrar bu ürüne dönebilirsin.</div>'+
+ '<div class="tablewrap"><table><thead><tr><th>EAN</th><th>Ürün (tıklanabilir)</th><th>Miktar</th><th>Birim Fiyat</th><th>Satır Toplamı</th><th>Aylık Kontrol</th></tr></thead><tbody>'+detail+'</tbody></table></div>'+
+ '<div class="note" style="margin-top:15px">Orijinal fatura dosyası bu örnek verilerde bulunmuyor. Teste yüklenen CSV kaydı üzerinden satır bilgileri gösteriliyor; taranmış PDF'lerin tüm alanlarını çıkarma ayrı bir OCR işlemidir.</div></div>';
+}
+function invoiceDetailBack(){
+ if(invoiceReturnPage==='productCard'&&selectedProductEan){page='productCard';render();window.scrollTo(0,0)}
+ else go('invoices')
+}
 function productTable(supplier){
 const filtered=products.filter(x=>(x.name+' '+x.ean).toLowerCase().includes(search.toLowerCase()));
 return '<div class="tablewrap"><table><thead><tr><th>EAN</th><th>Ürün</th><th>Birim</th><th>En düşük referans</th><th>En yüksek referans</th><th>Farkı İncele</th></tr></thead><tbody>'+
