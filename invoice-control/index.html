@@ -267,7 +267,7 @@ function openProductCard(ean,sourceId=''){
  const p=products.find(x=>x.ean===String(ean));
  if(!p)return;
  selectedProductEan=p.ean;productReturnPage=page;productReturnInvoice=sourceId||currentInvoice||'';
- productTimeScope='month';page='productCard';render();window.scrollTo(0,0)
+ productTimeScope=(role!=='branch'&&page==='invoices'&&invoiceSearchAllTime)?'all':'month';page='productCard';render();window.scrollTo(0,0)
 }
 function productBack(){
  if(productReturnPage==='invoiceDetail'&&productReturnInvoice){
@@ -324,7 +324,7 @@ return '<div class="tablewrap"><table><thead><tr><th>Fatura Numarası</th><th>Te
 list.map(i=>'<tr class="clickable" onclick="viewInvoice(\''+esc(i.id)+'\')"><td><b>'+esc(i.id)+'</b></td><td>'+esc(supplierName(i.supplier))+'</td><td>'+esc(branches[i.branch])+'</td><td>'+esc(i.date)+'</td><td>'+i.items.length+'</td><td>'+euro(invoiceTotal(i))+'</td><td>'+badge(i.source==='demo'?'Örnek Fatura':'Test Faturası','purple')+'</td><td><button class="btn light" onclick="event.stopPropagation();viewInvoice(\''+esc(i.id)+'\')">Aç →</button></td></tr>').join('')+'</tbody></table></div>'
 }
 function invoicesForCurrentSearch(){
- return allInvoices().filter(i=>(role!=='branch'||i.branch===branch)&&(role==='branch'||invoiceSearchAllTime||i.month===month)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ return allInvoices().filter(i=>(role!=='branch'||i.branch===branch)&&((role!=='branch'&&invoiceSearchAllTime)||i.month===month)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 }
 function invoiceSearchInput(value){
  search=value;
