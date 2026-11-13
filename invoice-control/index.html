@@ -9,6 +9,40 @@
 <script>
 const BRANCHES=['Dordrecht – Wielwijk','Dordrecht – Merwedepolder Oost','Schiedam','Utrecht','Breda','Bergen op Zoom','Gorinchem','Tilburg','Eindhoven'];
 const PRODUCTS=[{ean:'5449000000996',name:'Coca Cola 1L'},{ean:'8711234000001',name:'Beyaz Peynir 800 g'},{ean:'8711234000002',name:'Yoğurt 1 kg'},{ean:'8711234000003',name:'Basmati Pirinç 5 kg'}];
+
+// Fictional product names and EANs for interface tests (not real catalog/barcodes).
+PRODUCTS.push(
+ {ean:'DEMO-0005',name:'Ayçiçek Yağı 1 L'},
+ {ean:'DEMO-0006',name:'Nohut 1 kg'},
+ {ean:'DEMO-0007',name:'Kırmızı Mercimek 1 kg'},
+ {ean:'DEMO-0008',name:'Domates Salçası 800 g'},
+ {ean:'DEMO-0009',name:'Kaşar Peyniri 700 g'},
+ {ean:'DEMO-0010',name:'Tavuk But 1 kg'},
+ {ean:'DEMO-0011',name:'Bulgur 1 kg'},
+ {ean:'DEMO-0012',name:'Makarna 500 g'},
+ {ean:'DEMO-0013',name:'Şeker 1 kg'},
+ {ean:'DEMO-0014',name:'Un 1 kg'},
+ {ean:'DEMO-0015',name:'Süt 1 L'},
+ {ean:'DEMO-0016',name:'Yumurta 10 Adet'},
+ {ean:'DEMO-0017',name:'Çay 500 g'},
+ {ean:'DEMO-0018',name:'Mango Adet'},
+ {ean:'DEMO-0019',name:'Avokado Adet'},
+ {ean:'DEMO-0020',name:'Havuç 1 kg'},
+ {ean:'DEMO-0021',name:'Mantar 250 g'},
+ {ean:'DEMO-0022',name:'Patates 5 kg'},
+ {ean:'DEMO-0023',name:'Soğan 2 kg'},
+ {ean:'DEMO-0024',name:'Ton Balığı 160 g'},
+ {ean:'DEMO-0025',name:'Kakaolu Gofret 40 g'},
+ {ean:'DEMO-0026',name:'Maden Suyu 6x200 ml'},
+ {ean:'DEMO-0027',name:'Beyaz Fasulye 1 kg'},
+ {ean:'DEMO-0028',name:'Tereyağı 250 g'},
+ {ean:'DEMO-0029',name:'Dondurulmuş Bezelye 1 kg'},
+ {ean:'DEMO-0030',name:'Portakal Suyu 1 L'},
+ {ean:'DEMO-0031',name:'Domates 1 kg'},
+ {ean:'DEMO-0032',name:'Salatalık 1 kg'},
+ {ean:'DEMO-0033',name:'Pirinç 1 kg'},
+ {ean:'DEMO-0034',name:'Zeytin 500 g'}
+);
 const SUPPLIERS=['Holland Dairy BV','Van Dijk Foodservice','Freshline Groothandel','Euro Foods BV','Delta Distributie','Noord Trade'];
 const KEY='invoice-control-demo-invoices-v1',META='invoice-control-supplier-metadata-v2';
 const $=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),euro=x=>new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(Number(x)||0);
@@ -19,9 +53,27 @@ const fixture=[
 {id:'VD-2026-54',date:'2026-11-10',branch:3,supplier:2,items:[{ean:PRODUCTS[0].ean,name:PRODUCTS[0].name,qty:75,price:1.17}]},
 {id:'EF-2026-1',date:'2026-11-12',branch:6,supplier:4,items:[{ean:PRODUCTS[0].ean,name:PRODUCTS[0].name,qty:50,price:1.41}]},
 {id:'HD-2026-101',date:'2026-10-04',branch:0,supplier:1,items:[{ean:PRODUCTS[0].ean,name:PRODUCTS[0].name,qty:100,price:1.05}]}];
+
+// Rich demo fixture: illustrative invoices across nine branches and six suppliers.
+const demoBase=[1.16,4.26,1.41,7.90,1.85,1.65,1.74,2.20,4.45,3.20,1.25,.88,1.10,.69,2.90,3.25,2.15,1.89,1.10,.95,1.70,4.95,2.19,2.30,1.65,2.70,2.45,1.78,1.49,1.38,2.85,3.15,2.90,2.65];
+for(const [m,yearMonth] of ['2026-11','2026-10'].entries()){
+ for(let s=1;s<=6;s++){
+  for(let b=0;b<BRANCHES.length;b++){
+   const productsForInvoice=Array.from({length:9},(_,k)=>{
+    const productIndex=(s*4+b*2+k*3)%PRODUCTS.length;
+    const item=PRODUCTS[productIndex];
+    const qty=10+((s+b+k*5)%17)*3;
+    const base=demoBase[productIndex]||2.10;
+    const price=+(base*(yearMonth==='2026-11'?1.015:1)*(1+(b===1&&k===1?.085:0)+(s===2&&k===3?.055:0))).toFixed(2);
+    return{ean:item.ean,name:item.name,qty,price};
+   });
+   fixture.push({id:'ORNEK-'+yearMonth.replace('-','')+'-'+s+'-'+(b+1),date:yearMonth+'-'+String(2+(s*2+b)%25).padStart(2,'0'),branch:b,supplier:s,source:'demo',items:productsForInvoice});
+  }
+ }
+}
 let mode='home',role='admin',branch=0,month='2026-11',allTime=false,term='',selectedInvoice='',selectedEan='',selectedSupplier=1,origin='invoices',invoiceReturn='invoices',draft='';
 function getStored(){try{const r=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(r)?r:[]}catch{return[]}}
-function invoices(){return fixture.concat(getStored().map(i=>({...i,items:i.items.map(x=>({...x,name:x.name||PRODUCTS.find(p=>p.ean===x.ean)?.name||'Ürün'}))})))}
+function invoices(){return getStored().map(i=>({...i,items:i.items.map(x=>({...x,name:x.name||PRODUCTS.find(p=>p.ean===x.ean)?.name||'Ürün'}))})).concat(fixture)}
 function isAdmin(){return role==='admin'||role==='system'}
 function canInvoice(i){return isAdmin()||Number(i.branch)===branch}
 function scope(i){return canInvoice(i)&&(isAdmin()&&allTime||i.date.slice(0,7)===month)}
@@ -47,8 +99,8 @@ function backProduct(){mode=origin==='invoiceDetail'?'invoiceDetail':'invoices';
 function rowProduct(x,invoice){return '<button class="tap" data-product="'+esc(x.ean)+'" data-source="'+esc(invoice||'')+'">'+esc(productName(x))+' ↗</button>'}
 function actionButtons(){const actions=[['upload','⇧','Fatura Yükle','PDF, fotoğraf veya CSV'],['invoices','▤','Faturalarım',isAdmin()?'Faturaları ara':'Kendi şubemin faturaları'],['search','⌕','Ürün Ara','Tedarikçiler ve fiyatlar'],['errors','⚠','Hatalar','Kontrol gereken '+issues().length+' kayıt']];return actions.map(([key,icon,title,sub])=>'<button class="action '+(mode===key?'active ':'')+(key==='errors'&&issues().length?'warning':'')+'" data-nav="'+key+'"><span class="symbol">'+icon+'</span><strong>'+title+(key==='errors'&&issues().length?'<span class="count">'+issues().length+'</span>':'')+'</strong><small>'+sub+'</small></button>').join('')}
 function picker(){return '<select id="month" aria-label="Ay"><option value="2026-11" '+(month==='2026-11'?'selected':'')+'>Kasım 2026</option><option value="2026-10" '+(month==='2026-10'?'selected':'')+'>Ekim 2026</option></select>'}
-function tableInvoices(list){if(!list.length)return '<div class="empty">Bu aramaya uygun fatura bulunamadı.</div>';return '<div class="tablewrap"><table><thead><tr><th>Tarih</th><th>Fatura No</th><th>Tedarikçi</th><th>Şube</th><th>Tutar</th><th></th></tr></thead><tbody>'+list.map(i=>'<tr><td>'+esc(i.date)+'</td><td><b>'+esc(i.id)+'</b></td><td>'+esc(supplierName(i.supplier))+'</td><td>'+esc(BRANCHES[i.branch])+'</td><td>'+euro(total(i))+'</td><td><button class="btn light" data-invoice="'+esc(i.id)+'">Aç →</button></td></tr>').join('')+'</tbody></table></div>'}
-function invoiceList(){const list=monthInvoices().filter(i=>!term||normalized([i.id,supplierName(i.supplier),BRANCHES[i.branch],...i.items.flatMap(x=>[productName(x),x.ean])].join(' ')).includes(normalized(term))).sort((a,b)=>b.date.localeCompare(a.date));return '<div class="card"><div class="row between"><h2>Fatura Sorgula</h2><span class="tag">'+list.length+' fatura</span></div><div class="toolbar"><input id="query" placeholder="Fatura numarası, ürün veya EAN yaz..." value="'+esc(term)+'">'+picker()+(isAdmin()?'<button class="btn '+(allTime?'':'light')+'" id="period">Tüm Zamanlar: '+(allTime?'Açık':'Kapalı')+'</button>':'')+'</div>'+tableInvoices(list)+'</div>'}
+function tableInvoices(list){if(!list.length)return '<div class="empty">Bu aramaya uygun fatura bulunamadı.</div>';return '<div class="tablewrap"><table><thead><tr><th>Tarih</th><th>Fatura No</th><th>Tür</th><th>Tedarikçi</th><th>Şube</th><th>Tutar</th><th></th></tr></thead><tbody>'+list.map(i=>'<tr><td>'+esc(i.date)+'</td><td><b>'+esc(i.id)+'</b></td><td>'+esc(supplierName(i.supplier))+'</td><td>'+esc(BRANCHES[i.branch])+'</td><td>'+euro(total(i))+'</td><td><button class="btn light" data-invoice="'+esc(i.id)+'">Aç →</button></td></tr>').join('')+'</tbody></table></div>'}
+function invoiceList(){const list=monthInvoices().filter(i=>!term||normalized([i.id,supplierName(i.supplier),BRANCHES[i.branch],...i.items.flatMap(x=>[productName(x),x.ean])].join(' ')).includes(normalized(term))).sort((a,b)=>b.date.localeCompare(a.date));return '<div class="card"><div class="row between"><h2>Fatura Sorgula</h2><span class="tag">'+list.length+' fatura</span></div><div class="toolbar"><input id="query" placeholder="Fatura numarası, ürün veya EAN yaz..." value="'+esc(term)+'">'+picker()+(isAdmin()?'<button class="btn '+(allTime?'':'light')+'" id="period">Tüm Zamanlar: '+(allTime?'Açık':'Kapalı')+'</button>':'')+'</div><div class="notice">ÖRNEK etiketi olan kayıtlar yalnızca tasarım ve test için oluşturulmuştur. YÜKLENDİ etiketi bu tarayıcıya kaydettiğiniz faturayı gösterir.</div>'+tableInvoices(list)+'</div>'}
 function invoiceDetail(){const i=invoices().find(i=>i.id===selectedInvoice);if(!i||!canInvoice(i))return '<div class="card">Fatura yetkisi yok.</div>';return '<button class="back" data-back="invoice">← '+(invoiceReturn==='productDetail'?'Ürün kartına dön':'Fatura listesi')+'</button><div class="card"><h2>Fatura '+esc(i.id)+'</h2><p>'+esc(supplierName(i.supplier))+' · '+esc(BRANCHES[i.branch])+' · '+esc(i.date)+'</p><div class="stats"><div class="stat">Ürün sayısı<b>'+i.items.length+'</b></div><div class="stat">Toplam (KDV hariç)<b>'+euro(total(i))+'</b></div></div><div class="notice">Ürüne tıklayınca <b>Ürün Kartı</b> açılır. Son faturalardaki fiyatlar orada görünür.</div><div class="tablewrap"><table><thead><tr><th>Ürün ↗</th><th>EAN</th><th>Adet</th><th>Fiyat</th><th>Toplam</th></tr></thead><tbody>'+i.items.map(x=>'<tr><td>'+rowProduct(x,i.id)+'</td><td>'+esc(x.ean||'—')+'</td><td>'+x.qty+'</td><td>'+euro(x.price)+'</td><td>'+euro(x.qty*x.price)+'</td></tr>').join('')+'</tbody></table></div>'+(i.docId?'<div style="margin-top:15px"><a class="btn light" href="./belge.html?doc='+encodeURIComponent(i.docId)+'">Orijinal Belgeyi Aç ↗</a></div>':'<p class="muted">Bu örnek faturanın orijinal PDF belgesi bulunmuyor.</p>')+'</div>'}
 function productResults(){const q=term.trim();if(!q)return '<div class="empty">Örneğin <b>Coca Cola 1L</b>, <b>peynir</b> veya EAN girin.</div>';const rows=allLines().filter(x=>(isAdmin()||x.branch===branch)&& (allTime&&isAdmin()||x.date.startsWith(month))&&match(x,q));const groups=new Map();for(const x of rows){const key=x.ean||normalized(productName(x));if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)}if(!groups.size)return '<div class="empty">Ürün bulunamadı.</div>';return [...groups.entries()].map(([key,lines])=>'<div class="card"><div class="row between"><div><h2>'+esc(productName(lines[0]))+'</h2><p>EAN '+esc(lines[0].ean||'tanımsız')+' · '+new Set(lines.map(x=>x.supplier)).size+' tedarikçi</p></div><button class="btn" data-product="'+esc(lines[0].ean)+'">Ürün Kartı →</button></div><div class="tablewrap"><table><thead><tr><th>Tedarikçi</th><th>Şube</th><th>Son fiyat</th></tr></thead><tbody>'+lines.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(x=>'<tr><td>'+esc(supplierName(x.supplier))+'</td><td>'+esc(BRANCHES[x.branch])+'</td><td>'+euro(x.price)+'</td></tr>').join('')+'</tbody></table></div></div>').join('')}
 function searchPage(){return '<div class="card"><h2>Ürün Ara</h2><p>Yazdığınız ürünü mevcut faturaların içinde arar.</p><div class="toolbar"><input id="query" placeholder="Örn. Coca Cola 1L..." value="'+esc(term)+'">'+picker()+(isAdmin()?'<button class="btn '+(allTime?'':'light')+'" id="period">Tüm Zamanlar: '+(allTime?'Açık':'Kapalı')+'</button>':'')+'</div></div><div id="searchResults">'+productResults()+'</div>'}
