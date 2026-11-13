@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE TABLE IF NOT EXISTS suppliers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL,
-  kvk text, vat_id text, email text, active boolean NOT NULL DEFAULT true,
+  kvk text, vat_id text, email text, company_email text, contact_person text, address text, phone text, website text, logo_path text, active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS brands (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL UNIQUE);
@@ -86,3 +86,11 @@ CREATE TABLE IF NOT EXISTS audit_events (
   target_type text NOT NULL, target_id text, details jsonb NOT NULL DEFAULT '{}',
   occurred_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Backwards-compatible schema migration for existing installations.
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS company_email text;
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS contact_person text;
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS address text;
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS phone text;
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS website text;
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS logo_path text;
