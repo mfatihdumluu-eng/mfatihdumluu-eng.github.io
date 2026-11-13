@@ -1,4 +1,4 @@
-import {createCipheriv,createDecipheriv,randomBytes} from 'node:crypto';
+import {createCipheriv,createDecipheriv,randomBytes,createHash} from 'node:crypto';
 
 export const MINDEE_CHECK_URL='https://api-v2.mindee.net/v2/search/models';
 
@@ -6,9 +6,11 @@ export function secretKey(env=process.env.MINDEE_ENCRYPTION_KEY){
  const raw=String(env||'').trim();
  if(/^[a-f0-9]{64}$/i.test(raw))return Buffer.from(raw,'hex');
  const bytes=Buffer.from(raw,'base64');
- if(bytes.length!==32||!raw||!/^[A-Za-z0-9+/]+={0,2}$/.test(raw))
-  throw new Error('MINDEE_ENCRYPTION_KEY must be 32 bytes in hex or base64');
- return bytes;
+ if(bytes.length===32&&/^[A-Za-z0-9+/]+={0,2}$/.test(raw))return bytes;
+ // Render's generateValue produces a long random ASCII secret, rather than
+ // necessarily 32 bytes of hex/base64. Derive a deterministic 256-bit key.
+ if(raw.length>=24&&!/\s/.test(raw))return createHash('sha256').update('invoice-control/mindee/v1:'+raw).digest();
+ throw new Error('MINDEE_ENCRYPTION_KEY must contain >=24 random characters');
 }
 export function encryptSecret(value,key=secretKey()){
  if(!value||typeof value!=='string')throw new Error('API anahtarı gerekli');
