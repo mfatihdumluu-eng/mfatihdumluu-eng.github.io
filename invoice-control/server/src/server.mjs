@@ -21,6 +21,7 @@ const deny=(reply,status,message)=>reply.code(status).send({error:message});
 const isAdmin=u=>u.role==='admin'||u.role==='system';
 const hasBranch=(u,b)=>isAdmin(u)||Number(b)===Number(u.branch_id);
 const monthOk=m=>/^\d{4}-(0[1-9]|1[0-2])$/.test(m||'');
+const isMindeeModelUuid=value=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''));
 const invoiceDateOk=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||'')&&!Number.isNaN(Date.parse(d));
 app.addHook('onRequest',async(req,reply)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'&&req.method!=='OPTIONS'&&req.url!=='/api/login'){
@@ -152,7 +153,18 @@ app.post('/api/admin/mindee/settings',{config:{rateLimit:{max:6,timeWindow:'5 mi
    encrypted=encryptSecret(clearKey,secretKey());
   }else{clearKey=decryptSecret(stored.encrypted_secret,secretKey())}
  }catch{return deny(reply,503,'Sunucu şifreleme ayarları doğrulanamadı.')}
- const nextModel=modelId===undefined?(stored?.model_id||''):modelId.trim();
+ let nextModel=modelId===undefined?(stored?.model_id||''):modelId.trim();
+ if(nextModel&&!isMindeeModelUuid(nextModel)){
+  // Users sometimes paste a display name / slug instead of Mindee's UUID.
+  // Resolve it only when there is a uniquely matching model in this account.
+  let models;
+  try{models=await getMindeeModels(clearKey)}
+  catch{return deny(reply,502,'Mindee modellerine erişilemedi. Modelleri Getir düğmesini kullan.')}
+  const matches=models.filter(m=>m.name.toLowerCase()===nextModel.toLowerCase()||m.id===nextModel);
+  if(matches.length===1&&isMindeeModelUuid(matches[0].id))nextModel=matches[0].id;
+  else if(models.length===1&&isMindeeModelUuid(models[0].id))nextModel=models[0].id;
+  else return deny(reply,400,'Model ID UUID biçiminde olmalı. Modelleri Getir düğmesinden faturaya ait modeli seç. Model adını ID alanına yazma.');
+ }
  // Only verify new/updated key, never pretend that a fresh saved key is connected
  // when Mindee gives an authentication error.
  const test=await probeMindee(clearKey),verified=test.connected?new Date().toISOString():null;
@@ -178,18 +190,20 @@ app.post('/api/admin/mindee/extract',{config:{rateLimit:{max:5,timeWindow:'1 min
  try{key=decryptSecret(config.encrypted_secret,secretKey())}
  catch{return deny(reply,503,'Mindee API şifre çözme hatası. Sistem ayarlarını kontrol edin.')}
  let chosenModel=config.model_id;
- if(!chosenModel){
+ if(!isMindeeModelUuid(chosenModel)){
   try{
    const models=await getMindeeModels(key);
-   if(models.length===1){
-    chosenModel=models[0].id;
+   const matching=models.filter(m=>m.id===chosenModel||m.name.toLowerCase()===String(chosenModel||'').toLowerCase());
+   if(matching.length===1&&isMindeeModelUuid(matching[0].id))chosenModel=matching[0].id;
+   else if(models.length===1&&isMindeeModelUuid(models[0].id))chosenModel=models[0].id;
+   if(isMindeeModelUuid(chosenModel)){
     await db.query('UPDATE service_integrations SET model_id=$1,updated_at=now() WHERE provider=$2',[chosenModel,'mindee']);
    }else if(models.length===0){
-    return deny(reply,409,'Mindee hesabında Extraction modeli bulunamadı. app.mindee.com üzerinden model oluştur.');
+    return deny(reply,409,'Mindee hesabında geçerli UUID içeren Extraction modeli bulunamadı. app.mindee.com üzerinden model oluştur.');
    }else{
-    return deny(reply,409,'Birden fazla Mindee modeli bulundu. API Ayarları → Modelleri Getir bölümünden fatura modelini seç.');
+    return deny(reply,409,'Geçerli model UUID seçilmedi. API Ayarları → Modelleri Getir bölümünden fatura modelini seç.');
    }
-  }catch(e){return deny(reply,502,'Mindee modelleri alınamadı. API ayarlarına girip bağlantıyı kontrol et.')}
+  }catch(e){if(e?.statusCode||e?.code==='DB_ERROR')throw e;return deny(reply,502,'Mindee modelleri alınamadı. API ayarlarına girip bağlantıyı kontrol et.')}
  }
  let part;
  try{part=await req.file()}
