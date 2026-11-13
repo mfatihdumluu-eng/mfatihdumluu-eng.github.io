@@ -1,0 +1,21 @@
+{
+  "name": "invoice-control-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "init": "node src/setup.mjs"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.0",
+    "@fastify/multipart": "^9.0.0",
+    "@fastify/rate-limit": "^10.0.0",
+    "fastify": "^5.2.0",
+    "fast-xml-parser": "^5.0.0",
+    "csv-parse": "^5.6.0",
+    "nodemailer": "^6.9.16",
+    "pg": "^8.13.1"
+  }
+}
