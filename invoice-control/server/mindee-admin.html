@@ -7,7 +7,7 @@
 <label class="field">Mindee API Anahtarı (app.mindee.com)
 <input type="password" id="key" autocomplete="new-password" placeholder="Kaydedilmiş anahtar varsa boş bırak (md_...)" spellcheck="false"><span class="small" id="keyState">Kayıtlı anahtar kontrol ediliyor…</span>
 </label>
-<label class="field">Fatura okuma modeli <select id="modelSelect" style="padding:13px;border:1px solid #d7e0ec;border-radius:9px;background:white;width:100%;color:#25334c"><option value="">— Mindee modellerini getir —</option></select><span class="small" id="modelMessage">Mindee hesabındaki modeller listelenir. Fatura için uygun Extraction modelini seç.</span></label><label class="field">Model ID (listede yoksa elle gir)<input type="text" id="model" maxlength="120" placeholder="Mindee model kimliği" autocomplete="off" spellcheck="false"></label>
+<label class="field">Fatura okuma modeli <select id="modelSelect" style="padding:13px;border:1px solid #d7e0ec;border-radius:9px;background:white;width:100%;color:#25334c"><option value="">— Mindee modellerini getir —</option></select><span class="small" id="modelMessage">Mindee hesabındaki modeller listelenir. Fatura için uygun Extraction modelini seç.</span></label><label class="field">Model ID (UUID; listeden seçim yapman önerilir)<input type="text" id="model" maxlength="120" placeholder="Mindee model kimliği" autocomplete="off" spellcheck="false"></label>
 <div class="actions"><button type="button" class="btn" id="save">Anahtarı Kaydet ve Bağlantıyı Test Et</button><button type="button" class="btn secondary" id="check">Bağlantıyı Yeniden Kontrol Et</button><button type="button" class="btn secondary" id="loadModels">Modelleri Getir</button><button type="button" class="btn danger" id="remove">Bağlantıyı Kaldır</button></div>
 <div class="section"><h2>Fatura Okuma</h2><p>API anahtarını <b>bir kez</b> kaydet. Modeli seç ve değişiklikleri kaydet. Sayfayı yenileyince anahtar tekrar istenmez.</p><a href="/admin/invoices" style="margin-right:15px">Kaydedilen Faturalar</a><a class="btn" href="/admin/invoice-reader" style="display:inline-block;text-decoration:none">Mindee ile Fatura Oku →</a></div><div class="section"><h2>Bağlantı Açıklaması</h2><p><b>Yeşil:</b> Mindee V2 anahtar doğrulaması başarılı. <b>Kırmızı:</b> geçersiz anahtar, erişim hatası, kopuk sunucu veya kontrol edilemeyen bağlantı.</p><p>Bağlantı doğrulandıktan ve bir Invoice Model ID girildikten sonra yukarıdaki <b>Mindee ile Fatura Oku</b> ekranından PDF/fotoğraf gönderebilirsin. Sonuçlar kaydedilmeden önce elle kontrol edilir.</p><p>API anahtarını <a href="https://app.mindee.com/" target="_blank" rel="noopener noreferrer">app.mindee.com</a> hesabındaki API Keys bölümünden alabilirsin. Bu anahtarı GitHub'a veya herkese açık bir sayfaya yazma.</p><div class="small" id="serverConfig"></div></div>
 </div></main><script>
@@ -38,6 +38,7 @@ async function refresh(live=true){
 }
 $('save').onclick=async()=>{
  const key=$('key').value.trim(),modelId=$('model').value.trim();
+ if(modelId&&!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(modelId)){$('modelMessage').textContent='Model ID geçerli UUID biçiminde olmalı. Modelleri Getir ile doğru modeli seç.';return}
  if(!key&&!$('keyState').textContent.includes('kayıtlı')){show('disconnected','API anahtarını ilk kurulum için gir.');return}
  loading(true);
  try{
