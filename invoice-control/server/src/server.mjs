@@ -4,6 +4,8 @@ import rateLimit from '@fastify/rate-limit';
 import pg from 'pg';
 import {scryptSync,timingSafeEqual,randomBytes,createHash} from 'node:crypto';
 import {compareSupplierMonth} from './engine.mjs';
+import {readFile} from 'node:fs/promises';
+import {encryptSecret,decryptSecret,probeMindee,secretKey} from './mindee.mjs';
 import nodemailer from 'nodemailer';
 const app=Fastify({logger:true,bodyLimit:2_000_000,trustProxy:false});
 await app.register(cookie);
@@ -30,6 +32,88 @@ app.addHook('onRequest',async(req,reply)=>{
  req.user=r.rows[0];req.tokenHash=hash;
 });
 app.get('/health',async()=>({ok:true,service:'invoice-control'}));
+
+// Mindee V2: status is always based on an actual 200 response to
+// GET https://api-v2.mindee.net/v2/search/models. Never report green just
+// because an API key was pasted or stored.
+async function requireSystemSession(req,reply){
+ const token=req.cookies?.invoice_sid;
+ if(!token)return deny(reply,401,'Sistem admini girişi gerekli');
+ const hash=createHash('sha256').update(token).digest('hex');
+ const r=await db.query('SELECT u.id,u.name,u.role FROM sessions s JOIN users u ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active=true',[hash]);
+ if(!r.rowCount)return deny(reply,401,'Oturum süresi doldu');
+ if(r.rows[0].role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ return r.rows[0];
+}
+app.get('/admin/mindee',async(req,reply)=>{
+ const user=await requireSystemSession(req,reply);if(!user)return;
+ const html=await readFile(new URL('../mindee-admin.html',import.meta.url),'utf8');
+ return reply.type('text/html; charset=utf-8')
+  .header('Cache-Control','no-store, private')
+  .header('Referrer-Policy','no-referrer')
+  .header('X-Frame-Options','DENY')
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .send(html);
+});
+async function readMindeeSettings(){
+ const r=await db.query('SELECT encrypted_secret,model_id,connection_status,verified_at,last_error FROM service_integrations WHERE provider=$1',['mindee']);
+ return r.rows[0]||null;
+}
+async function mindeeStatus(check=false){
+ const stored=await readMindeeSettings();
+ if(!stored)return{status:'disconnected',connected:false,configured:false,message:'Mindee API anahtarı henüz eklenmedi.',checkedAt:null,modelId:''};
+ const payload={configured:true,modelId:stored.model_id||''};
+ // A status is "connected" only when the last check is fresh.
+ if(!check){
+  const recent=stored.connection_status==='connected'&&stored.verified_at&&
+   Date.now()-new Date(stored.verified_at).getTime()<300_000;
+  return{...payload,status:recent?'connected':'disconnected',connected:Boolean(recent),
+   message:recent?'Mindee bağlantısı yakın zamanda doğrulandı.':'Bağlantı yeniden kontrol edilmeli.',
+   checkedAt:stored.verified_at||null};
+ }
+ let probe;
+ try{
+  const key=decryptSecret(stored.encrypted_secret,secretKey());
+  probe=await probeMindee(key);
+ }catch(error){
+  probe={connected:false,message:'Mindee sunucu şifreleme ayarı eksik veya anahtar çözülemiyor.',code:'SERVER_KEY'};
+ }
+ const checkedAt=new Date().toISOString();
+ await db.query('UPDATE service_integrations SET connection_status=$1,verified_at=$2,last_error=$3 WHERE provider=$4',
+  [probe.connected?'connected':'disconnected',probe.connected?checkedAt:null,probe.connected?null:probe.message,'mindee']);
+ return{...payload,status:probe.connected?'connected':'disconnected',connected:probe.connected,
+  checkedAt:probe.connected?checkedAt:null,message:probe.message,code:probe.code};
+}
+app.get('/api/admin/mindee/status',{config:{rateLimit:{max:12,timeWindow:'1 minute'}}},async(req,reply)=>{
+ if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ try{return await mindeeStatus(req.query?.check==='1')}
+ catch(error){req.log.error({error:error.message},'Mindee status failed');return deny(reply,503,'Mindee entegrasyon yapılandırması bulunamadı. Sunucu veritabanını güncelleyin.')}
+});
+app.post('/api/admin/mindee/settings',{config:{rateLimit:{max:5,timeWindow:'5 minutes'}}},async(req,reply)=>{
+ if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ const {apiKey,modelId=''}=req.body||{};
+ if(typeof apiKey!=='string'||apiKey.trim().length<8||apiKey.length>500||!/^md_[A-Za-z0-9_\-]+$/.test(apiKey.trim()))
+  return deny(reply,400,'app.mindee.com üzerinden alınmış geçerli biçimde V2 API anahtarı girin (md_...)');
+ if(typeof modelId!=='string'||modelId.length>120||!/^[-a-zA-Z0-9_]*$/.test(modelId))
+  return deny(reply,400,'Model ID geçersiz');
+ let encrypted;
+ try{encrypted=encryptSecret(apiKey.trim(),secretKey())}
+ catch{return deny(reply,503,'Sunucu MINDEE_ENCRYPTION_KEY ile yapılandırılmamış. Anahtar kaydedilmedi.')}
+ // Store encrypted even if Mindee is unreachable, so System Admin can retry later.
+ const test=await probeMindee(apiKey.trim()),verified=test.connected?new Date().toISOString():null;
+ await db.query('INSERT INTO service_integrations(provider,encrypted_secret,model_id,connection_status,verified_at,last_error,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(provider) DO UPDATE SET encrypted_secret=EXCLUDED.encrypted_secret,model_id=EXCLUDED.model_id,connection_status=EXCLUDED.connection_status,verified_at=EXCLUDED.verified_at,last_error=EXCLUDED.last_error,updated_by=EXCLUDED.updated_by,updated_at=now()',
+  ['mindee',encrypted,modelId||null,test.connected?'connected':'disconnected',verified,test.connected?null:test.message,req.user.id]);
+ await audit(req.user.id,'update','integration','mindee',{connected:test.connected,modelConfigured:Boolean(modelId)});
+ return{status:test.connected?'connected':'disconnected',configured:true,connected:test.connected,
+  modelId,checkedAt:verified,message:test.message};
+});
+app.delete('/api/admin/mindee/settings',async(req,reply)=>{
+ if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ await db.query('DELETE FROM service_integrations WHERE provider=$1',['mindee']);
+ await audit(req.user.id,'delete','integration','mindee');
+ return{ok:true,status:'disconnected',connected:false};
+});
+
 app.post('/api/login',{config:{rateLimit:{max:10,timeWindow:'5 minutes'}}},async(req,reply)=>{
  const email=String(req.body?.email||'').trim().toLowerCase(),password=String(req.body?.password||'');
  const r=await db.query('SELECT * FROM users WHERE lower(email)=$1 AND active=true',[email]);
