@@ -21,6 +21,7 @@
 <label class="field">IBAN<input id="iban" placeholder="Faturadan okunursa"></label>
 <label class="field">Para birimi<input id="currency" value="EUR" maxlength="3"></label>
 </div>
+<div id="summaryMetrics" class="summary-metrics" style="margin-top:15px"></div>
 <p class="summary-caption">Ürün satırlarının BTW oranını bilmiyorsan boş bırak. Sistem oran tahmin ederek yanlış toplam üretmez.</p>
 <div class="tablewrap"><table class="sum-table"><thead><tr><th>Hesaplama</th><th>Tutar</th></tr></thead><tbody id="summaryRows"></tbody></table></div>
 <div id="summaryDifference" style="margin-top:13px"></div>
@@ -78,6 +79,10 @@ function updateSummary(){
  const input=summaryInputs(),cal=calculatedTotals();
  const allKnown=cal.unknown.length===0&&items.length>0;
  const show=x=>x===null?'—':eur(x);
+ $('summaryMetrics').innerHTML=
+  '<div class="summary-metric"><span class="sub">Faturadaki ara toplam</span><b>'+show(input.net)+'</b></div>'+
+  '<div class="summary-metric"><span class="sub">Faturadaki BTW toplamı</span><b>'+show(input.vat)+'</b></div>'+
+  '<div class="summary-metric" style="border-color:#c4cffa;background:#f1f4ff"><span class="sub">FATURA GENEL TOPLAMI (BTW DAHİL)</span><b>'+show(input.gross)+'</b></div>';
  $('summaryRows').innerHTML=
   '<tr><td>Ürün satırları ara toplam (BTW hariç)</td><td>'+eur(cal.net)+'</td></tr>'+
   '<tr><td>Satırlardan BTW %9</td><td>'+(allKnown?eur(cal.vat9):'Kısmi / eksik oran')+'</td></tr>'+
