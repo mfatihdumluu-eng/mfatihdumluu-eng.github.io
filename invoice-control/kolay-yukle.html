@@ -23,15 +23,34 @@ function rowHtml(){return items.map((x,i)=>'<tr><td><input data-i="'+i+'" data-k
 function renderRows(){$('rows').innerHTML=rowHtml();$('count').textContent=items.length+' satır';document.querySelectorAll('[data-i]').forEach(el=>el.onchange=()=>{const i=+el.dataset.i,k=el.dataset.k;items[i][k]=['qty','price'].includes(k)?Number(el.value):el.value.trim()});document.querySelectorAll('[data-delete]').forEach(el=>el.onclick=()=>{items.splice(+el.dataset.delete,1);renderRows()})}
 function reset(){file=null;mode='';saved=false;items=[];$('file').value='';$('review').classList.add('hidden');$('feedback').classList.add('hidden');if(url)URL.revokeObjectURL(url);url=null;renderRows();notify('Henüz dosya seçilmedi.')}
 function parseCSV(text){
- const l=String(text).replace(/^\ufeff/,'').split(/\r?\n/).filter(x=>x.trim());
- if(l.length<2)throw Error('CSV başlık veya satır yok');
- const delimiter=l[0].includes(';')?';':l[0].includes('\t')?'\t':',';
- const split=(s)=>{let a=[],buf='',quoted=false;for(let k=0;k<s.length;k++){let ch=s[k];if(ch==='"'){if(quoted&&s[k+1]==='"'){buf+='"';k++}else quoted=!quoted}else if(ch===delimiter&&!quoted){a.push(buf);buf=''}else buf+=ch}a.push(buf);return a};
- const cols=split(l[0]).map(x=>x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,''));
- const find=(names)=>cols.findIndex(x=>names.includes(x));
- const e=find(['ean','barcode','gtin']),n=find(['urun','urunadi','aciklama','description','product','omschrijving','name']),q=find(['adet','miktar','quantity','aantal','qty']),p=find(['birimfiyat','unitprice','eenheidsprijs','price']);
+ const lines=String(text).replace(/^\ufeff/,'').split(/\r?\n/).filter(x=>x.trim());
+ if(lines.length<2)throw Error('CSV başlık veya satır yok');
+ const delimiter=lines[0].includes(';')?';':lines[0].includes('\t')?'\t':',';
+ const split=(str)=>{
+  const cells=[];let cell='',quoted=false;
+  for(let i=0;i<str.length;i++){
+   const ch=str[i];
+   if(ch==='"'){if(quoted&&str[i+1]==='"'){cell+='"';i++}else quoted=!quoted}
+   else if(ch===delimiter&&!quoted){cells.push(cell);cell=''}
+   else cell+=ch;
+  }
+  cells.push(cell);return cells;
+ };
+ const columns=split(lines[0]).map(x=>x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,''));
+ const find=(keys)=>columns.findIndex(x=>keys.includes(x));
+ const e=find(['ean','barcode','gtin']);
+ const n=find(['urun','urunadi','aciklama','description','product','omschrijving','name']);
+ const q=find(['adet','miktar','quantity','aantal','qty']);
+ const p=find(['birimfiyat','unitprice','eenheidsprijs','price']);
  if(q<0||p<0||(e<0&&n<0))throw Error('CSV sütunları: EAN veya ürün, miktar, birim fiyat');
- return l.slice(1,501).map(line=>{const x=split(line),ean=e>=0?(x[e]||'').trim():'',name=n>=0?(x[n]||'').trim():'',qty=parseNumeric(x[q]),price:parseNumeric(x[p]);return{ean,name:name||ean,qty,price}}).filter(x=>x.name||x.ean)
+ return lines.slice(1,501).map(line=>{
+  const cells=split(line);
+  const ean=e<0?'':String(cells[e]||'').trim();
+  const name=n<0?'':String(cells[n]||'').trim();
+  const qty=parseNumeric(cells[q]);
+  const price=parseNumeric(cells[p]);
+  return {ean,name:name||ean,qty,price};
+ }).filter(x=>x.name||x.ean);
 }
 function parseText(t){const result=[];for(const line of t.split(/\r?\n/)){const m=line.match(/^\s*(\d{8,14})\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+(\d+[.,]\d{1,4})\s*$/);if(m)result.push({ean:m[1],name:m[2],qty:parseNumeric(m[3]),price:parseNumeric(m[4])})}return result}
 function parseXml(t){const xml=new DOMParser().parseFromString(t,'application/xml');if(xml.getElementsByTagName('parsererror').length)throw Error('XML geçersiz');const lines=Array.from(xml.getElementsByTagName('*')).filter(x=>x.localName==='InvoiceLine');return lines.map(l=>{const nodes=Array.from(l.getElementsByTagName('*')),get=n=>nodes.find(x=>x.localName===n)?.textContent?.trim()||'';return{ean:get('ID'),name:get('Name')||get('Description')||'Ürün',qty:parseNumeric(get('InvoicedQuantity')),price:parseNumeric(get('PriceAmount'))}}).filter(x=>x.qty>0)}
