@@ -174,10 +174,23 @@ app.post('/api/admin/mindee/extract',{config:{rateLimit:{max:5,timeWindow:'1 min
  if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
  const config=await readMindeeSettings();
  if(!config)return deny(reply,409,'Önce Mindee API anahtarını kaydet.');
- if(!config.model_id)return deny(reply,409,'Mindee ayarlarında Invoice Model ID girip kaydet.');
  let key;
  try{key=decryptSecret(config.encrypted_secret,secretKey())}
  catch{return deny(reply,503,'Mindee API şifre çözme hatası. Sistem ayarlarını kontrol edin.')}
+ let chosenModel=config.model_id;
+ if(!chosenModel){
+  try{
+   const models=await getMindeeModels(key);
+   if(models.length===1){
+    chosenModel=models[0].id;
+    await db.query('UPDATE service_integrations SET model_id=$1,updated_at=now() WHERE provider=$2',[chosenModel,'mindee']);
+   }else if(models.length===0){
+    return deny(reply,409,'Mindee hesabında Extraction modeli bulunamadı. app.mindee.com üzerinden model oluştur.');
+   }else{
+    return deny(reply,409,'Birden fazla Mindee modeli bulundu. API Ayarları → Modelleri Getir bölümünden fatura modelini seç.');
+   }
+  }catch(e){return deny(reply,502,'Mindee modelleri alınamadı. API ayarlarına girip bağlantıyı kontrol et.')}
+ }
  let part;
  try{part=await req.file()}
  catch{return deny(reply,400,'PDF/JPG/PNG dosyası gerekli (en fazla 10 MB)')}
@@ -197,7 +210,7 @@ app.post('/api/admin/mindee/extract',{config:{rateLimit:{max:5,timeWindow:'1 min
  const isWebp=part.mimetype==='image/webp'&&buffer.subarray(0,4).toString()==='RIFF'&&buffer.subarray(8,12).toString()==='WEBP';
  if(!(isPdf||isJpeg||isPng||isWebp))return deny(reply,415,'Dosya biçimi geçersiz veya uzantısıyla uyuşmuyor');
  try{
-  const result=await extractMindeeInvoice(key,config.model_id,{data:buffer,filename});
+  const result=await extractMindeeInvoice(key,chosenModel,{data:buffer,filename});
   await audit(req.user.id,'extract','integration','mindee',{fileType:part.mimetype,lines:result.items.length,warnings:result.warnings.length});
   return reply.header('Cache-Control','no-store').send({provider:'mindee-v2',modelConfigured:true,requiresReview:true,...result});
  }catch(err){
