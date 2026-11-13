@@ -159,8 +159,30 @@ function productDetail(){
  relevant.slice(0,50).map(x=>'<tr><td>'+esc(x.date)+'</td><td>'+esc(supplierName(x.supplier))+'</td><td>'+esc(BRANCHES[x.branch])+'</td><td><b>'+euro(x.price)+'</b></td><td>'+x.qty+'</td><td><button class="btn light" data-invoice="'+esc(x.invoice)+'">Aç →</button></td></tr>').join('')+'</tbody></table></div>':'<div class="empty">Bu dönem için fatura bulunamadı.</div>')+
  '</div>';
 }
-function errorPage(){const list=issues();return '<div class="card"><h2>Hatalar / Fiyat Farkları</h2><div class="alert">Fiyat farkı, kesin fatura hatası değildir. Aynı tedarikçi + aynı ürün + aynı ay kontrol edilir.</div>'+(!list.length?'<div class="empty">Kontrol edilecek fiyat farkı bulunmadı.</div>':list.map(x=>'<div class="card"><div class="row between"><div><h3>'+esc(x.name)+'</h3><p>'+esc(supplierName(x.supplier))+'</p></div><span class="tag red">Olası fark '+euro(x.amount)+'</span></div><p>En düşük: '+euro(x.low)+' · En yüksek: '+euro(x.high)+'</p><button class="btn red" data-error="'+esc(x.supplier+'|'+x.ean)+'">Faturaları Karşılaştır →</button></div>').join(''))+'</div>'}
-function errorDetail(key){const [s,ean]=key.split('|'),x=issues().find(x=>x.supplier===+s&&x.ean===ean);if(!x)return'<div class="empty">Fark bulunamadı.</div>';return '<button class="back" data-back="errors">← Hatalar</button><div class="card"><h2>'+esc(x.name)+'</h2><div class="alert">En düşük '+euro(x.low)+' · En yüksek '+euro(x.high)+' · Olası fark <b>'+euro(x.amount)+'</b></div><div class="tablewrap"><table><thead><tr><th>Fatura</th><th>Şube</th><th>Birim fiyat</th><th>Adet</th><th>Toplam fark</th><th></th></tr></thead><tbody>'+x.rows.map(r=>'<tr><td>'+esc(r.invoice)+'</td><td>'+esc(BRANCHES[r.branch])+'</td><td>'+euro(r.price)+'</td><td>'+r.qty+'</td><td>'+euro(Math.max(0,r.price-x.low)*r.qty)+'</td><td><button class="btn light" data-invoice="'+esc(r.invoice)+'">Aç →</button></td></tr>').join('')+'</tbody></table></div><p class="muted">'+(isAdmin()?'Tüm şube faturaları admin tarafından görülebilir.':'Yalnızca kendi şubenizin fatura içeriği gösteriliyor; diğerleri referans fiyat olarak kullanılır.')+'</p></div>'}
+function errorPage(){
+ const list=issues();
+ return '<div class="card"><h2>Hatalar / Birim Fiyat Farkları</h2>'+
+ '<div class="alert">Burada fatura toplamı değil, <b>aynı tedarikçinin aynı ürün için farklı şubelere kestiği BİRİM FİYAT FARKI</b> gösterilir. Örneğin €4,26 → €4,65 ise FARK +€0,39.</div>'+
+ (!list.length?'<div class="empty">Bu ay karşılaştırılacak fiyat farkı bulunmadı.</div>':
+ list.map(x=>{
+  const delta=Math.round((x.high-x.low)*100)/100,percent=x.low?Math.round(delta/x.low*1000)/10:0;
+  return '<div class="card"><div class="row between"><div><h3>'+esc(x.name)+'</h3><p>'+esc(supplierName(x.supplier))+' · '+esc(x.ean)+'</p></div>'+
+  '<span class="price-diff">FARK +'+euro(delta)+' / adet</span></div>'+
+  '<p><span class="price-ref">'+euro(x.low)+'</span> → <span class="price-diff">'+euro(x.high)+'</span> · %'+percent.toFixed(1)+' farklı</p>'+
+  '<button class="btn red" data-error="'+esc(x.supplier+'|'+x.ean)+'">Hangi Şubelerde? →</button></div>';
+ }).join(''))+'</div>';
+}
+function errorDetail(key){
+ const [sid,ean]=key.split('|'),x=issues().find(x=>x.supplier===+sid&&x.ean===ean);
+ if(!x)return '<div class="empty">Fiyat farkı bulunamadı.</div>';
+ const delta=x.high-x.low,percent=x.low?Math.round(delta/x.low*1000)/10:0;
+ return '<button class="back" data-back="errors">← Hatalara Dön</button><div class="card"><h2>'+esc(x.name)+'</h2>'+
+ '<p>'+esc(supplierName(x.supplier))+' · '+esc(ean)+'</p><div class="alert">Birim fiyat farkı: <b>+'+euro(delta)+'</b> (%'+percent.toFixed(1)+') · Referans '+euro(x.low)+' → Yüksek fiyat '+euro(x.high)+'</div>'+
+ '<div class="tablewrap"><table><thead><tr><th>Fatura</th><th>Şube</th><th>Fiyat</th><th>Birim fark</th><th>İşlem</th></tr></thead><tbody>'+
+ x.rows.map(r=>'<tr><td>'+esc(r.invoice)+'</td><td>'+esc(BRANCHES[r.branch])+'</td><td><span class="'+(r.price-x.low>.025?'price-diff':'price-ref')+'">'+euro(r.price)+'</span></td><td>'+(r.price-x.low>.025?'<b class="diff-pill">+'+euro(r.price-x.low)+'</b>':'—')+'</td><td><button class="btn light" data-invoice="'+esc(r.invoice)+'">Aç →</button></td></tr>').join('')+'</tbody></table></div>'+
+ '<p class="muted">'+(isAdmin()?'Admin tüm şubelerin ilgili faturalarını görüntüleyebilir.':'Yalnızca kendi şubenizin faturaları açılabilir; diğer fiyatlar referans içindir.')+'</p>'+
+ '<button class="btn light" data-product="'+esc(ean)+'">Ürün Kartı →</button></div>';
+}
 function supplierList(){return '<div class="card"><h2>Tedarikçiler</h2><p>Firma kartı, sorumlu kişi, adres ve şirket e-posta bilgilerini düzenleyin.</p><div class="supplierList">'+SUPPLIERS.map((name,i)=>'<button class="supplierCard" data-supplier="'+(i+1)+'"><b>'+esc(supplierName(i+1))+'</b><span class="mini">'+invoices().filter(x=>x.supplier===i+1).length+' fatura</span><span class="tag">Firma kartını aç →</span></button>').join('')+'</div></div>'}
 function supplierDetail(){const m=meta(selectedSupplier);return '<button class="back" data-back="suppliers">← Tedarikçiler</button><div class="card"><h2>Firma Kartı</h2><p>'+esc(m.name)+'</p>'+[['name','Tedarikçi adı'],['address','Fiziksel adres'],['contact','Sorumlu kişi'],['companyEmail','Şirket e-postası'],['phone','Telefon']].map(([k,t])=>'<label class="field">'+t+'<input id="sup-'+k+'" value="'+esc(m[k]||'')+'" placeholder="'+esc(t)+'"></label>').join('')+'<button class="btn" id="saveSupplier">Firma Bilgilerini Kaydet</button></div>'}
 function usersPage(){return '<div class="card"><h2>Demo Kullanıcılar</h2><p>9 şube sorumlusu, 1 admin, 1 sistem admini. Bunlar henüz gerçek hesap değildir.</p>'+BRANCHES.map((x,i)=>'<div class="lightLine"><b>Şube '+(i+1)+'</b> · '+esc(x)+'</div>').join('')+'<div class="lightLine"><b>Firma Admini</b> · Tüm şubeler</div><div class="lightLine"><b>Sistem Admini</b> · Sistem yönetimi</div></div>'}
