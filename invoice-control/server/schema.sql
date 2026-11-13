@@ -94,3 +94,17 @@ ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS address text;
 ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS phone text;
 ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS website text;
 ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS logo_path text;
+
+-- System-only external integrations. Secrets are AES-256-GCM encrypted by the
+-- server using MINDEE_ENCRYPTION_KEY; the encryption key is NEVER stored in SQL.
+CREATE TABLE IF NOT EXISTS service_integrations (
+  provider text PRIMARY KEY,
+  encrypted_secret text NOT NULL,
+  model_id text,
+  connection_status text NOT NULL DEFAULT 'disconnected'
+    CHECK(connection_status IN ('connected','disconnected')),
+  verified_at timestamptz,
+  last_error text,
+  updated_by uuid REFERENCES users(id),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
