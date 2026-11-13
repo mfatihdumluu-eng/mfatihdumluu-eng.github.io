@@ -73,6 +73,22 @@ assert(u.document.getElementById('existingNumberResults').innerHTML.includes('TE
 w.localStorage.setItem('invoice-control-demo-invoices-v1',JSON.stringify(saved));
 w.eval("role='admin';allTime=false;setMode('invoices')");
 assert(root.innerHTML.includes('TEST-COLA-001'),'saved invoice appears in dashboard');
+
+const scan=open('kolay-yukle.html'),ocr=scan.window;
+ocr.document.getElementById('ocrWorkspace').classList.remove('hidden');
+const recognized='Van Dijk Foodservice\nFactuurnummer: VD-2026-432\nFactuurdatum: 12-11-2026\n5449000000996 Coca Cola 1L 12 1,25 15,00\nTotaal excl. BTW 15,00\nBTW 9% 1,35\nTotaal te betalen 16,35';
+ocr.document.getElementById('ocrText').value=recognized;
+assert(ocr.eval('applyRecognizedText(true)'),'OCR text should map into inputs');
+assert.equal(ocr.document.getElementById('number').value,'VD-2026-432');
+assert.equal(ocr.document.getElementById('supplier').value,'2');
+assert.equal(ocr.document.getElementById('date').value,'2026-11-12');
+assert.equal(ocr.eval('items.length'),1);
+assert.equal(ocr.eval('items[0].qty'),12);
+assert.equal(ocr.eval('items[0].price'),1.25);
+assert.equal(ocr.document.getElementById('docGross').value,'16.35');
+assert.equal(ocr.document.getElementById('docVat9').value,'1.35');
+assert(ocr.document.getElementById('ocrMapping').innerHTML.includes('VD-2026-432'));
+scan.window.close();
 main.window.close();upload.window.close();
 console.log('PASS: simple dashboard, cross-supplier search, product detail navigation, role restriction, month filter, CSV validation and saved invoice');
 })().catch(err=>{console.error(err);process.exitCode=1});
