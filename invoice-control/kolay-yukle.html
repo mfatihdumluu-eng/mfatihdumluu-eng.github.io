@@ -121,18 +121,27 @@ function updateSummary(){
  if(!$('summaryRows'))return;
  const input=summaryInputs(),cal=calculatedTotals();
  const allKnown=cal.unknown.length===0&&items.length>0;
+ const disc=input.discount??0;
+ const netAfter=sumRound(cal.net-disc);
+ const rates=[...new Set(items.map(x=>x.vatRate))];
+ const knownSingleRate=allKnown&&rates.length===1;
+ const vatAfter=knownSingleRate?sumRound(netAfter*rates[0]/100):null;
+ const grossAfter=vatAfter===null?null:sumRound(netAfter+vatAfter);
  const show=x=>x===null?'—':eur(x);
  $('summaryMetrics').innerHTML=
   '<div class="summary-metric"><span class="sub">Faturadaki ara toplam</span><b>'+show(input.net)+'</b></div>'+
   '<div class="summary-metric"><span class="sub">Faturadaki BTW toplamı</span><b>'+show(input.vat)+'</b></div>'+
   '<div class="summary-metric" style="border-color:#c4cffa;background:#f1f4ff"><span class="sub">FATURA GENEL TOPLAMI (BTW DAHİL)</span><b>'+show(input.gross)+'</b></div>';
  $('summaryRows').innerHTML=
-  '<tr><td>Ürün satırları ara toplam (BTW hariç)</td><td>'+eur(cal.net)+'</td></tr>'+
+  '<tr><td>Ürün satırları toplamı (iskonto öncesi)</td><td>'+eur(cal.net)+'</td></tr>'+
+  '<tr><td>İskonto / Korting</td><td>−'+eur(disc)+'</td></tr>'+
+  '<tr><td><b>İskonto sonrası ara toplam</b></td><td><b>'+eur(netAfter)+'</b></td></tr>'+
   '<tr><td>Satırlardan BTW %9</td><td>'+(allKnown?eur(cal.vat9):'Kısmi / eksik oran')+'</td></tr>'+
   '<tr><td>Satırlardan BTW %21</td><td>'+(allKnown?eur(cal.vat21):'Kısmi / eksik oran')+'</td></tr>'+
   '<tr><td>Faturada yazan BTW toplamı</td><td>'+show(input.vat)+'</td></tr>'+
   '<tr><td><b>Faturada yazan genel toplam (BTW dahil)</b></td><td><b>'+show(input.gross)+'</b></td></tr>'+
-  '<tr><td>Satırlardan hesaplanan genel toplam</td><td>'+(allKnown?'<b>'+eur(cal.gross)+'</b>':'BTW oranları eksik')+'</td></tr>';
+  '<tr><td>İskonto sonrası hesaplanan BTW</td><td>'+(vatAfter===null?'Karma BTW oranları: ayrıca doğrulanmalı':eur(vatAfter))+'</td></tr>'+ 
+  '<tr><td>İskonto sonrası hesaplanan genel toplam</td><td>'+(grossAfter===null?'Hesaplama için BTW ayrımı gerekli':'<b>'+eur(grossAfter)+'</b>')+'</td></tr>';
  const diff=invoiceReconciliationIssues(false);
  const box=$('summaryDifference');
  if(diff.length)box.innerHTML='<div class="sum-diff">⚠ '+diff.map(s=>safe(s)).join(' · ')+' — Belgeden kontrol edin.</div>';
