@@ -106,6 +106,25 @@ assert.equal(parsedDoyum.length,9,'Doyum quantity-first invoice should parse all
 assert.equal(Math.round(parsedDoyum.reduce((v,x)=>v+x.qty*x.price,0)*100)/100,1106.68,'All nine lines subtotal');
 assert(parsedDoyum.every(x=>x.vatRate===9),'Doyum nine lines should have 9% BTW');
 assert(u.eval('detectInvoiceFields("Doyum Food B.V.\\nFactuur 26704293\\nFactuurdatum 28-10-2026").supplier')==='7','Doyum supplier lookup');
+
+const completeDoyum = doyumSample+
+ '\n-5% x Korting € 1.106,68 € -55,33 9%\nSubtotaal € 1.051,35\n9% btw € 94,62\nTotaal € 1.145,97';
+u.eval("items=parseText("+JSON.stringify(completeDoyum)+");mode='scan';setDocumentSummary(extractTotalsFromText("+JSON.stringify(completeDoyum)+"))");
+assert.deepEqual(u.eval("invoiceReconciliationIssues(true)"),[],'complete Doyum invoice discount, VAT and total reconcile');
+assert(u.document.getElementById('summaryRows').innerHTML.includes('1.145,97'),'calculated discounted gross should match document');
+u.eval("items[1].price=9.99;updateSummary()");
+assert(u.eval("invoiceReconciliationIssues(true)").length>0,'wrong price must prevent approval');
+assert(u.eval("missingFields(true)").some(s=>s.includes('Ürün toplamı')),'incorrect OCR invoice should block save');
+const mixed='40 x Pakket Doyum Rund Döner € 7,99 € 319,60 9% 10 x Pakket Doyum Iskender Kebab € 7,49 € 74,90 9%';
+const mixedItems=u.eval("parseText("+JSON.stringify(mixed)+")");
+assert(mixedItems.length<=2,'merged OCR rows must not create invented products');
+assert(mixedItems.every(x=>!x.name.includes('€')&&!/10 x Pakket/i.test(x.name)),'OCR product name must not contain another product');
+const badSaved={id:'33333',date:'2026-11-13',branch:0,supplier:1,source:'badphoto.jpeg',documentName:'badphoto.jpeg',status:'Onaylandı',items:[{ean:'',name:'OCR merged product',qty:40,price:7.9}],invoiceSummary:{document:{net:1051.35,vat:94.62,gross:1145.97,discount:55.33}}};
+w.localStorage.setItem('invoice-control-demo-invoices-v1',JSON.stringify([...saved,badSaved]));
+w.eval("role='admin';selectedInvoice='33333';mode='invoiceDetail';render()");
+assert(root.textContent.includes('DOĞRULANMAMIŞ'),'old corrupt invoice must be flagged');
+assert(root.textContent.includes('Hatalı Kaydı Kaldır'),'old corrupt invoice can be removed');
+assert(!w.eval("comparisonEligible(invoices().find(x=>x.id==='33333'))"),'corrupt invoice must not feed comparison engine');
 main.window.close();upload.window.close();
 console.log('PASS: simple dashboard, cross-supplier search, product detail navigation, role restriction, month filter, CSV validation and saved invoice');
 })().catch(err=>{console.error(err);process.exitCode=1});
