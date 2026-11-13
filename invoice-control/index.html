@@ -343,7 +343,7 @@ function invoiceDetail(){
  '<div class="grid4">'+[['Tedarikçi',supplierName(invoice.supplier)],['Şube',branches[invoice.branch]],['Ürün satırı',invoice.items.length],['KDV Hariç Toplam',euro(invoiceTotal(invoice))]].map(([label,val])=>'<div class="card"><div class="tiny">'+esc(label)+'</div><h2 style="margin-top:12px">'+esc(val)+'</h2></div>').join('')+'</div>'+
  '<div class="card"><div class="panel-head"><h2>Faturadaki Ürünler</h2>'+badge('Ürüne tıkla → son faturaları gör','purple')+'</div><div class="finder-highlight">Bir ürün adına tıklayın: aynı ürünün önceki faturalarını, tedarikçilerini ve alış fiyatlarını içeren ürün kartı açılır. Oradan başka bir faturaya geçip tekrar bu ürüne dönebilirsin.</div>'+
  '<div class="tablewrap"><table><thead><tr><th>EAN</th><th>Ürün (tıklanabilir)</th><th>Miktar</th><th>Birim Fiyat</th><th>Satır Toplamı</th><th>Aylık Kontrol</th></tr></thead><tbody>'+detail+'</tbody></table></div>'+
- '<div class="note" style="margin-top:15px">Orijinal fatura dosyası bu örnek verilerde bulunmuyor. Teste yüklenen CSV kaydı üzerinden satır bilgileri gösteriliyor; taranmış PDF'lerin tüm alanlarını çıkarma ayrı bir OCR işlemidir.</div></div>';
+ '<div class="note" style="margin-top:15px">Orijinal fatura dosyası bu örnek verilerde bulunmuyor. Teste yüklenen CSV kaydı üzerinden satır bilgileri gösteriliyor; taranmış PDF belgelerinin tüm alanlarını çıkarma ayrı bir OCR işlemidir.</div></div>';
 }
 function invoiceDetailBack(){
  if(invoiceReturnPage==='productCard'&&selectedProductEan){page='productCard';render();window.scrollTo(0,0)}
