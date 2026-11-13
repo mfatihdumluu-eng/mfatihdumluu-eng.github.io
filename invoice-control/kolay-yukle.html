@@ -37,7 +37,7 @@
 <script>
 const K='invoice-control-demo-invoices-v1',DB='invoice-control-original-documents-v1',STORE='files';
 const BR=['Dordrecht – Wielwijk','Dordrecht – Merwedepolder Oost','Schiedam','Utrecht','Breda','Bergen op Zoom','Gorinchem','Tilburg','Eindhoven'];
-const SUP=['Holland Dairy BV','Van Dijk Foodservice','Freshline Groothandel','Euro Foods BV','Delta Distributie','Noord Trade'];
+const SUP=['Holland Dairy BV','Van Dijk Foodservice','Freshline Groothandel','Euro Foods BV','Delta Distributie','Noord Trade','Doyum Food B.V.'];
 const $=id=>document.getElementById(id),safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let file=null,url=null,items=[],mode='',busy=false,saved=false,editingId=null,existingDocId=null,parsedSummary={},ocrRunning=false;
 $('branch').innerHTML=BR.map((x,i)=>'<option value="'+i+'">'+safe(x)+'</option>').join('');
@@ -182,32 +182,32 @@ function parseInvoiceAmount(raw){
 function parseText(t){
  const output=[];
  const lines=String(t||'').replace(/\r/g,'\n').split(/\n/).map(s=>s.replace(/[|│]/g,' ').replace(/\s+/g,' ').trim()).filter(Boolean);
- const amt=String.raw`(\d{1,6}(?:[.,]\d{1,4})?)`;
- const skip=/(?:totaal|subtotal|subtotaal|btw|vat|belasting|korting|discount|factuurnummer|factuurdatum|invoice|iban|bedrag te betalen|payable|totaalbedrag|totaal excl)/i;
+ const skip=/(?:^totaal\b|^subtotaal\b|^subtotaal\s|^9%\s*btw|^btw\b|^vat\b|^belasting\b|^korting\b|^discount\b|^factuur\b|^factuurnummer\b|^factuurdatum\b|^invoice\b|^iban\b|^bedrag te betalen\b|^payable\b|^totaalbedrag\b|^notitie\b)/i;
+ function add(ean,name,qty,price,amount,rate){
+  const q=parseInvoiceAmount(qty),p=parseInvoiceAmount(price),sum=amount==null?null:parseInvoiceAmount(amount);
+  if(!name||name.trim().length<4||q===null||p===null||q<=0||p<0)return false;
+  if(sum!==null&&Math.abs(q*p-sum)>Math.max(.13,Math.abs(sum)*.035))return false;
+  output.push({ean:ean||'',name:name.trim(),qty:q,price:p,vatRate:[0,9,21].includes(Number(rate))?Number(rate):null});
+  return true;
+ }
  for(const line of lines){
   if(skip.test(line)||line.length<8)continue;
-  let match;
-  // Barcode, description, quantity, unit price, optional line total.
-  match=line.match(/^(\d{8,14})\s+(.{3,}?)\s+(\d+(?:[.,]\d+)?)\s*(?:x|×|st|pcs|stuk|kg)?\s+(\d+[.,]\d{1,4})(?:\s+\d+[.,]\d{2})?$/i);
-  if(match){
-   const qty=parseInvoiceAmount(match[3]),price=parseInvoiceAmount(match[4]);
-   if(qty>0&&price>=0)output.push({ean:match[1],name:match[2].trim(),qty,price,vatRate:null});
-   continue;
-  }
+  let m;
+  // Dutch grocery layout: "50 x Pakket Doyum Kip Döner (1doos: 10pk) € 6,99 € 349,50 9%"
+  m=line.match(/^(\d+(?:[.,]\d+)?)\s*(?:x|×|st\.?)\s+(.{4,}?)\s+(?:€\s*)?(\d{1,6}[.,]\d{2,4})\s+(?:€\s*)?(\d{1,8}(?:[.,]\d{3})*[.,]\d{2})\s*(?:(0|9|21)\s*%)?$/i);
+  if(m&&add('',m[2],m[1],m[3],m[4],m[5]))continue;
+  // Same layout without extended line total
+  m=line.match(/^(\d+(?:[.,]\d+)?)\s*(?:x|×|st\.?)\s+(.{4,}?)\s+(?:€\s*)?(\d{1,6}[.,]\d{2,4})\s*(?:(0|9|21)\s*%)?$/i);
+  if(m&&add('',m[2],m[1],m[3],null,m[4]))continue;
+  // EAN in front of a product name.
+  m=line.match(/^(\d{8,14})\s+(.{3,}?)\s+(\d+(?:[.,]\d+)?)\s*(?:x|×|st|pcs|stuk|kg)?\s+(?:€\s*)?(\d+[.,]\d{1,4})(?:\s+(?:€\s*)?(\d+[.,]\d{2}))?$/i);
+  if(m&&add(m[1],m[2],m[3],m[4],m[5],null))continue;
   // Description, quantity x unit price, optional row total.
-  match=line.match(/^(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s*(?:x|×)\s*(?:€\s*)?(\d+[.,]\d{1,4})(?:\s+(?:€\s*)?\d+[.,]\d{2})?$/i);
-  if(match){
-   const qty=parseInvoiceAmount(match[2]),price=parseInvoiceAmount(match[3]);
-   if(qty>0&&price>=0)output.push({ean:'',name:match[1].trim(),qty,price,vatRate:null});
-   continue;
-  }
-  // Description followed by quantity, unit price and extended amount (three figures).
-  match=line.match(/^(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s+(\d+[.,]\d{2,4})\s+(\d+[.,]\d{2})$/);
-  if(match){
-   const qty=parseInvoiceAmount(match[2]),price=parseInvoiceAmount(match[3]),extended=parseInvoiceAmount(match[4]);
-   if(qty>0&&price>=0&&extended!==null&&Math.abs(qty*price-extended)<Math.max(.11,extended*.03))
-    output.push({ean:'',name:match[1].trim(),qty,price,vatRate:null});
-  }
+  m=line.match(/^(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s*(?:x|×)\s*(?:€\s*)?(\d+[.,]\d{1,4})(?:\s+(?:€\s*)?(\d+[.,]\d{2}))?$/i);
+  if(m&&add('',m[1],m[2],m[3],m[4],null))continue;
+  // Description, quantity, unit price, extended row amount.
+  m=line.match(/^(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s+(?:€\s*)?(\d+[.,]\d{2,4})\s+(?:€\s*)?(\d+[.,]\d{2})$/);
+  if(m)add('',m[1],m[2],m[3],m[4],null);
  }
  return output.slice(0,500);
 }
