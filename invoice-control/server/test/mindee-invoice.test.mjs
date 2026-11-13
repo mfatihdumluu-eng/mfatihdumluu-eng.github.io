@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeMindeeInvoice} from '../src/mindee-invoice.mjs';
+import * as mindee from 'mindee';
+import {normalizeMindeeInvoice,extractMindeeInvoice} from '../src/mindee-invoice.mjs';
 test('Mindee V2 invoice fields convert into editable product rows',()=>{
  const response={inference:{result:{fields:{
   supplier_name:{value:'Doyum Food B.V.'},
@@ -37,4 +38,27 @@ test('Unit price mismatch produces verification warning',()=>{
   total_amount:{value:21}
  }}}});
  assert(parsed.warnings.some(x=>x.includes('satır toplamı')));
+});
+
+test('official Mindee Node SDK V2 constructor and extraction classes exist',()=>{
+ assert.equal(typeof mindee.Client,'function');
+ assert.equal(typeof mindee.BufferInput,'function');
+ assert(mindee.product?.Extraction);
+});
+test('invoice processing calls correct SDK class and model with a stub, without sending a file',async()=>{
+ const response={inference:{result:{fields:{invoice_number:{value:'TEST-123'},total_amount:{value:15},line_items:{value:[{description:'Ürün',quantity:3,unit_price:5,total_price:15}]}}}}};
+ let called=false;
+ const result=await extractMindeeInvoice('md_fake','model_123',
+  {data:Buffer.from('not a real PDF'),filename:'test.pdf'},{
+   clientFactory:()=>({enqueueAndGetResult:async(product,input,params)=>{
+    called=true;
+    assert.equal(product,mindee.product.Extraction);
+    assert.equal(params.modelId,'model_123');
+    assert.equal(input.filename,'test.pdf');
+    return response;
+   }})
+  });
+ assert(called);
+ assert.equal(result.invoiceNumber,'TEST-123');
+ assert.equal(result.items.length,1);
 });
