@@ -100,6 +100,35 @@ app.get('/api/compare',async(req,reply)=>{
  if(req.user.role==='branch')return{items:result.filter(x=>x.branches.some(b=>Number(b.branch_id)===Number(req.user.branch_id))).map(x=>({...x,branches:undefined,own_price:x.branches.find(b=>Number(b.branch_id)===Number(req.user.branch_id))?.unit_net,comparison_branches:x.branches.length,estimated_difference:undefined}))};
  return{items:branch_id?result.filter(x=>x.branches.some(b=>Number(b.branch_id)===Number(branch_id))):result}
 });
+app.get('/api/compare/detail',async(req,reply)=>{
+ const {month,supplier_id,product_id}=req.query||{};
+ if(!monthOk(month)||!supplier_id||!product_id)return deny(reply,400,'Ay, tedarikçi ve ürün gerekli');
+ const rows=(await db.query(`SELECT i.id AS invoice_id,i.invoice_number,i.invoice_date,i.branch_id,b.name AS branch_name,
+ l.quantity,COALESCE(l.normalized_net_price,l.unit_net) AS net_unit_price
+ FROM invoices i JOIN invoice_lines l ON l.invoice_id=i.id
+ JOIN branches b ON b.id=i.branch_id
+ WHERE i.supplier_id=$1 AND l.product_id=$2 AND i.invoice_date >=$3::date
+ AND i.invoice_date < ($3::date+interval '1 month') AND i.status<>'cancelled'
+ ORDER BY i.branch_id,i.invoice_date`,[supplier_id,product_id,month+'-01'])).rows;
+ if(!rows.length)return deny(reply,404,'Karşılaştırma satırı bulunamadı');
+ const minimum=Math.min(...rows.map(r=>Number(r.net_unit_price)));
+ const own=rows.filter(r=>hasBranch(req.user,r.branch_id));
+ const mapped=own.map(r=>{
+   const price=Number(r.net_unit_price),qty=Number(r.quantity);
+   return {invoice_id:r.invoice_id,invoice_number:r.invoice_number,invoice_date:r.invoice_date,
+     branch_id:r.branch_id,branch_name:r.branch_name,quantity:qty,price_net:price,
+     reference_net:minimum,unit_difference:Math.round((price-minimum)*10000)/10000,
+     estimated_difference:Math.round(Math.max(0,price-minimum)*qty*100)/100};
+ });
+ if(!isAdmin(req.user)){
+   return {month,supplier_id,product_id,comparison_basis:'same supplier, canonical product, unit and month',
+     own_invoices:mapped,anonymous_reference:{lowest_net:minimum,other_branches_compared:new Set(rows.filter(r=>r.branch_id!==req.user.branch_id).map(r=>r.branch_id)).size},
+     total_possible_difference:mapped.reduce((v,r)=>v+r.estimated_difference,0),notice:'Other branches invoices and identities are intentionally not provided'};
+ }
+ return {month,supplier_id,product_id,reference_net:minimum,
+   invoices:mapped,total_possible_difference:mapped.reduce((v,r)=>v+r.estimated_difference,0),
+   notice:'Investigation signal: validate contracts, invoice discounts, tiered pricing, and unit conversion'};
+});
 app.get('/api/reports',async(req,reply)=>{
  if(!isAdmin(req.user))return deny(reply,403,'Admin gerekli');const month=req.query?.month;if(!monthOk(month))return deny(reply,400,'YYYY-MM gerekli');
  const r=await db.query(`SELECT s.id AS supplier_id,s.name AS supplier,COUNT(DISTINCT i.id) AS invoice_count,COALESCE(SUM(l.quantity*l.unit_net),0) AS invoiced_net FROM suppliers s LEFT JOIN invoices i ON i.supplier_id=s.id AND i.invoice_date >=$1::date AND i.invoice_date < ($1::date+interval '1 month') LEFT JOIN invoice_lines l ON l.invoice_id=i.id GROUP BY s.id,s.name ORDER BY s.name`,[month+'-01']);return{month,items:r.rows}
