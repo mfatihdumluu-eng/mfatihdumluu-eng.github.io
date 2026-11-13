@@ -297,13 +297,63 @@ function extractTotalsFromText(text){
  result.currency='EUR';
  return result;
 }
-async function extractPdf(f){
- const pdf=await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs');pdf.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
- const document=await pdf.getDocument({data:await f.arrayBuffer()}).promise;let parts=[];
- for(let i=1;i<=Math.min(document.numPages,10);i++){const p=await document.getPage(i),t=await p.getTextContent();parts.push(t.items.map(x=>x.str).join(' '))}
- let text=parts.join('\n');if(text.trim().length<30){notify('Taranmış PDF; ilk sayfa OCR ile okunuyor.');const page=await document.getPage(1),vp=page.getViewport({scale:1.6}),canvas=window.document.createElement('canvas');canvas.width=vp.width;canvas.height=vp.height;await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;text=await extractOcr(canvas)}return text
+async function pdfEngine(){
+ const pdf=await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs');
+ pdf.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
+ return pdf;
 }
-async function extractOcr(source){if(!window.Tesseract)await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(Error('OCR kütüphanesi yüklenemedi'));document.head.append(s)});const worker=await window.Tesseract.createWorker('eng+nld');try{let r=await worker.recognize(source);return r.data.text||''}finally{await worker.terminate()}}
+async function extractPdf(f,forceOcr=false){
+ const pdf=await pdfEngine();
+ const doc=await pdf.getDocument({data:await f.arrayBuffer()}).promise;
+ try{
+  const pages=[];
+  if(!forceOcr){
+   for(let i=1;i<=Math.min(doc.numPages,10);i++){
+    const page=await doc.getPage(i),content=await page.getTextContent();
+    const groups=[];let current=[],prevY=null;
+    // PDF text is spatial; joining all items into one line destroyed invoice table rows.
+    for(const part of content.items){
+     const y=part.transform?.[5];
+     if(prevY!==null&&Number.isFinite(y)&&Math.abs(y-prevY)>3&&current.length){groups.push(current.join(' '));current=[]}
+     if(part.str)current.push(part.str);
+     if(Number.isFinite(y))prevY=y;
+    }
+    if(current.length)groups.push(current.join(' '));
+    pages.push(groups.join('\n'));
+   }
+  }
+  let text=pages.join('\n').trim();
+  if(forceOcr||text.length<45){
+   notify('PDF sayfaları OCR ile okunuyor...');
+   const recognized=[];
+   for(let p=1;p<=Math.min(doc.numPages,3);p++){
+    const page=await doc.getPage(p),view=page.getViewport({scale:2});
+    const canvas=document.createElement('canvas');canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);
+    await page.render({canvasContext:canvas.getContext('2d'),viewport:view}).promise;
+    recognized.push(await extractOcr(canvas));
+   }
+   if(recognized.join('\n').trim())text=recognized.join('\n');
+  }
+  return text;
+ }finally{await doc.destroy()}
+}
+async function extractOcr(source){
+ if(!window.Tesseract){
+  await new Promise((resolve,reject)=>{
+   const script=document.createElement('script');
+   script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+   script.onload=resolve;script.onerror=()=>reject(Error('OCR kütüphanesi yüklenemedi. İnternet bağlantısını kontrol edin.'));
+   document.head.append(script);
+  });
+ }
+ let worker;
+ try{worker=await window.Tesseract.createWorker(['nld','eng'])}
+ catch(firstError){worker=await window.Tesseract.createWorker('eng')}
+ try{
+  const result=await worker.recognize(source);
+  return result?.data?.text||'';
+ }finally{await worker.terminate()}
+}
 function originalPreview(f){if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(f);let box=$('preview');if(f.type.startsWith('image/'))box.innerHTML='<img alt="Fatura önizlemesi" src="'+url+'">';else if(f.type==='application/pdf'||f.name.endsWith('.pdf'))box.innerHTML='<iframe title="PDF fatura" src="'+url+'"></iframe>';else box.innerHTML='<div style="padding:16px">Metin tabanlı dosya: '+safe(f.name)+'</div>'}
 function missingFields(requireLines=true){
  const issues=[];
