@@ -323,10 +323,33 @@ if(!list.length)return '<div class="empty">Bu seçime ait fatura bulunamadı.</d
 return '<div class="tablewrap"><table><thead><tr><th>Fatura Numarası</th><th>Tedarikçi</th><th>Şube</th><th>Tarih</th><th>Ürün Kalemi</th><th>KDV Hariç Tutar</th><th>Durum</th><th>İşlem</th></tr></thead><tbody>'+
 list.map(i=>'<tr class="clickable" onclick="viewInvoice(\''+esc(i.id)+'\')"><td><b>'+esc(i.id)+'</b></td><td>'+esc(supplierName(i.supplier))+'</td><td>'+esc(branches[i.branch])+'</td><td>'+esc(i.date)+'</td><td>'+i.items.length+'</td><td>'+euro(invoiceTotal(i))+'</td><td>'+badge(i.source==='demo'?'Örnek Fatura':'Test Faturası','purple')+'</td><td><button class="btn light" onclick="event.stopPropagation();viewInvoice(\''+esc(i.id)+'\')">Aç →</button></td></tr>').join('')+'</tbody></table></div>'
 }
+function invoicesForCurrentSearch(){
+ return allInvoices().filter(i=>(role!=='branch'||i.branch===branch)&&(role==='branch'||invoiceSearchAllTime||i.month===month)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+}
+function invoiceSearchInput(value){
+ search=value;
+ const area=document.getElementById('invoice-search-results');
+ if(area)area.innerHTML=invoiceTable(invoicesForCurrentSearch());
+ const counter=document.getElementById('invoice-count');
+ if(counter)counter.textContent=invoiceResultCount()+' eşleşen fatura';
+}
+function invoiceResultCount(){
+ return invoicesForCurrentSearch().filter(i=>branchCanRead(i.branch)&&(!window.branchFilter||window.branchFilter==='all'||i.branch===+window.branchFilter)&&(i.id+' '+supplierName(i.supplier)+' '+branches[i.branch]+' '+i.items.map(x=>products[x.product]?.name+' '+x.ean).join(' ')).toLocaleLowerCase('tr').includes(search.toLocaleLowerCase('tr'))).length
+}
+function setInvoiceSearchPeriod(all){
+ if(role==='branch'&&all)return;
+ invoiceSearchAllTime=Boolean(all);
+ render();
+}
 function invoicePage(){
-const ii=invoiceList().slice().reverse();
-return head('Faturalar',role==='branch'?'Yalnızca kendi şubenizin faturaları':'Tüm şubelerin faturaları','<a class="btn" href="./yukle.html">＋ Test Faturası Yükle ↗</a>')+
-'<div class="card"><div class="panel-head"><h2>Fatura Listesi</h2>'+badge(ii.length+' fatura','purple')+'</div><div class="filters"><input class="input" placeholder="⌕ Fatura, EAN veya ürün ara..." value="'+esc(search)+'" oninput="search=this.value;render()">'+(role==='branch'?badge(branches[branch],'purple'):'<select class="select" onchange="window.branchFilter=this.value;render()"><option value="all">Tüm Şubeler</option>'+branches.map((b,i)=>'<option value="'+i+'" '+(window.branchFilter==i?'selected':'')+'>'+esc(b)+'</option>').join('')+'</select>')+'</div>'+invoiceTable(ii)+'</div>'
+ const list=invoicesForCurrentSearch();
+ return head('Fatura Sorgula',role==='branch'?'Yalnızca kendi şubenizin seçili ay faturaları':'Seçili ayın faturaları; admin isterse tüm dönemlerde arar','<a class="btn" href="./yukle.html">＋ Test Faturası Yükle ↗</a>')+
+ '<div class="card"><div class="panel-head"><h2>Fatura ve Ürün Arama</h2><span class="badge purple" id="invoice-count">'+invoiceResultCount()+' eşleşen fatura</span></div>'+
+ '<div class="filters"><input class="input" style="min-width:270px" placeholder="⌕ Fatura no, ürün adı, EAN veya tedarikçi..." value="'+esc(search)+'" oninput="invoiceSearchInput(this.value)">'+
+ (role==='branch'?badge(branches[branch],'purple'):'<select class="select" onchange="window.branchFilter=this.value;render()"><option value="all">Tüm Şubeler</option>'+branches.map((b,i)=>'<option value="'+i+'" '+(window.branchFilter==i?'selected':'')+'>'+esc(b)+'</option>').join('')+'</select>')+
+ (role==='branch'?'': '<button class="btn '+(invoiceSearchAllTime?'light':'')+'" onclick="setInvoiceSearchPeriod(false)">Ay İçinde ('+month+')</button><button class="btn '+(invoiceSearchAllTime?'':'light')+'" onclick="setInvoiceSearchPeriod(true)">Tüm Zamanlar</button>')+'</div>'+
+ '<div class="note" style="margin-bottom:15px">Ürün veya EAN aratıldığında ürünün geçtiği faturalar listelenir. Faturayı açıp ürünün adına basarak satın alma geçmişini görebilirsiniz.</div>'+
+ '<div id="invoice-search-results">'+invoiceTable(list)+'</div></div>';
 }
 let currentInvoice=null;function viewInvoice(id){const inv=allInvoices().find(x=>x.id===id);if(!inv||!branchCanRead(inv.branch))return;invoiceReturnPage=page==='productCard'?'productCard':'invoices';currentInvoice=id;page='invoiceDetail';render();window.scrollTo(0,0)}
 function invoiceDetail(){
