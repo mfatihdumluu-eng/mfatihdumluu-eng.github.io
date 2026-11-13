@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import {randomBytes,scryptSync} from 'node:crypto';
 import pg from 'pg';
 const db=new pg.Pool({connectionString:process.env.DATABASE_URL});
-const names=['Rotterdam Centrum','Rotterdam Noord','Rotterdam Zuid','Schiedam','Delft','Den Haag','Utrecht','Breda','Amsterdam'];
+const names=['Dordrecht – Wielwijk','Dordrecht – Merwedepolder Oost','Schiedam','Utrecht','Breda','Bergen op Zoom','Gorinchem','Tilburg','Eindhoven'];
 const hash=(password)=>{const salt=randomBytes(16).toString('hex');return salt+':'+scryptSync(password,salt,64).toString('hex')};
 try{
  await db.query(await fs.readFile(new URL('../schema.sql',import.meta.url),'utf8'));
