@@ -16,6 +16,28 @@
 .finder-overlay h3{margin:0 0 10px;font-size:15px}.compare-label{display:inline-block;font-size:10px;background:#eaf8f0;color:#14845f;border-radius:8px;padding:5px 7px;font-weight:800}.compare-high{background:#fff0f1;color:#b83c49;font-weight:800}
 .finder-truncate{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:650px){.stepgrid{grid-template-columns:1fr}.step-arrow{display:none}.finder-summary{grid-template-columns:1fr 1fr}.finder-hero{padding:15px}}
+
+/* Supplier identity + conspicuous findings */
+.nav-alert{background:#fff0f1!important;color:#c3394b!important;font-weight:850!important;border:1px solid #ffd7df!important}
+.nav-counter{margin-left:auto;padding:3px 7px;border-radius:14px;background:#dc3545;color:white;font-size:11px}
+.error-bar{background:linear-gradient(115deg,#fff4f5,#fffafb);border:1px solid #f4ccd4;border-left:5px solid #dc475b;border-radius:14px;padding:20px;margin-bottom:17px}
+.error-number{font-size:26px;color:#bb3042;font-weight:900;letter-spacing:-.9px}
+.error-row{background:#fffafb}.error-row:hover{background:#fff1f3!important}.error-label{background:#ffe5e9;color:#b42336;border-radius:7px;padding:7px 10px;font-size:11px;font-weight:850}
+.supplier-profile{display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,1fr);gap:17px;margin-bottom:17px}
+.supplier-identity{background:linear-gradient(130deg,#fff,#f4f5ff);border:1px solid #e5e8fa;border-radius:14px;padding:20px}
+.supplier-logo{width:66px;height:66px;border-radius:16px;background:#e4e9ff;color:#344ac5;display:grid;place-items:center;font-size:24px;font-weight:900}
+.supplier-details{display:grid;grid-template-columns:130px 1fr;gap:10px;font-size:12px;padding:7px 0;border-bottom:1px solid #f0f2f7}
+.supplier-details span{color:#788599}.supplier-details strong{overflow-wrap:anywhere}
+.supplier-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.supplier-form label{display:grid;gap:6px;font-size:12px;font-weight:750;color:#59677c}
+.supplier-form input,.supplier-form textarea{width:100%;border:1px solid #dce3ee;border-radius:8px;padding:10px;background:white;color:#24354b}
+.supplier-form textarea{min-height:160px;resize:vertical;grid-column:1/-1}
+.supplier-form .full{grid-column:1/-1}
+.error-filters{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:15px 0}
+.error-item{border:1px solid #f2e0e3;border-left:4px solid #cf4354;border-radius:11px;padding:17px;margin-bottom:11px;background:white}
+.error-item h3{font-size:14px;margin:0 0 8px}.error-item .error-value{font-size:20px;font-weight:850;color:#b83248}
+.info-note{padding:11px;border:1px solid #e1e5f0;background:#fafbfe;border-radius:9px;color:#66758e;font-size:12px}
+@media(max-width:800px){.supplier-profile{grid-template-columns:1fr}.supplier-form{grid-template-columns:1fr}.supplier-form .full,.supplier-form textarea{grid-column:auto}.supplier-details{grid-template-columns:100px 1fr}}
 </style></head><body>
 <div class="layout"><aside class="side" id="sidebar"><div class="logo"><div class="mark">✓</div>Invoice Control</div><div class="navhead">ÇALIŞMA ALANI</div><nav id="nav"></nav><div class="navhead">YÖNETİM</div><nav id="adminnav"></nav><div class="sidefoot"><div class="row"><div class="avatar">SA</div><div><strong class="tiny" style="color:#344256">Demo yönetici</strong><div class="tiny">Örnek test ortamı</div></div></div></div></aside><div class="main"><header class="top"><div class="row"><button class="btn white mobile-menu" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><span class="topname" id="breadcrumb">Dashboard</span></div><div class="topright"><select class="select" id="role"><option value="system">Sistem Yöneticisi</option><option value="admin">Admin</option><option value="branch-0">Şube 1</option><option value="branch-1">Şube 2</option><option value="branch-2">Şube 3</option><option value="branch-3">Şube 4</option><option value="branch-4">Şube 5</option><option value="branch-5">Şube 6</option><option value="branch-6">Şube 7</option><option value="branch-7">Şube 8</option><option value="branch-8">Şube 9</option></select><select class="select" id="month"><option value="2026-11">Kas 2026</option><option value="2026-10">Eki 2026</option></select><span class="chip">● DEMO</span></div></header><main class="work" id="root"></main></div></div>
 <script>
@@ -79,7 +101,7 @@ function discrepancyPage(){
  [...byBranch.entries()].sort((a,b)=>a[0]-b[0]).map(([id,x])=>'<tr><td>'+esc(branches[id])+'</td><td>'+euro(x.price)+'</td><td>'+euro(x.price-base)+'</td></tr>').join(''))+'</tbody></table></div></div>'
 }
 
-function nav(){const items=[['dashboard','◫','Genel Bakış'],['branches','▦','Şubeler'],['finder','⌕','Akıllı Fatura Arama'],['suppliers','▦','Tedarikçiler'],['invoices','▤','Faturalar'],['products','⌕','Ürün Ara'],['compare','⇄','Şubeleri Karşılaştır'],['alerts','⚠','Fiyat Farkları'],...(role==='branch'?[]:[['reports','▥','Raporlar']]),['upload','⇧','Fatura Yükle']];const admins=[['users','♙','Demo Kullanıcılar'],['settings','⚙','Ayarlar']];document.getElementById('nav').innerHTML=items.map(x=>'<button class="nav '+(page===x[0]?'active':'')+'" data-route="'+x[0]+'"><span class="ico">'+x[1]+'</span>'+x[2]+'</button>').join('');document.getElementById('adminnav').innerHTML=admins.filter(x=>role!=='branch').map(x=>'<button class="nav '+(page===x[0]?'active':'')+'" data-route="'+x[0]+'"><span class="ico">'+x[1]+'</span>'+x[2]+'</button>').join('');document.querySelectorAll('[data-route]').forEach(el=>el.onclick=()=>go(el.dataset.route))}
+function nav(){const items=[['dashboard','◫','Genel Bakış'],['branches','▦','Şubeler'],['finder','⌕','Akıllı Fatura Arama'],['suppliers','▦','Tedarikçiler'],['invoices','▤','Faturalar'],['products','⌕','Ürün Ara'],['compare','⇄','Şubeleri Karşılaştır'],['errors','⛔','Hatalar'],['alerts','⚠','Fiyat Farkları'],...(role==='branch'?[]:[['reports','▥','Raporlar']]),['upload','⇧','Fatura Yükle']];const admins=[['users','♙','Demo Kullanıcılar'],['settings','⚙','Ayarlar']];document.getElementById('nav').innerHTML=items.map(x=>'<button class="nav '+(page===x[0]?'active':'')+(x[0]==='errors'?' nav-alert':'')+'" data-route="'+x[0]+'"><span class="ico">'+x[1]+'</span>'+x[2]+'</button>').join('');document.getElementById('adminnav').innerHTML=admins.filter(x=>role!=='branch').map(x=>'<button class="nav '+(page===x[0]?'active':'')+'" data-route="'+x[0]+'"><span class="ico">'+x[1]+'</span>'+x[2]+'</button>').join('');document.querySelectorAll('[data-route]').forEach(el=>el.onclick=()=>go(el.dataset.route))}
 function go(p){page=p;search='';document.getElementById('sidebar').classList.remove('open');render();window.scrollTo(0,0)}
 function head(name,sub,right=''){return '<div class="head"><div><div class="eyebrow">INVOICE CONTROL / '+esc(name.toUpperCase())+'</div><h1>'+esc(name)+'</h1><p>'+sub+'</p></div>'+right+'</div>'}
 function supplierCard(s){let ii=invoiceList().filter(i=>i.supplier===s.id),total=ii.reduce((sum,i)=>sum+invoiceTotal(i),0),issues=compare().filter(x=>x.supplier===s.id&&(role!=='branch'||x.items.some(v=>v.branch===branch))).length;return '<button class="card supplier-card" onclick="showSupplier('+s.id+')"><div class="row between"><div class="supplier-icon">'+esc(s.initials)+'</div>'+badge(issues+' afwijkingen',issues?'red':'green')+'</div><div class="cardtitle" style="margin-top:18px">'+esc(s.name)+'</div><p>'+esc(s.category)+'</p><div class="row between" style="margin-top:15px"><span class="tiny">'+ii.length+' facturen · 9 vestigingen</span><strong style="font-size:12px">'+euro(total)+'</strong></div></button>'}
@@ -210,9 +232,9 @@ function branchesPage(){
 function render(){
 if(role==='branch'){finderBranch=branch;window.branchFilter='all';if(['users','settings','reports'].includes(page))page='finder'}
 nav();
-const titles={branches:'Şubeler',discrepancy:'Fiyat Farkı Detayı',finder:'Fatura Sorgula',supplierDetail:'Tedarikçi Detayı',invoiceDetail:'Fatura Detayı',dashboard:'Genel Bakış',suppliers:'Tedarikçiler',invoices:'Faturalar',products:'Ürün Ara',compare:'Şubeleri Karşılaştır',alerts:'Fiyat Farkları',reports:'Raporlar',users:'Demo Kullanıcılar',upload:'Fatura Yükle',settings:'Ayarlar'};
+const titles={errors:'Hatalar',branches:'Şubeler',discrepancy:'Fiyat Farkı Detayı',finder:'Fatura Sorgula',supplierDetail:'Tedarikçi Detayı',invoiceDetail:'Fatura Detayı',dashboard:'Genel Bakış',suppliers:'Tedarikçiler',invoices:'Faturalar',products:'Ürün Ara',compare:'Şubeleri Karşılaştır',alerts:'Fiyat Farkları',reports:'Raporlar',users:'Demo Kullanıcılar',upload:'Fatura Yükle',settings:'Ayarlar'};
 document.getElementById('breadcrumb').textContent=titles[page]||'Genel Bakış';
-const pages={discrepancy:discrepancyPage,branches:branchesPage,finder:finderPage,dashboard:dashboards,suppliers:supplierPage,supplierDetail,invoices:invoicePage,invoiceDetail,products:productsPage,compare:comparePage,alerts:alertsPage,reports,users,upload:uploadPage,settings};
+const pages={errors:errorsPage,discrepancy:discrepancyPage,branches:branchesPage,finder:finderPage,dashboard:dashboards,suppliers:supplierPage,supplierDetail,invoices:invoicePage,invoiceDetail,products:productsPage,compare:comparePage,alerts:alertsPage,reports,users,upload:uploadPage,settings};
 document.getElementById('root').innerHTML=(pages[page]||finderPage)()+'<div class="footer">Invoice Control · Türkçe Demo · Bu ekrandaki rol seçimi gerçek güvenlik sağlamaz. Gerçek sistemde izinler API üzerinden uygulanır.</div>'
 }
 document.getElementById('role').onchange=e=>{const chosen=e.target.value;role=chosen.startsWith('branch-')?'branch':chosen;if(role==='branch')branch=Number(chosen.slice(7));finderBranch=branch;window.branchFilter='all';discrepancySelection=null;finderSelectedInvoice=null;page='finder';render()};document.getElementById('month').onchange=e=>{month=e.target.value;render()};render();
