@@ -107,11 +107,17 @@ assert.equal(Math.round(parsedDoyum.reduce((v,x)=>v+x.qty*x.price,0)*100)/100,11
 assert(parsedDoyum.every(x=>x.vatRate===9),'Doyum nine lines should have 9% BTW');
 assert(u.eval('detectInvoiceFields("Doyum Food B.V.\\nFactuur 26704293\\nFactuurdatum 28-10-2026").supplier')==='7','Doyum supplier lookup');
 
+assert.equal(u.eval('detectInvoiceFields("Doyum Food B.V.\\nFactuur 26704293\\nFactuurdatum: 28-10-2026").number'),'26704293','Dutch bare Factuur number');
 const completeDoyum = doyumSample+
  '\n-5% x Korting € 1.106,68 € -55,33 9%\nSubtotaal € 1.051,35\n9% btw € 94,62\nTotaal € 1.145,97';
 u.eval("items=parseText("+JSON.stringify(completeDoyum)+");mode='scan';setDocumentSummary(extractTotalsFromText("+JSON.stringify(completeDoyum)+"))");
 assert.deepEqual(u.eval("invoiceReconciliationIssues(true)"),[],'complete Doyum invoice discount, VAT and total reconcile');
 assert(u.document.getElementById('summaryRows').innerHTML.includes('1.145,97'),'calculated discounted gross should match document');
+u.eval("mode='scan';ocrDocumentFields={number:'26704293'}");
+u.document.getElementById('number').value='33333';
+assert(u.eval("invoiceReconciliationIssues(true)").some(s=>s.includes('Fatura numarası farklı')),'OCR mismatch blocks approval');
+u.document.getElementById('number').value='26704293';
+assert.deepEqual(u.eval("invoiceReconciliationIssues(true)"),[],'corrected invoice number enables valid totals');
 u.eval("items[1].price=9.99;updateSummary()");
 assert(u.eval("invoiceReconciliationIssues(true)").length>0,'wrong price must prevent approval');
 assert(u.eval("missingFields(true)").some(s=>s.includes('Ürün toplamı')),'incorrect OCR invoice should block save');
