@@ -180,34 +180,56 @@ function parseInvoiceAmount(raw){
  return Number.isFinite(n)?n:null;
 }
 function parseText(t){
- const output=[];
- const lines=String(t||'').replace(/\r/g,'\n').split(/\n/).map(s=>s.replace(/[|│]/g,' ').replace(/\s+/g,' ').trim()).filter(Boolean);
- const skip=/(?:^totaal\b|^subtotaal\b|^subtotaal\s|^9%\s*btw|^btw\b|^vat\b|^belasting\b|^korting\b|^discount\b|^factuur\b|^factuurnummer\b|^factuurdatum\b|^invoice\b|^iban\b|^bedrag te betalen\b|^payable\b|^totaalbedrag\b|^notitie\b)/i;
- function add(ean,name,qty,price,amount,rate){
-  const q=parseInvoiceAmount(qty),p=parseInvoiceAmount(price),sum=amount==null?null:parseInvoiceAmount(amount);
-  if(!name||name.trim().length<4||q===null||p===null||q<=0||p<0)return false;
-  if(sum!==null&&Math.abs(q*p-sum)>Math.max(.13,Math.abs(sum)*.035))return false;
-  output.push({ean:ean||'',name:name.trim(),qty:q,price:p,vatRate:[0,9,21].includes(Number(rate))?Number(rate):null});
+ const output=[],lines=String(t||'').replace(/\r/g,'\n').split(/\n/).map(s=>s.replace(/[|│]/g,' ').replace(/\s+/g,' ').trim()).filter(Boolean);
+ const stop=/^(?:subtotaal|subtotal|totaal|total|btw|vat|korting|discount|factuur|invoice|iban|bank|kvk|notitie|omschrijving|bedrag|amount|telefoon|whatsapp|pagina|bewaar|aflever)/i;
+ const currency='(?:€\\s*)?';
+ const num='(\\d{1,9}(?:[.,]\\d{3})*[.,]\\d{2,4})';
+ function push(qty,name,price,total=null,rate=null,ean=''){
+  const q=parseInvoiceAmount(qty),p=parseInvoiceAmount(price),v=total==null?null:parseInvoiceAmount(total);
+  const clean=String(name||'').replace(/^\s*[✓√\/]+\s*/,'').replace(/\s+/g,' ').trim();
+  if(!clean||clean.length<4||!/[a-zA-ZğüşöçıĞÜŞÖÇİ]/.test(clean)||!(q>0)||p===null||p<0)return false;
+  if(v!==null&&Math.abs(q*p-v)>Math.max(.13,Math.abs(v)*.04))return false;
+  output.push({ean,name:clean,qty:q,price:p,vatRate:rate!==null&&rate!==''&&[0,9,21].includes(Number(rate))?Number(rate):null});
   return true;
  }
+ const patterns=[
+  // qty, description, unit price, row total, BTW -- Dutch column layout
+  new RegExp('^(\\d+(?:[.,]\\d+)?)\\s*[x×]\\s+(.{4,}?)\\s+'+currency+num+'\\s+'+currency+num+'\\s*(?:(0|9|21)\\s*%)?$','i'),
+  // qty, description, unit price, BTW
+  new RegExp('^(\\d+(?:[.,]\\d+)?)\\s*[x×]\\s+(.{4,}?)\\s+'+currency+num+'\\s*(?:(0|9|21)\\s*%)?$','i'),
+ ];
+ // OCR often splits wrapped descriptions across lines. Gather a row until the next numbered quantity.
+ const rows=[];let current='';
  for(const line of lines){
-  if(skip.test(line)||line.length<8)continue;
-  let m;
-  // Dutch grocery layout: "50 x Pakket Doyum Kip Döner (1doos: 10pk) € 6,99 € 349,50 9%"
-  m=line.match(/^(\d+(?:[.,]\d+)?)\s*(?:x|×|st\.?)\s+(.{4,}?)\s+(?:€\s*)?(\d{1,6}[.,]\d{2,4})\s+(?:€\s*)?(\d{1,8}(?:[.,]\d{3})*[.,]\d{2})\s*(?:(0|9|21)\s*%)?$/i);
-  if(m&&add('',m[2],m[1],m[3],m[4],m[5]))continue;
-  // Same layout without extended line total
-  m=line.match(/^(\d+(?:[.,]\d+)?)\s*(?:x|×|st\.?)\s+(.{4,}?)\s+(?:€\s*)?(\d{1,6}[.,]\d{2,4})\s*(?:(0|9|21)\s*%)?$/i);
-  if(m&&add('',m[2],m[1],m[3],null,m[4]))continue;
-  // EAN in front of a product name.
-  m=line.match(/^(\d{8,14})\s+(.{3,}?)\s+(\d+(?:[.,]\d+)?)\s*(?:x|×|st|pcs|stuk|kg)?\s+(?:€\s*)?(\d+[.,]\d{1,4})(?:\s+(?:€\s*)?(\d+[.,]\d{2}))?$/i);
-  if(m&&add(m[1],m[2],m[3],m[4],m[5],null))continue;
-  // Description, quantity x unit price, optional row total.
-  m=line.match(/^(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s*(?:x|×)\s*(?:€\s*)?(\d+[.,]\d{1,4})(?:\s+(?:€\s*)?(\d+[.,]\d{2}))?$/i);
-  if(m&&add('',m[1],m[2],m[3],m[4],null))continue;
-  // Description, quantity, unit price, extended row amount.
-  m=line.match(/^(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s+(?:€\s*)?(\d+[.,]\d{2,4})\s+(?:€\s*)?(\d+[.,]\d{2})$/);
-  if(m)add('',m[1],m[2],m[3],m[4],null);
+  const isStart=/^\d{1,5}\s*[x×]\s+[A-Za-zÀ-ÿ]/i.test(line);
+  if(isStart){if(current)rows.push(current);current=line}
+  else if(current){
+   if(stop.test(line)){rows.push(current);current='';continue}
+   // A wrapped description or trailing price-only line belongs to the current item.
+   if(current.length<290)current+=' '+line;
+  }else rows.push(line);
+ }
+ if(current)rows.push(current);
+ for(const line of rows){
+  if(stop.test(line)||line.length<8)continue;
+  let matched=false;
+  for(let k=0;k<patterns.length;k++){
+   const m=line.match(patterns[k]);
+   if(m){
+    matched=push(m[1],m[2],m[3],k===0?m[4]:null,k===0?m[5]:m[4]);
+    if(matched)break;
+   }
+  }
+  if(matched)continue;
+  // qty first, followed by description and OCR price columns without € symbol.
+  let m=line.match(/^(\d{1,5})\s*[x×]\s+(.{4,}?)\s+(\d+[.,]\d{2})\s+(\d{1,6}(?:[.,]\d{3})*[.,]\d{2})\s*(?:9\s*%)?$/i);
+  if(m&&push(m[1],m[2],m[3],m[4],/9\s*%$/.test(line)?9:null))continue;
+  // EAN + description + quantity + unit price, for other supplier layouts.
+  m=line.match(/^(\d{8,14})\s+(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s*(?:x|×|st|pcs|stuk)?\s+(?:€\s*)?(\d+[.,]\d{1,4})(?:\s+(?:€\s*)?(\d+[.,]\d{2}))?$/i);
+  if(m&&push(m[3],m[2],m[4],m[5],null,m[1]))continue;
+  // Product at beginning, qty × unit, optional total.
+  m=line.match(/^(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s*[x×]\s*(?:€\s*)?(\d+[.,]\d{1,4})(?:\s+(?:€\s*)?(\d+[.,]\d{2}))?$/i);
+  if(m)push(m[2],m[1],m[3],m[4]);
  }
  return output.slice(0,500);
 }
