@@ -37,6 +37,10 @@ assert(root.textContent.includes('Ürün Kartı'),'invoice back must return to p
 w.eval("role='branch';branch=0;allTime=false;setMode('invoices')");
 assert(root.textContent.includes('HD-2026-111'));
 assert(!root.textContent.includes('VD-2026-51'));
+w.eval("role='admin';allTime=false;invoiceNumberQuery='HD2026111';setMode('invoices')");
+assert(root.innerHTML.includes('HD-2026-111'),'partial invoice-number search should find the invoice');
+assert(!root.innerHTML.includes('VD-2026-51'),'invoice number search excludes other invoices');
+w.eval("invoiceNumberQuery='';render()");
 w.eval("role='admin';allTime=true;setMode('invoices')");
 assert(root.innerHTML.includes('HD-2026-101'),'admin all-time');
 w.eval("role='admin';allTime=false;setMode('errors')");
@@ -47,6 +51,10 @@ assert(!root.textContent.includes('HD-2026-101'),'branch no all-time');
 const upload=open('kolay-yukle.html'),u=upload.window;
 assert(upload.window.document.body.textContent.includes('Tedarikçi'));
 assert(upload.window.document.getElementById('number'));
+assert(upload.window.document.getElementById('existingNumberResults'),'invoice number lookup visible on upload');
+assert(upload.window.document.getElementById('docGross'),'gross amount field visible');
+assert(upload.window.document.getElementById('docVat'),'BTW total field visible');
+
 const products=u.eval("parseCSV('ean;urun;miktar;birim_fiyat\\n5449000000996;Coca Cola 1L;100;1,16\\n')");
 assert.equal(products.length,1);
 assert.equal(products[0].price,1.16);
@@ -58,6 +66,10 @@ await u.eval("save(true)");
 const saved=JSON.parse(u.localStorage.getItem('invoice-control-demo-invoices-v1'));
 assert.equal(saved.length,1);
 assert.equal(saved[0].approval,'Metin dosyası otomatik');
+assert(saved[0].invoiceSummary,'invoice summary should be stored with uploaded invoice');
+u.eval("searchExistingInvoice()");
+assert(u.document.getElementById('existingNumberResults').innerHTML.includes('TEST-COLA-001'),'upload number lookup lists existing invoice');
+
 w.localStorage.setItem('invoice-control-demo-invoices-v1',JSON.stringify(saved));
 w.eval("role='admin';allTime=false;setMode('invoices')");
 assert(root.innerHTML.includes('TEST-COLA-001'),'saved invoice appears in dashboard');
