@@ -39,7 +39,7 @@ const K='invoice-control-demo-invoices-v1',DB='invoice-control-original-document
 const BR=['Dordrecht – Wielwijk','Dordrecht – Merwedepolder Oost','Schiedam','Utrecht','Breda','Bergen op Zoom','Gorinchem','Tilburg','Eindhoven'];
 const SUP=['Holland Dairy BV','Van Dijk Foodservice','Freshline Groothandel','Euro Foods BV','Delta Distributie','Noord Trade','Doyum Food B.V.'];
 const $=id=>document.getElementById(id),safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let file=null,url=null,items=[],mode='',busy=false,saved=false,editingId=null,existingDocId=null,parsedSummary={},ocrRunning=false;
+let file=null,url=null,items=[],mode='',busy=false,saved=false,editingId=null,existingDocId=null,parsedSummary={},ocrRunning=false,ocrDocumentFields={};
 $('branch').innerHTML=BR.map((x,i)=>'<option value="'+i+'">'+safe(x)+'</option>').join('');
 $('supplier').innerHTML='<option value="">Tedarikçi seçin</option>'+SUP.map((x,i)=>'<option value="'+(i+1)+'">'+safe(x)+'</option>').join('');
 function notify(text,bad=false){$('status').textContent=text;$('status').style.color=bad?'#b83e52':'#69778e'}
@@ -99,6 +99,9 @@ function calculatedTotals(){
 }
 function invoiceReconciliationIssues(requireComplete=true){
  const v=summaryInputs(),calc=calculatedTotals(),issues=[];
+ if(mode==='scan'&&ocrDocumentFields.number&&$('number').value.trim()&&
+  ocrDocumentFields.number.replace(/[^0-9A-Za-z]/g,'').toLowerCase()!==$('number').value.trim().replace(/[^0-9A-Za-z]/g,'').toLowerCase())
+  issues.push('Fatura numarası farklı: belgede '+ocrDocumentFields.number+', giriş alanında '+$('number').value.trim()+'. Belgedeki numarayı doğrulayın.');
  if(!items.length)return ['Hiç ürün satırı bulunamadı.'];
  if(requireComplete){
   if(v.net===null)issues.push('Faturadaki BTW hariç toplam eksik');
@@ -255,6 +258,7 @@ function detectInvoiceFields(t){
  const lines=String(t||'').replace(/\r/g,'\n').split(/\n/).map(s=>s.trim()).filter(Boolean);
  const text=lines.join('\n'),result={number:'',date:'',supplier:''};
  const numPatterns=[
+  /\b(?:factuur|faktuur|facture)\s+(\d{5,14})\b/i,
   /(?:factuur\s*(?:nummer|nr\.?|no\.?|#)|factuurnr|invoice\s*(?:number|no\.?|nr\.?|#)|invoice\s*id|fatura\s*(?:no|numarası))\s*[:#\-]?\s*([A-Z0-9][A-Z0-9\/.\-_]{2,45})/i
  ];
  for(const rx of numPatterns){const m=text.match(rx);if(m){const v=m[1].replace(/[.,;]+$/,'');if(!/^(?:date|datum|total|totaal|bedrag)$/i.test(v))result.number=v;break}}
@@ -454,10 +458,12 @@ function describeMappedValues(fields,products){
  $('ocrMapping').innerHTML='<div class="summary-metrics">'+cards.map(([label,val])=>'<div class="summary-metric"><span class="sub">'+safe(label)+'</span><b style="font-size:15px">'+safe(val)+'</b></div>').join('')+'</div>';
 }
 let dateManuallyChanged=false;
+function useDetectedInvoiceNumber(){if(!ocrDocumentFields.number)return;$('number').value=ocrDocumentFields.number;searchExistingInvoice();updateSummary();applyRecognizedText(false)}
 function applyRecognizedText(forceReplace=false){
  const text=$('ocrText').value.trim();
  if(!text){$('ocrMessage').className='notice warn';$('ocrMessage').textContent='Okunan metin boş. Tekrar okut veya metni kendin yapıştır.';return false}
  const fields=detectInvoiceFields(text),lines=parseText(text),summ=extractTotalsFromText(text);
+ ocrDocumentFields=fields;
  if(fields.number&&!$('number').value.trim()){$('number').value=fields.number;searchExistingInvoice()}
  if(fields.supplier&&!$('supplier').value){$('supplier').value=fields.supplier;searchExistingInvoice()}
  if(fields.date&&!dateManuallyChanged)$('date').value=fields.date;
@@ -466,6 +472,7 @@ function applyRecognizedText(forceReplace=false){
  $('raw').value=text;
  renderRows();
  describeMappedValues(fields,lines);
+ if(fields.number&&$('number').value.trim()!==fields.number){$('ocrMapping').innerHTML+='<div class="notice warn" style="margin-top:10px"><b>Fatura numarası uyuşmuyor!</b> Belgede '+safe(fields.number)+' görünüyor; girişte '+safe($('number').value)+' yazıyor. <button type="button" class="btn light" onclick="useDetectedInvoiceNumber()">Belgedeki numarayı kullan</button></div>'}
  const notes=[];
  if(lines.length)notes.push(...invoiceReconciliationIssues(true));
  if(!fields.number&&!$('number').value.trim())notes.push('Fatura No bulunamadı');
@@ -503,12 +510,13 @@ async function load(f){
  if(f.size>10*1024*1024){notify('En fazla 10 MB dosya seçin.',true);return}
  if(busy)return;
  busy=true;file=f;items=[];setDocumentSummary({currency:'EUR'});saved=false;editingId=null;existingDocId=null;
- dateManuallyChanged=false;
+ dateManuallyChanged=false;ocrDocumentFields={};
  renderRows();originalPreview(f);
  $('review').classList.remove('hidden');$('feedback').classList.add('hidden');$('missing').classList.add('hidden');
  $('approve').disabled=false;$('draft').disabled=false;
  const ext=f.name.split('.').pop().toLowerCase();
  mode=['csv','txt','xml','ubl'].includes(ext)?'text':'scan';
+ if(mode==='scan')$('date').value='';
  $('mode').textContent=mode==='text'?'Metin dosyası: otomatik':'PDF / Resim: onay gerekli';
  $('ocrWorkspace').classList.toggle('hidden',mode==='text');
  $('ocrText').value='';$('ocrMapping').classList.add('hidden');
