@@ -214,8 +214,28 @@ app.post('/api/admin/mindee/extract',{config:{rateLimit:{max:5,timeWindow:'1 min
   await audit(req.user.id,'extract','integration','mindee',{fileType:part.mimetype,lines:result.items.length,warnings:result.warnings.length});
   return reply.header('Cache-Control','no-store').send({provider:'mindee-v2',modelConfigured:true,requiresReview:true,...result});
  }catch(err){
-  req.log.warn({message:String(err?.message||'').slice(0,160)},'Mindee extraction failed');
-  return deny(reply,502,'Mindee fatura çıkarımı başarısız. API anahtarı, Model ID ve Mindee hesabını kontrol edin.');
+  const detail=String(err?.message||'');
+  const status=Number(err?.status||err?.statusCode||err?.httpStatus||0);
+  req.log.warn({errorType:String(err?.name||'Error').slice(0,60),httpStatus:status||undefined,
+   message:detail.slice(0,180)},'Mindee extraction failed');
+  // Only return a safe classification, never raw provider error responses
+  // that could contain filenames, customer information or credentials.
+  let message='Mindee belge çıkarımı başarısız. Sunucu kayıtlarında ayrıntı bulunuyor.';
+  if(status===401||/unauthori[sz]ed|invalid api key|api.key.*invalid/i.test(detail))
+   message='Mindee API anahtarı reddedildi (401). Sistem Admini → API Ayarları bölümünü kontrol et.';
+  else if(status===403||/forbidden/i.test(detail))
+   message='Mindee hesabının bu modele erişim yetkisi yok (403).';
+  else if(status===404||/model.{0,35}not found|unknown model/i.test(detail))
+   message='Mindee Model ID bulunamadı. API Ayarları → Modelleri Getir bölümünden doğru modeli seç.';
+  else if(status===429||/rate.limit|too many requests/i.test(detail))
+   message='Mindee istek sınırına ulaşıldı (429).';
+  else if(/timeout|timed out|polling retries/i.test(detail))
+   message='Mindee fatura işleme zaman aşımına uğradı. Daha sonra tekrar dene.';
+  else if(/ClientV2 is not a constructor|BufferInput is not a constructor|enqueueAndGetResult is not a function|SDK incompatible/i.test(detail))
+   message='Mindee yazılım entegrasyonu hatası. Bu sorun API anahtarından kaynaklanmıyor.';
+  else if(status===400||status===422)
+   message='Mindee belgeyi veya model parametrelerini kabul etmedi ('+status+'). Dosya biçimini ve modeli kontrol et.';
+  return reply.code(502).send({error:message,code:status||'EXTRACTION_FAILED'});
  }
 });
 
