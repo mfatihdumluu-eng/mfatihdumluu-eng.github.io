@@ -137,21 +137,21 @@ function productDetail(){
  const relevant=target.filter(x=>isAdmin()||x.branch===branch).sort((a,b)=>b.date.localeCompare(a.date));
  const min=target.length?Math.min(...target.map(x=>Number(x.price))):null;
  const max=target.length?Math.max(...target.map(x=>Number(x.price))):null;
- const branchCards=BRANCHES.map((name,b)=>{
-  const lines=target.filter(x=>x.branch===b);
-  if(!lines.length)return '<div class="branch-price"><span class="mini">'+esc(name)+'</span><span class="price-no">Fatura yok</span></div>';
-  const latest=lines.slice().sort((x,y)=>y.date.localeCompare(x.date))[0];
-  // With all suppliers selected, show supplier and price on each branch, do not treat
-  // different supplier pricing as a supplier invoice error.
-  const ref=selectedSupplierId==='all'?lowBySupplier.get(latest.supplier):min;
-  const delta=Math.round((latest.price-ref)*100)/100;
-  const flag=delta>.025;
-  return '<div class="branch-price '+(flag?'different':'base')+'"><span class="mini"><b>'+esc(name)+'</b></span>'+
-   '<span class="'+(flag?'price-diff':'price-ref')+'">'+euro(latest.price)+'</span>'+
-   '<span class="mini">'+esc(supplierName(latest.supplier))+'</span>'+
-   (flag?'<span class="diff-pill">FARK +'+euro(delta)+' / adet</span>':'<span class="mini" style="color:#167b5a">Referansla aynı</span>')+
-   (isAdmin()?'<button class="btn light" data-invoice="'+esc(latest.invoice)+'">Faturaya Git →</button>':
-    latest.branch===branch?'<button class="btn light" data-invoice="'+esc(latest.invoice)+'">Kendi Faturamı Aç →</button>':'')+'</div>';
+ const supplierCards=selectedSupplierId==='all'?availableSuppliers:[selectedSupplierId];
+ const branchCards=supplierCards.map(s=>{
+  const supplierLines=currentMonth.filter(x=>x.supplier===s);
+  const ref=lowBySupplier.get(s);
+  const cards=BRANCHES.map((name,b)=>{
+   const lines=supplierLines.filter(x=>x.branch===b);
+   if(!lines.length)return '<div class="branch-price"><span class="mini">'+esc(name)+'</span><span class="price-no">Fatura yok</span></div>';
+   const latest=lines.slice().sort((x,y)=>y.date.localeCompare(x.date))[0];
+   const delta=Math.round((latest.price-ref)*100)/100,flag=delta>.025;
+   return '<div class="branch-price '+(flag?'different':'base')+'"><span class="mini"><b>'+esc(name)+'</b></span>'+
+    '<span class="'+(flag?'price-diff':'price-ref')+'">'+euro(latest.price)+'</span>'+
+    (flag?'<span class="diff-pill">FARK +'+euro(delta)+' / adet</span>':'<span class="mini" style="color:#167b5a">Referansla aynı</span>')+
+    (isAdmin()||latest.branch===branch?'<button class="btn light" data-invoice="'+esc(latest.invoice)+'">Faturaya Git →</button>':'')+'</div>';
+  }).join('');
+  return '<div style="margin:18px 0"><div class="row between"><h3>'+esc(supplierName(s))+'</h3><span class="tag">En düşük '+euro(ref)+'</span></div><div class="matrix-grid">'+cards+'</div></div>';
  }).join('');
  const options='<option value="all" '+(productSupplier==='all'?'selected':'')+'>Tüm Tedarikçiler</option>'+
   availableSuppliers.map(s=>'<option value="'+s+'" '+(String(productSupplier)===String(s)?'selected':'')+'>'+esc(supplierName(s))+'</option>').join('');
@@ -167,7 +167,7 @@ function productDetail(){
  '<div class="notice">🟩 Yeşil: aynı tedarikçinin en düşük fiyatıyla eşit. 🟥 Kırmızı: aynı tedarikçide farklı birim fiyat. Fark, onaylanmış fatura hatası değildir.</div>'+
  '<div class="compare-tools"><label class="field" style="margin:0;min-width:220px">Tedarikçi<select id="productSupplier">'+options+'</select></label>'+
  (isAdmin()?'<span class="tag">Admin: 9 şubeyi karşılaştırır</span>':'<span class="tag">Diğer şubelerde fiyat görünür; faturalar gizli</span>')+'</div>'+
- '<h3>9 Şubede Fiyatlar</h3><div class="matrix-grid">'+branchCards+'</div></div>'+
+ '<h3>9 Şubede Fiyatlar</h3>'+branchCards+'</div>'+
  '<div class="card"><h3>Tedarikçilere Göre Fiyat Özeti</h3><div class="tablewrap"><table><thead><tr><th>Tedarikçi</th><th>Şube</th><th>En düşük</th><th>En yüksek</th><th>Fark</th></tr></thead><tbody>'+supplierRows+'</tbody></table></div></div>'+
  '<div class="card"><h3>'+(isAdmin()?'Son Faturalardaki Bu Ürün':'Kendi Şubemin Son Faturaları')+'</h3>'+
  (relevant.length?'<div class="tablewrap"><table><thead><tr><th>Tarih</th><th>Tedarikçi</th><th>Şube</th><th>Fiyat</th><th>Adet</th><th>Fatura</th></tr></thead><tbody>'+
