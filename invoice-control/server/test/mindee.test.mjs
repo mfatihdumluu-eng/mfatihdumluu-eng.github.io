@@ -13,6 +13,7 @@ test('Mindee V2 API key encryption is authenticated; no plaintext exposed',()=>{
 test('server encryption key requires 32 bytes of hex',()=>{
  assert.throws(()=>secretKey('short'));
  assert.equal(secretKey(randomBytes(32).toString('hex')).length,32);
+ assert.equal(secretKey(randomBytes(32).toString('base64')).length,32);
 });
 test('green only for real 2xx Mindee v2 models response',async()=>{
  let calls=0;
