@@ -228,15 +228,15 @@ function mindeeDemoSettings(){
  let origin='';try{origin=localStorage.getItem('invoice-control-api-origin')||''}catch{}
  return '<div class="card"><h2>Mindee API · Sistem Admini</h2>'+
   '<p>Mindee anahtarı sunucuda şifreli saklanır. GitHub Pages demosuna gizli API anahtarı yazmayın.</p>'+
-  '<div class="notice" style="border-color:#f1c6cb;background:#fff2f4;color:#a23447"><b>🔴 Bağlantı doğrulanmadı</b> · Henüz canlı API sunucusu bu panele bağlanmadı. Anahtar girildi diye yeşil gösterilmez.</div>'+
-  '<div class="notice"><b>Önemli:</b> Aşağıdaki kutu API anahtarı için değil, <b>kendi kurduğun Invoice Control sunucusunun HTTPS adresi</b> içindir. Anahtarın md_ ile başlıyorsa buraya yapıştırma. Önce sunucunun kurulması gerekiyor.</div>'+
+  '<div class="notice" style="border-color:#f1c6cb;background:#fff2f4;color:#a23447"><b>🔴 Sunucu bağlı değil</b> · Yeni veya eski Mindee anahtarı bu ekrandan test edilemez. Önce gerçek API sunucusu kurulmalıdır.</div>'+
+  '<div class="notice"><b>Önemli:</b> Bu sayfada henüz API anahtarı giriş alanı yoktur. Aşağıdaki adres kutusu <b>Invoice Control API sunucusu</b> içindir; <b>Mindee API anahtarını</b> kabul etmez. Sunucu olmadan bağlantının yeşil olması mümkün değildir.</div>'+
   '<label class="field">Invoice Control Sunucu URL (API anahtarı değil!) <input id="mindeeServerUrl" type="url" placeholder="https://api.sirketiniz.nl/" value="'+esc(origin)+'" autocomplete="off"></label>'+
   '<div class="row" style="margin-top:15px"><button class="btn" id="mindeeOpen">Sistem Admini Mindee Ayarlarını Aç ↗</button></div>'+
   '<p class="muted">Güvenli sunucu sayfasında Mindee API anahtarını girip bağlantıyı test edebilirsin. Bağlıysa yeşil, kopuksa kırmızı. Canlı sunucu ve Sistem Admini oturumu gereklidir.</p></div>';
 }
 function openMindeeSettings(){
  const url=String($('mindeeServerUrl')?.value||'').trim();
- if(/^md_/i.test(url)){alert('Bu bir Mindee API anahtarı. Bu alana anahtar değil, Invoice Control sunucusunun HTTPS adresi girilmeli. Güvenlik için paylaşılan anahtarı Mindee hesabından iptal edip yenisini oluştur.');return}
+ if(/^md_/i.test(url)){alert('Bu Mindee API anahtarı biçiminde görünüyor. Sorun eski veya yeni anahtar olması değil: bu kutu API anahtarı kabul etmiyor; Invoice Control API sunucusunun HTTPS adresini istiyor. API sunucusu henüz yayımlanmadığı için bağlantı şu anda kurulamaz. Anahtarı burada saklamıyoruz.');return}
  let parsed;try{parsed=new URL(url)}catch{alert('Bu alan API anahtarını kabul etmez. Invoice Control API sunucusunun HTTPS adresi gerekir.');return}
  if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.search||parsed.hash||!['','/'].includes(parsed.pathname)){
   alert('Sunucunun HTTPS kök adresini girin. Örnek: https://api.sirketiniz.nl/');return;
