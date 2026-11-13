@@ -1,0 +1,17 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Sistem Admini Giriş | Invoice Control</title><style>*{box-sizing:border-box}body{margin:0;background:#f6f8fc;color:#263653;font:15px system-ui,-apple-system,Arial,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}.card{width:min(440px,100%);border:1px solid #e1e7f2;border-radius:16px;background:#fff;padding:30px;box-shadow:0 12px 30px #1a315012}.logo{color:#3d50bb;font-weight:850;font-size:21px}h1{font-size:25px;margin:24px 0 8px}p{font-size:13px;color:#73829c;line-height:1.6}label{display:grid;gap:7px;font-size:12px;font-weight:800;color:#556981;margin-top:17px}input{width:100%;padding:13px;border:1px solid #d8e1ef;border-radius:9px;font-size:14px}button{border:0;background:#4154c9;color:white;padding:13px;border-radius:9px;font-size:14px;font-weight:800;width:100%;margin-top:22px;cursor:pointer}button:disabled{opacity:.5}#message{min-height:20px;color:#b23c4e;font-size:12px;margin:12px 0}.foot{font-size:11px;color:#9ca7b6;margin-top:20px}</style></head><body>
+<div class="card"><div class="logo">✓ Invoice Control</div><h1>Sistem Admini Girişi</h1><p>Mindee API ayarlarına erişmek için gerçek sistem yöneticisi hesabınla giriş yap.</p>
+<form id="form"><label>Şirket e-posta adresi<input id="email" type="email" required autocomplete="username"></label><label>Şifre<input id="password" type="password" required autocomplete="current-password"></label><button id="login" type="submit">Giriş Yap ve Mindee Ayarlarını Aç</button></form><div id="message" role="alert"></div><div class="foot">Bu giriş sadece HTTPS API sunucusunda çalışır. GitHub Pages kullanıcı seçimi gerçek kimlik doğrulama değildir.</div></div>
+<script>
+document.getElementById('form').addEventListener('submit',async e=>{
+ e.preventDefault();const button=document.getElementById('login'),message=document.getElementById('message');
+ button.disabled=true;message.textContent='';
+ try{
+  const resp=await fetch('/api/login',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value,password:document.getElementById('password').value})});
+  const result=await resp.json();
+  if(!resp.ok)throw Error(result.error||'Giriş başarısız');
+  document.getElementById('password').value='';
+  if(result.user?.role!=='system')throw Error('Bu sayfa için Sistem Admini yetkisi gerekli');
+  location.replace('/admin/mindee');
+ }catch(err){message.textContent=err.message;button.disabled=false}
+});
+</script></body></html>
