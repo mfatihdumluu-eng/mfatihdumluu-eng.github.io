@@ -1,0 +1,85 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Mindee Fatura Okuyucu | Invoice Control</title><style>*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#26354c;font:14px system-ui,Arial,sans-serif}header{background:white;border-bottom:1px solid #e1e7f1;padding:16px max(16px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}a{color:#3e4fc7}main{max-width:1100px;margin:auto;padding:20px 16px}.card{border:1px solid #e1e6f0;background:white;border-radius:14px;padding:22px;margin:15px 0}h1{font-size:25px;margin:0 0 7px}h2{font-size:17px;margin:0 0 12px}p{color:#708097;line-height:1.6}label{display:grid;gap:8px;font-weight:750;font-size:12px;margin:12px 0}input{padding:11px;border:1px solid #d8e0ed;border-radius:8px;width:100%;font:inherit;background:white;color:#22324a}input[type=file]{padding:18px;border:2px dashed #aebde2}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.btn{border:0;border-radius:9px;padding:12px 17px;font-weight:800;color:white;background:#4154c4;cursor:pointer}.btn:disabled{opacity:.45;cursor:wait}.btn.secondary{background:#e9eeff;color:#3448ba}.status{border-radius:10px;padding:12px 15px;margin:12px 0;background:#f0f4ff;color:#40517f}.status.err{background:#fff1f3;color:#a72d4a}.status.ok{background:#edfbf2;color:#0b784b}.preview{max-height:540px;width:100%;border-radius:10px;border:1px solid #dde5f0;object-fit:contain}table{width:100%;border-collapse:collapse;min-width:760px}td,th{border-bottom:1px solid #edf0f5;padding:9px;text-align:left}th{font-size:12px;color:#667895}td input{padding:7px;min-width:85px}.scroll{overflow:auto}.warn{border-left:4px solid #df4857;background:#fff5f6;padding:12px;margin:10px 0;color:#9f2c45}.good{border-left:4px solid #2b9567;background:#f1fbf5;padding:12px;color:#137a51}.hidden{display:none}.pill{display:inline-block;border-radius:20px;padding:7px 11px;font-weight:800;background:#fff0f2;color:#ac3850}.pill.green{background:#e5f9ef;color:#107a4c}.muted{font-size:12px;color:#8594a9}@media(max-width:650px){.grid{grid-template-columns:1fr}}</style></head><body>
+<header><strong>✓ Invoice Control — Mindee OCR</strong><div><a href="/admin/mindee">API Ayarları</a> · <a href="https://mfatihdumluu-eng.github.io/invoice-control/">Ana Panel</a></div></header>
+<main><div class="card"><h1>PDF / Resimden Fatura Oku</h1><p>Dosya Mindee V2 modeline gönderilir. Sonuçlar düzenlenebilir; kontrol etmeden kaydedilmez. Bu ekran belgeyi otomatik olarak başka kullanıcılarla paylaşmaz.</p><span id="connection" class="pill">Bağlantı kontrol ediliyor</span><div id="status" class="status">Dosyanı seçerek başla. Model ID, Sistem Admini Mindee ayarlarında kayıtlı olmalıdır.</div>
+<label>Fatura dosyası (PDF, JPG, PNG, WebP; en fazla 10 MB)<input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"></label>
+<button class="btn" id="extract">Mindee ile Faturayı Oku</button> <span id="filename" class="muted"></span>
+</div>
+<div class="card hidden" id="result">
+<h2>3 · Fatura Bilgilerini Kontrol Et</h2><div id="messages"></div>
+<div class="grid"><label>Tedarikçi<input id="supplier"></label><label>Fatura numarası<input id="invoiceNumber"></label><label>Fatura tarihi<input type="date" id="date"></label><label>Son ödeme tarihi<input type="date" id="dueDate"></label><label>Ara toplam (BTW hariç) €<input id="net" type="number" step=".01"></label><label>BTW toplamı €<input id="tax" type="number" step=".01"></label><label>İskonto €<input id="discount" type="number" step=".01"></label><label>Genel toplam €<input id="gross" type="number" step=".01"></label></div>
+<h2>Ürünler</h2><div class="scroll"><table><thead><tr><th>Ürün adı</th><th>Adet</th><th>Birim fiyat (€)</th><th>Satır toplamı (€)</th><th>BTW %</th><th>Kontrol</th></tr></thead><tbody id="items"></tbody></table></div><div id="reconcile"></div>
+<div style="margin-top:17px"><button class="btn secondary" id="add">+ Satır Ekle</button> <button class="btn" id="copy">Kontrol verilerini kopyala</button></div>
+<p class="muted">Kontrol verileri yalnızca bu sayfada görüntülenir. Sistem faturayı henüz veritabanına kaydetmez. Kaydetmeden önce ürün adetleri, fiyatlar, iskonto ve genel toplamın gerçek fatura ile uyuştuğundan emin ol.</p>
+</div></main>
+<script>
+const $=id=>document.getElementById(id),state={items:[],original:null};
+const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(Number(n)||0);
+function show(message,error=false){$('status').className='status'+(error?' err':'');$('status').textContent=message}
+async function status(){
+ try{const resp=await fetch('/api/admin/mindee/status?check=1',{credentials:'same-origin',cache:'no-store'});const data=await resp.json();
+ $('connection').textContent=data.connected?'● Mindee Bağlı':'● Mindee Bağlı Değil';
+ $('connection').className='pill'+(data.connected?' green':'');
+ if(!data.connected)show(data.message||'API bağlantısı kurulmadı.',true);
+ }catch{show('Bağlantı durumu okunamadı.',true)}
+}
+function row(item,i){
+ const inputs=[['name','text'],['qty','number'],['price','number'],['lineTotal','number'],['vatRate','number']];
+ return '<tr>'+inputs.map(([name,type])=>'<td><input data-i="'+i+'" data-field="'+name+'" type="'+type+'" '+(type==='number'?'step=".01"':'')+' value="'+escape(item[name]??'')+'"></td>').join('')+'<td id="check-'+i+'"></td></tr>';
+}
+function renderItems(){
+ $('items').innerHTML=state.items.map(row).join('');
+ document.querySelectorAll('[data-i]').forEach(el=>el.addEventListener('input',()=>{
+  const item=state.items[Number(el.dataset.i)];const v=el.value;
+  item[el.dataset.field]=el.dataset.field==='name'?v:(v===''?null:Number(v));
+  reconcile();
+ }));reconcile();
+}
+function reconcile(){
+ const errors=[];let subtotal=0,allComplete=true;
+ state.items.forEach((item,i)=>{
+  const actual=Number(item.qty)*Number(item.price),provided=item.lineTotal;
+  const bad=!(Number(item.qty)>0)||!(Number(item.price)>=0)||provided==null||Math.abs(actual-Number(provided))>.03;
+  const cell=$('check-'+i);if(cell){cell.style.color=bad?'#bb344c':'#13845a';cell.textContent=bad?'⚠ Kontrol':'✓ Eşleşti'}
+  if(bad){errors.push((i+1)+'. ürün: miktar × fiyat ≠ satır toplamı');allComplete=false}
+  if(item.qty!=null&&item.price!=null)subtotal+=actual;
+ });
+ const net=Number($('net').value),tax=Number($('tax').value),gross=Number($('gross').value),discount=Number($('discount').value||0);
+ const count=state.items.length;
+ if(count&&$('net').value!==''&&Math.abs(subtotal-discount-net)>.05)errors.push('Ürün toplamı − iskonto, faturanın ara toplamına eşit değil');
+ if($('net').value!==''&&$('tax').value!==''&&$('gross').value!==''&&Math.abs(net+tax-gross)>.05)errors.push('Ara toplam + BTW, genel toplam ile uyuşmuyor');
+ if(!count)errors.push('Ürün satırı bulunamadı');
+ const warn=[...(state.original?.warnings||[]),...errors];$('reconcile').innerHTML='<h2>Fatura Hesaplama Kontrolü</h2><p>Ürünlerin hesaplanan toplamı: <b>'+money(subtotal)+'</b></p>'+warn.map(s=>'<div class="warn">⚠ '+escape(s)+'</div>').join('')+(warn.length?'':'<div class="good">✓ Görünen satırlar hesaplamayla uyumlu. Yine de orijinal faturayla kontrol et.</div>');
+}
+function render(data){
+ state.original=data;state.items=(data.items||[]).map(x=>({...x}));
+ for(const [key,val] of Object.entries({supplier:data.supplier,invoiceNumber:data.invoiceNumber,date:data.date,dueDate:data.dueDate,net:data.totalNet,tax:data.totalTax,discount:data.discount,gross:data.totalGross}))$(key).value=val==null?'':val;
+ $('result').classList.remove('hidden');
+ $('messages').innerHTML='<div class="status">Mindee modelinden '+state.items.length+' ürün satırı alındı. Sonuç otomatik onaylanmadı.</div>';
+ renderItems();$('result').scrollIntoView({behavior:'smooth'});
+}
+$('extract').onclick=async()=>{
+ const file=$('file').files[0];if(!file){show('Önce PDF veya fotoğraf seç.',true);return}
+ if(file.size>10*1024*1024){show('Dosya en fazla 10 MB olabilir.',true);return}
+ $('extract').disabled=true;show('Mindee modeli faturanı işliyor…');
+ try{
+  const fd=new FormData();fd.append('file',file,file.name);
+  const resp=await fetch('/api/admin/mindee/extract',{method:'POST',credentials:'same-origin',body:fd,cache:'no-store'});
+  const data=await resp.json().catch(()=>({error:'Beklenmeyen sunucu yanıtı'}));
+  if(!resp.ok)throw Error(data.error||'Mindee isteği başarısız');
+  render(data);show('İşlem tamamlandı. Ürün satırlarını ve fatura toplamlarını kontrol et.');
+ }catch(err){show(err.message,true)}
+ finally{$('extract').disabled=false}
+};
+$('add').onclick=()=>{state.items.push({name:'',qty:null,price:null,lineTotal:null,vatRate:null});renderItems()};
+['net','tax','gross','discount'].forEach(id=>$(id).addEventListener('input',reconcile));
+$('file').onchange=e=>{$('filename').textContent=e.target.files?.[0]?.name||''};
+$('copy').onclick=async()=>{
+ const invoice={supplier:$('supplier').value,invoiceNumber:$('invoiceNumber').value,date:$('date').value,dueDate:$('dueDate').value,
+ totalNet:$('net').value,totalTax:$('tax').value,totalGross:$('gross').value,discount:$('discount').value,
+ items:state.items};
+ await navigator.clipboard.writeText(JSON.stringify(invoice,null,2));
+ $('messages').textContent='Kontrol verileri panoya kopyalandı; kayıt yapılmadı.';
+};
+status();
+</script></body></html>
