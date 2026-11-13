@@ -63,7 +63,7 @@ export function normalizeMindeeInvoice(response){
   rawFields:data
  };
 }
-export async function extractMindeeInvoice(apiKey,modelId,file,{clientFactory=key=>new mindee.Client({apiKey:key})}={}){
+export async function extractMindeeInvoice(apiKey,modelId,file,{clientFactory=key=>new mindee.ClientV2({apiKey:key})}={}){
  if(!modelId||typeof modelId!=='string')throw new Error('Mindee Model ID gerekli');
  if(!file?.data?.length||file.data.length>10*1024*1024)throw new Error('Geçersiz dosya boyutu (en çok 10 MB)');
  const client=clientFactory(apiKey);
