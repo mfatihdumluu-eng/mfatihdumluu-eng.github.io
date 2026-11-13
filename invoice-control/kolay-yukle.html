@@ -97,6 +97,26 @@ function calculatedTotals(){
  const vat0=sumRound(byRate[0]),vat9=sumRound(byRate[9]),vat21=sumRound(byRate[21]);
  return{net,vat0,vat9,vat21,vat:sumRound(vat0+vat9+vat21),gross:sumRound(net+vat0+vat9+vat21),unknown};
 }
+function invoiceReconciliationIssues(requireComplete=true){
+ const v=summaryInputs(),calc=calculatedTotals(),issues=[];
+ if(!items.length)return ['Hiç ürün satırı bulunamadı.'];
+ if(requireComplete){
+  if(v.net===null)issues.push('Faturadaki BTW hariç toplam eksik');
+  if(v.vat===null)issues.push('Faturadaki BTW toplamı eksik');
+  if(v.gross===null)issues.push('Faturadaki genel toplam eksik');
+  if(calc.unknown.length)issues.push('Satırlarda BTW oranı eksik: '+calc.unknown.join(', '));
+ }
+ const disc=v.discount??0;
+ if(v.net!==null&&Math.abs(sumRound(calc.net-disc)-v.net)>.03)
+  issues.push('Ürün toplamı '+eur(calc.net)+' − iskonto '+eur(disc)+' = '+eur(calc.net-disc)+', fakat fatura ara toplamı '+eur(v.net));
+ if(v.net!==null&&v.vat!==null&&v.gross!==null&&Math.abs(sumRound(v.net+v.vat)-v.gross)>.03)
+  issues.push('Fatura ara toplamı + BTW ('+eur(sumRound(v.net+v.vat))+') ile genel toplam ('+eur(v.gross)+') uyuşmuyor');
+ if(v.vat!==null&&!calc.unknown.length){
+  const estimated=sumRound(items.reduce((n,x)=>n+x.qty*x.price*(x.vatRate||0)/100,0)*(v.net!==null&&calc.net>0?v.net/calc.net:1));
+  if(Math.abs(estimated-v.vat)>.07)issues.push('Satırlardan hesaplanan BTW '+eur(estimated)+' fakat faturadaki '+eur(v.vat));
+ }
+ return issues;
+}
 function updateSummary(){
  if(!$('summaryRows'))return;
  const input=summaryInputs(),cal=calculatedTotals();
@@ -113,16 +133,7 @@ function updateSummary(){
   '<tr><td>Faturada yazan BTW toplamı</td><td>'+show(input.vat)+'</td></tr>'+
   '<tr><td><b>Faturada yazan genel toplam (BTW dahil)</b></td><td><b>'+show(input.gross)+'</b></td></tr>'+
   '<tr><td>Satırlardan hesaplanan genel toplam</td><td>'+(allKnown?'<b>'+eur(cal.gross)+'</b>':'BTW oranları eksik')+'</td></tr>';
- const diff=[];
- // Document net may be gross before discount; compare only if no discount.
- if(input.net!==null&&(!input.discount||input.discount===0)&&Math.abs(input.net-cal.net)>.03)
-  diff.push('Ara toplam farkı '+eur(input.net-cal.net));
- if(input.gross!==null&&allKnown&&(!input.discount||input.discount===0)&&Math.abs(input.gross-cal.gross)>.03)
-  diff.push('Genel toplam farkı '+eur(input.gross-cal.gross));
- if(input.vat!==null&&allKnown&&Math.abs(input.vat-cal.vat)>.03)
-  diff.push('BTW tutarı farkı '+eur(input.vat-cal.vat));
- if(input.gross!==null&&input.net!==null&&input.vat!==null&&Math.abs(input.gross-(input.net-input.discount+input.vat))>.03)
-  diff.push('Faturadaki ara toplam + BTW ve genel toplam tutarsız');
+ const diff=invoiceReconciliationIssues(false);
  const box=$('summaryDifference');
  if(diff.length)box.innerHTML='<div class="sum-diff">⚠ '+diff.map(s=>safe(s)).join(' · ')+' — Belgeden kontrol edin.</div>';
  else if(allKnown&&input.gross!==null&&input.vat!==null)box.innerHTML='<div class="sum-ok">✓ Satır hesaplamaları ve fatura tutarlarında belirgin fark bulunmadı.</div>';
@@ -286,35 +297,32 @@ function numOrNaN(value){
  const n=Number(String(value).trim().replace(',','.'));return Number.isFinite(n)?n:null;
 }
 function extractTotalsFromText(text){
- const lines=String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
- const money='(-?\\d{1,3}(?:[. ]\\d{3})*(?:,\\d{2})|-?\\d+(?:[.,]\\d{2}))';
- const result={};
- function parseAmount(raw){
-  let s=String(raw).replace(/\s/g,'');
-  if(s.includes(',')&&s.includes('.'))s=s.lastIndexOf(',')>s.lastIndexOf('.')?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');
-  else if(s.includes(','))s=s.replace(',','.');
-  return Number(s);
- }
- const rules=[
-  ['gross',/(?:totaal te betalen|te betalen bedrag|total amount due|amount payable|factuurtotaal|factuur totaal|totaal incl(?:usief)?\.? btw|total incl(?:uding)? vat|genel toplam|ödenecek toplam)/i],
-  ['net',/(?:totaal excl(?:usief)?\.? btw|totaal zonder btw|subtotal excl(?:uding)? vat|subtotaal|ara toplam|netto bedrag)/i],
-  ['vat',/(?:totaal btw|btw totaal|total vat|total tax|toplam kdv|total btw)/i],
-  ['discount',/(?:korting totaal|total discount|indirim toplamı)/i],
-  ['vat9',/(?:btw[\s:]*(?:9\s*%|9,0\s*%)|(?:9\s*%)\s*btw)/i],
-  ['vat21',/(?:btw[\s:]*(?:21\s*%|21,0\s*%)|(?:21\s*%)\s*btw)/i]
- ];
+ const lines=String(text||'').replace(/\r/g,'\n').split(/\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
+ const result={currency:'EUR'};
+ const amounts=line=>[...line.matchAll(/(?:€\s*)?(-?\d{1,9}(?:[.,]\d{3})*[.,]\d{2})(?=\s|$)/g)]
+   .map(m=>parseInvoiceAmount(m[1])).filter(x=>x!==null);
+ // Only use unmistakable summary labels. Price values elsewhere are not totals.
  for(const line of lines){
-  for(const [key,matcher] of rules){
-   if(result[key]!=null||!matcher.test(line))continue;
-   // Extract the rightmost amount after the label; never infer missing data.
-   const suffix=line.slice(line.search(matcher)+line.match(matcher)[0].length);
-   const amounts=[...suffix.matchAll(new RegExp(money,'g'))].map(x=>x[1]);
-   if(amounts.length){const n=parseAmount(amounts[amounts.length-1]);if(Number.isFinite(n))result[key]=n}
+  const values=amounts(line);
+  if(!values.length)continue;
+  const v=values[values.length-1];
+  if(/(?:^|\s)(?:subtotaal|subtotaal|subtotal|subtotaal\s*excl|totaal\s*(?:zonder|excl)|ara toplam)\b/i.test(line))result.net=v;
+  else if(/^\s*(?:totaal\b|total\b|factuurtotaal\b|totaal\s+te\s+betalen\b|amount payable\b)/i.test(line))result.gross=v;
+  if(/(?:^|\s)(?:9\s*%\s*btw|btw\s*9\s*%)/i.test(line)){result.vat9=v;result.vat=v}
+  if(/(?:^|\s)(?:21\s*%\s*btw|btw\s*21\s*%)/i.test(line))result.vat21=v;
+  if(/(?:^|\s)(?:btw\s*totaal|totaal\s*btw|total\s*vat|total\s*tax)\b/i.test(line))result.vat=v;
+  if(/\bkorting\b|\bdiscount\b/i.test(line)){
+   const neg=values.find(x=>x<0);
+   if(neg!==undefined)result.discount=Math.abs(neg);
   }
-  if(!result.dueDate){const m=line.match(/(?:vervaldatum|due date|son ödeme tarihi)\s*:?\s*(\d{4}-\d{2}-\d{2})/i);if(m)result.dueDate=m[1]}
-  if(!result.iban){const m=line.match(/\b(?:NL\d{2}[A-Z]{4}\d{10})\b/i);if(m)result.iban=m[0]}
+  if(/(?:vervaldatum|due date|son ödeme tarihi)/i.test(line)){
+   const date=line.match(/(\d{4}-\d{2}-\d{2}|\d{1,2}[.\/-]\d{1,2}[.\/-]\d{4})/);
+   if(date){const d=date[1];result.dueDate=/^\d{4}-/.test(d)?d:d.split(/[.\/-]/).reverse().join('-')}
+  }
  }
- result.currency='EUR';
+ const iban=String(text).match(/\bNL\d{2}\s?[A-Z]{4}(?:\s?\d{4}){2}\s?\d{2}\b/i);
+ if(iban)result.iban=iban[0].replace(/\s/g,'');
+ if(result.vat==null&&(result.vat9!=null||result.vat21!=null))result.vat=sumRound((result.vat9||0)+(result.vat21||0));
  return result;
 }
 async function pdfEngine(){
