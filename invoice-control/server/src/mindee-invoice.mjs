@@ -63,8 +63,9 @@ export function normalizeMindeeInvoice(response){
   rawFields:data
  };
 }
-export async function extractMindeeInvoice(apiKey,modelId,file,{clientFactory=key=>new mindee.ClientV2({apiKey:key})}={}){
+export async function extractMindeeInvoice(apiKey,modelId,file,{clientFactory=key=>new mindee.Client({apiKey:key})}={}){
  if(!modelId||typeof modelId!=='string')throw new Error('Mindee Model ID gerekli');
+ if(typeof mindee.Client!=='function'||typeof mindee.BufferInput!=='function'||!mindee.product?.Extraction)throw new Error('Mindee Node SDK incompatible with V2 extraction');
  if(!file?.data?.length||file.data.length>10*1024*1024)throw new Error('Geçersiz dosya boyutu (en çok 10 MB)');
  const client=clientFactory(apiKey);
  const inputSource=new mindee.BufferInput({buffer:file.data,filename:file.filename});
