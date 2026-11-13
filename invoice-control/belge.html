@@ -1,0 +1,18 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Orijinal Fatura | Invoice Control</title><style>:root{font:15px system-ui,sans-serif;color:#26344b;background:#f5f7fb}body{margin:0}header{padding:18px max(15px,calc((100vw - 1100px)/2));background:white;border-bottom:1px solid #e2e7f0;display:flex;justify-content:space-between;gap:16px;align-items:center}a{color:#4255c5;text-decoration:none;font-weight:700}main{max-width:1100px;margin:auto;padding:20px 15px}.box{background:white;border:1px solid #e6eaf2;border-radius:13px;padding:17px;margin:15px 0}.warn{background:#fff7ee;color:#825e23;font-size:12px;line-height:1.5}.frame{width:100%;min-height:76vh;border:0;background:#f8f9fc}.image{max-width:100%;max-height:85vh;display:block;margin:auto;object-fit:contain}pre{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65}.btn{background:#4154c9;color:white;border:0;border-radius:8px;padding:10px 14px;cursor:pointer}.muted{color:#77869c;font-size:12px}</style></head><body>
+<header><b>✓ Invoice Control · Orijinal Fatura</b><a href="./?v=kolay1">← Panele Dön</a></header><main><h1>Orijinal Fatura</h1><div class="box warn"><b>Yerel demo:</b> Orijinal dosya yalnızca yüklemenin yapıldığı tarayıcıda bulunur. Gerçek erişim kontrolü için sunucu kimlik doğrulaması gereklidir.</div><div class="box"><p id="status" class="muted">Belge aranıyor...</p><div id="viewer"></div></div></main>
+<script>
+const docId=new URLSearchParams(location.search).get('doc'),status=document.getElementById('status'),viewer=document.getElementById('viewer');
+function openDB(){return new Promise((resolve,reject)=>{let r=indexedDB.open('invoice-control-original-documents-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('files');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+async function load(){
+ if(!docId||docId.length>150){status.textContent='Dosya bağlantısı geçersiz.';return}
+ try{const db=await openDB();const blob=await new Promise((resolve,reject)=>{let tx=db.transaction('files','readonly'),r=tx.objectStore('files').get(docId);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});db.close();
+ if(!blob){status.textContent='Orijinal dosya bu tarayıcıda bulunamadı.';return}
+ const url=URL.createObjectURL(blob);status.textContent='Belge bulundu. Önizleme aşağıdadır.';
+ if(blob.type==='application/pdf')viewer.innerHTML='<iframe class="frame" title="Orijinal PDF"></iframe>',viewer.querySelector('iframe').src=url;
+ else if(blob.type.startsWith('image/'))viewer.innerHTML='<img class="image" alt="Orijinal fatura">',viewer.querySelector('img').src=url;
+ else viewer.textContent=await blob.text();
+ let a=document.createElement('a');a.href=url;a.download='orijinal-fatura';a.textContent='Orijinal Dosyayı İndir';a.className='btn';a.style.display='inline-block';a.style.marginTop='15px';viewer.appendChild(a);
+ }catch(e){status.textContent='Dosya açılamadı: '+e.message}
+}
+load();
+</script></body></html>
