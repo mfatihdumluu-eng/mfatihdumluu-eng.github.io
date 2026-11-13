@@ -89,6 +89,23 @@ assert.equal(ocr.document.getElementById('docGross').value,'16.35');
 assert.equal(ocr.document.getElementById('docVat9').value,'1.35');
 assert(ocr.document.getElementById('ocrMapping').innerHTML.includes('VD-2026-432'));
 scan.window.close();
+
+const doyumSample=[
+ '50 x Pakket Doyum Kip Döner (1doos:10pk, 1pk:700g) € 6,99 € 349,50 9%',
+ '40 x Pakket Doyum %100 Rund Döner (1doos:10pk, 1pk:700g) € 7,99 € 319,60 9%',
+ '10 x Pakket Doyum Iskender Kebab 1pk:700g, 1doos:10pk € 7,49 € 74,90 9%',
+ '16 x Pakket Doyum Turkse Pizza (1doos:16*3*120g) € 3,50 € 56,00 9%',
+ '12 x Pakket Doyum Premium Tenders (1doos:12pk, 1pk:700g) € 5,99 € 71,88 9%',
+ '12 x Pakket Doyum Premium Nuggets (1doos:12pk, 1pk:700g) € 4,75 € 57,00 9%',
+ '20 x Pakket Doyum Kıymalı İri Mantı 1 koli:20pk, 1pk:500g € 3,99 € 79,80 9%',
+ '10 x Pakket Doyum Premium Beef Burger 1doos:10pk, 1pk:480g, 6st € 7,25 € 72,50 9%',
+ '6 x Pakket Doyum Peynirli Tepsi Böreği (800g, 1doos:6pk) € 4,25 € 25,50 9%'
+].join('\n');
+const parsedDoyum=u.eval('parseText('+JSON.stringify(doyumSample)+')');
+assert.equal(parsedDoyum.length,9,'Doyum quantity-first invoice should parse all 9 items');
+assert.equal(Math.round(parsedDoyum.reduce((v,x)=>v+x.qty*x.price,0)*100)/100,1106.68,'All nine lines subtotal');
+assert(parsedDoyum.every(x=>x.vatRate===9),'Doyum nine lines should have 9% BTW');
+assert(u.eval('detectInvoiceFields("Doyum Food B.V.\\nFactuur 26704293\\nFactuurdatum 28-10-2026").supplier')==='7','Doyum supplier lookup');
 main.window.close();upload.window.close();
 console.log('PASS: simple dashboard, cross-supplier search, product detail navigation, role restriction, month filter, CSV validation and saved invoice');
 })().catch(err=>{console.error(err);process.exitCode=1});
