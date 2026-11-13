@@ -170,7 +170,65 @@ function parseCSV(text){
   return {ean,name:name||ean,qty,price,vatRate:[0,9,21].includes(rate)?rate:null};
  }).filter(x=>x.name||x.ean);
 }
-function parseText(t){const result=[];for(const line of t.split(/\r?\n/)){const m=line.match(/^\s*(\d{8,14})\s+(.+?)\s+(\d+(?:[.,]\d+)?)\s+(\d+[.,]\d{1,4})\s*$/);if(m)result.push({ean:m[1],name:m[2],qty:parseNumeric(m[3]),price:parseNumeric(m[4])})}return result}
+function parseInvoiceAmount(raw){
+ let s=String(raw||'').trim().replace(/(?:€|eur)/ig,'').replace(/\s/g,'');
+ if(!s)return null;
+ if(s.includes(',')&&s.includes('.')){
+  s=s.lastIndexOf(',')>s.lastIndexOf('.')?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');
+ }else if(s.includes(','))s=s.replace(',','.');
+ const n=Number(s);
+ return Number.isFinite(n)?n:null;
+}
+function parseText(t){
+ const output=[];
+ const lines=String(t||'').replace(/\r/g,'\n').split(/\n/).map(s=>s.replace(/[|│]/g,' ').replace(/\s+/g,' ').trim()).filter(Boolean);
+ const amt=String.raw`(\d{1,6}(?:[.,]\d{1,4})?)`;
+ const skip=/(?:totaal|subtotal|subtotaal|btw|vat|belasting|korting|discount|factuurnummer|factuurdatum|invoice|iban|bedrag te betalen|payable|totaalbedrag|totaal excl)/i;
+ for(const line of lines){
+  if(skip.test(line)||line.length<8)continue;
+  let match;
+  // Barcode, description, quantity, unit price, optional line total.
+  match=line.match(/^(\d{8,14})\s+(.{3,}?)\s+(\d+(?:[.,]\d+)?)\s*(?:x|×|st|pcs|stuk|kg)?\s+(\d+[.,]\d{1,4})(?:\s+\d+[.,]\d{2})?$/i);
+  if(match){
+   const qty=parseInvoiceAmount(match[3]),price=parseInvoiceAmount(match[4]);
+   if(qty>0&&price>=0)output.push({ean:match[1],name:match[2].trim(),qty,price,vatRate:null});
+   continue;
+  }
+  // Description, quantity x unit price, optional row total.
+  match=line.match(/^(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s*(?:x|×)\s*(?:€\s*)?(\d+[.,]\d{1,4})(?:\s+(?:€\s*)?\d+[.,]\d{2})?$/i);
+  if(match){
+   const qty=parseInvoiceAmount(match[2]),price=parseInvoiceAmount(match[3]);
+   if(qty>0&&price>=0)output.push({ean:'',name:match[1].trim(),qty,price,vatRate:null});
+   continue;
+  }
+  // Description followed by quantity, unit price and extended amount (three figures).
+  match=line.match(/^(.{4,}?)\s+(\d+(?:[.,]\d+)?)\s+(\d+[.,]\d{2,4})\s+(\d+[.,]\d{2})$/);
+  if(match){
+   const qty=parseInvoiceAmount(match[2]),price=parseInvoiceAmount(match[3]),extended=parseInvoiceAmount(match[4]);
+   if(qty>0&&price>=0&&extended!==null&&Math.abs(qty*price-extended)<Math.max(.11,extended*.03))
+    output.push({ean:'',name:match[1].trim(),qty,price,vatRate:null});
+  }
+ }
+ return output.slice(0,500);
+}
+function detectInvoiceFields(t){
+ const lines=String(t||'').replace(/\r/g,'\n').split(/\n/).map(s=>s.trim()).filter(Boolean);
+ const text=lines.join('\n'),result={number:'',date:'',supplier:''};
+ const numPatterns=[
+  /(?:factuur\s*(?:nummer|nr\.?|no\.?|#)|factuurnr|invoice\s*(?:number|no\.?|nr\.?|#)|invoice\s*id|fatura\s*(?:no|numarası))\s*[:#\-]?\s*([A-Z0-9][A-Z0-9\/.\-_]{2,45})/i
+ ];
+ for(const rx of numPatterns){const m=text.match(rx);if(m){const v=m[1].replace(/[.,;]+$/,'');if(!/^(?:date|datum|total|totaal|bedrag)$/i.test(v))result.number=v;break}}
+ const dates=[
+  /(?:factuurdatum|invoice\s*date|fatura\s*tarihi|datum\s*factuur)\s*:?\s*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{4}|\d{4}-\d{2}-\d{2})/i,
+  /(?:factuurdatum|invoice\s*date|fatura\s*tarihi|datum\s*factuur)\s*:?\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[.\/-]\d{1,2}[.\/-]\d{4})/i
+ ];
+ for(const rx of dates){const m=text.match(rx);if(m){const v=m[1];let iso=v;if(!/^\d{4}-/.test(v)){const p=v.split(/[.\/-]/);iso=p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0')}const d=new Date(iso+'T00:00:00');if(!Number.isNaN(d.getTime())&&d.toISOString().startsWith(iso))result.date=iso;break}}
+ for(let i=0;i<SUP.length;i++){
+  const name=SUP[i].toLowerCase();
+  if(text.toLowerCase().includes(name)){result.supplier=String(i+1);break}
+ }
+ return result;
+}
 function parseXml(t){
  const xml=new DOMParser().parseFromString(t,'application/xml');
  if(xml.getElementsByTagName('parsererror').length)throw Error('XML geçersiz');
