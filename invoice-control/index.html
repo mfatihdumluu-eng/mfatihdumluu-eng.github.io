@@ -43,7 +43,7 @@ PRODUCTS.push(
  {ean:'DEMO-0033',name:'Pirinç 1 kg'},
  {ean:'DEMO-0034',name:'Zeytin 500 g'}
 );
-const SUPPLIERS=['Holland Dairy BV','Van Dijk Foodservice','Freshline Groothandel','Euro Foods BV','Delta Distributie','Noord Trade'];
+const SUPPLIERS=['Holland Dairy BV','Van Dijk Foodservice','Freshline Groothandel','Euro Foods BV','Delta Distributie','Noord Trade','Doyum Food B.V.'];
 const KEY='invoice-control-demo-invoices-v1',META='invoice-control-supplier-metadata-v2';
 const $=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),euro=x=>new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(Number(x)||0);
 const fixture=[
