@@ -1,15 +1,18 @@
 import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
+import multipart from '@fastify/multipart';
 import pg from 'pg';
 import {scryptSync,timingSafeEqual,randomBytes,createHash} from 'node:crypto';
 import {compareSupplierMonth} from './engine.mjs';
 import {readFile} from 'node:fs/promises';
 import {encryptSecret,decryptSecret,probeMindee,secretKey} from './mindee.mjs';
+import {extractMindeeInvoice} from './mindee-invoice.mjs';
 import nodemailer from 'nodemailer';
 const app=Fastify({logger:true,bodyLimit:2_000_000,trustProxy:false});
 await app.register(cookie);
 await app.register(rateLimit,{max:150,timeWindow:'1 minute'});
+await app.register(multipart,{limits:{files:1,fileSize:10*1024*1024,fields:5}});
 const db=new pg.Pool({connectionString:process.env.DATABASE_URL,max:10});
 const audit=async(actor,action,type,id,details={})=>db.query('INSERT INTO audit_events(actor_id,action,target_type,target_id,details) VALUES($1,$2,$3,$4,$5)',[actor||null,action,type,String(id??''),JSON.stringify(details)]);
 const passOk=(pass,hashed)=>{try{const [salt,expected]=hashed.split(':');const actual=scryptSync(pass,salt,64),a=Buffer.from(expected,'hex');return actual.length===a.length&&timingSafeEqual(actual,a)}catch{return false}};
@@ -50,6 +53,15 @@ app.get('/admin/login',async(req,reply)=>{
  return reply.type('text/html; charset=utf-8')
   .header('Cache-Control','no-store, private')
   .header('Referrer-Policy','no-referrer')
+  .header('X-Frame-Options','DENY')
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .send(html);
+});
+app.get('/admin/invoice-reader',async(req,reply)=>{
+ const user=await requireSystemSession(req,reply,{redirectToLogin:true});if(!user)return;
+ const html=await readFile(new URL('../mindee-reader.html',import.meta.url),'utf8');
+ return reply.type('text/html; charset=utf-8')
+  .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
   .header('X-Frame-Options','DENY')
   .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
@@ -123,6 +135,42 @@ app.delete('/api/admin/mindee/settings',async(req,reply)=>{
  return{ok:true,status:'disconnected',connected:false};
 });
 
+
+app.post('/api/admin/mindee/extract',{config:{rateLimit:{max:5,timeWindow:'1 minute'}}},async(req,reply)=>{
+ if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ const config=await readMindeeSettings();
+ if(!config)return deny(reply,409,'Önce Mindee API anahtarını kaydet.');
+ if(!config.model_id)return deny(reply,409,'Mindee ayarlarında Invoice Model ID girip kaydet.');
+ let key;
+ try{key=decryptSecret(config.encrypted_secret,secretKey())}
+ catch{return deny(reply,503,'Mindee API şifre çözme hatası. Sistem ayarlarını kontrol edin.')}
+ let part;
+ try{part=await req.file()}
+ catch{return deny(reply,400,'PDF/JPG/PNG dosyası gerekli (en fazla 10 MB)')}
+ if(!part)return deny(reply,400,'Dosya seçilmedi');
+ const allowed={
+  'application/pdf':true,'image/jpeg':true,'image/png':true,'image/webp':true
+ };
+ if(!allowed[part.mimetype]){part.file.resume();return deny(reply,415,'Yalnızca PDF, JPG, PNG veya WebP kabul edilir')}
+ const filename=String(part.filename||'invoice.pdf').replace(/[^A-Za-z0-9_.-]/g,'_').slice(0,100);
+ let buffer;
+ try{buffer=await part.toBuffer()}
+ catch{return deny(reply,413,'Dosya çok büyük veya okunamadı')}
+ if(buffer.length===0||buffer.length>10*1024*1024)return deny(reply,413,'Dosya boyutu 1 bayt–10 MB olmalı');
+ const isPdf=part.mimetype==='application/pdf'&&buffer.subarray(0,5).toString('utf8')==='%PDF-';
+ const isJpeg=part.mimetype==='image/jpeg'&&buffer[0]===0xff&&buffer[1]===0xd8;
+ const isPng=part.mimetype==='image/png'&&buffer.subarray(0,4).equals(Buffer.from([137,80,78,71]));
+ const isWebp=part.mimetype==='image/webp'&&buffer.subarray(0,4).toString()==='RIFF'&&buffer.subarray(8,12).toString()==='WEBP';
+ if(!(isPdf||isJpeg||isPng||isWebp))return deny(reply,415,'Dosya biçimi geçersiz veya uzantısıyla uyuşmuyor');
+ try{
+  const result=await extractMindeeInvoice(key,config.model_id,{data:buffer,filename});
+  await audit(req.user.id,'extract','integration','mindee',{fileType:part.mimetype,lines:result.items.length,warnings:result.warnings.length});
+  return reply.header('Cache-Control','no-store').send({provider:'mindee-v2',modelConfigured:true,requiresReview:true,...result});
+ }catch(err){
+  req.log.warn({message:String(err?.message||'').slice(0,160)},'Mindee extraction failed');
+  return deny(reply,502,'Mindee fatura çıkarımı başarısız. API anahtarı, Model ID ve Mindee hesabını kontrol edin.');
+ }
+});
 app.post('/api/login',{config:{rateLimit:{max:10,timeWindow:'5 minutes'}}},async(req,reply)=>{
  const email=String(req.body?.email||'').trim().toLowerCase(),password=String(req.body?.password||'');
  const r=await db.query('SELECT * FROM users WHERE lower(email)=$1 AND active=true',[email]);
@@ -283,4 +331,4 @@ app.post('/api/credit-notes',async(req,reply)=>{
 });
 app.get('/api/audit',async(req,reply)=>{if(req.user.role!=='system')return deny(reply,403,'Sistem admini gerekli');return{items:(await db.query('SELECT id,action,target_type,target_id,details,occurred_at FROM audit_events ORDER BY id DESC LIMIT 200')).rows}});
 const port=Number(process.env.PORT||3000);
-app.listen({port,host:process.env.HOST||'127.0.0.1'}).catch(err=>{app.log.error(err);process.exit(1)});
+app.listen({port,host:process.env.HOST||'0.0.0.0'}).catch(err=>{app.log.error(err);process.exit(1)});
