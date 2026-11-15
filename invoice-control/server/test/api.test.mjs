@@ -6,10 +6,11 @@ import {createHash,randomUUID,scryptSync} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {createApp} from '../src/server.mjs';
 import {parseInvoiceText} from '../src/local-ocr.mjs';
-const fixture=()=>parseInvoiceText('TEST Groothandel BV\nFactuur: TEST-ROUNDTRIP-1\nFactuurdatum: 15-11-2026\nAB-123 Tomaten 2,5 kg 4,00 10% 9,00 9%\nSubtotaal 9,00\nBTW 9% 0,81\nTotaal 9,81');
+const fixture=()=>({provider:'nutrient',branchId:1,...parseInvoiceText('TEST Groothandel BV\nFactuur: TEST-ROUNDTRIP-1\nFactuurdatum: 15-11-2026\nAB-123 Tomaten 2,5 kg 4,00 10% 9,00 9%\nSubtotaal 9,00\nBTW 9% 0,81\nTotaal 9,81')});
 async function setup(t,{auditFailure=false}={}){
  const db=new PGlite();
  await db.exec((await readFile(new URL('../schema.sql',import.meta.url),'utf8')).replace('CREATE EXTENSION IF NOT EXISTS pgcrypto;',''));
+ await db.query("INSERT INTO branches(id,name) VALUES(1,'Test Şube 1'),(2,'Test Şube 2')");
  const query=async(sql,params)=>{const x=await db.query(sql,params);return{rows:x.rows,rowCount:x.rows.length||x.affectedRows||0};};
  const adapter={query,connect:async()=>({query,release(){}})};
  const id=randomUUID(),token=randomUUID(),hash=createHash('sha256').update(token).digest('hex');
@@ -33,7 +34,10 @@ test('OCR save/list/detail roundtrip preserves codes, units, discounts and exist
  assert.equal(invoice.status,'review');
  const list=await app.inject({url:'/api/admin/ocr/invoices',cookies});assert.equal(list.json().items.length,2);
  assert.deepEqual((await query('SELECT row_to_json(t) AS data FROM mindee_invoice_reviews t WHERE id=$1',[existingId])).rows[0],before);
- assert.equal((await query('SELECT * FROM invoices')).rowCount,0,'review does not enter price comparisons');
+ assert.equal((await query('SELECT * FROM invoices')).rowCount,0,'legacy comparison table stays untouched');
+ assert.equal(Number(invoice.branch_id),1);
+ assert.equal(invoice.source,'nutrient');
+ assert.equal(invoice.comparison_ready,true);
  assert.equal((await query("SELECT * FROM audit_events WHERE target_type='ocr_invoice'")).rowCount,1);
 });
 test('bad totals, invalid dates, nonfinite numbers and partial extraction never persist',async t=>{
@@ -55,12 +59,42 @@ test('protected OCR routes require login, system role and same origin',async t=>
  assert.equal((await app.inject({url:'/admin/ocr-review.mjs'})).statusCode,401);
  assert.equal((await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,headers:{origin:'https://untrusted.invalid'},payload:fixture()})).statusCode,403);
  await query("UPDATE users SET role='admin' WHERE id=$1",[id]);
- for(const url of ['/api/admin/ocr/invoices','/api/admin/ocr/extract'])assert.equal((await app.inject({method:url.endsWith('extract')?'POST':'GET',url,cookies})).statusCode,403);
+ assert.equal((await app.inject({url:'/api/admin/ocr/invoices',cookies})).statusCode,200);
+ assert.equal((await app.inject({method:'POST',url:'/api/admin/ocr/extract',cookies})).statusCode,410);
 });
-test('upload validates MIME signatures and returns review-only extraction',async t=>{
- const {app,cookies,query}=await setup(t);
- function form(content,type='application/pdf'){return{method:'POST',url:'/api/admin/ocr/extract',cookies,headers:{'content-type':'multipart/form-data; boundary=testboundary'},payload:Buffer.from('--testboundary\r\nContent-Disposition: form-data; name="file"; filename="test.pdf"\r\nContent-Type: '+type+'\r\n\r\n'+content+'\r\n--testboundary--\r\n')};}
- assert.equal((await app.inject(form('not a PDF'))).statusCode,415);
- const res=await app.inject(form('%PDF-1.7 test fixture'));assert.equal(res.statusCode,200,res.body);assert.equal(res.json().requiresReview,true);assert.equal(res.json().provider,'invoice-control-ocr');
+test('local OCR endpoint is retired and untrusted direct manual rows cannot enter pool',async t=>{
+ const {app,query,cookies}=await setup(t);
+ assert.equal((await app.inject({method:'POST',url:'/api/admin/ocr/extract',cookies})).statusCode,410);
+ const response=await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload:{...fixture(),provider:'local'}});
+ assert.equal(response.statusCode,400);
  assert.equal((await query('SELECT * FROM mindee_invoice_reviews')).rowCount,0);
+});
+test('branch user cannot assign another branch and cannot access other branches invoices',async t=>{
+ const {app,query,cookies,id}=await setup(t);
+ const previous=await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload:fixture()});
+ assert.equal(previous.statusCode,201,previous.body);
+ await query("UPDATE users SET role='branch',branch_id=2 WHERE id=$1",[id]);
+ const denied=await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload:fixture()});
+ assert.equal(denied.statusCode,403,denied.body);
+ const other=await app.inject({url:'/api/admin/ocr/invoices/'+previous.json().id,cookies});
+ assert.equal(other.statusCode,403);
+ const list=await app.inject({url:'/api/admin/ocr/invoices',cookies});
+ assert.equal(list.statusCode,200);assert.equal(list.json().items.length,0);
+ const mine=await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload:{...fixture(),branchId:2}});
+ assert.equal(mine.statusCode,201,mine.body);
+ const duplicate=await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload:{...fixture(),branchId:2}});
+ assert.equal(duplicate.statusCode,409,duplicate.body);
+});
+test('monthly pool compares two attributed branches with matching SKU and unit',async t=>{
+ const {app,query,cookies}=await setup(t);
+ const a=await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload:fixture()});
+ assert.equal(a.statusCode,201,a.body);
+ const higher={...fixture(),branchId:2,invoiceNumber:'TEST-BRANCH-2',
+   items:fixture().items.map(x=>({...x,price:5,lineTotal:11.25})),totalNet:11.25,totalTax:1.01,totalGross:12.26};
+ const b=await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload:higher});
+ assert.equal(b.statusCode,201,b.body);
+ const r=await app.inject({url:'/api/admin/ocr/monthly-comparison?month=2026-11',cookies});
+ assert.equal(r.statusCode,200,r.body);
+ assert.equal(r.json().comparedGroups,1,r.body);
+ assert.equal(r.json().items[0].branchCount,2);
 });
