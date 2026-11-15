@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Nutrient API Ayarları | Invoice Control</title>
+<style>
+:root{font:15px system-ui,-apple-system,"Segoe UI",sans-serif;color:#263448;background:#f3f6fa}*{box-sizing:border-box}
+body{margin:0}header{background:#fff;border-bottom:1px solid #e0e5ed;padding:19px max(20px,calc((100vw - 850px)/2));display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+strong{color:#2c3d9a}a{color:#3c52b8;text-decoration:none;font-weight:650}
+main{max-width:850px;margin:30px auto;padding:0 20px}.card{border:1px solid #e0e7ee;background:#fff;padding:27px;border-radius:16px;box-shadow:0 9px 28px #25354e09}
+h1{font-size:25px;margin:0 0 8px}h2{font-size:17px;margin-top:28px}p{line-height:1.65;color:#6a798d;font-size:13px}
+label{display:block;color:#566781;font-size:13px;font-weight:750;margin-top:24px;margin-bottom:9px}
+input{width:100%;padding:13px;border:1px solid #cfd8e6;border-radius:9px;font:inherit;color:#22314c}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+button{border:0;border-radius:9px;padding:12px 16px;background:#4158c5;color:white;font-weight:750;cursor:pointer}
+button.secondary{background:#edf0fb;color:#4053af}button.danger{background:#ffedef;color:#a9324d}button:disabled{opacity:.45}
+.panel{padding:14px 16px;border-radius:10px;margin:18px 0;background:#f1f4fd;color:#445680;font-size:13px;line-height:1.55}
+.panel.ok{background:#eaf7ef;color:#156d49}.panel.error{background:#fff0f2;color:#b0384a}
+.small{font-size:12px;color:#748398}.divider{height:1px;background:#e8edf4;margin:24px 0}
+code{background:#f3f5fa;border-radius:5px;padding:3px 5px}
+@media(max-width:560px){.card{padding:18px}}
+</style></head>
+<body><header><strong>✓ Invoice Control · Sistem Yönetimi</strong><div><a href="/admin/invoice-reader">Fatura Okuyucu</a> · <a href="/admin/invoices">Fatura Listesi</a></div></header>
+<main><section class="card">
+<h1>Nutrient API Bağlantısı</h1>
+<p>Nutrient Document Web Services — Data Extraction API. Önce ücretsiz hesapla test edip daha sonra ücretli plana geçebilirsin. API anahtarını yalnızca bu güvenli sayfaya gir.</p>
+<div id="status" class="panel" role="status">Kayıtlı anahtar kontrol ediliyor…</div>
+<label for="apiKey">Nutrient API Anahtarı</label>
+<input id="apiKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="API anahtarını buraya yapıştır" maxlength="2000">
+<p class="small">Anahtar daha önce kaydedildiyse bu alan boş kalır. Kayıtlı anahtar tarayıcıya geri gönderilmez.</p>
+<div class="actions">
+<button id="save" type="button">API Anahtarını Kaydet</button>
+<button id="refresh" class="secondary" type="button">Durumu Yenile</button>
+<button id="remove" class="danger" type="button">Anahtarı Kaldır</button>
+</div>
+<div class="divider"></div>
+<h2>Bağlantı hakkında</h2>
+<p>Anahtar HTTPS üzerinden Invoice Control sunucusuna gönderilir ve veritabanında AES-256-GCM ile şifreli saklanır. GitHub Pages'e, tarayıcının yerel depolamasına veya kaynak koduna kaydedilmez.</p>
+<p><b>Kaydedildi</b> ifadesi yalnızca şifreli kaydın başarılı olduğu anlamına gelir; Nutrient API'nin gerçek belge çıkarma işlemini henüz doğrulamaz. İlk gerçek API isteği ücretsiz kullanım kredisi tüketebilir.</p>
+<p><a href="https://www.nutrient.io/api/data-extraction-api/" target="_blank" rel="noopener noreferrer">Nutrient Data Extraction API</a> · <a href="https://dashboard.nutrient.io/" target="_blank" rel="noopener noreferrer">Nutrient hesabını aç</a></p>
+</section></main>
+<script>
+const $=id=>document.getElementById(id);
+function busy(b){for(const k of ['save','refresh','remove'])$(k).disabled=b}
+function status(text,kind=''){$('status').className='panel '+kind;$('status').textContent=text}
+async function request(url,method='GET',body){
+ const r=await fetch(url,{method,credentials:'same-origin',cache:'no-store',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+ const d=await r.json().catch(()=>({error:'Sunucudan geçerli JSON alınamadı'}));
+ if(!r.ok)throw Error(d.error||'HTTP '+r.status);
+ return d;
+}
+async function refresh(){
+ busy(true);
+ try{const d=await request('/api/admin/nutrient/status');status(d.message,d.configured?'ok':'');}
+ catch(e){status('Durum okunamadı: '+e.message,'error')}
+ finally{busy(false)}
+}
+$('save').onclick=async()=>{
+ const key=$('apiKey').value.trim();
+ if(!key){status('API anahtarını yaz. Daha önce kaydettiysen yeni anahtar girmene gerek yok.','error');return}
+ busy(true);
+ try{const d=await request('/api/admin/nutrient/settings','POST',{apiKey:key});$('apiKey').value='';status(d.message,'ok');}
+ catch(e){status('Kaydedilemedi: '+e.message,'error')}
+ finally{busy(false)}
+};
+$('remove').onclick=async()=>{
+ if(!confirm('Kayıtlı Nutrient API anahtarını kaldırmak istiyor musun?'))return;
+ busy(true);try{await request('/api/admin/nutrient/settings','DELETE');$('apiKey').value='';status('Anahtar kaldırıldı.','');}
+ catch(e){status(e.message,'error')}finally{busy(false)}
+};
+$('refresh').onclick=refresh;
+refresh();
+</script></body></html>
