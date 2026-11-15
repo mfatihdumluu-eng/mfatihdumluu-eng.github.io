@@ -310,6 +310,35 @@ app.patch('/api/suppliers/:id',async(req,reply)=>{
  await audit(req.user.id,'update','supplier',req.params.id,{fields:keys.filter(key=>key in input)});
  return{supplier:r.rows[0]};
 });
+app.get('/admin/branch-users',async(req,reply)=>{
+ const user=await requireSystemSession(req,reply,{redirectToLogin:true});if(!user)return;
+ return reply.type('text/html; charset=utf-8')
+  .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
+  .header('X-Frame-Options','DENY')
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .send(await readFile(new URL('../branch-users.html',import.meta.url),'utf8'));
+});
+app.post('/api/admin/branch-users',{config:{rateLimit:{max:8,timeWindow:'5 minutes'}}},async(req,reply)=>{
+ if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini şube hesabı oluşturabilir.');
+ const email=String(req.body?.email||'').trim().toLowerCase();
+ const name=String(req.body?.name||'').trim();
+ const password=req.body?.password,branchId=Number(req.body?.branchId);
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254||!name||name.length>120||
+  typeof password!=='string'||password.length<14||password.length>200||
+  !Number.isInteger(branchId)||branchId<1)
+  return deny(reply,400,'Ad, geçerli e-posta, şube ve en az 14 karakter şifre gerekli.');
+ const branch=await db.query('SELECT id,name FROM branches WHERE id=$1',[branchId]);
+ if(!branch.rowCount)return deny(reply,400,'Şube bulunamadı.');
+ const salt=randomBytes(16).toString('hex'),hash=salt+':'+scryptSync(password,salt,64).toString('hex');
+ try{
+  const added=await db.query(
+   "INSERT INTO users(email,name,password_hash,role,branch_id) VALUES($1,$2,$3,'branch',$4) RETURNING id,email,name,branch_id",
+   [email,name,hash,branchId]
+  );
+  await audit(req.user.id,'create','branch_user',added.rows[0].id,{branchId});
+  return reply.code(201).send({ok:true,user:added.rows[0]});
+ }catch(e){if(e.code==='23505')return deny(reply,409,'Bu e-posta adresi zaten kayıtlı.');throw e}
+});
 app.get('/api/users',async(req,reply)=>{
  if(req.user.role!=='system')return deny(reply,403,'Sistem admini gerekli');
  return{items:(await db.query('SELECT id,name,email,role,branch_id,active FROM users ORDER BY role,email')).rows};
