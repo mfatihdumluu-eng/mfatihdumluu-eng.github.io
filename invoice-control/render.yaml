@@ -21,6 +21,8 @@ services:
         fromDatabase:
           name: invoice-control-db
           property: connectionString
+      - key: NUTRIENT_ENCRYPTION_KEY
+        generateValue: true
       - key: INVOICE_SYSTEM_EMAIL
         value: mfatihdumluu@gmail.com
       - key: INVOICE_SYSTEM_PASSWORD
