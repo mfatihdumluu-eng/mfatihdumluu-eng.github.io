@@ -6,19 +6,27 @@
   "scripts": {
     "start": "node src/server.mjs",
     "test": "node --test test/*.test.mjs",
-    "init": "node src/setup.mjs"
+    "init": "node src/setup.mjs",
+    "test:ocr": "node --test test/ocr.integration.mjs",
+    "test:browser": "node --test test/browser.integration.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.0",
     "@fastify/multipart": "^9.0.0",
     "@fastify/rate-limit": "^10.0.0",
-    "fastify": "^5.2.0",
-    "fast-xml-parser": "^5.0.0",
     "csv-parse": "^5.6.0",
+    "fast-xml-parser": "^5.0.0",
+    "fastify": "^5.2.0",
     "nodemailer": "^6.9.16",
-    "pg": "^8.13.1",
     "pdf-parse": "^2.4.5",
-    "pdf-to-img": "^7.0.1",
+    "pg": "^8.13.1",
+    "sharp": "0.34.5",
     "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.3.14",
+    "jsdom": "26.1.0",
+    "pdf-lib": "1.17.1",
+    "playwright": "1.57.0"
   }
 }

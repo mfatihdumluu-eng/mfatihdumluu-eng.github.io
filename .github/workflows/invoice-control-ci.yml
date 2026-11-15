@@ -3,25 +3,39 @@ on:
   push:
     branches: [main]
     paths:
-      - 'invoice-control/server/**'
+      - 'invoice-control/**'
+      - '.github/workflows/invoice-control-ci.yml'
+  pull_request:
+    paths:
+      - 'invoice-control/**'
       - '.github/workflows/invoice-control-ci.yml'
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   validate:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: invoice-control/server
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: invoice-control/server/package-lock.json
       - name: Syntax check
-        run: |
-          node --check invoice-control/server/src/server.mjs
-          node --check invoice-control/server/src/setup.mjs
-          node --check invoice-control/server/src/engine.mjs
-      - name: Install dependencies
-        working-directory: invoice-control/server
-        run: npm install --no-audit --no-fund
-      - name: Compare engine and Mindee tests
-        working-directory: invoice-control/server
+        run: for file in src/*.mjs; do node --check "$file"; done
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Parser, calculations, PostgreSQL save and review UI tests
         run: npm test
+      - name: Digital, scanned and mixed PDFs, PNG, JPEG and WebP with real OCR
+        run: npm run test:ocr
+      - name: Existing dashboard regression tests
+        run: NODE_PATH=./node_modules node ../ui-check.cjs
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser upload, correction, save and archive roundtrip
+        run: npm run test:browser
