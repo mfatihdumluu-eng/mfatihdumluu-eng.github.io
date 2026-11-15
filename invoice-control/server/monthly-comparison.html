@@ -1,0 +1,55 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Aylık Şube Fiyat Karşılaştırması — Invoice Control</title>
+<style>
+:root{font:14px system-ui,-apple-system,Arial,sans-serif;color:#263750;background:#f4f6fa}*{box-sizing:border-box}body{margin:0}
+header{padding:20px max(18px,calc((100vw - 1190px)/2));background:#fff;border-bottom:1px solid #e1e7ef;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}a{color:#354db5;text-decoration:none;font-weight:700}
+main{max-width:1190px;margin:24px auto;padding:0 18px}.panel{background:#fff;border:1px solid #e1e6ef;border-radius:14px;padding:23px;margin:0 0 17px}
+h1{margin:0 0 8px;font-size:26px}p{color:#6b7b91;line-height:1.55}.tools{display:flex;gap:13px;flex-wrap:wrap;align-items:end}
+label{display:grid;gap:7px;color:#53647b;font-size:12px;font-weight:750}select,input{font:inherit;border:1px solid #d3dce8;border-radius:8px;padding:11px;background:#fff;color:#263750;min-width:170px}
+button{font:inherit;background:#4157c2;border:0;color:#fff;border-radius:8px;padding:12px 15px;font-weight:800;cursor:pointer}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin:18px 0}.card{border-radius:11px;background:#f3f5fb;padding:15px}.card span{display:block;color:#77859b;font-size:12px}.card strong{display:block;font-size:24px;margin-top:6px}
+.scroll{overflow:auto}table{border-collapse:collapse;width:100%;min-width:800px}th,td{border-bottom:1px solid #e6eaf1;text-align:left;padding:13px 10px;vertical-align:top}th{font-size:11px;color:#75849a;background:#f7f9fc}tbody tr:hover{background:#fbfcff}.num{text-align:right;font-variant-numeric:tabular-nums}.difference{font-weight:800;color:#b44453}.good{font-weight:750;color:#0e7350}
+details summary{cursor:pointer;font-weight:700;color:#3c51b0}details table{margin:12px 0 0;min-width:650px}.note{font-size:12px;background:#f1f4ff;padding:12px 14px;border-radius:9px}.status{font-size:13px;color:#63738c;margin-top:13px}.error{color:#ae3648}
+@media(max-width:730px){.cards{grid-template-columns:1fr}.panel{padding:17px}.tools label{width:100%}.tools select,.tools input{width:100%}main{padding:0 12px}}
+</style></head><body>
+<header><strong>✓ Invoice Control · Aylık Kıyaslama</strong><nav><a href="/admin/invoices">Ortak Fatura Havuzu</a> · <a href="/admin/invoice-reader">+ Fatura Oku</a></nav></header>
+<main><div class="panel"><h1>Aynı ayda şubeler arası fiyat karşılaştırması</h1><p>Ortak havuza kaydedilmiş, kontrol edilmiş Nutrient faturaları kullanılır. Yalnızca <strong>aynı tedarikçide aynı EAN veya ürün koduna ve aynı birime</strong> sahip ürünler kıyaslanır. Fiyatlar BTW hariç ve satır iskontosu sonrası efektif birim fiyatlardır.</p>
+<div class="tools"><label>Fatura ayı<input type="month" id="month"></label><label id="branchSelectLabel">Şube<select id="branch"><option value="">Tüm şubeler</option></select></label><button id="compare">Ayı Karşılaştır</button></div>
+<p class="status" id="state" role="status">Fiyatlar yükleniyor…</p>
+<div class="cards"><div class="card"><span>Ayın kayıtlı faturası</span><strong id="invoiceCount">—</strong></div><div class="card"><span>Fiyat farkı bulunan ürün</span><strong id="groupCount">—</strong></div><div class="card"><span>İncelemeye değer tutar farkı</span><strong id="impact">—</strong></div></div>
+<p class="note">Aynı ürünün farklı koli, kilogram veya adet birimleri otomatik eşit sayılmaz. EAN ve ürün kodu eksik satırlar güvenilir karşılaştırma için dışarıda bırakılır. Hesaplanan farklar satın alma koşulları, miktar indirimi veya farklı günler nedeniyle oluşabilir; otomatik alacak iddiası değildir.</p>
+<div class="scroll"><table><thead><tr><th>Ürün / Tedarikçi</th><th>Eşleştirme</th><th>Şube sayısı</th><th class="num">En düşük €</th><th class="num">En yüksek €</th><th class="num">Fark €</th><th class="num">Tahmini fark €</th></tr></thead><tbody id="rows"></tbody></table></div>
+</div></main>
+<script>
+const $=id=>document.getElementById(id),escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),eur=x=>new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:4}).format(Number(x)||0);
+async function get(url){const r=await fetch(url,{credentials:'same-origin',cache:'no-store'});const x=await r.json().catch(()=>({error:'Beklenmeyen sunucu cevabı'}));if(!r.ok)throw Error(x.error||'HTTP '+r.status);return x}
+function show(data){
+ $('invoiceCount').textContent=data.invoiceCount??0;$('groupCount').textContent=data.comparedGroups??0;
+ $('impact').textContent=eur((data.items||[]).reduce((s,x)=>s+Number(x.estimatedDifference||0),0));
+ const items=data.items||[];
+ $('rows').innerHTML=items.length?items.map((x,i)=>
+  '<tr><td><b>'+escape(x.product)+'</b><p>'+escape(x.supplier)+' · '+escape(x.unit)+'</p><details><summary>Şube fiyatlarını gör</summary>'+
+  '<div class="scroll"><table><thead><tr><th>Şube</th><th>Fatura</th><th>Tarih</th><th>Miktar</th><th>Net birim €</th></tr></thead><tbody>'+
+  (x.rows||x.ownRows||[]).map(r=>'<tr><td>'+escape(r.branchName)+'</td><td>'+escape(r.invoiceNumber)+'</td><td>'+escape(r.date)+'</td><td>'+escape(r.quantity)+'</td><td>'+eur(r.price)+'</td></tr>').join('')+
+  '</tbody></table></div></details></td><td>'+escape(x.productKey)+'<p>'+escape(x.identityQuality)+'</p></td><td>'+Number(x.branchCount)+'</td><td class="num good">'+eur(x.minPrice)+'</td><td class="num">'+eur(x.maxPrice)+'</td><td class="num difference">'+eur(x.spread)+'</td><td class="num">'+eur(x.estimatedDifference)+'</td></tr>'
+ ).join(''):'<tr><td colspan="7">Bu ay için güvenilir ürün eşleşmesiyle farklı fiyat bulunan en az iki şube yok.</td></tr>';
+ $('state').textContent=(data.month||'')+' dönemi karşılaştırıldı · '+items.length+' ürün';
+}
+async function compare(){
+ const month=$('month').value;if(!month){$('state').textContent='Ay seçilmedi';return}
+ $('compare').disabled=true;$('state').textContent='Ortak havuz karşılaştırılıyor…';
+ try{const p=new URLSearchParams({month});if($('branch').value)p.set('branch_id',$('branch').value);show(await get('/api/admin/ocr/monthly-comparison?'+p))}
+ catch(e){$('state').className='status error';$('state').textContent='Kıyaslama başarısız: '+e.message}
+ finally{$('compare').disabled=false}
+}
+async function init(){
+ $('month').value=new Date().toLocaleDateString('sv-SE').slice(0,7);
+ try{
+  const [me,branches]=await Promise.all([get('/api/me'),get('/api/branches')]);
+  if(me.user.role==='branch')$('branchSelectLabel').style.display='none';
+  else for(const b of branches.items||[]){const el=document.createElement('option');el.value=b.id;el.textContent=b.name;$('branch').append(el)}
+ }catch(e){$('state').textContent=e.message}
+ compare();
+}
+$('compare').onclick=compare;init();
+</script></body></html>
