@@ -34,6 +34,8 @@ app.addHook('onRequest',async(req,reply)=>{
  req.user=r.rows[0];req.tokenHash=hash;
 });
 app.get('/health',async()=>({ok:true,service:'invoice-control'}));
+app.get('/',async(_req,reply)=>reply.redirect('/admin/invoice-reader'));
+
 
 // Mindee V2: status is always based on an actual 200 response to
 // GET https://api-v2.mindee.net/v2/search/models. Never report green just
