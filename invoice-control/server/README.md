@@ -27,23 +27,19 @@ Fiyat karşılaştırmaları aynı `supplier + product + unit + calendar month` 
 
 **Durum:** Bu bir kendi sunucunuza taşıyabileceğiniz başlangıç API'sidir. Canlı veritabanı/SMTP/PDF OCR henüz kurulup işletim testinden geçmedi; üretime alınmış bir hizmet olarak değerlendirmeyin.
 
-## Mindee V2 API — Sistem Admini
+## Invoice Control OCR — Kendi fatura okuyucumuz
 
-Bu entegrasyon **app.mindee.com (V2)** içindir. Eski platform.mindee.com V1 anahtarları çalışmaz.
+Harici OCR API veya Model ID kullanılmaz. Her belge yalnızca Invoice Control sunucusunda işlenir.
 
-1. `app.mindee.com` → Settings → API Keys üzerinden `md_...` formatında yeni API anahtarı oluşturun.
-2. Sunucuda `MINDEE_ENCRYPTION_KEY` ortam değişkenini 32 rastgele baytın **64 karakter hex** gösterimiyle tanımlayın:
-   `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`
-   Bu değişkeni GitHub'a, tarayıcıya veya herkese açık bir .env dosyasına koymayın. Değişirse eski API anahtarı çözülemez.
-3. `schema.sql` dosyasındaki `service_integrations` tablosu için şema güncellemesini veritabanına uygulayın (yeni kurulumda oluşturulur).
-4. HTTPS API sunucusunda **Sistem Admini hesabıyla oturum açın**. GitHub Pages statik demo panelinden Sistem Admini → Mindee API yoluyla API sunucusunun HTTPS adresini kaydedip `/admin/mindee` sayfasına geçin. Bu adres sadece sunucu adresidir; anahtar oraya değil, kimlik doğrulamalı admin sayfasına girilir.
-5. `/admin/mindee` sayfasında API anahtarını ve isteğe bağlı **Model ID** girin. "Anahtarı Kaydet ve Bağlantıyı Test Et" düğmesine basın.
-6. Bağlantı kontrolü Mindee'nin `GET https://api-v2.mindee.net/v2/search/models` ucundan **canlı yanıt** alır; 2xx yanıt yeşil, ağ / 401 / 403 / 429 / diğer hatalar kırmızıdır. Durum, sayfa açıldığında ve "Bağlantıyı Yeniden Kontrol Et" tıklandığında yeniden doğrulanır. Başarılı durum 5 dakikadan eskiyse sunucu yenileme isteği olmadan kırmızı kabul edilir.
+- PDF metin katmanından yazıyı önce doğrudan almak için `pdf-parse` kullanılır.
+- Taranmış PDF sayfalarını görüntüye çevirmek için `pdf-to-img` kullanılır (OCR en fazla ilk 3 sayfa).
+- JPG, PNG, WebP ve taranmış PDF'lerde yerel `tesseract.js` OCR çalışır. İlk OCR çağrısında dil paketi indirebilir.
+- Metin ayrıştırıcı, güvenle eşleşen ürün satırlarını, tarihi, faturayı, tutarları çıkarır. Alanlar eksikse kullanıcıya uyarı verir; içerik uydurmaz.
+- Sistem Admini oturumu gereklidir. Belgeler tarayıcıdan HTTPS sunucusuna gönderilir ve harici OCR servisine aktarılmaz.
+- `POST /api/admin/ocr/extract`: 10 MB'ye kadar PDF/JPG/PNG/WebP yükle ve **taslak** çıkar.
+- `GET /admin/invoice-reader`: İnceleme/düzeltme ekranı.
+- `POST /api/admin/ocr/invoices`: Yalnızca kullanıcı Kaydet düğmesine basınca kontrol edilmiş verileri özel veritabanına kaydet.
+- `GET /admin/invoices`: Daha önce kaydedilmiş kayıtlar.
+- Önceki Mindee'den kaydedilmiş fatura verileri korunur. Mindee API anahtarı bootstrap sırasında kaldırılır.
 
-Endpointler (tamamı geçerli sistem admini oturumu ister):
-- `GET /admin/mindee` — güvenli yapılandırma ekranı
-- `GET /api/admin/mindee/status?check=1` — Mindee API'yi gerçekten kontrol et, anahtarı asla geri döndürme
-- `POST /api/admin/mindee/settings` — `{ "apiKey": "md_...", "modelId": "" }`, anahtarı AES-256-GCM ile şifrele ve doğrula
-- `DELETE /api/admin/mindee/settings` — bağlantı ve anahtar kaydını sil
-
-**Önemli:** Bu sürüm yalnızca bağlantıyı yönetir ve test eder; gerçek PDF OCR akışının Mindee modeline gönderilmesi henüz entegre edilmedi. Canlı backend henüz bu statik GitHub Pages sayfası tarafından barındırılmıyor. Sunucu kurulmadan hiçbir API anahtarı girmeyin.
+**Sınırlar:** Tesseract OCR uzmanlaşmış ticari belge modelleri kadar güvenilir değildir. Özellikle taranmış tablolar, ürün kodları, KDV/BTW, indirimler veya birimler yanlış çıkabilir. Otomatik muhasebeleştirme yoktur; her fatura insan tarafından kontrol edilir. Ücretsiz Render veritabanı kalıcı finansal arşiv için uygun değildir.
