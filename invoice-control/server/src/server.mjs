@@ -74,6 +74,7 @@ app.get('/admin/invoice-reader',async(req,reply)=>{
   .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
 });
+let ocrProcessing=false;
 app.post('/api/admin/ocr/extract',{config:{rateLimit:{max:6,timeWindow:'1 minute'}}},async(req,reply)=>{
  if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
  let part;
@@ -89,6 +90,8 @@ app.post('/api/admin/ocr/extract',{config:{rateLimit:{max:6,timeWindow:'1 minute
   (mime==='image/png'&&buffer.subarray(0,4).equals(Buffer.from([137,80,78,71])))||
   (mime==='image/webp'&&buffer.subarray(0,4).toString()==='RIFF'&&buffer.subarray(8,12).toString()==='WEBP');
  if(!magic)return deny(reply,415,'Dosya türü içerikle uyuşmuyor.');
+ if(ocrProcessing)return deny(reply,429,'Başka bir fatura okunuyor. İşlem tamamlandığında tekrar dene.');
+ ocrProcessing=true;
  try{
   const data=await readInvoiceBuffer(buffer,mime);
   await audit(req.user.id,'extract','ocr_invoice','', {method:data.method,lines:data.items.length,pages:data.pages||0});
@@ -96,7 +99,7 @@ app.post('/api/admin/ocr/extract',{config:{rateLimit:{max:6,timeWindow:'1 minute
  }catch(error){
   req.log.warn({message:String(error?.message||'').slice(0,160),name:error?.name},'Invoice OCR failed');
   return deny(reply,422,'Fatura okunamadı. Belgenin şifreli veya bozuk olmadığını kontrol et; farklı PDF veya resimle dene.');
- }
+ }finally{ocrProcessing=false}
 });
 // Private OCR review archive. An extracted invoice is NOT saved until a user
 // clicks Save. Records are not used by price comparisons until separately approved.
