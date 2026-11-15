@@ -5,6 +5,8 @@ if(!process.env.DATABASE_URL){console.error('DATABASE_URL missing. Set the inter
 const pool=new pg.Pool({connectionString:process.env.DATABASE_URL,max:2,connectionTimeoutMillis:12000});
 try{
  await pool.query(await fs.readFile(new URL('../schema.sql',import.meta.url),'utf8'));
+ // Remove the discontinued Mindee credential; preserve any already-saved invoice review records.
+ await pool.query("DELETE FROM service_integrations WHERE provider='mindee'");
  const email=String(process.env.INVOICE_SYSTEM_EMAIL||'').trim().toLowerCase();
  const password=String(process.env.INVOICE_SYSTEM_PASSWORD||'');
  if(email&&password){
