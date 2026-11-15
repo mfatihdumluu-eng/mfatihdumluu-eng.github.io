@@ -7,6 +7,7 @@ import {scryptSync,timingSafeEqual,randomBytes,createHash} from 'node:crypto';
 import {compareSupplierMonth} from './engine.mjs';
 import {readFile} from 'node:fs/promises';
 import {readInvoiceBuffer} from './local-ocr.mjs';
+import {sealApiKey,encryptionKey} from './nutrient-secret.mjs';
 import nodemailer from 'nodemailer';
 import {pathToFileURL} from 'node:url';
 import {prepareReview,validDate} from './invoice-review.mjs';
@@ -73,6 +74,15 @@ app.get('/admin/invoices',async(req,reply)=>{
   .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; object-src blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
 });
+app.get('/admin/nutrient',async(req,reply)=>{
+ const user=await requireSystemSession(req,reply,{redirectToLogin:true});if(!user)return;
+ const html=await readFile(new URL('../nutrient-settings.html',import.meta.url),'utf8');
+ return reply.type('text/html; charset=utf-8')
+  .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
+  .header('X-Frame-Options','DENY')
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .send(html);
+});
 app.get('/admin/invoice-reader',async(req,reply)=>{
  const user=await requireSystemSession(req,reply,{redirectToLogin:true});if(!user)return;
  const html=await readFile(new URL('../ocr-reader.html',import.meta.url),'utf8');
@@ -81,6 +91,39 @@ app.get('/admin/invoice-reader',async(req,reply)=>{
   .header('X-Frame-Options','DENY')
   .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; object-src blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
+});
+
+// A stored key is "configured", NOT "connected". First document processing
+// will be the real API verification and may consume free trial credits.
+app.get('/api/admin/nutrient/status',async(req,reply)=>{
+ if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ const r=await db.query("SELECT updated_at FROM service_integrations WHERE provider='nutrient'");
+ return reply.header('Cache-Control','no-store').send({
+  configured:Boolean(r.rowCount),connected:null,
+  message:r.rowCount?'API anahtarı şifreli olarak kaydedilmiş. Canlı Nutrient isteği henüz yapılmadı.':'Nutrient API anahtarı henüz girilmedi.',
+  updatedAt:r.rows[0]?.updated_at||null
+ });
+});
+app.post('/api/admin/nutrient/settings',{config:{rateLimit:{max:5,timeWindow:'5 minutes'}}},async(req,reply)=>{
+ if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ const apiKey=req.body?.apiKey;
+ if(typeof apiKey!=='string'||apiKey.trim().length<10||apiKey.trim().length>2000||/\s/.test(apiKey.trim()))
+  return deny(reply,400,'Nutrient API anahtarını boşluk içermeden gir.');
+ let encrypted;
+ try{encrypted=sealApiKey(apiKey.trim(),encryptionKey());}
+ catch(error){req.log.error({reason:error?.message},'Nutrient encryption not ready');return deny(reply,503,'Sunucu güvenli anahtar saklama için henüz yapılandırılmadı.');}
+ await db.query(
+  "INSERT INTO service_integrations(provider,encrypted_secret,model_id,connection_status,verified_at,last_error,updated_by) VALUES('nutrient',$1,NULL,'disconnected',NULL,NULL,$2) ON CONFLICT(provider) DO UPDATE SET encrypted_secret=EXCLUDED.encrypted_secret,model_id=NULL,connection_status='disconnected',verified_at=NULL,last_error=NULL,updated_by=EXCLUDED.updated_by,updated_at=now()",
+  [encrypted,req.user.id]
+ );
+ await audit(req.user.id,'update','integration','nutrient',{configured:true});
+ return reply.header('Cache-Control','no-store').send({ok:true,configured:true,connected:null,message:'Nutrient API anahtarı güvenle kaydedildi. Test henüz yapılmadı.'});
+});
+app.delete('/api/admin/nutrient/settings',async(req,reply)=>{
+ if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ await db.query("DELETE FROM service_integrations WHERE provider='nutrient'");
+ await audit(req.user.id,'delete','integration','nutrient');
+ return reply.header('Cache-Control','no-store').send({ok:true,configured:false});
 });
 let ocrProcessing=false;
 app.post('/api/admin/ocr/extract',{config:{rateLimit:{max:6,timeWindow:'1 minute'}}},async(req,reply)=>{
