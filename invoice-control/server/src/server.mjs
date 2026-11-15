@@ -37,9 +37,7 @@ app.get('/health',async()=>({ok:true,service:'invoice-control'}));
 app.get('/',async(_req,reply)=>reply.redirect('/admin/invoice-reader'));
 
 
-// Mindee V2: status is always based on an actual 200 response to
-// GET https://api-v2.mindee.net/v2/search/models. Never report green just
-// because an API key was pasted or stored.
+// Private Invoice Control OCR endpoints require an authenticated system admin.
 async function requireSystemSession(req,reply,{redirectToLogin=false}={}){
  const token=req.cookies?.invoice_sid;
  if(!token){if(redirectToLogin)reply.redirect('/admin/login');else deny(reply,401,'Sistem admini girişi gerekli');return null}
