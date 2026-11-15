@@ -1,4 +1,4 @@
-// Cross-branch monthly comparisons of human-reviewed Nutrient invoices.
+// Cross-branch monthly comparisons of human-reviewed supported OCR invoices.
 // A comparison is valid only for exactly matching supplier + product identity + unit.
 // Supplier SKUs are supplier-specific. Without EAN or SKU, exact description match
 // can be used as a candidate but is NOT a verified canonical product match.
@@ -16,7 +16,7 @@ export function comparePoolMonth(invoices,{month,branchId=null}={}){
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month||''))throw Error('YYYY-MM gerekli');
  const groups=new Map(),included=[];
  for(const inv of invoices){
-  if(inv.source!=='nutrient'||inv.comparison_ready!==true||!inv.branch_id||String(inv.invoice_date||'').slice(0,7)!==month)continue;
+  if(!['nutrient','google-document-ai'].includes(inv.source)||inv.comparison_ready!==true||!inv.branch_id||String(inv.invoice_date||'').slice(0,7)!==month)continue;
   included.push(inv);
   const supplier=normalized(inv.supplier_name);
   for(const [index,row] of (Array.isArray(inv.items)?inv.items:[]).entries()){
