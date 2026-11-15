@@ -27,44 +27,24 @@ Fiyat karşılaştırmaları aynı `supplier + product + unit + calendar month` 
 
 **Durum:** Bu bir kendi sunucunuza taşıyabileceğiniz başlangıç API'sidir. Canlı veritabanı/SMTP/PDF OCR için gerçek tedarikçi belgeleriyle kapsamlı kabul testi yapılmadı; üretime alınmış bir hizmet olarak değerlendirmeyin.
 
-## Invoice Control OCR — Kendi fatura okuyucumuz
+## Fatura okuyucu ve ortak PostgreSQL havuzu
 
-Harici OCR API veya Model ID kullanılmaz. Her belge yalnızca Invoice Control sunucusunda işlenir.
+Üretim okuyucu `/admin/invoice-reader` adresindedir. Yerel OCR ve Mindee iş akışından kaldırılmıştır. `INVOICE_OCR_PROVIDER` ayarı belirtilmezse mevcut Nutrient entegrasyonu kullanılır; `google-document-ai` değeri EU Invoice Parser yolunu seçer. Google yolu ayrıca açıkça `GOOGLE_DOCUMENT_AI_ENABLED=true` gerektirir. Kodun yüklenmesi hiçbir Google API’sini etkinleştirmez, işlemci oluşturmaz veya ücretli çağrı yapmaz.
 
-- PDF metin katmanından yazıyı önce doğrudan almak için `pdfjs-dist` kullanılır.
-- PDF metni ve sayfa görüntüleri aynı `pdfjs-dist` oturumunda çıkarılır; çakışan PDF worker sürümleri kullanılmaz.
-- Her sayfa ayrı değerlendirilir: metin katmanı olan sayfadan doğrudan metin, taranmış sayfadan OCR alınır. Varsayılan sınır 10 sayfadır (`OCR_MAX_PAGES`: 1–20). Eksik okuma açıkça bildirilir ve kaydetme engellenir.
-- JPG, PNG, WebP ve taranmış PDF'lerde Hollandaca + İngilizce yerel `tesseract.js` OCR çalışır. Görseller `sharp` ile yön bilgisine göre çevrilir, küçültülür ve kontrastı düzenlenir. İlk OCR çağrısında dil paketi indirebilir.
-- Metin ayrıştırıcı, güvenle eşleşen ürün satırlarını, tarihi, faturayı, tutarları çıkarır. Alanlar eksikse kullanıcıya uyarı verir; içerik uydurmaz.
-- Sistem Admini oturumu gereklidir. Belgeler tarayıcıdan HTTPS sunucusuna gönderilir ve harici OCR servisine aktarılmaz.
-- `POST /api/admin/ocr/extract`: 10 MB'ye kadar PDF/JPG/PNG/WebP yükle ve **taslak** çıkar.
-- `GET /admin/invoice-reader`: İnceleme/düzeltme ekranı.
-- `POST /api/admin/ocr/invoices`: Yalnızca kullanıcı Kaydet düğmesine basınca kontrol edilmiş verileri özel veritabanına kaydet.
-- `GET /admin/invoices`: Daha önce kaydedilmiş kayıtlar.
-- Önceki Mindee'den kaydedilmiş fatura verileri korunur. Mindee API anahtarı bootstrap sırasında kaldırılır.
+- `GET /api/admin/invoice-ocr/status`: oturum gerektirir; yapılandırma durumunu gösterir. `connected: null` canlı Google doğrulaması yapıldığı anlamına gelmez.
+- `POST /api/admin/invoice-ocr/extract`: seçili sağlayıcıyla tek belge okur. Google belgeleri yalnızca `eu-documentai.googleapis.com` uç noktasına gönderilir.
+- Google çağrısından önce PDF sayısı/dosya biçimi kontrol edilir. 10 MB ve 10 sayfa sınırı vardır. WebP sunucuda PNG’ye çevrilir. Otomatik tekrar veya başka ücretli sağlayıcıya geçiş yapılmaz.
+- Google’ın `invoice_id`, `supplier_name`, `line_item/*`, fatura tarihi, toplamları ve `vat/*` alanları kontrol ekranına aktarılır. Ürün kodlarındaki baştaki sıfırlar ve satır sırası korunur. Eksik miktar, fiyat, iskonto veya satır KDV oranı uydurulmaz; kullanıcı tamamlar. Standart Invoice Parser satır KDV oranlarını her belgede döndürmez.
+- “Pagina 1 van 2” yazan tek sayfalık fotoğraf tamamlanmış fatura olarak kaydedilemez. Tüm sayfaları birlikte yükleyin. Bu kontrol tüm olası eksik sayfaları tespit etme garantisi değildir.
+- Kontrol ve Kaydet adımlarından sonra kayıt, mevcut `mindee_invoice_reviews` tablosuna şube ve sağlayıcı adıyla eklenir. Şube kullanıcıları başka şube adına kaydedemez veya başka şubenin faturasını açamaz. Admin şubeyi seçer.
+- Mevcut tablolar, kullanıcılar ve eski faturalar korunur. İdempotent şema eklemesi yalnızca `tax_breakdown` JSONB sütununu ekler. Denetim izi ve kayıt tek transaction içinde yazılır.
+- Aynı aydaki Nutrient ve Google faturaları ortak havuzda kıyaslanır. Aynı tedarikçi, EAN/ürün kodu ve birim gerekir; yalnızca ada göre eşleştirme yapılmaz. Şubeler diğer şubelerin kimliklerini göremez.
+- Arayüz EUR içindir; farklı para birimleri kaydedilmeden önce engellenir. Orijinal dosya kalıcı saklanmaz; ayrıca koruyun.
 
-**Sınırlar:** Tesseract OCR uzmanlaşmış ticari belge modelleri kadar güvenilir değildir. Özellikle taranmış tablolar, ürün kodları, KDV/BTW, indirimler veya birimler yanlış çıkabilir. Otomatik muhasebeleştirme yoktur; her fatura insan tarafından kontrol edilir. Ücretsiz Render veritabanı kalıcı finansal arşiv için uygun değildir.
+Kurulum ve güvenli kimlik doğrulama için [GOOGLE_DOCUMENT_AI_SETUP.md](GOOGLE_DOCUMENT_AI_SETUP.md).
 
-## OCR v2 doğrulama ve kayıt
+## Doğrulama
 
-- Ürün kodu, kontrol basamağı geçerli EAN, kg/koli/adet/paket, dört ondalıklı miktar/fiyat ve açık yüzde satır iskontosu ayrıştırılır. Tablo başlıkları miktar/ürün kodu sırasını ayırt etmekte kullanılır. Koli içeriği varsayılarak otomatik birim dönüşümü yapılmaz.
-- Hesabı uyuşmayan ürün satırları gizlenmez; kullanıcı düzeltmesi için korunur. Yüzde ve tutar iskontosu aynı satırda birlikte uygulanamaz.
-- BTW %9/%21 dökümleri toplanır; açık BTW toplamı varsa ayrıca toplam olarak kullanılır. Ara toplam ile genel toplam farklı alanlardır.
-- Satır hesabı dört ondalık hassasiyetle, para tutarı kuruşa yuvarlanarak yapılır. Bilinen satır vergi oranları ve fatura toplamları kontrol edilir. Karışık vergi oranlarında belge iskontosunun dağılımı varsayılmaz.
-- Tarayıcı ve API aynı doğrulama modülünü kullanır. Kayıt ile denetim izi tek veritabanı işlemi içinde yazılır; hata halinde ikisi de geri alınır.
-- Mevcut `mindee_invoice_reviews` tablo adı geçmiş kayıtları korumak için tutulur. Adı harici API kullanıldığı anlamına gelmez. Bu değişiklik şema veya kullanıcı hesabı silmez.
-- Kontrol edilmiş alanlar kaydedilir; orijinal PDF/fotoğraf kalıcı olarak saklanmaz. Dosyayı ayrıca koruyun.
-- GitHub Pages ana paneli demo verilerini gösterir; gerçek kayıtların listesi `/admin/invoices` adresindedir.
+`npm ci` ve `npm test`.
 
-## Otomatik testler
-
-`npm ci`, `npm test`, `npm run test:ocr`, `npx playwright install --with-deps chromium`, `npm run test:browser`.
-
-Testler bellekte çalışan ayrı PostgreSQL (PGlite) ve yapay fatura belgeleri kullanır. Üretim `DATABASE_URL` değerine bağlanmaz, gerçek faturalara test kaydı eklemez. OCR doğruluğu gerçek tedarikçi belgeleri, düşük kaliteli telefon fotoğrafları ve farklı tablo düzenleri için garanti edilmez. İlk OCR çalışması dil dosyalarını indirebilir.
-
-
-## Fatura düzeni ve sütun okuma
-
-PDF metin parçaları ve OCR kelimeleri sayfadaki koordinatlarına göre sıraya konur. Açık tablo başlıkları bulunan belgelerde ürün açıklaması, kod, miktar, birim, fiyat ve tutar sütunları ayrı okunur. Sütun sütun kaydedilmiş PDF metni fiziksel satır sırasına alınır. Tablo içinde taşan açıklamalar korunur; başlık bulunamayan belgelerde muhafazakâr metin ayrıştırma devam eder. Sütun konumları farklı veya başlıkları okunamayan gerçek belgeler ayrıca kontrol gerektirir.
-
-İnceleme ve arşiv ekranı ürünleri önce, toplamları altta gösterir. Ürün açıklamaları çok satırlıdır; kod ve iskonto düzenlemesi satır ayrıntılarındadır. Tarayıcıda seçilen orijinal dosya ayrıca görüntülenebilir. Önceden kaydedilmiş hatalı ürün bilgileri otomatik değiştirilmez; orijinal belgeyle yeniden okuma ve kontrol gerekir.
+Testler ayrı, bellekte çalışan PostgreSQL (PGlite), yapay fatura verisi ve sahte Google yanıtları kullanır. Üretim veritabanına bağlanmaz ve ücretli Google isteği yapmaz. Sağlayıcı alan dönüşümü, EU zorunluluğu, kapalı etkinleştirme durumu, dosya/sayfa sınırları, şube yetkileri, aylık havuz ve insan kontrolü sınanır. Bunlar gerçek bir tedarikçi faturasıyla Google doğruluk testi yerine geçmez.

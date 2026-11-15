@@ -9,10 +9,11 @@ import {readFile} from 'node:fs/promises';
 import {comparePoolMonth} from './monthly-pool.mjs';
 import {sealApiKey,openApiKey,encryptionKey} from './nutrient-secret.mjs';
 import {extractWithNutrient,NutrientRequestError} from './nutrient-extract.mjs';
+import {extractWithDocumentAI,documentAIStatus,DocumentAIError} from './google-document-ai.mjs';
 import nodemailer from 'nodemailer';
 import {pathToFileURL} from 'node:url';
 import {prepareReview,validDate} from './invoice-review.mjs';
-export async function createApp({database,logger=true,nutrientExtractor=extractWithNutrient}={}){
+export async function createApp({database,logger=true,nutrientExtractor=extractWithNutrient,documentAIExtractor=extractWithDocumentAI}={}){
 const app=Fastify({logger,bodyLimit:2_000_000,trustProxy:false});
 await app.register(cookie);
 await app.register(rateLimit,{max:150,timeWindow:'1 minute'});
@@ -144,9 +145,44 @@ app.delete('/api/admin/nutrient/settings',async(req,reply)=>{
  return reply.header('Cache-Control','no-store').send({ok:true,configured:false});
 });
 
-// The user explicitly chooses Nutrient; local OCR remains the privacy-preserving default.
-// The document is sent only to the fixed Nutrient HTTPS endpoint, not an arbitrary URL.
-app.post('/api/admin/nutrient/extract',{config:{rateLimit:{max:4,timeWindow:'1 minute'}}},async(req,reply)=>{
+const ocrProvider=()=>process.env.INVOICE_OCR_PROVIDER||'nutrient';
+app.get('/api/admin/invoice-ocr/status',async(_req,reply)=>{
+ const provider=ocrProvider();
+ if(provider==='google-document-ai')return reply.header('Cache-Control','no-store').send(documentAIStatus());
+ if(provider!=='nutrient')return deny(reply,503,'Fatura okuyucu yapılandırması geçersiz.');
+ const r=await db.query("SELECT updated_at FROM service_integrations WHERE provider='nutrient'");
+ return reply.header('Cache-Control','no-store').send({provider,configured:Boolean(r.rowCount),enabled:true,connected:null});
+});
+async function extractGoogleInvoice(req,reply){
+ if(req.user.role==='branch'&&!req.user.branch_id)return deny(reply,403,'Kullanıcının şubesi tanımlı değil.');
+ if(process.env.GOOGLE_DOCUMENT_AI_ENABLED!=='true')return deny(reply,503,'Google Document AI henüz etkinleştirilmedi.');
+ let part,data;
+ try{part=await req.file();if(part)data=await part.toBuffer();}
+ catch{return deny(reply,413,'Dosya yüklenemedi (en fazla 10 MB).');}
+ if(!part)return deny(reply,400,'Önce PDF veya fotoğraf seç.');
+ try{
+  const result=await documentAIExtractor({data,mime:part.mimetype});
+  await audit(req.user.id,'extract','google_document_ai_invoice','',{items:result.items.length,pages:result.pages||0,region:'eu'});
+  return reply.header('Cache-Control','no-store').send(result);
+ }catch(e){
+  const kind=e instanceof DocumentAIError?e.kind:'INTERNAL',status=e instanceof DocumentAIError?e.status:502;
+  req.log.warn({kind,httpStatus:status},'Document AI extraction failed');
+  const messages={CONFIG:'Google Document AI EU proje ve işlemci ayarlarını kontrol edin.',DISABLED:'Google Document AI henüz etkinleştirilmedi.',
+   AUTH:'Google Cloud kimlik doğrulaması kurulamadı. Render sunucu kimliğini kontrol edin.',PERMISSION:'Google Cloud erişimi reddetti. API, faturalandırma ve işlemci yetkilerini kontrol edin.',
+   PROCESSOR:'EU Invoice Parser bulunamadı. Proje ve işlemci kimliğini kontrol edin.',QUOTA:'Google Document AI kotası doldu. Otomatik yeniden deneme yapılmadı.',
+   PAGE_LIMIT:'Tek okumada en fazla 10 sayfa desteklenir. Faturaları bölmeden, ayrı belgeler olarak yükleyin.',
+   FILE_TYPE:'Yalnızca PDF, JPG, PNG ve WebP desteklenir.',INVALID_FILE:'Dosya okunamadı veya dosya türü içerikle eşleşmiyor.',FILE_SIZE:'Dosya en fazla 10 MB olabilir.',
+   VALIDATION:'Google Document AI belgeyi kabul etmedi.',INVALID_DATA:'Google yanıtında beklenen fatura alanları bulunamadı.',TIMEOUT:'Google yanıtı zaman aşımına uğradı. Yeniden okuma ek ücret doğurabilir.'};
+  return reply.code(status).send({error:messages[kind]||'Google Document AI işlemi tamamlanamadı. Otomatik tekrar yapılmadı.',code:kind});
+ }
+}
+app.post('/api/admin/invoice-ocr/extract',{config:{rateLimit:{max:4,timeWindow:'1 minute'}}},async(req,reply)=>{
+ if(ocrProvider()==='google-document-ai')return extractGoogleInvoice(req,reply);
+ if(ocrProvider()==='nutrient')return extractNutrientInvoice(req,reply);
+ return deny(reply,503,'Fatura okuyucu yapılandırması geçersiz.');
+});
+app.post('/api/admin/nutrient/extract',{config:{rateLimit:{max:4,timeWindow:'1 minute'}}},extractNutrientInvoice);
+async function extractNutrientInvoice(req,reply){
  if(req.user.role==='branch'&&!req.user.branch_id)return deny(reply,403,'Kullanıcının şubesi tanımlı değil.');
  const stored=await db.query("SELECT encrypted_secret FROM service_integrations WHERE provider='nutrient'");
  if(!stored.rowCount)return deny(reply,409,'Önce Nutrient API anahtarını Sistem Admini → Nutrient API Ayarları bölümünde kaydet.');
@@ -184,7 +220,7 @@ app.post('/api/admin/nutrient/extract',{config:{rateLimit:{max:4,timeWindow:'1 m
    'Nutrient işlemi tamamlanamadı. Sunucu kayıtlarında neden kodu var.';
   return reply.code(status===401||status===403?502:status===429?429:502).send({error:message,code:kind});
  }
-});
+}
 let ocrProcessing=false;
 // Old local OCR has been removed from the production workflow.
 app.post('/api/admin/ocr/extract',async(_req,reply)=>deny(reply,410,'Yerel OCR kaldırıldı. Nutrient Data Extraction ile fatura oku.'));
@@ -213,7 +249,8 @@ app.get('/api/admin/ocr/invoices/:id',async(req,reply)=>{
 app.post('/api/admin/ocr/invoices',{config:{rateLimit:{max:20,timeWindow:'1 minute'}}},async(req,reply)=>{
  const review=prepareReview(req.body);
  if(review.errors.length)return reply.code(400).send({error:review.errors[0],errors:review.errors});
- if(req.body?.provider!=='nutrient')return deny(reply,400,'Ortak havuza yalnızca Nutrient ile okunan ve doğrulanan fatura kaydedilir.');
+ const provider=req.body?.provider;
+ if(!['nutrient','google-document-ai'].includes(provider))return deny(reply,400,'Ortak havuza yalnızca desteklenen okuyucuyla okunan ve doğrulanan fatura kaydedilir.');
  if(!review.value.date)return deny(reply,400,'Fatura tarihi zorunlu; aylık kıyaslama için gerekli.');
  const wanted=Number(req.body?.branchId),branchId=req.user.role==='branch'?Number(req.user.branch_id):wanted;
  if(!Number.isInteger(branchId)||branchId<1)return deny(reply,400,'Lütfen faturanın ait olduğu şubeyi seç.');
@@ -225,11 +262,11 @@ app.post('/api/admin/ocr/invoices',{config:{rateLimit:{max:20,timeWindow:'1 minu
  try{
   await client.query('BEGIN');
   const result=await client.query(
-   "INSERT INTO mindee_invoice_reviews(created_by,branch_id,source,comparison_ready,supplier_name,invoice_number,invoice_date,due_date,total_net,total_tax,total_gross,discount,items,warnings,status) VALUES($1,$2,'nutrient',true,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'review') RETURNING id",
-   [req.user.id,branchId,b.supplier,b.invoiceNumber,b.date,b.dueDate,b.totalNet,b.totalTax,b.totalGross,b.discount,JSON.stringify(b.items),JSON.stringify(b.warnings)]
+   "INSERT INTO mindee_invoice_reviews(created_by,branch_id,source,comparison_ready,supplier_name,invoice_number,invoice_date,due_date,total_net,total_tax,total_gross,discount,items,warnings,tax_breakdown,status) VALUES($1,$2,$13,true,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$14,'review') RETURNING id",
+   [req.user.id,branchId,b.supplier,b.invoiceNumber,b.date,b.dueDate,b.totalNet,b.totalTax,b.totalGross,b.discount,JSON.stringify(b.items),JSON.stringify(b.warnings),provider,JSON.stringify(b.taxBreakdown)]
   );
   await client.query('INSERT INTO audit_events(actor_id,action,target_type,target_id,details) VALUES($1,$2,$3,$4,$5)',
-   [req.user.id,'create','shared_invoice',result.rows[0].id,JSON.stringify({items:b.items.length,branchId,provider:'nutrient'})]);
+   [req.user.id,'create','shared_invoice',result.rows[0].id,JSON.stringify({items:b.items.length,branchId,provider})]);
   await client.query('COMMIT');
   return reply.code(201).send({id:result.rows[0].id,branchId,branchName:branch.rows[0].name,status:'review',comparisonReady:true,message:'Fatura ortak havuza şube adıyla kaydedildi.'});
  }catch(error){
@@ -245,7 +282,7 @@ app.get('/api/admin/ocr/monthly-comparison',async(req,reply)=>{
  const branchId=req.user.role==='branch'?Number(req.user.branch_id):branch_id?Number(branch_id):null;
  if(branchId!==null&&(!Number.isInteger(branchId)||branchId<=0))return deny(reply,400,'Geçersiz şube');
  const q=await db.query(
-  "SELECT r.id,r.branch_id,r.supplier_name,r.invoice_number,r.invoice_date,r.items,r.source,r.comparison_ready,b.name AS branch_name FROM mindee_invoice_reviews r JOIN branches b ON b.id=r.branch_id WHERE r.invoice_date >= $1::date AND r.invoice_date < ($1::date + interval '1 month') AND r.source='nutrient' AND r.comparison_ready=true",
+  "SELECT r.id,r.branch_id,r.supplier_name,r.invoice_number,r.invoice_date,r.items,r.source,r.comparison_ready,b.name AS branch_name FROM mindee_invoice_reviews r JOIN branches b ON b.id=r.branch_id WHERE r.invoice_date >= $1::date AND r.invoice_date < ($1::date + interval '1 month') AND r.source IN ('nutrient','google-document-ai') AND r.comparison_ready=true",
   [month+'-01']
  );
  const results=comparePoolMonth(q.rows.map(row=>({...row,invoice_date:row.invoice_date instanceof Date?row.invoice_date.toISOString().slice(0,10):String(row.invoice_date).slice(0,10)})),{month,branchId});

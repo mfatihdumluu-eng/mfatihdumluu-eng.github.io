@@ -7,7 +7,7 @@
 <label for="branchId">Faturanın ait olduğu şube <span style="color:#bd3049">*</span></label>
 <select id="branchId" style="display:block;width:100%;padding:11px;border:1px solid #ccd6ed;border-radius:8px;margin-top:7px"><option value="">Şube bilgileri yükleniyor…</option></select>
 <p class="muted" id="branchHelp" style="margin:9px 0 0">Şube kullanıcıları yalnızca kendi şubelerinin adına kaydedebilir.</p></div>
-<p class="muted">Faturalar yalnızca <strong>Nutrient Data Extraction</strong> ile okunur. Her okuma Nutrient kredisi kullanır ve belge Nutrient sunucusuna gönderilir.</p>
+<p class="muted" id="providerNotice">Fatura okuyucu bağlantısı kontrol ediliyor…</p>
 <div class="upload-actions" style="margin-top:12px"><button class="btn secondary" id="chooseFile">Dosya Seç</button><button class="btn" id="extract">Faturayı Oku</button><span id="filename" class="muted">Henüz dosya seçilmedi</span></div>
 <details class="diagnostics hidden" id="originalPreview"><summary>Orijinal faturayı göster</summary><p><a id="originalFile" class="hidden" target="_blank" rel="noopener">Orijinal belgeyi ayrı sekmede aç ↗</a></p><img id="preview" class="preview hidden" alt="Orijinal fatura fotoğrafı"><object id="pdfPreview" class="original-pdf hidden" type="application/pdf"><p>PDF önizlemesi için yukarıdaki bağlantıyı kullanın.</p></object></details></section>
 <section class="paper hidden" id="result"><div class="document-top"><h2>FATURA</h2><span class="muted">Kontrol ve düzeltme</span></div><div id="messages"></div>
@@ -17,17 +17,18 @@
 <div class="summary-area"><div id="taxBreakdown"></div><div class="invoice-totals" id="invoiceTotals"><label>Ara toplam €<input id="net" type="number" step=".01"></label><label>Fatura iskontosu €<input id="discount" type="number" step=".01"></label><label>BTW toplamı €<input id="tax" type="number" step=".01"></label><label class="grand-total">Genel toplam €<input id="gross" type="number" step=".01"></label></div></div>
 <div id="reconcile"></div><details class="diagnostics"><summary>Okunan metin ve sayfa bilgileri</summary><p id="pageInfo"></p><pre id="rawText"></pre></details>
 <label class="confirm"><input type="checkbox" id="reviewed">Ürünleri, miktarları ve toplamları orijinal faturayla karşılaştırdım.</label><div class="save-actions"><button class="btn" id="saveInvoice">Faturayı Listeye Kaydet</button><button class="btn secondary" id="copy">Verileri kopyala</button></div>
-<p class="footnote">Kontrol edip kaydettiğin Nutrient faturaları ortak havuza, seçilen şubenin adına eklenir ve aynı ay içindeki karşılaştırmalara katılır. Ürün karşılaştırması yalnızca güvenilir EAN veya tedarikçi ürün kodu eşleşmesi olduğunda yapılır. Orijinal PDF veya fotoğrafı ayrıca saklayın.</p></section></main>
+<p class="footnote">Kontrol edip kaydettiğin faturalar ortak havuza, seçilen şubenin adına eklenir ve aynı ay içindeki karşılaştırmalara katılır. Ürün karşılaştırması yalnızca güvenilir EAN veya tedarikçi ürün kodu eşleşmesi olduğunda yapılır. Orijinal PDF veya fotoğrafı ayrıca saklayın.</p></section></main>
 <script type="module">
 import {calculatedLineTotal,checkInvoice,prepareReview} from '/admin/ocr-review.mjs';
-const $=id=>document.getElementById(id),state={items:[],original:null,busy:false,saved:false,objectUrl:null};
+const $=id=>document.getElementById(id),state={items:[],taxes:[],original:null,busy:false,saved:false,objectUrl:null,ocr:null};
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>n==null?'—':new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(n);
 function show(message,error=false){$('status').className='status'+(error?' err':'');$('status').textContent=message}
 function payload(){return{
  supplier:$('supplier').value.trim(),invoiceNumber:$('invoiceNumber').value.trim(),date:$('date').value,dueDate:$('dueDate').value,branchId:$('branchId').value,provider:state.original?.provider||'',
  totalNet:$('net').value,totalTax:$('tax').value,totalGross:$('gross').value,discount:$('discount').value,
- items:state.items,warnings:state.original?.warnings||[],extractionComplete:state.original?.extractionComplete
+ items:state.items,warnings:state.original?.warnings||[],extractionComplete:state.original?.extractionComplete,
+ taxBreakdown:state.taxes,currency:state.original?.currency||'EUR'
 };}
 function row(item,i){
  const input=(field,label,numeric=false)=>'<input aria-label="'+(i+1)+'. ürün '+label+'" data-i="'+i+'" data-field="'+field+'" type="'+(numeric?'number':'text')+'" '+(numeric?'step="'+(['qty','price','discountPercent'].includes(field)?'.0001':'.01')+'" min="0"':'')+' value="'+escape(item[field]??'')+'">';
@@ -47,36 +48,38 @@ function renderItems(){
 }
 function reconcile(){
  const invoice=payload(),check=checkInvoice(invoice);
- $('file').disabled=state.busy;$('chooseFile').disabled=state.busy;$('extract').disabled=state.busy;
+ $('file').disabled=state.busy;$('chooseFile').disabled=state.busy;$('extract').disabled=state.busy||!state.ocr?.enabled||!state.ocr?.configured;
  document.querySelectorAll('#result input,#result textarea,#result button').forEach(el=>el.disabled=state.busy);
  state.items.forEach((item,i)=>{
   const expected=calculatedLineTotal(item),bad=expected==null||item.lineTotal==null||Math.abs(expected-Number(item.lineTotal))>.011;
   const cell=$('check-'+i);if(cell){cell.style.color=bad?'#bb344c':'#13845a';cell.textContent=bad?'Kontrol gerekli':'Hesap uyumlu';}
  });
- const warnings=[...new Set([...(state.original?.warnings||[]).filter(w=>!w.startsWith('OCR çıktısını')),...check.errors])];
+ const warnings=[...new Set([...(state.original?.warnings||[]).filter(w=>!w.startsWith('OCR çıktısını')),...prepareReview(invoice).errors])];
  $('reconcile').innerHTML=warnings.map(s=>'<div class="warn">'+escape(s)+'</div>').join('')+(check.errors.length?'':'<div class="status">Satır hesapları ve girilen toplamlar uyumlu. Orijinal faturadaki ürünlerle karşılaştırarak onaylayın.</div>');
- $('saveInvoice').disabled=state.busy||state.saved||!$('reviewed').checked||!$('branchId').value||state.original?.provider!=='nutrient'||prepareReview(invoice).errors.length>0;
+ $('saveInvoice').disabled=state.busy||state.saved||!$('reviewed').checked||!$('branchId').value||!['nutrient','google-document-ai'].includes(state.original?.provider)||prepareReview(invoice).errors.length>0;
  $('saveInvoice').textContent=state.saved?'Fatura Kaydedildi':'Faturayı Listeye Kaydet';
 }
 function render(data){
- state.original=data;state.items=(data.items||[]).map(x=>({...x}));state.saved=false;$('reviewed').checked=false;
+ state.original=data;state.items=(data.items||[]).map(x=>({...x}));state.taxes=(data.taxBreakdown||[]).map(x=>({...x}));state.saved=false;$('reviewed').checked=false;
  for(const [key,val] of Object.entries({supplier:data.supplier,invoiceNumber:data.invoiceNumber,date:data.date,dueDate:data.dueDate,net:data.totalNet,tax:data.totalTax,discount:data.discount,gross:data.totalGross}))$(key).value=val==null?'':val;
  $('result').classList.remove('hidden');
  $('messages').innerHTML='<p class="muted">'+state.items.length+' ürün satırı · Kaydetmeden önce kontrol edin</p>';
  $('rawText').textContent=data.rawText||'';
- const methods={'nutrient-extract':'Nutrient Data Extraction','pdf-text':'PDF metni','scanned-pdf-ocr':'Taranmış PDF','mixed-pdf-ocr':'Metin ve tarama içeren PDF','image-ocr':'Fotoğraf'};
+ const methods={'google-document-ai-invoice':'Google Document AI Invoice Parser · EU','nutrient-extract':'Nutrient Data Extraction','pdf-text':'PDF metni','scanned-pdf-ocr':'Taranmış PDF','mixed-pdf-ocr':'Metin ve tarama içeren PDF','image-ocr':'Fotoğraf'};
  $('pageInfo').textContent=(methods[data.method]||'Belge')+' · Okunan sayfa: '+(data.processedPages??data.pages??1)+' / '+(data.pages??1)+(data.ocrConfidence!=null?' · OCR güven puanı: '+Math.round(data.ocrConfidence)+'/100':'');
- $('taxBreakdown').innerHTML=(data.taxBreakdown||[]).length?'<h2>BTW dökümü</h2>'+data.taxBreakdown.map(t=>'<div class="tax-line"><span>BTW %'+escape(t.rate)+'</span><span>'+money(t.amount)+'</span></div>').join(''):'';
+ $('taxBreakdown').innerHTML=state.taxes.length?'<h2>BTW dökümü</h2>'+state.taxes.map((t,i)=>'<div style="display:flex;gap:8px;margin-bottom:12px">'+[['rate','BTW %'],['base','Matrah €'],['amount','BTW €']].map(([key,label])=>'<label>'+label+'<input type="number" step=".01" aria-label="'+(i+1)+'. vergi '+label+'" data-tax-i="'+i+'" data-tax-field="'+key+'" value="'+escape(t[key]??'')+'"></label>').join('')+'</div>').join(''):'';
+ document.querySelectorAll('[data-tax-i]').forEach(el=>el.oninput=()=>{state.taxes[Number(el.dataset.taxI)][el.dataset.taxField]=el.value===''?null:Number(el.value);state.saved=false;reconcile();});
  renderItems();$('result').scrollIntoView({behavior:'smooth'});
 }
 $('extract').onclick=async()=>{
  if(state.busy)return;
+ if(!state.ocr?.enabled||!state.ocr?.configured){show('Fatura okuyucu henüz etkin ve yapılandırılmış değil.',true);return;}
  const file=$('file').files[0];if(!file){show('Önce PDF veya fotoğraf seç.',true);return;}
  if(file.size>10*1024*1024){show('Dosya en fazla 10 MB olabilir.',true);return;}
- state.busy=true;$('extract').disabled=true;reconcile();show('Nutrient belgeyi analiz ediyor; bu işlem ücretsiz plan kredisi tüketir…');
+ state.busy=true;$('extract').disabled=true;reconcile();show(state.ocr.provider==='google-document-ai'?'Google Document AI belgeyi EU bölgesinde analiz ediyor; bu işlem ücretlidir…':'Nutrient belgeyi analiz ediyor; bu işlem kredi tüketir…');
  try{
   const fd=new FormData();fd.append('file',file,file.name);
-  const resp=await fetch('/api/admin/nutrient/extract',{method:'POST',credentials:'same-origin',body:fd,cache:'no-store'});
+  const resp=await fetch('/api/admin/invoice-ocr/extract',{method:'POST',credentials:'same-origin',body:fd,cache:'no-store'});
   const data=await resp.json().catch(()=>({error:'Beklenmeyen sunucu yanıtı'}));
   if(!resp.ok)throw Error(data.error||'Belge okunamadı');
   render(data);show(data.extractionComplete===false?'Belgenin bir bölümü okunamadı. Sayfa durumunu kontrol edin.':'Okuma tamamlandı. Ürünleri ve toplamları orijinal belgeyle karşılaştırın.',data.extractionComplete===false);
@@ -107,11 +110,25 @@ async function loadBranches(){
 }
 $('branchId').onchange=()=>{state.saved=false;reconcile();};
 loadBranches();
+async function loadOCR(){
+ try{
+  const response=await fetch('/api/admin/invoice-ocr/status',{credentials:'same-origin',cache:'no-store'});
+  if(!response.ok)throw Error('Okuyucu durumu alınamadı.');
+  state.ocr=await response.json();
+  $('providerNotice').textContent=state.ocr.provider==='google-document-ai'?
+   'Google Document AI Invoice Parser · EU. Belge Google’ın EU uç noktasına gönderilir. Her okuma ücretlidir; en fazla 10 sayfa ve 10 MB.':
+   'Nutrient Data Extraction. Belge Nutrient sunucusuna gönderilir ve her okuma kredi kullanır.';
+  if(!state.ocr.enabled||!state.ocr.configured)show('Fatura okuyucu henüz etkinleştirilmedi veya sunucu bağlantısı eksik.',true);
+  else show('Okuyucu hazır. PDF veya fotoğraf yükleyerek başlayabilirsiniz.');
+ }catch(e){show(e.message,true);}
+ reconcile();
+}
+loadOCR();
 $('chooseFile').onclick=()=>$('file').click();
 
 $('file').onchange=e=>{
  if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);
- const file=e.target.files?.[0];state.original=null;state.items=[];state.saved=false;$('reviewed').checked=false;$('result').classList.add('hidden');
+ const file=e.target.files?.[0];state.original=null;state.items=[];state.taxes=[];state.saved=false;$('reviewed').checked=false;$('result').classList.add('hidden');
  $('filename').textContent=file?.name||'Henüz dosya seçilmedi';$('originalFile').classList.add('hidden');$('preview').classList.add('hidden');$('pdfPreview').classList.add('hidden');$('pdfPreview').removeAttribute('data');$('originalPreview').classList.add('hidden');
  if(file){state.objectUrl=URL.createObjectURL(file);$('originalFile').href=state.objectUrl;$('originalFile').classList.remove('hidden');$('originalPreview').classList.remove('hidden');if(file.type==='application/pdf'){$('pdfPreview').data=state.objectUrl;$('pdfPreview').classList.remove('hidden');}if(file.type.startsWith('image/')){$('preview').src=state.objectUrl;$('preview').classList.remove('hidden');}}
  reconcile();
@@ -129,5 +146,5 @@ $('saveInvoice').onclick=async()=>{
  finally{state.busy=false;reconcile();}
 };
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(payload(),null,2));show('Kontrol verileri panoya kopyalandı.');}catch{show('Panoya erişilemedi. Tarayıcı izinlerini kontrol edin.',true);}};
-reconcile();show('Okuyucu hazır. PDF veya fotoğraf yükleyerek başlayabilirsiniz.');
+reconcile();
 </script></body></html>

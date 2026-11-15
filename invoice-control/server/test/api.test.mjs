@@ -7,7 +7,7 @@ import {PGlite} from '@electric-sql/pglite';
 import {createApp} from '../src/server.mjs';
 import {parseInvoiceText} from '../src/local-ocr.mjs';
 const fixture=()=>({provider:'nutrient',branchId:1,...parseInvoiceText('TEST Groothandel BV\nFactuur: TEST-ROUNDTRIP-1\nFactuurdatum: 15-11-2026\nAB-123 Tomaten 2,5 kg 4,00 10% 9,00 9%\nSubtotaal 9,00\nBTW 9% 0,81\nTotaal 9,81')});
-async function setup(t,{auditFailure=false}={}){
+async function setup(t,{auditFailure=false,documentAIExtractor}={}){
  const db=new PGlite();
  await db.exec((await readFile(new URL('../schema.sql',import.meta.url),'utf8')).replace('CREATE EXTENSION IF NOT EXISTS pgcrypto;',''));
  await db.query("INSERT INTO branches(id,name) VALUES(1,'Test Şube 1'),(2,'Test Şube 2')");
@@ -17,7 +17,7 @@ async function setup(t,{auditFailure=false}={}){
  await query("INSERT INTO users(id,email,name,password_hash,role) VALUES($1,'test@example.invalid','TEST System',$2,'system')",[id,'testsalt:'+scryptSync('test-only-password','testsalt',64).toString('hex')]);
  await query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '1 hour')",[hash,id]);
  if(auditFailure)await db.exec("CREATE FUNCTION reject_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'TEST audit failure'; END $$; CREATE TRIGGER reject_audit BEFORE INSERT ON audit_events FOR EACH ROW EXECUTE FUNCTION reject_audit();");
- const app=await createApp({database:adapter,logger:false});await app.ready();
+ const app=await createApp({database:adapter,logger:false,documentAIExtractor});await app.ready();
  t.after(async()=>{await app.close();await db.close();});
  return{app,query,db,cookies:{invoice_sid:token},id};
 }
@@ -42,7 +42,7 @@ test('OCR save/list/detail roundtrip preserves codes, units, discounts and exist
 });
 test('bad totals, invalid dates, nonfinite numbers and partial extraction never persist',async t=>{
  const {app,query,cookies}=await setup(t);
- for(const patch of [{totalGross:99},{date:'2026-02-30'},{extractionComplete:false},{items:[{name:'bad',qty:'Infinity',price:1,lineTotal:1}]},{items:[{name:'bad',qty:1,price:1,lineTotal:'NaN'}]}]){
+ for(const patch of [{totalGross:99},{date:'2026-02-30'},{extractionComplete:false},{currency:'USD'},{taxBreakdown:[{rate:9,base:9,amount:99}]},{taxBreakdown:[{rate:'garbage',base:9,amount:.81}]},{items:[{name:'bad',qty:'Infinity',price:1,lineTotal:1}]},{items:[{name:'bad',qty:1,price:1,lineTotal:'NaN'}]}]){
   const res=await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload:{...fixture(),...patch}});assert.equal(res.statusCode,400,res.body);
  }
  assert.equal((await query('SELECT * FROM mindee_invoice_reviews')).rowCount,0);
@@ -89,14 +89,44 @@ test('monthly pool compares two attributed branches with matching SKU and unit',
  const {app,query,cookies}=await setup(t);
  const a=await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload:fixture()});
  assert.equal(a.statusCode,201,a.body);
- const higher={...fixture(),branchId:2,invoiceNumber:'TEST-BRANCH-2',
-   items:fixture().items.map(x=>({...x,price:5,lineTotal:11.25})),totalNet:11.25,totalTax:1.01,totalGross:12.26};
+ const higher={...fixture(),provider:'google-document-ai',branchId:2,invoiceNumber:'TEST-BRANCH-2',
+   items:fixture().items.map(x=>({...x,price:5,lineTotal:11.25})),totalNet:11.25,totalTax:1.01,totalGross:12.26,taxBreakdown:[{rate:9,base:11.25,amount:1.01}]};
  const b=await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload:higher});
  assert.equal(b.statusCode,201,b.body);
  const r=await app.inject({url:'/api/admin/ocr/monthly-comparison?month=2026-11',cookies});
  assert.equal(r.statusCode,200,r.body);
  assert.equal(r.json().comparedGroups,1,r.body);
  assert.equal(r.json().items[0].branchCount,2);
+});
+
+test('Document AI shares the existing pool, preserves VAT summary and enforces branch ownership',async t=>{
+ const {app,query,cookies,id}=await setup(t);
+ const payload={...fixture(),provider:'google-document-ai',taxBreakdown:[{rate:9,base:9,amount:.81}]};
+ const saved=await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload});assert.equal(saved.statusCode,201,saved.body);
+ const record=(await query('SELECT source,branch_id,tax_breakdown FROM mindee_invoice_reviews WHERE id=$1',[saved.json().id])).rows[0];
+ assert.equal(record.source,'google-document-ai');assert.equal(Number(record.branch_id),1);assert.deepEqual(record.tax_breakdown,payload.taxBreakdown);
+ await query("UPDATE users SET role='branch',branch_id=2 WHERE id=$1",[id]);
+ assert.equal((await app.inject({url:'/api/admin/ocr/invoices/'+saved.json().id,cookies})).statusCode,403);
+ assert.equal((await app.inject({method:'POST',url:'/api/admin/ocr/invoices',cookies,payload})).statusCode,403);
+});
+
+test('Document AI route is disabled until explicit server activation and status never exposes credentials',async t=>{
+ const keys=['INVOICE_OCR_PROVIDER','GOOGLE_DOCUMENT_AI_ENABLED','GOOGLE_APPLICATION_CREDENTIALS','GOOGLE_CLOUD_PROJECT','GOOGLE_DOCUMENT_AI_PROCESSOR_ID'];
+ const before=Object.fromEntries(keys.map(k=>[k,process.env[k]]));
+ t.after(()=>{for(const k of keys){if(before[k]===undefined)delete process.env[k];else process.env[k]=before[k];}});
+ process.env.INVOICE_OCR_PROVIDER='google-document-ai';process.env.GOOGLE_DOCUMENT_AI_ENABLED='false';
+ process.env.GOOGLE_APPLICATION_CREDENTIALS='/etc/secrets/private-test.json';process.env.GOOGLE_CLOUD_PROJECT='test-project-123';process.env.GOOGLE_DOCUMENT_AI_PROCESSOR_ID='abc';
+ let calls=0;
+ const {app,cookies}=await setup(t,{documentAIExtractor:async()=>{calls++;return{...fixture(),provider:'google-document-ai',pages:1};}});
+ assert.equal((await app.inject({method:'POST',url:'/api/admin/invoice-ocr/extract'})).statusCode,401);
+ const status=await app.inject({url:'/api/admin/invoice-ocr/status',cookies});
+ assert.equal(status.json().region,'eu');assert.equal(status.json().enabled,false);assert.equal(status.json().connected,null);assert(!status.body.includes('private-test'));
+ const disabled=await app.inject({method:'POST',url:'/api/admin/invoice-ocr/extract',cookies});assert.equal(disabled.statusCode,503);assert.equal(calls,0);
+ process.env.GOOGLE_DOCUMENT_AI_ENABLED='true';
+ const boundary='test-google-boundary';
+ const extracted=await app.inject({method:'POST',url:'/api/admin/invoice-ocr/extract',cookies,headers:{'content-type':'multipart/form-data; boundary='+boundary},
+  payload:`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="test.pdf"\r\nContent-Type: application/pdf\r\n\r\n%PDF-synthetic\r\n--${boundary}--\r\n`});
+ assert.equal(extracted.statusCode,200,extracted.body);assert.equal(calls,1);assert.equal(extracted.json().provider,'google-document-ai');
 });
 
 test('System Admin can create a branch login; branch user gets own branch access',async t=>{

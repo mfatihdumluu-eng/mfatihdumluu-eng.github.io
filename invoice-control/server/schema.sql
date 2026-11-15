@@ -135,6 +135,7 @@ CREATE INDEX IF NOT EXISTS idx_mindee_review_created ON mindee_invoice_reviews(c
 ALTER TABLE mindee_invoice_reviews ADD COLUMN IF NOT EXISTS branch_id integer REFERENCES branches(id);
 ALTER TABLE mindee_invoice_reviews ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'legacy';
 ALTER TABLE mindee_invoice_reviews ADD COLUMN IF NOT EXISTS comparison_ready boolean NOT NULL DEFAULT false;
+ALTER TABLE mindee_invoice_reviews ADD COLUMN IF NOT EXISTS tax_breakdown jsonb NOT NULL DEFAULT '[]'::jsonb;
 CREATE INDEX IF NOT EXISTS idx_pool_branch_month ON mindee_invoice_reviews(branch_id,invoice_date)
  WHERE branch_id IS NOT NULL AND comparison_ready=true;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_pool_unique_branch_invoice

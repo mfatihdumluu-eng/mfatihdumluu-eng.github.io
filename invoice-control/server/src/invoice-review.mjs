@@ -77,12 +77,19 @@ export function prepareReview(body){
  const check=checkInvoice(b),errors=[...check.errors];
  if(!supplier||supplier.length>160||!invoiceNumber||invoiceNumber.length>120)errors.unshift('Tedarikçi ve fatura numarası gerekli.');
  if(b.date&&!validDate(b.date)||b.dueDate&&!validDate(b.dueDate))errors.push('Fatura tarihi geçersiz.');
+ if(b.currency&&b.currency!=='EUR')errors.push('Bu ekran yalnızca EUR faturalarını kaydeder.');
+ const taxes=b.taxBreakdown??[];
+ if(!Array.isArray(taxes)||taxes.length>100)errors.push('BTW dökümü geçersiz.');
+ const taxBreakdown=Array.isArray(taxes)?taxes.slice(0,100).map(t=>({rate:decimal(t?.rate),base:decimal(t?.base),amount:decimal(t?.amount)})):[];
+ if(Array.isArray(taxes)&&taxes.some(t=>!t||typeof t!=='object'||['rate','base','amount'].some(k=>t[k]!=null&&t[k]!==''&&decimal(t[k])===null)))errors.push('BTW dökümü sayıları geçersiz.');
+ if(taxBreakdown.some(t=>t.rate!==null&&(t.rate<0||t.rate>100)||['base','amount'].some(k=>t[k]!==null&&(t[k]<0||t[k]>1e8||!cents(t[k])))))errors.push('BTW dökümü tutarları geçersiz.');
+ if(taxBreakdown.length&&taxBreakdown.every(t=>t.amount!==null)&&check.totalTax!==null&&Math.abs(taxBreakdown.reduce((sum,t)=>sum+t.amount,0)-check.totalTax)>.021)errors.push('BTW dökümü, BTW toplamıyla uyuşmuyor.');
  const items=(Array.isArray(b.items)?b.items:[]).filter(Boolean).map(it=>({
   name:String(it.name||'').trim(),ean:String(it.ean||'').slice(0,80),sku:String(it.sku||'').slice(0,80),unit:String(it.unit||'').slice(0,30),
   qty:decimal(it.qty),price:decimal(it.price),lineTotal:decimal(it.lineTotal),vatRate:decimal(it.vatRate),
   discountPercent:decimal(it.discountPercent),discountAmount:decimal(it.discountAmount),rawLine:String(it.rawLine||'').slice(0,1000)
  }));
  const warnings=Array.isArray(b.warnings)?b.warnings.filter(x=>typeof x==='string').slice(0,100).map(x=>x.slice(0,400)):[];
- return{errors:[...new Set(errors)],value:{supplier,invoiceNumber,date:b.date||null,dueDate:b.dueDate||null,items,warnings,
+ return{errors:[...new Set(errors)],value:{supplier,invoiceNumber,date:b.date||null,dueDate:b.dueDate||null,items,warnings,taxBreakdown,
   totalNet:check.totalNet,totalTax:check.totalTax,totalGross:check.totalGross,discount:check.discount}};
 }
