@@ -14,7 +14,7 @@ permissions:
   contents: read
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: invoice-control/server
@@ -39,3 +39,10 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser upload, correction, save and archive roundtrip
         run: npm run test:browser
+      - name: Save synthetic invoice screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: invoice-reader-previews
+          path: /tmp/invoice-reader-*.png
+          if-no-files-found: ignore
