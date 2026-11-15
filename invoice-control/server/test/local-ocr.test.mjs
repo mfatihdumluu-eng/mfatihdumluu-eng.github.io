@@ -42,7 +42,7 @@ test('conflicting units demand review without automatic case conversion',()=>{
  const x=parseInvoiceText(header+'Kaas 2 doos 6,00/kg 12,00');assert.equal(x.items[0].qty,2);assert.equal(x.items[0].price,6);assert(x.items[0].unitWarning);assert(x.items[0].needsReview);
 });
 test('invalid dates, malformed decimals and nonfinite numbers are rejected',()=>{
- for(const x of ['2026-02-30','2026-13-01','2025-02-29'])assert(!validDate(x));assert(validDate('2024-02-29'));
+ for(const x of ['2026-02-30','2026-13-01','2025-02-29','0000-01-01'])assert(!validDate(x));assert(validDate('2024-02-29'));
  assert.equal(parseInvoiceText('Factuurdatum: 30-02-2026').date,'');assert.equal(decimal('1.234,56'),1234.56);assert.equal(decimal('1,234.56'),1234.56);assert.equal(decimal('12,500'),12.5);
  for(const value of ['1,2,3','1.23.4',Infinity])assert.equal(decimal(value),null);
  const sample={supplier:'TEST',invoiceNumber:'TEST-1',items:[{name:'Test',qty:1,price:1,lineTotal:1}]};

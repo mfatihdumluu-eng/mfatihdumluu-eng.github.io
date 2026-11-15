@@ -16,7 +16,7 @@ export function decimal(value) {
  const n=Number(s);return Number.isFinite(n)?n:null;
 }
 export const validDate=s=>{
- if(typeof s!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;
+ if(typeof s!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(s)||Number(s.slice(0,4))<1)return false;
  const date=new Date(s+'T00:00:00Z');
  return !Number.isNaN(date.getTime())&&date.toISOString().slice(0,10)===s;
 };

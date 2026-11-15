@@ -18,7 +18,7 @@ test('Chromium PDF upload, correction, confirmed save and archive roundtrip',asy
   app=await createApp({database:{query,connect:async()=>({query,release(){}})},logger:false});
   const origin=await app.listen({port:0,host:'127.0.0.1'});
   browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});
-  const context=await browser.newContext({viewport:{width:1400,height:1000}});
+  const context=await browser.newContext({viewport:{width:1400,height:1000},locale:'tr-TR'});
   await context.addCookies([{name:'invoice_sid',value:token,url:origin,httpOnly:true}]);
   const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.goto(origin+'/admin/invoice-reader');
