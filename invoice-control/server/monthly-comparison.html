@@ -12,7 +12,7 @@ button{font:inherit;background:#4157c2;border:0;color:#fff;border-radius:8px;pad
 details summary{cursor:pointer;font-weight:700;color:#3c51b0}details table{margin:12px 0 0;min-width:650px}.note{font-size:12px;background:#f1f4ff;padding:12px 14px;border-radius:9px}.status{font-size:13px;color:#63738c;margin-top:13px}.error{color:#ae3648}
 @media(max-width:730px){.cards{grid-template-columns:1fr}.panel{padding:17px}.tools label{width:100%}.tools select,.tools input{width:100%}main{padding:0 12px}}
 </style></head><body>
-<header><strong>✓ Invoice Control · Aylık Kıyaslama</strong><nav><a href="/admin/invoices">Ortak Fatura Havuzu</a> · <a href="/admin/invoice-reader">+ Fatura Oku</a></nav></header>
+<header><strong>✓ Invoice Control · Aylık Kıyaslama</strong><nav><a href="/admin/invoices">Ortak Fatura Havuzu</a> · <a href="/admin/invoice-reader">+ Fatura Oku</a> · <a href="/admin/branch-users">Şube Hesapları</a></nav></header>
 <main><div class="panel"><h1>Aynı ayda şubeler arası fiyat karşılaştırması</h1><p>Ortak havuza kaydedilmiş, kontrol edilmiş Nutrient faturaları kullanılır. Yalnızca <strong>aynı tedarikçide aynı EAN veya ürün koduna ve aynı birime</strong> sahip ürünler kıyaslanır. Fiyatlar BTW hariç ve satır iskontosu sonrası efektif birim fiyatlardır.</p>
 <div class="tools"><label>Fatura ayı<input type="month" id="month"></label><label id="branchSelectLabel">Şube<select id="branch"><option value="">Tüm şubeler</option></select></label><button id="compare">Ayı Karşılaştır</button></div>
 <p class="status" id="state" role="status">Fiyatlar yükleniyor…</p>
