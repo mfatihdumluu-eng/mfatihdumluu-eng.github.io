@@ -31,8 +31,8 @@ Fiyat karşılaştırmaları aynı `supplier + product + unit + calendar month` 
 
 Harici OCR API veya Model ID kullanılmaz. Her belge yalnızca Invoice Control sunucusunda işlenir.
 
-- PDF metin katmanından yazıyı önce doğrudan almak için `pdf-parse` kullanılır.
-- PDF metni ve sayfa görüntüleri aynı `pdf-parse` oturumunda çıkarılır; çakışan PDF worker sürümleri kullanılmaz.
+- PDF metin katmanından yazıyı önce doğrudan almak için `pdfjs-dist` kullanılır.
+- PDF metni ve sayfa görüntüleri aynı `pdfjs-dist` oturumunda çıkarılır; çakışan PDF worker sürümleri kullanılmaz.
 - Her sayfa ayrı değerlendirilir: metin katmanı olan sayfadan doğrudan metin, taranmış sayfadan OCR alınır. Varsayılan sınır 10 sayfadır (`OCR_MAX_PAGES`: 1–20). Eksik okuma açıkça bildirilir ve kaydetme engellenir.
 - JPG, PNG, WebP ve taranmış PDF'lerde Hollandaca + İngilizce yerel `tesseract.js` OCR çalışır. Görseller `sharp` ile yön bilgisine göre çevrilir, küçültülür ve kontrastı düzenlenir. İlk OCR çağrısında dil paketi indirebilir.
 - Metin ayrıştırıcı, güvenle eşleşen ürün satırlarını, tarihi, faturayı, tutarları çıkarır. Alanlar eksikse kullanıcıya uyarı verir; içerik uydurmaz.
@@ -61,3 +61,10 @@ Harici OCR API veya Model ID kullanılmaz. Her belge yalnızca Invoice Control s
 `npm ci`, `npm test`, `npm run test:ocr`, `npx playwright install --with-deps chromium`, `npm run test:browser`.
 
 Testler bellekte çalışan ayrı PostgreSQL (PGlite) ve yapay fatura belgeleri kullanır. Üretim `DATABASE_URL` değerine bağlanmaz, gerçek faturalara test kaydı eklemez. OCR doğruluğu gerçek tedarikçi belgeleri, düşük kaliteli telefon fotoğrafları ve farklı tablo düzenleri için garanti edilmez. İlk OCR çalışması dil dosyalarını indirebilir.
+
+
+## Fatura düzeni ve sütun okuma
+
+PDF metin parçaları ve OCR kelimeleri sayfadaki koordinatlarına göre sıraya konur. Açık tablo başlıkları bulunan belgelerde ürün açıklaması, kod, miktar, birim, fiyat ve tutar sütunları ayrı okunur. Sütun sütun kaydedilmiş PDF metni fiziksel satır sırasına alınır. Tablo içinde taşan açıklamalar korunur; başlık bulunamayan belgelerde muhafazakâr metin ayrıştırma devam eder. Sütun konumları farklı veya başlıkları okunamayan gerçek belgeler ayrıca kontrol gerektirir.
+
+İnceleme ve arşiv ekranı ürünleri önce, toplamları altta gösterir. Ürün açıklamaları çok satırlıdır; kod ve iskonto düzenlemesi satır ayrıntılarındadır. Tarayıcıda seçilen orijinal dosya ayrıca görüntülenebilir. Önceden kaydedilmiş hatalı ürün bilgileri otomatik değiştirilmez; orijinal belgeyle yeniden okuma ve kontrol gerekir.

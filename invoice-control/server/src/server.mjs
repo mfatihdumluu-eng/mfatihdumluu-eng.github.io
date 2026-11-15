@@ -37,7 +37,7 @@ app.addHook('onRequest',async(req,reply)=>{
  if(!r.rowCount)return deny(reply,401,'Oturum geçersiz');
  req.user=r.rows[0];req.tokenHash=hash;
 });
-app.get('/health',async()=>({ok:true,service:'invoice-control',ocrVersion:'2'}));
+app.get('/health',async()=>({ok:true,service:'invoice-control',ocrVersion:'3'}));
 app.get('/admin/ocr-review.mjs',async(req,reply)=>{
  const user=await requireSystemSession(req,reply);if(!user)return;
  return reply.type('application/javascript').header('Cache-Control','no-store').send(await readFile(new URL('./invoice-review.mjs',import.meta.url),'utf8'));
@@ -61,7 +61,7 @@ app.get('/admin/login',async(req,reply)=>{
   .header('Cache-Control','no-store, private')
   .header('Referrer-Policy','no-referrer')
   .header('X-Frame-Options','DENY')
-  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; object-src blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
 });
 app.get('/admin/invoices',async(req,reply)=>{
@@ -70,7 +70,7 @@ app.get('/admin/invoices',async(req,reply)=>{
  return reply.type('text/html; charset=utf-8')
   .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
   .header('X-Frame-Options','DENY')
-  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; object-src blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
 });
 app.get('/admin/invoice-reader',async(req,reply)=>{
@@ -79,7 +79,7 @@ app.get('/admin/invoice-reader',async(req,reply)=>{
  return reply.type('text/html; charset=utf-8')
   .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
   .header('X-Frame-Options','DENY')
-  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; object-src blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
 });
 let ocrProcessing=false;

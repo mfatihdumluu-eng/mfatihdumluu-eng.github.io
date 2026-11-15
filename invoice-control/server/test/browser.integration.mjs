@@ -33,6 +33,7 @@ test('Chromium PDF upload, correction, confirmed save and archive roundtrip',asy
   await page.locator('#reviewed').check();assert(await page.locator('#saveInvoice').isEnabled());
   await page.locator('[data-field="price"]').fill('5');assert(await page.locator('#saveInvoice').isDisabled());
   await page.locator('[data-field="price"]').fill('4');assert(await page.locator('#saveInvoice').isEnabled());
+  assert(await page.evaluate(()=>{const table=document.querySelector('.invoice-table'),totals=document.getElementById('invoiceTotals');return table.scrollWidth<=table.parentElement.clientWidth&&totals.getBoundingClientRect().top>table.getBoundingClientRect().bottom;}),'desktop table must fit and totals must follow products');
   await page.screenshot({path:'/tmp/invoice-reader-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),'mobile layout must fit viewport');

@@ -39,3 +39,22 @@ test('page cap is explicit and blocks saving partial output',async()=>{
  try{const x=await readInvoiceBuffer(await pdf([lines,lines]),'application/pdf');assert.equal(x.pages,2);assert.equal(x.processedPages,1);assert.equal(x.extractionComplete,false);assert(x.warnings.some(s=>s.includes('1/2')));}
  finally{if(previous===undefined)delete process.env.OCR_MAX_PAGES;else process.env.OCR_MAX_PAGES=previous;}
 });
+test('PDF column-major text stream keeps physical product rows and wrapped names',async()=>{
+ const doc=await PDFDocument.create(),font=await doc.embedFont(StandardFonts.Helvetica),page=doc.addPage([800,600]);
+ const draw=(text,x,y)=>page.drawText(text,{x,y,size:14,font});
+ header.forEach((line,i)=>draw(line,40,560-i*25));
+ // Drawing each entire column in sequence reproduces supplier PDFs whose text
+ // stream order differs from the visual row order.
+ for(const [x,heading,values] of [[40,'Artikelnummer',['SKU123','SKU456']],[160,'Omschrijving',['Kipfilet','Doner']],[430,'Aantal',['2','3']],[530,'Prijs',['10,00','5,00']],[650,'Bedrag',['20,00','15,00']]]){
+  draw(heading,x,430);values.forEach((text,i)=>draw(text,x,400-i*60));
+ }
+ draw('gemarineerd 500g',160,380);draw('Subtotaal 35,00',500,250);draw('BTW 9% 3,15',500,225);draw('Totaal 38,15',500,200);
+ const x=await readInvoiceBuffer(Buffer.from(await doc.save()),'application/pdf');
+ assert.equal(x.items.length,2,x.rawText);assert.equal(x.items[0].name,'Kipfilet gemarineerd 500g');assert.equal(x.items[0].qty,2);assert.equal(x.items[0].price,10);assert.equal(x.items[0].sku,'SKU123');assert.equal(x.items[1].name,'Doner');assert.equal(x.items[1].lineTotal,15);assert.equal(x.totalGross,38.15);
+});
+test('scanned table columns keep product descriptions out of quantity and price fields',async()=>{
+ const cells=[['TEST Groothandel BV',80,70],['Factuurnummer: TEST-TABLE-1',80,130],['Factuurdatum: 15-11-2026',80,190],['Omschrijving',80,310],['Aantal',850,310],['Prijs',1100,310],['Bedrag',1350,310],['Kipfilet',80,390],['2',890,390],['10,00',1100,390],['20,00',1350,390],['gemarineerd 500g',80,435],['Doner',80,510],['3',890,510],['5,00',1100,510],['15,00',1350,510],['Subtotaal 35,00',1000,650],['BTW 9% 3,15',1000,710],['Totaal 38,15',1000,770]];
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="950"><rect width="100%" height="100%" fill="white"/>'+cells.map(([s,x,y])=>'<text x="'+x+'" y="'+y+'" font-family="DejaVu Sans" font-size="32">'+s+'</text>').join('')+'</svg>';
+ const x=await readInvoiceBuffer(await sharp(Buffer.from(svg)).png().toBuffer(),'image/png');
+ assert.equal(x.items.length,2,x.rawText);assert.equal(x.items[0].name,'Kipfilet gemarineerd 500g');assert.equal(x.items[0].qty,2);assert.equal(x.items[0].price,10);assert.equal(x.items[1].name,'Doner');assert.equal(x.totalGross,38.15);
+});

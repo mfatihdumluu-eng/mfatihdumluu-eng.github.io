@@ -18,7 +18,7 @@ test('review UI requires confirmation, blocks mismatches and prevents repeated s
   const w=dom.window,d=w.document,$=id=>d.getElementById(id);
   Object.defineProperty($('file'),'files',{value:[new w.File(['%PDF-'],'test.pdf',{type:'application/pdf'})]});
   $('file').onchange({target:$('file')});await $('extract').onclick();
-  assert.equal($('invoiceNumber').value,'TEST-UI-1');assert.equal(d.querySelector('[data-field="unit"]').value,'kg');assert($('saveInvoice').disabled);
+  assert.equal($('invoiceNumber').value,'TEST-UI-1');assert(d.querySelector('textarea[data-field="name"]'));assert($('items').compareDocumentPosition($('invoiceTotals'))&w.Node.DOCUMENT_POSITION_FOLLOWING);assert.equal(d.querySelector('[data-field="unit"]').value,'kg');assert($('saveInvoice').disabled);
   $('reviewed').checked=true;$('reviewed').dispatchEvent(new w.Event('change'));assert(!$('saveInvoice').disabled);
   const price=d.querySelector('[data-field="price"]');price.value='5';price.dispatchEvent(new w.Event('input'));assert($('saveInvoice').disabled);
   price.value='4';price.dispatchEvent(new w.Event('input'));assert(!$('saveInvoice').disabled);
