@@ -6,9 +6,7 @@ import pg from 'pg';
 import {scryptSync,timingSafeEqual,randomBytes,createHash} from 'node:crypto';
 import {compareSupplierMonth} from './engine.mjs';
 import {readFile} from 'node:fs/promises';
-import {encryptSecret,decryptSecret,probeMindee,secretKey} from './mindee.mjs';
-import {extractMindeeInvoice} from './mindee-invoice.mjs';
-import {getMindeeModels} from './mindee-models.mjs';
+import {readInvoiceBuffer} from './local-ocr.mjs';
 import nodemailer from 'nodemailer';
 const app=Fastify({logger:true,bodyLimit:2_000_000,trustProxy:false});
 await app.register(cookie);
@@ -21,7 +19,6 @@ const deny=(reply,status,message)=>reply.code(status).send({error:message});
 const isAdmin=u=>u.role==='admin'||u.role==='system';
 const hasBranch=(u,b)=>isAdmin(u)||Number(b)===Number(u.branch_id);
 const monthOk=m=>/^\d{4}-(0[1-9]|1[0-2])$/.test(m||'');
-const isMindeeModelUuid=value=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||''));
 const invoiceDateOk=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||'')&&!Number.isNaN(Date.parse(d));
 app.addHook('onRequest',async(req,reply)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'&&req.method!=='OPTIONS'&&req.url!=='/api/login'){
@@ -51,7 +48,7 @@ async function requireSystemSession(req,reply,{redirectToLogin=false}={}){
  return r.rows[0];
 }
 app.get('/admin/login',async(req,reply)=>{
- const html=await readFile(new URL('../mindee-login.html',import.meta.url),'utf8');
+ const html=await readFile(new URL('../ocr-login.html',import.meta.url),'utf8');
  return reply.type('text/html; charset=utf-8')
   .header('Cache-Control','no-store, private')
   .header('Referrer-Policy','no-referrer')
@@ -61,7 +58,7 @@ app.get('/admin/login',async(req,reply)=>{
 });
 app.get('/admin/invoices',async(req,reply)=>{
  const user=await requireSystemSession(req,reply,{redirectToLogin:true});if(!user)return;
- const html=await readFile(new URL('../mindee-archive.html',import.meta.url),'utf8');
+ const html=await readFile(new URL('../ocr-archive.html',import.meta.url),'utf8');
  return reply.type('text/html; charset=utf-8')
   .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
   .header('X-Frame-Options','DENY')
@@ -70,203 +67,51 @@ app.get('/admin/invoices',async(req,reply)=>{
 });
 app.get('/admin/invoice-reader',async(req,reply)=>{
  const user=await requireSystemSession(req,reply,{redirectToLogin:true});if(!user)return;
- const html=await readFile(new URL('../mindee-reader.html',import.meta.url),'utf8');
+ const html=await readFile(new URL('../ocr-reader.html',import.meta.url),'utf8');
  return reply.type('text/html; charset=utf-8')
   .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
   .header('X-Frame-Options','DENY')
   .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
 });
-app.get('/admin/mindee',async(req,reply)=>{
- const user=await requireSystemSession(req,reply,{redirectToLogin:true});if(!user)return;
- const html=await readFile(new URL('../mindee-admin.html',import.meta.url),'utf8');
- return reply.type('text/html; charset=utf-8')
-  .header('Cache-Control','no-store, private')
-  .header('Referrer-Policy','no-referrer')
-  .header('X-Frame-Options','DENY')
-  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
-  .send(html);
-});
-async function readMindeeSettings(){
- const r=await db.query('SELECT encrypted_secret,model_id,connection_status,verified_at,last_error FROM service_integrations WHERE provider=$1',['mindee']);
- return r.rows[0]||null;
-}
-async function mindeeStatus(check=false){
- const stored=await readMindeeSettings();
- if(!stored)return{status:'disconnected',connected:false,configured:false,message:'Mindee API anahtarı henüz eklenmedi.',checkedAt:null,modelId:''};
- const payload={configured:true,modelId:stored.model_id||'',keySaved:true};
- // A status is "connected" only when the last check is fresh.
- if(!check){
-  const recent=stored.connection_status==='connected'&&stored.verified_at&&
-   Date.now()-new Date(stored.verified_at).getTime()<300_000;
-  return{...payload,status:recent?'connected':'disconnected',connected:Boolean(recent),
-   message:recent?'Mindee bağlantısı yakın zamanda doğrulandı.':'Bağlantı yeniden kontrol edilmeli.',
-   checkedAt:stored.verified_at||null};
- }
- let probe;
- try{
-  const key=decryptSecret(stored.encrypted_secret,secretKey());
-  probe=await probeMindee(key);
- }catch(error){
-  probe={connected:false,message:'Mindee sunucu şifreleme ayarı eksik veya anahtar çözülemiyor.',code:'SERVER_KEY'};
- }
- const checkedAt=new Date().toISOString();
- await db.query('UPDATE service_integrations SET connection_status=$1,verified_at=$2,last_error=$3 WHERE provider=$4',
-  [probe.connected?'connected':'disconnected',probe.connected?checkedAt:null,probe.connected?null:probe.message,'mindee']);
- return{...payload,status:probe.connected?'connected':'disconnected',connected:probe.connected,
-  checkedAt:probe.connected?checkedAt:null,message:probe.message,code:probe.code};
-}
-app.get('/api/admin/mindee/status',{config:{rateLimit:{max:12,timeWindow:'1 minute'}}},async(req,reply)=>{
+app.post('/api/admin/ocr/extract',{config:{rateLimit:{max:6,timeWindow:'1 minute'}}},async(req,reply)=>{
  if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
- try{return await mindeeStatus(req.query?.check==='1')}
- catch(error){req.log.error({error:error.message},'Mindee status failed');return deny(reply,503,'Mindee entegrasyon yapılandırması bulunamadı. Sunucu veritabanını güncelleyin.')}
-});
-app.get('/api/admin/mindee/models',{config:{rateLimit:{max:12,timeWindow:'1 minute'}}},async(req,reply)=>{
- if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
- const stored=await readMindeeSettings();
- if(!stored)return deny(reply,409,'Önce Mindee API anahtarını bir kez kaydet.');
- try{
-  const key=decryptSecret(stored.encrypted_secret,secretKey());
-  const models=await getMindeeModels(key);
-  return reply.header('Cache-Control','no-store').send({items:models,selectedId:stored.model_id||''});
- }catch(e){
-  req.log.warn({err:String(e.message).slice(0,160)},'Mindee model discovery error');
-  return deny(reply,502,'Mindee modelleri getirilemedi. Anahtarın erişim yetkisini kontrol et.');
- }
-});
-app.post('/api/admin/mindee/settings',{config:{rateLimit:{max:6,timeWindow:'5 minutes'}}},async(req,reply)=>{
- if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
- const rawKey=req.body?.apiKey,modelId=req.body?.modelId;
- if(modelId!==undefined&&(typeof modelId!=='string'||modelId.length>120||!/^[A-Za-z0-9_-]*$/.test(modelId)))
-  return deny(reply,400,'Model ID geçersiz.');
- const stored=await readMindeeSettings();
- // A blank password field means "keep the existing API key"; never require
- // pasting the secret again just to choose a model or refresh the page.
- const replaceKey=typeof rawKey==='string'&&rawKey.trim()!=='';
- if(!replaceKey&&!stored)return deny(reply,400,'Mindee API anahtarını ilk defa kaydetmen gerekiyor.');
- let encrypted=stored?.encrypted_secret,clearKey;
- try{
-  if(replaceKey){
-   clearKey=rawKey.trim();
-   if(clearKey.length<8||clearKey.length>500||!/^md_[A-Za-z0-9_-]+$/.test(clearKey))
-    return deny(reply,400,'Mindee V2 anahtar biçimi geçersiz (md_...).');
-   encrypted=encryptSecret(clearKey,secretKey());
-  }else{clearKey=decryptSecret(stored.encrypted_secret,secretKey())}
- }catch{return deny(reply,503,'Sunucu şifreleme ayarları doğrulanamadı.')}
- let nextModel=modelId===undefined?(stored?.model_id||''):modelId.trim();
- if(nextModel&&!isMindeeModelUuid(nextModel)){
-  // Users sometimes paste a display name / slug instead of Mindee's UUID.
-  // Resolve it only when there is a uniquely matching model in this account.
-  let models;
-  try{models=await getMindeeModels(clearKey)}
-  catch{return deny(reply,502,'Mindee modellerine erişilemedi. Modelleri Getir düğmesini kullan.')}
-  const matches=models.filter(m=>m.name.toLowerCase()===nextModel.toLowerCase()||m.id===nextModel);
-  if(matches.length===1&&isMindeeModelUuid(matches[0].id))nextModel=matches[0].id;
-  else if(models.length===1&&isMindeeModelUuid(models[0].id))nextModel=models[0].id;
-  else return deny(reply,400,'Model ID UUID biçiminde olmalı. Modelleri Getir düğmesinden faturaya ait modeli seç. Model adını ID alanına yazma.');
- }
- // Only verify new/updated key, never pretend that a fresh saved key is connected
- // when Mindee gives an authentication error.
- const test=await probeMindee(clearKey),verified=test.connected?new Date().toISOString():null;
- await db.query('INSERT INTO service_integrations(provider,encrypted_secret,model_id,connection_status,verified_at,last_error,updated_by) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(provider) DO UPDATE SET encrypted_secret=EXCLUDED.encrypted_secret,model_id=EXCLUDED.model_id,connection_status=EXCLUDED.connection_status,verified_at=EXCLUDED.verified_at,last_error=EXCLUDED.last_error,updated_by=EXCLUDED.updated_by,updated_at=now()',
-  ['mindee',encrypted,nextModel||null,test.connected?'connected':'disconnected',verified,test.connected?null:test.message,req.user.id]);
- await audit(req.user.id,'update','integration','mindee',{keyChanged:replaceKey,connected:test.connected,modelConfigured:Boolean(nextModel)});
- return{status:test.connected?'connected':'disconnected',connected:test.connected,configured:true,
-  keySaved:true,modelId:nextModel,checkedAt:verified,message:test.message};
-});
-app.delete('/api/admin/mindee/settings',async(req,reply)=>{
- if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
- await db.query('DELETE FROM service_integrations WHERE provider=$1',['mindee']);
- await audit(req.user.id,'delete','integration','mindee');
- return{ok:true,status:'disconnected',connected:false};
-});
-
-
-app.post('/api/admin/mindee/extract',{config:{rateLimit:{max:5,timeWindow:'1 minute'}}},async(req,reply)=>{
- if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
- const config=await readMindeeSettings();
- if(!config)return deny(reply,409,'Önce Mindee API anahtarını kaydet.');
- let key;
- try{key=decryptSecret(config.encrypted_secret,secretKey())}
- catch{return deny(reply,503,'Mindee API şifre çözme hatası. Sistem ayarlarını kontrol edin.')}
- let chosenModel=config.model_id;
- if(!isMindeeModelUuid(chosenModel)){
-  try{
-   const models=await getMindeeModels(key);
-   const matching=models.filter(m=>m.id===chosenModel||m.name.toLowerCase()===String(chosenModel||'').toLowerCase());
-   if(matching.length===1&&isMindeeModelUuid(matching[0].id))chosenModel=matching[0].id;
-   else if(models.length===1&&isMindeeModelUuid(models[0].id))chosenModel=models[0].id;
-   if(isMindeeModelUuid(chosenModel)){
-    await db.query('UPDATE service_integrations SET model_id=$1,updated_at=now() WHERE provider=$2',[chosenModel,'mindee']);
-   }else if(models.length===0){
-    return deny(reply,409,'Mindee hesabında geçerli UUID içeren Extraction modeli bulunamadı. app.mindee.com üzerinden model oluştur.');
-   }else{
-    return deny(reply,409,'Geçerli model UUID seçilmedi. API Ayarları → Modelleri Getir bölümünden fatura modelini seç.');
-   }
-  }catch(e){if(e?.statusCode||e?.code==='DB_ERROR')throw e;return deny(reply,502,'Mindee modelleri alınamadı. API ayarlarına girip bağlantıyı kontrol et.')}
- }
  let part;
- try{part=await req.file()}
- catch{return deny(reply,400,'PDF/JPG/PNG dosyası gerekli (en fazla 10 MB)')}
+ try{part=await req.file()}catch{return deny(reply,400,'Dosya okunamadı; en fazla 10 MB PDF/JPG/PNG/WebP gönder.')}
  if(!part)return deny(reply,400,'Dosya seçilmedi');
- const allowed={
-  'application/pdf':true,'image/jpeg':true,'image/png':true,'image/webp':true
- };
- if(!allowed[part.mimetype]){part.file.resume();return deny(reply,415,'Yalnızca PDF, JPG, PNG veya WebP kabul edilir')}
- const filename=String(part.filename||'invoice.pdf').replace(/[^A-Za-z0-9_.-]/g,'_').slice(0,100);
+ const mime=part.mimetype;
+ if(!['application/pdf','image/jpeg','image/png','image/webp'].includes(mime)){part.file.resume();return deny(reply,415,'Sadece PDF, JPG, PNG, WebP dosyaları kabul edilir.')}
  let buffer;
- try{buffer=await part.toBuffer()}
- catch{return deny(reply,413,'Dosya çok büyük veya okunamadı')}
- if(buffer.length===0||buffer.length>10*1024*1024)return deny(reply,413,'Dosya boyutu 1 bayt–10 MB olmalı');
- const isPdf=part.mimetype==='application/pdf'&&buffer.subarray(0,5).toString('utf8')==='%PDF-';
- const isJpeg=part.mimetype==='image/jpeg'&&buffer[0]===0xff&&buffer[1]===0xd8;
- const isPng=part.mimetype==='image/png'&&buffer.subarray(0,4).equals(Buffer.from([137,80,78,71]));
- const isWebp=part.mimetype==='image/webp'&&buffer.subarray(0,4).toString()==='RIFF'&&buffer.subarray(8,12).toString()==='WEBP';
- if(!(isPdf||isJpeg||isPng||isWebp))return deny(reply,415,'Dosya biçimi geçersiz veya uzantısıyla uyuşmuyor');
+ try{buffer=await part.toBuffer()}catch{return deny(reply,413,'Dosya çok büyük veya okunamadı.')}
+ if(!buffer.length||buffer.length>10*1024*1024)return deny(reply,413,'Dosya boyutu 10 MB sınırını aşıyor.');
+ const magic=(mime==='application/pdf'&&buffer.subarray(0,5).toString()==='%PDF-')||
+  (mime==='image/jpeg'&&buffer[0]===255&&buffer[1]===216)||
+  (mime==='image/png'&&buffer.subarray(0,4).equals(Buffer.from([137,80,78,71])))||
+  (mime==='image/webp'&&buffer.subarray(0,4).toString()==='RIFF'&&buffer.subarray(8,12).toString()==='WEBP');
+ if(!magic)return deny(reply,415,'Dosya türü içerikle uyuşmuyor.');
  try{
-  const result=await extractMindeeInvoice(key,chosenModel,{data:buffer,filename});
-  await audit(req.user.id,'extract','integration','mindee',{fileType:part.mimetype,lines:result.items.length,warnings:result.warnings.length});
-  return reply.header('Cache-Control','no-store').send({provider:'mindee-v2',modelConfigured:true,requiresReview:true,...result});
- }catch(err){
-  const detail=String(err?.message||'');
-  const status=Number(err?.status||err?.statusCode||err?.httpStatus||0);
-  req.log.warn({errorType:String(err?.name||'Error').slice(0,60),httpStatus:status||undefined,
-   message:detail.slice(0,180)},'Mindee extraction failed');
-  // Only return a safe classification, never raw provider error responses
-  // that could contain filenames, customer information or credentials.
-  let message='Mindee belge çıkarımı başarısız. Sunucu kayıtlarında ayrıntı bulunuyor.';
-  if(status===401||/unauthori[sz]ed|invalid api key|api.key.*invalid/i.test(detail))
-   message='Mindee API anahtarı reddedildi (401). Sistem Admini → API Ayarları bölümünü kontrol et.';
-  else if(status===403||/forbidden/i.test(detail))
-   message='Mindee hesabının bu modele erişim yetkisi yok (403).';
-  else if(status===404||/model.{0,35}not found|unknown model/i.test(detail))
-   message='Mindee Model ID bulunamadı. API Ayarları → Modelleri Getir bölümünden doğru modeli seç.';
-  else if(status===429||/rate.limit|too many requests/i.test(detail))
-   message='Mindee istek sınırına ulaşıldı (429).';
-  else if(/timeout|timed out|polling retries/i.test(detail))
-   message='Mindee fatura işleme zaman aşımına uğradı. Daha sonra tekrar dene.';
-  else if(/ClientV2 is not a constructor|BufferInput is not a constructor|enqueueAndGetResult is not a function|SDK incompatible/i.test(detail))
-   message='Mindee yazılım entegrasyonu hatası. Bu sorun API anahtarından kaynaklanmıyor.';
-  else if(status===400||status===422)
-   message='Mindee belgeyi veya model parametrelerini kabul etmedi ('+status+'). Dosya biçimini ve modeli kontrol et.';
-  return reply.code(502).send({error:message,code:status||'EXTRACTION_FAILED'});
+  const data=await readInvoiceBuffer(buffer,mime);
+  await audit(req.user.id,'extract','ocr_invoice','', {method:data.method,lines:data.items.length,pages:data.pages||0});
+  return reply.header('Cache-Control','no-store').send({provider:'invoice-control-ocr',requiresReview:true,...data});
+ }catch(error){
+  req.log.warn({message:String(error?.message||'').slice(0,160),name:error?.name},'Invoice OCR failed');
+  return deny(reply,422,'Fatura okunamadı. Belgenin şifreli veya bozuk olmadığını kontrol et; farklı PDF veya resimle dene.');
  }
 });
-
 // Private OCR review archive. An extracted invoice is NOT saved until a user
 // clicks Save. Records are not used by price comparisons until separately approved.
-app.get('/api/admin/mindee/invoices',async(req,reply)=>{
+app.get('/api/admin/ocr/invoices',async(req,reply)=>{
  if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
  const result=await db.query('SELECT id,supplier_name,invoice_number,invoice_date,created_at,total_gross,status,jsonb_array_length(items) AS item_count FROM mindee_invoice_reviews ORDER BY created_at DESC LIMIT 200');
  return reply.header('Cache-Control','no-store').send({items:result.rows});
 });
-app.get('/api/admin/mindee/invoices/:id',async(req,reply)=>{
+app.get('/api/admin/ocr/invoices/:id',async(req,reply)=>{
  if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
  const result=await db.query('SELECT * FROM mindee_invoice_reviews WHERE id=$1',[req.params.id]);
  if(!result.rowCount)return deny(reply,404,'Fatura bulunamadı');
  return reply.header('Cache-Control','no-store').send({invoice:result.rows[0]});
 });
-app.post('/api/admin/mindee/invoices',{config:{rateLimit:{max:20,timeWindow:'1 minute'}}},async(req,reply)=>{
+app.post('/api/admin/ocr/invoices',{config:{rateLimit:{max:20,timeWindow:'1 minute'}}},async(req,reply)=>{
  if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
  const b=req.body||{},items=b.items;
  const supplier=String(b.supplier||'').trim(),number=String(b.invoiceNumber||'').trim();
