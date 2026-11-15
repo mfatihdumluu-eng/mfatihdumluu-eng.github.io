@@ -12,7 +12,7 @@ import {extractWithNutrient,NutrientRequestError} from './nutrient-extract.mjs';
 import nodemailer from 'nodemailer';
 import {pathToFileURL} from 'node:url';
 import {prepareReview,validDate} from './invoice-review.mjs';
-export async function createApp({database,logger=true}={}){
+export async function createApp({database,logger=true,nutrientExtractor=extractWithNutrient}={}){
 const app=Fastify({logger,bodyLimit:2_000_000,trustProxy:false});
 await app.register(cookie);
 await app.register(rateLimit,{max:150,timeWindow:'1 minute'});
@@ -169,7 +169,7 @@ app.post('/api/admin/nutrient/extract',{config:{rateLimit:{max:4,timeWindow:'1 m
   (mime==='image/webp'&&buffer.subarray(0,4).toString()==='RIFF'&&buffer.subarray(8,12).toString()==='WEBP');
  if(!valid)return deny(reply,415,'Dosya biçimi içerikle eşleşmiyor.');
  try{
-  const result=await extractWithNutrient({apiKey,data:buffer,mime,filename:part.filename});
+  const result=await nutrientExtractor({apiKey,data:buffer,mime,filename:part.filename});
   await audit(req.user.id,'extract','nutrient_invoice','',{items:result.items.length,pages:result.pages||0});
   return reply.header('Cache-Control','no-store').send(result);
  }catch(e){
@@ -248,11 +248,12 @@ app.get('/api/admin/ocr/monthly-comparison',async(req,reply)=>{
   "SELECT r.id,r.branch_id,r.supplier_name,r.invoice_number,r.invoice_date,r.items,r.source,r.comparison_ready,b.name AS branch_name FROM mindee_invoice_reviews r JOIN branches b ON b.id=r.branch_id WHERE r.invoice_date >= $1::date AND r.invoice_date < ($1::date + interval '1 month') AND r.source='nutrient' AND r.comparison_ready=true",
   [month+'-01']
  );
- const results=comparePoolMonth(q.rows.map(row=>({...row,invoice_date:String(row.invoice_date).slice(0,10)})),{month,branchId});
+ const results=comparePoolMonth(q.rows.map(row=>({...row,invoice_date:row.invoice_date instanceof Date?row.invoice_date.toISOString().slice(0,10):String(row.invoice_date).slice(0,10)})),{month,branchId});
  if(req.user.role==='branch'){
   // Anonymized benchmark: never expose other branch names, invoice IDs or raw lines.
+  results.invoiceCount=q.rows.filter(row=>Number(row.branch_id)===branchId).length;
   results.items=results.items.filter(x=>x.rows.some(r=>r.branchId===branchId)).map(x=>({
-   product:x.product,supplier:x.supplier,productKey:x.productKey,identityQuality:x.identityQuality,
+   product:x.rows.find(r=>r.branchId===branchId)?.product||x.product,supplier:x.supplier,productKey:x.productKey,identityQuality:x.identityQuality,
    unit:x.unit,minPrice:x.minPrice,maxPrice:x.maxPrice,spread:x.spread,
    branchCount:x.branchCount,invoiceCount:x.invoiceCount,estimatedDifference:x.estimatedDifference,
    ownRows:x.rows.filter(r=>r.branchId===branchId),otherBranches:'anonim'
