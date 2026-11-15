@@ -74,6 +74,15 @@ app.get('/admin/login',async(req,reply)=>{
   .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; object-src blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
 });
+app.get('/admin/monthly-comparison',async(req,reply)=>{
+ const user=await requireInvoiceSession(req,reply,{redirectToLogin:true});if(!user)return;
+ const html=await readFile(new URL('../monthly-comparison.html',import.meta.url),'utf8');
+ return reply.type('text/html; charset=utf-8')
+  .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
+  .header('X-Frame-Options','DENY')
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .send(html);
+});
 app.get('/admin/invoices',async(req,reply)=>{
  const user=await requireInvoiceSession(req,reply,{redirectToLogin:true});if(!user)return;
  const html=await readFile(new URL('../ocr-archive.html',import.meta.url),'utf8');
