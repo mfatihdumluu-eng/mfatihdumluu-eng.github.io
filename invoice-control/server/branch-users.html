@@ -1,0 +1,32 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Şube Kullanıcıları — Invoice Control</title>
+<style>:root{font:14px system-ui,-apple-system,Arial;color:#26364b;background:#f4f6fa}*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #e0e6ee;display:flex;justify-content:space-between;padding:20px max(18px,calc((100vw - 850px)/2));gap:10px}a{color:#3f53b3;text-decoration:none;font-weight:750}main{max-width:850px;margin:24px auto;padding:0 16px}.card{background:white;border:1px solid #e0e7f0;border-radius:14px;padding:24px;margin-bottom:18px}h1{font-size:25px;margin:0 0 8px}h2{font-size:18px}p{line-height:1.6;color:#6b7b90;font-size:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}label{display:grid;gap:7px;font-weight:750;font-size:12px;color:#65758b}input,select{width:100%;padding:12px;border:1px solid #d6dfea;border-radius:8px;font:inherit;color:#26364b}button{padding:12px 16px;background:#4256bf;color:#fff;font:inherit;font-weight:800;border:0;border-radius:8px;margin-top:17px;cursor:pointer}button:disabled{opacity:.5}.note{background:#f0f4ff;padding:11px 13px;border-radius:8px}.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse}td,th{padding:12px 9px;text-align:left;border-bottom:1px solid #ebeff4}th{color:#74849a;font-size:12px}.status{margin-top:13px;font-size:13px}.error{color:#ae314b}@media(max-width:630px){.grid{grid-template-columns:1fr}}</style></head>
+<body><header><strong>✓ Invoice Control · Şube Hesapları</strong><nav><a href="/admin/invoice-reader">Fatura Okuyucu</a> · <a href="/admin/monthly-comparison">Aylık Kıyaslama</a></nav></header>
+<main><div class="card"><h1>Şube kullanıcı hesabı oluştur</h1><p>Her şube çalışanı kendi e-posta ve şifresiyle giriş yapar. Girdiği faturalar yalnızca bağlı olduğu şubeye kaydedilir. Şube çalışanları diğer şubelerin fatura detaylarını açamaz.</p>
+<div class="grid"><label>Ad ve soyad<input id="name" autocomplete="off" maxlength="120"></label><label>Giriş e-postası<input id="email" type="email" autocomplete="off" maxlength="254"></label>
+<label>Bağlanacak şube<select id="branch"><option value="">Şube seç</option></select></label><label>İlk giriş şifresi (en az 14 karakter)<input id="password" type="password" autocomplete="new-password" minlength="14"></label></div>
+<button id="save">Şube Hesabını Oluştur</button><div class="status" id="status" role="status"></div>
+<p class="note">Şifre yalnızca güvenli sunucuda tek yönlü özetlenerek saklanır. İlk şifreyi ilgili çalışana güvenli bir kanaldan ilet. Bu ekran şifreleri asla yeniden göstermez.</p>
+</div><div class="card"><h2>Mevcut şube kullanıcıları</h2><div class="scroll"><table><thead><tr><th>Ad</th><th>E-posta</th><th>Şube</th><th>Durum</th></tr></thead><tbody id="users"></tbody></table></div></div></main>
+<script>
+const $=id=>document.getElementById(id),escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(url,method='GET',data){
+ const r=await fetch(url,{method,credentials:'same-origin',cache:'no-store',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});
+ const x=await r.json().catch(()=>({error:'Beklenmeyen sunucu yanıtı'}));if(!r.ok)throw Error(x.error||'HTTP '+r.status);return x
+}
+let branches=[];
+async function load(){
+ try{
+  const [b,u]=await Promise.all([api('/api/branches'),api('/api/users')]);branches=b.items||[];
+  $('branch').innerHTML='<option value="">Şube seç</option>';
+  for(const branch of branches){const o=document.createElement('option');o.value=branch.id;o.textContent=branch.name;$('branch').append(o)}
+  $('users').innerHTML=(u.items||[]).filter(x=>x.role==='branch').map(x=>'<tr><td>'+escape(x.name)+'</td><td>'+escape(x.email)+'</td><td>'+escape(branches.find(b=>Number(b.id)===Number(x.branch_id))?.name||'—')+'</td><td>'+(x.active?'Aktif':'Pasif')+'</td></tr>').join('');
+ }catch(e){$('status').className='status error';$('status').textContent=e.message}
+}
+$('save').onclick=async()=>{
+ const data={name:$('name').value.trim(),email:$('email').value.trim(),branchId:$('branch').value,password:$('password').value};
+ $('save').disabled=true;
+ try{await api('/api/admin/branch-users','POST',data);$('password').value='';$('name').value='';$('email').value='';$('status').className='status';$('status').textContent='Şube hesabı başarıyla oluşturuldu.';await load()}
+ catch(e){$('status').className='status error';$('status').textContent='Oluşturulamadı: '+e.message}
+ finally{$('save').disabled=false}
+};load();
+</script></body></html>
