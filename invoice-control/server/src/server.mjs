@@ -6,13 +6,13 @@ import pg from 'pg';
 import {scryptSync,timingSafeEqual,randomBytes,createHash} from 'node:crypto';
 import {compareSupplierMonth} from './engine.mjs';
 import {readFile} from 'node:fs/promises';
-import {readInvoiceBuffer} from './local-ocr.mjs';
+import {comparePoolMonth} from './monthly-pool.mjs';
 import {sealApiKey,openApiKey,encryptionKey} from './nutrient-secret.mjs';
 import {extractWithNutrient,NutrientRequestError} from './nutrient-extract.mjs';
 import nodemailer from 'nodemailer';
 import {pathToFileURL} from 'node:url';
 import {prepareReview,validDate} from './invoice-review.mjs';
-export async function createApp({database,logger=true,readInvoice=readInvoiceBuffer}={}){
+export async function createApp({database,logger=true}={}){
 const app=Fastify({logger,bodyLimit:2_000_000,trustProxy:false});
 await app.register(cookie);
 await app.register(rateLimit,{max:150,timeWindow:'1 minute'});
@@ -41,7 +41,7 @@ app.addHook('onRequest',async(req,reply)=>{
 });
 app.get('/health',async()=>({ok:true,service:'invoice-control',ocrVersion:'3'}));
 app.get('/admin/ocr-review.mjs',async(req,reply)=>{
- const user=await requireSystemSession(req,reply);if(!user)return;
+ const user=await requireInvoiceSession(req,reply);if(!user)return;
  return reply.type('application/javascript').header('Cache-Control','no-store').send(await readFile(new URL('./invoice-review.mjs',import.meta.url),'utf8'));
 });
 app.get('/',async(_req,reply)=>reply.redirect('/admin/invoice-reader'));
@@ -57,6 +57,14 @@ async function requireSystemSession(req,reply,{redirectToLogin=false}={}){
  if(r.rows[0].role!=='system'){deny(reply,403,'Yalnızca Sistem Admini');return null}
  return r.rows[0];
 }
+async function requireInvoiceSession(req,reply,{redirectToLogin=false}={}){
+ const token=req.cookies?.invoice_sid;
+ if(!token){if(redirectToLogin)reply.redirect('/admin/login');else deny(reply,401,'Fatura ekranı için giriş gerekli');return null}
+ const hash=createHash('sha256').update(token).digest('hex');
+ const r=await db.query('SELECT u.id,u.name,u.role,u.branch_id,u.email FROM sessions s JOIN users u ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at>now() AND u.active=true',[hash]);
+ if(!r.rowCount){if(redirectToLogin)reply.redirect('/admin/login');else deny(reply,401,'Oturum süresi doldu');return null}
+ return r.rows[0];
+}
 app.get('/admin/login',async(req,reply)=>{
  const html=await readFile(new URL('../ocr-login.html',import.meta.url),'utf8');
  return reply.type('text/html; charset=utf-8')
@@ -67,7 +75,7 @@ app.get('/admin/login',async(req,reply)=>{
   .send(html);
 });
 app.get('/admin/invoices',async(req,reply)=>{
- const user=await requireSystemSession(req,reply,{redirectToLogin:true});if(!user)return;
+ const user=await requireInvoiceSession(req,reply,{redirectToLogin:true});if(!user)return;
  const html=await readFile(new URL('../ocr-archive.html',import.meta.url),'utf8');
  return reply.type('text/html; charset=utf-8')
   .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
@@ -85,7 +93,7 @@ app.get('/admin/nutrient',async(req,reply)=>{
   .send(html);
 });
 app.get('/admin/invoice-reader',async(req,reply)=>{
- const user=await requireSystemSession(req,reply,{redirectToLogin:true});if(!user)return;
+ const user=await requireInvoiceSession(req,reply,{redirectToLogin:true});if(!user)return;
  const html=await readFile(new URL('../ocr-reader.html',import.meta.url),'utf8');
  return reply.type('text/html; charset=utf-8')
   .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
@@ -130,7 +138,7 @@ app.delete('/api/admin/nutrient/settings',async(req,reply)=>{
 // The user explicitly chooses Nutrient; local OCR remains the privacy-preserving default.
 // The document is sent only to the fixed Nutrient HTTPS endpoint, not an arbitrary URL.
 app.post('/api/admin/nutrient/extract',{config:{rateLimit:{max:4,timeWindow:'1 minute'}}},async(req,reply)=>{
- if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ if(req.user.role==='branch'&&!req.user.branch_id)return deny(reply,403,'Kullanıcının şubesi tanımlı değil.');
  const stored=await db.query("SELECT encrypted_secret FROM service_integrations WHERE provider='nutrient'");
  if(!stored.rowCount)return deny(reply,409,'Önce Nutrient API anahtarını Sistem Admini → Nutrient API Ayarları bölümünde kaydet.');
  let apiKey;
@@ -169,64 +177,80 @@ app.post('/api/admin/nutrient/extract',{config:{rateLimit:{max:4,timeWindow:'1 m
  }
 });
 let ocrProcessing=false;
-app.post('/api/admin/ocr/extract',{config:{rateLimit:{max:6,timeWindow:'1 minute'}}},async(req,reply)=>{
- if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
- let part;
- try{part=await req.file()}catch{return deny(reply,400,'Dosya okunamadı; en fazla 10 MB PDF/JPG/PNG/WebP gönder.')}
- if(!part)return deny(reply,400,'Dosya seçilmedi');
- const mime=part.mimetype;
- if(!['application/pdf','image/jpeg','image/png','image/webp'].includes(mime)){part.file.resume();return deny(reply,415,'Sadece PDF, JPG, PNG, WebP dosyaları kabul edilir.')}
- let buffer;
- try{buffer=await part.toBuffer()}catch{return deny(reply,413,'Dosya çok büyük veya okunamadı.')}
- if(!buffer.length||buffer.length>10*1024*1024)return deny(reply,413,'Dosya boyutu 10 MB sınırını aşıyor.');
- const magic=(mime==='application/pdf'&&buffer.subarray(0,5).toString()==='%PDF-')||
-  (mime==='image/jpeg'&&buffer[0]===255&&buffer[1]===216)||
-  (mime==='image/png'&&buffer.subarray(0,4).equals(Buffer.from([137,80,78,71])))||
-  (mime==='image/webp'&&buffer.subarray(0,4).toString()==='RIFF'&&buffer.subarray(8,12).toString()==='WEBP');
- if(!magic)return deny(reply,415,'Dosya türü içerikle uyuşmuyor.');
- if(ocrProcessing)return deny(reply,429,'Başka bir fatura okunuyor. İşlem tamamlandığında tekrar dene.');
- ocrProcessing=true;
- try{
-  const data=await readInvoice(buffer,mime);
-  await audit(req.user.id,'extract','ocr_invoice','', {method:data.method,lines:data.items.length,pages:data.pages||0});
-  return reply.header('Cache-Control','no-store').send({provider:'invoice-control-ocr',requiresReview:true,...data});
- }catch(error){
-  req.log.warn({message:String(error?.message||'').slice(0,160),name:error?.name},'Invoice OCR failed');
-  return deny(reply,422,'Fatura okunamadı. Belgenin şifreli veya bozuk olmadığını kontrol et; farklı PDF veya resimle dene.');
- }finally{ocrProcessing=false}
-});
+// Old local OCR has been removed from the production workflow.
+app.post('/api/admin/ocr/extract',async(_req,reply)=>deny(reply,410,'Yerel OCR kaldırıldı. Nutrient Data Extraction ile fatura oku.'));
 // Private OCR review archive. An extracted invoice is NOT saved until a user
 // clicks Save. Records are not used by price comparisons until separately approved.
 app.get('/api/admin/ocr/invoices',async(req,reply)=>{
- if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
- const result=await db.query('SELECT id,supplier_name,invoice_number,invoice_date,created_at,total_gross,status,jsonb_array_length(items) AS item_count FROM mindee_invoice_reviews ORDER BY created_at DESC LIMIT 200');
+ const {month,branch_id}=req.query||{};
+ if(month&&!monthOk(month))return deny(reply,400,'YYYY-MM geçersiz');
+ if(branch_id&&(!isAdmin(req.user)||!Number.isInteger(Number(branch_id))))return deny(reply,403,'Şube filtresi için admin yetkisi gerekli');
+ const params=[],where=[];
+ if(req.user.role==='branch'){params.push(req.user.branch_id);where.push('r.branch_id=$'+params.length);}
+ else if(branch_id){params.push(Number(branch_id));where.push('r.branch_id=$'+params.length);}
+ if(month){params.push(month+'-01');where.push('r.invoice_date >= $'+params.length+'::date AND r.invoice_date < ($'+params.length+"::date + interval '1 month')");}
+ const sql='SELECT r.id,r.supplier_name,r.invoice_number,r.invoice_date,r.created_at,r.total_gross,r.status,r.source,r.comparison_ready,r.branch_id,b.name AS branch_name,jsonb_array_length(r.items) AS item_count FROM mindee_invoice_reviews r LEFT JOIN branches b ON b.id=r.branch_id'
+  +(where.length?' WHERE '+where.join(' AND '):'')+' ORDER BY r.invoice_date DESC NULLS LAST,r.created_at DESC LIMIT 500';
+ const result=await db.query(sql,params);
  return reply.header('Cache-Control','no-store').send({items:result.rows});
 });
 app.get('/api/admin/ocr/invoices/:id',async(req,reply)=>{
- if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
- if(!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(req.params.id))return deny(reply,400,'Fatura kimliği geçersiz.');
- const result=await db.query('SELECT * FROM mindee_invoice_reviews WHERE id=$1',[req.params.id]);
+ if(!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(req.params.id))return deny(reply,400,'Fatura kimliği geçersiz');
+ const result=await db.query('SELECT r.*,b.name AS branch_name FROM mindee_invoice_reviews r LEFT JOIN branches b ON b.id=r.branch_id WHERE r.id=$1',[req.params.id]);
  if(!result.rowCount)return deny(reply,404,'Fatura bulunamadı');
+ if(req.user.role==='branch'&&Number(result.rows[0].branch_id)!==Number(req.user.branch_id))return deny(reply,403,'Yalnızca kendi şubenizin faturalarını açabilirsiniz');
  return reply.header('Cache-Control','no-store').send({invoice:result.rows[0]});
 });
 app.post('/api/admin/ocr/invoices',{config:{rateLimit:{max:20,timeWindow:'1 minute'}}},async(req,reply)=>{
- if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
  const review=prepareReview(req.body);
  if(review.errors.length)return reply.code(400).send({error:review.errors[0],errors:review.errors});
+ if(req.body?.provider!=='nutrient')return deny(reply,400,'Ortak havuza yalnızca Nutrient ile okunan ve doğrulanan fatura kaydedilir.');
+ if(!review.value.date)return deny(reply,400,'Fatura tarihi zorunlu; aylık kıyaslama için gerekli.');
+ const wanted=Number(req.body?.branchId),branchId=req.user.role==='branch'?Number(req.user.branch_id):wanted;
+ if(!Number.isInteger(branchId)||branchId<1)return deny(reply,400,'Lütfen faturanın ait olduğu şubeyi seç.');
+ if(req.user.role==='branch'&&req.body?.branchId!=null&&Number(req.body.branchId)!==branchId)return deny(reply,403,'Başka şubenin adına fatura kaydedilemez.');
+ const branch=await db.query('SELECT id,name FROM branches WHERE id=$1',[branchId]);
+ if(!branch.rowCount)return deny(reply,400,'Şube bulunamadı.');
  const b=review.value;
  const client=await db.connect();
  try{
   await client.query('BEGIN');
   const result=await client.query(
-   'INSERT INTO mindee_invoice_reviews(created_by,supplier_name,invoice_number,invoice_date,due_date,total_net,total_tax,total_gross,discount,items,warnings) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id',
-   [req.user.id,b.supplier,b.invoiceNumber,b.date,b.dueDate,b.totalNet,b.totalTax,b.totalGross,b.discount,JSON.stringify(b.items),JSON.stringify(b.warnings)]
+   "INSERT INTO mindee_invoice_reviews(created_by,branch_id,source,comparison_ready,supplier_name,invoice_number,invoice_date,due_date,total_net,total_tax,total_gross,discount,items,warnings,status) VALUES($1,$2,'nutrient',true,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'review') RETURNING id",
+   [req.user.id,branchId,b.supplier,b.invoiceNumber,b.date,b.dueDate,b.totalNet,b.totalTax,b.totalGross,b.discount,JSON.stringify(b.items),JSON.stringify(b.warnings)]
   );
   await client.query('INSERT INTO audit_events(actor_id,action,target_type,target_id,details) VALUES($1,$2,$3,$4,$5)',
-   [req.user.id,'create','ocr_invoice',result.rows[0].id,JSON.stringify({items:b.items.length})]);
+   [req.user.id,'create','shared_invoice',result.rows[0].id,JSON.stringify({items:b.items.length,branchId,provider:'nutrient'})]);
   await client.query('COMMIT');
-  return reply.code(201).send({id:result.rows[0].id,status:'review',message:'Fatura inceleme listesine kaydedildi'});
- }catch(error){await client.query('ROLLBACK');throw error;}
- finally{client.release();}
+  return reply.code(201).send({id:result.rows[0].id,branchId,branchName:branch.rows[0].name,status:'review',comparisonReady:true,message:'Fatura ortak havuza şube adıyla kaydedildi.'});
+ }catch(error){
+  await client.query('ROLLBACK');
+  if(error.code==='23505')return deny(reply,409,'Bu şube için aynı tedarikçi ve fatura numarası zaten kaydedilmiş.');
+  throw error;
+ }finally{client.release()}
+});
+app.get('/api/admin/ocr/monthly-comparison',async(req,reply)=>{
+ const {month,branch_id}=req.query||{};
+ if(!monthOk(month))return deny(reply,400,'YYYY-MM gerekli');
+ if(branch_id&&!isAdmin(req.user))return deny(reply,403,'Şube filtresi için admin yetkisi gerekli');
+ const branchId=req.user.role==='branch'?Number(req.user.branch_id):branch_id?Number(branch_id):null;
+ if(branchId!==null&&(!Number.isInteger(branchId)||branchId<=0))return deny(reply,400,'Geçersiz şube');
+ const q=await db.query(
+  "SELECT r.id,r.branch_id,r.supplier_name,r.invoice_number,r.invoice_date,r.items,r.source,r.comparison_ready,b.name AS branch_name FROM mindee_invoice_reviews r JOIN branches b ON b.id=r.branch_id WHERE r.invoice_date >= $1::date AND r.invoice_date < ($1::date + interval '1 month') AND r.source='nutrient' AND r.comparison_ready=true",
+  [month+'-01']
+ );
+ const results=comparePoolMonth(q.rows.map(row=>({...row,invoice_date:String(row.invoice_date).slice(0,10)})),{month,branchId});
+ if(req.user.role==='branch'){
+  // Anonymized benchmark: never expose other branch names, invoice IDs or raw lines.
+  results.items=results.items.filter(x=>x.rows.some(r=>r.branchId===branchId)).map(x=>({
+   product:x.product,supplier:x.supplier,productKey:x.productKey,identityQuality:x.identityQuality,
+   unit:x.unit,minPrice:x.minPrice,maxPrice:x.maxPrice,spread:x.spread,
+   branchCount:x.branchCount,invoiceCount:x.invoiceCount,estimatedDifference:x.estimatedDifference,
+   ownRows:x.rows.filter(r=>r.branchId===branchId),otherBranches:'anonim'
+  }));
+  results.comparedGroups=results.items.length;
+ }
+ return reply.header('Cache-Control','no-store').send(results);
 });
 app.post('/api/login',{config:{rateLimit:{max:10,timeWindow:'5 minutes'}}},async(req,reply)=>{
  const email=String(req.body?.email||'').trim().toLowerCase(),password=String(req.body?.password||'');
