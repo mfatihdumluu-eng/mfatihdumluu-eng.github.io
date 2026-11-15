@@ -1,80 +1,58 @@
-// Invoice Control local OCR. No document data or credentials are sent to Mindee.
-// All parsed fields are suggestions; a person must confirm before saving.
-const number=s=>{
- if(s===null||s===undefined)return null;
- let x=String(s).trim().replace(/[€\s]/g,'');
- if(!x||!/^-?[\d.,]+$/.test(x))return null;
- const comma=x.lastIndexOf(','),dot=x.lastIndexOf('.');
- if(comma>=0&&dot>=0)x=comma>dot?x.replace(/\./g,'').replace(',','.'):x.replace(/,/g,'');
- else if(comma>=0)x=x.replace(',','.');
- else if((x.match(/\./g)||[]).length>1)x=x.replace(/\./g,'');
- const n=Number(x);return Number.isFinite(n)?n:null;
-};
-const amount=(line)=>{const m=String(line).match(/(?:€\s*)?(-?[\d.,]+)\s*(?:€)?\s*$/);return m?number(m[1]):null};
-const dateValue=s=>{
- let m=String(s||'').match(/(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
- if(m){const v=[m[1],m[2].padStart(2,'0'),m[3].padStart(2,'0')].join('-');return !Number.isNaN(Date.parse(v))?v:''}
- m=String(s||'').match(/(\d{1,2})[-./](\d{1,2})[-./](\d{4})/);
- if(m){const v=[m[3],m[2].padStart(2,'0'),m[1].padStart(2,'0')].join('-');return !Number.isNaN(Date.parse(v))?v:''}
- return '';
-};
-const findValue=(lines,re)=>{for(const l of lines){const m=l.match(re);if(m)return m[1]?.trim()||''}return ''};
-export function parseInvoiceText(input){
- const lines=String(input||'').replace(/\r/g,'\n').split('\n').map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean).slice(0,1100);
- const supplier=(lines.find(x=>x.length>3&&!/^\d/.test(x)&&!/factuur|invoice|bonnummer|datum|date|kvk|btw|tel|www/i.test(x))||lines[0]||'').slice(0,160);
- const invoiceNumber=findValue(lines,/(?:factuur(?:nummer|nr|no)?|invoice\s*(?:number|no|#)|fact\s*nr|faktura\s*no)\s*[:#.\s-]+\s*([A-Z0-9][A-Z0-9./_-]{1,65})/i);
- const date=dateValue(findValue(lines,/(?:factuurdatum|invoice\s*date|datum|date)\s*[:\s]+\s*([^\s]{7,12})/i))||dateValue(lines.find(s=>dateValue(s))||'');
- const dueDate=dateValue(findValue(lines,/(?:vervaldatum|due\s*date|betaling\s*voor)\s*[:\s]+\s*([^\s]{7,12})/i));
- const totals={net:null,tax:null,gross:null,discount:null};
- const totalPatterns=[
-  ['gross',/(?:totaal(?:\s*te\s*betalen)?|total\s*(?:due|amount|incl|gross)?|amount\s*due|grand\s*total|te\s*betalen|eindtotaal)/i],
-  ['net',/(?:subtotaal|subtotal|excl\.?\s*btw|netto\s*totaal|net\s*amount)/i],
-  ['tax',/(?:btw\s*(?:bedrag|totaal)?|vat\s*(?:amount|total)?|total\s*tax)/i],
-  ['discount',/(?:korting|discount)/i]
- ];
- for(const l of lines){
-  for(const [key,re] of totalPatterns){if(re.test(l)){const n=amount(l);if(n!==null)totals[key]=n}}
- }
- const items=[];let suppressed=0;
- for(const line of lines){
-  if(items.length>=300)break;
-  if(/(?:factuur|invoice|totaal|total|subtotaal|subtotal|korting|discount|betaling|btw|vat|iban|adres|address|tel|phone|datum|date|omschrijving|description|prijs|price|aantal|quantity)/i.test(line))continue;
-  // Only trust rows where a quantity, price and extended amount are clearly present.
-  const m=line.match(/^(.{3,180}?)\s+(\d{1,5}(?:[.,]\d{1,3})?)\s*(?:x|×|st|pcs)?\s+(\d{1,9}(?:[.,]\d{1,4})?)\s+(\d{1,10}[.,]\d{2})(?:\s*(?:€|EUR))?$/i);
-  if(!m)continue;
-  const qty=number(m[2]),price=number(m[3]),lineTotal=number(m[4]);
-  if(!qty||qty<=0||price===null||lineTotal===null)continue;
-  if(Math.abs(qty*price-lineTotal)>.06){suppressed++;continue}
-  items.push({name:m[1].slice(0,180),qty,price,lineTotal,vatRate:null,ean:''});
- }
- const warnings=['OCR çıktısını orijinal faturayla karşılaştırın; otomatik sonuçlar kesin değildir.'];
- if(!invoiceNumber)warnings.push('Fatura numarası güvenilir biçimde okunamadı.');
- if(!date)warnings.push('Fatura tarihi okunamadı.');
- if(!items.length)warnings.push('Ürün satırları güvenilir şekilde ayrıştırılamadı; manuel giriş gerekebilir.');
- if(suppressed)warnings.push(suppressed+' satır hesap uyuşmazlığı nedeniyle ürün listesine eklenmedi.');
- if(totals.gross===null)warnings.push('Genel toplam bulunamadı.');
- return{supplier,invoiceNumber,date,dueDate,items,totalNet:totals.net,totalTax:totals.tax,totalGross:totals.gross,discount:totals.discount,warnings,rawText:lines.join('\n').slice(0,25000)};
+// Invoice Control OCR: document processing stays on this server.
+import {parseInvoiceText} from './invoice-parser.mjs';
+export {parseInvoiceText} from './invoice-parser.mjs';
+const maxPages=()=>Math.min(20,Math.max(1,Number.parseInt(process.env.OCR_MAX_PAGES||'10',10)||10));
+const informative=text=>String(text||'').replace(/\s/g,'').length>=70&&/\d+[.,]\d{2}/.test(text);
+export async function prepareImage(data){
+ const {default:sharp}=await import('sharp');
+ sharp.cache({memory:16,files:0,items:16});sharp.concurrency(1);
+ // Decode limit prevents small compressed files expanding without bounds.
+ return sharp(data,{limitInputPixels:32_000_000}).rotate().resize({width:2200,height:3000,fit:'inside',withoutEnlargement:true})
+  .flatten({background:'#ffffff'}).grayscale().normalise().png().toBuffer();
 }
 export async function readInvoiceBuffer(data,mime){
- if(mime==='application/pdf'){
-  const {PDFParse}=await import('pdf-parse');
-  const parser=new PDFParse({data:new Uint8Array(data)});
-  let text='',pages=0;
-  try{const result=await parser.getText();text=String(result.text||'');pages=Number(result.total||result.pages?.length||0)}
-  finally{await parser.destroy()}
-  if(text.replace(/\s/g,'').length>=70)return{...parseInvoiceText(text),method:'pdf-text',pages};
-  const {pdf}=await import('pdf-to-img');
-  const {createWorker}=await import('tesseract.js');
-  const doc=await pdf('data:application/pdf;base64,'+Buffer.from(data).toString('base64'),{scale:1.6});
-  const worker=await createWorker('eng');
+ let worker,doc;
+ const details=[],texts=[],start=Date.now(),limit=maxPages();
+ const recognize=async(buffer)=>{
+  if(!worker){
+   const {createWorker}=await import('tesseract.js');
+   worker=await createWorker('nld+eng',1,{errorHandler:()=>{}});
+   await worker.setParameters({preserve_interword_spaces:'1',user_defined_dpi:'300'});
+  }
+  const input=await prepareImage(buffer);
+  let timer;
   try{
-   const texts=[];let count=0;
-   for await(const page of doc){const x=await worker.recognize(page);texts.push(x.data.text);if(++count>=3)break}
-   return{...parseInvoiceText(text+'\n'+texts.join('\n')),method:'scanned-pdf-ocr',pages:count};
-  }finally{await worker.terminate();await doc.destroy()}
+   return await Promise.race([worker.recognize(input),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('OCR_TIMEOUT')),120000);})]);
+  }finally{clearTimeout(timer);}
+ };
+ try{
+  if(mime==='application/pdf'){
+   const {PDFParse}=await import('pdf-parse');
+   const parser=new PDFParse({data:new Uint8Array(data)});doc=parser;
+   const result=await parser.getText({first:limit,pageJoiner:'',cellSeparator:' ',lineEnforce:true});
+   const pages=Number(result.total||result.pages.length),count=Math.min(pages,limit);
+   let complete=pages<=limit;
+   for(let page=1;page<=count;page++){
+    const text=result.pages.find(x=>x.num===page)?.text||'';
+    if(informative(text)){texts.push(text);details.push({page,method:'pdf-text'});continue;}
+    if(Date.now()-start>180000){complete=false;break;}
+    const info=await parser.getInfo({partial:[page],parsePageInfo:true});
+    const size=info.pages.find(x=>x.pageNumber===page);
+    const width=size?Math.min(1800,Math.max(1,Math.floor(3000*size.width/size.height))):1800;
+    const raster=await parser.getScreenshot({partial:[page],desiredWidth:width,imageBuffer:true,imageDataUrl:false});
+    const ocr=await recognize(Buffer.from(raster.pages[0].data));
+    texts.push(ocr.data.text);details.push({page,method:'ocr',confidence:ocr.data.confidence});
+   }
+   const output=parseInvoiceText(texts.join('\n'));
+   output.extractionComplete=output.extractionComplete&&complete;
+   if(!complete)output.warnings.push('Belgenin '+details.length+'/'+pages+' sayfası okundu. Eksik sayfaları ayrı dosya olarak yükleyin; bu sonuç kaydedilemez.');
+   const scanned=details.filter(x=>x.method==='ocr').length;
+   return{...output,method:scanned?(scanned===details.length?'scanned-pdf-ocr':'mixed-pdf-ocr'):'pdf-text',pages,processedPages:details.length,pageDetails:details};
+  }
+  const result=await recognize(data);
+  return{...parseInvoiceText(result.data.text),method:'image-ocr',pages:1,processedPages:1,ocrConfidence:result.data.confidence,pageDetails:[{page:1,method:'ocr',confidence:result.data.confidence}]};
+ }finally{
+  // Both resources must be closed even if one cleanup fails.
+  try{if(worker)await worker.terminate();}finally{if(doc)await doc.destroy();}
  }
- const {createWorker}=await import('tesseract.js');
- const worker=await createWorker('eng');
- try{const result=await worker.recognize(data);return{...parseInvoiceText(result.data.text),method:'image-ocr',pages:1,ocrConfidence:result.data.confidence}}
- finally{await worker.terminate()}
 }

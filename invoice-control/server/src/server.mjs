@@ -8,22 +8,26 @@ import {compareSupplierMonth} from './engine.mjs';
 import {readFile} from 'node:fs/promises';
 import {readInvoiceBuffer} from './local-ocr.mjs';
 import nodemailer from 'nodemailer';
-const app=Fastify({logger:true,bodyLimit:2_000_000,trustProxy:false});
+import {pathToFileURL} from 'node:url';
+import {prepareReview,validDate} from './invoice-review.mjs';
+export async function createApp({database,logger=true,readInvoice=readInvoiceBuffer}={}){
+const app=Fastify({logger,bodyLimit:2_000_000,trustProxy:false});
 await app.register(cookie);
 await app.register(rateLimit,{max:150,timeWindow:'1 minute'});
 await app.register(multipart,{limits:{files:1,fileSize:10*1024*1024,fields:5}});
-const db=new pg.Pool({connectionString:process.env.DATABASE_URL,max:10});
+const db=database||new pg.Pool({connectionString:process.env.DATABASE_URL,max:10});
+if(!database)app.addHook('onClose',async()=>db.end());
 const audit=async(actor,action,type,id,details={})=>db.query('INSERT INTO audit_events(actor_id,action,target_type,target_id,details) VALUES($1,$2,$3,$4,$5)',[actor||null,action,type,String(id??''),JSON.stringify(details)]);
 const passOk=(pass,hashed)=>{try{const [salt,expected]=hashed.split(':');const actual=scryptSync(pass,salt,64),a=Buffer.from(expected,'hex');return actual.length===a.length&&timingSafeEqual(actual,a)}catch{return false}};
 const deny=(reply,status,message)=>reply.code(status).send({error:message});
 const isAdmin=u=>u.role==='admin'||u.role==='system';
 const hasBranch=(u,b)=>isAdmin(u)||Number(b)===Number(u.branch_id);
 const monthOk=m=>/^\d{4}-(0[1-9]|1[0-2])$/.test(m||'');
-const invoiceDateOk=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||'')&&!Number.isNaN(Date.parse(d));
+const invoiceDateOk=validDate;
 app.addHook('onRequest',async(req,reply)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'&&req.method!=='OPTIONS'&&req.url!=='/api/login'){
   const origin=req.headers.origin;
-  if(origin&&new URL(origin).host!==req.headers.host)return deny(reply,403,'Cross-origin mutation blocked');
+  if(origin&&new URL(origin).host!==req.headers.host)return deny(reply,403,'Farklı kaynaktan gelen değişiklik isteği engellendi');
  }
  if(!req.url.startsWith('/api')||req.url==='/api/login')return;
  const token=req.cookies.invoice_sid;
@@ -33,7 +37,11 @@ app.addHook('onRequest',async(req,reply)=>{
  if(!r.rowCount)return deny(reply,401,'Oturum geçersiz');
  req.user=r.rows[0];req.tokenHash=hash;
 });
-app.get('/health',async()=>({ok:true,service:'invoice-control'}));
+app.get('/health',async()=>({ok:true,service:'invoice-control',ocrVersion:'2'}));
+app.get('/admin/ocr-review.mjs',async(req,reply)=>{
+ const user=await requireSystemSession(req,reply);if(!user)return;
+ return reply.type('application/javascript').header('Cache-Control','no-store').send(await readFile(new URL('./invoice-review.mjs',import.meta.url),'utf8'));
+});
 app.get('/',async(_req,reply)=>reply.redirect('/admin/invoice-reader'));
 
 
@@ -53,7 +61,7 @@ app.get('/admin/login',async(req,reply)=>{
   .header('Cache-Control','no-store, private')
   .header('Referrer-Policy','no-referrer')
   .header('X-Frame-Options','DENY')
-  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
 });
 app.get('/admin/invoices',async(req,reply)=>{
@@ -62,7 +70,7 @@ app.get('/admin/invoices',async(req,reply)=>{
  return reply.type('text/html; charset=utf-8')
   .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
   .header('X-Frame-Options','DENY')
-  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
 });
 app.get('/admin/invoice-reader',async(req,reply)=>{
@@ -71,7 +79,7 @@ app.get('/admin/invoice-reader',async(req,reply)=>{
  return reply.type('text/html; charset=utf-8')
   .header('Cache-Control','no-store, private').header('Referrer-Policy','no-referrer')
   .header('X-Frame-Options','DENY')
-  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  .header('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
   .send(html);
 });
 let ocrProcessing=false;
@@ -93,7 +101,7 @@ app.post('/api/admin/ocr/extract',{config:{rateLimit:{max:6,timeWindow:'1 minute
  if(ocrProcessing)return deny(reply,429,'Başka bir fatura okunuyor. İşlem tamamlandığında tekrar dene.');
  ocrProcessing=true;
  try{
-  const data=await readInvoiceBuffer(buffer,mime);
+  const data=await readInvoice(buffer,mime);
   await audit(req.user.id,'extract','ocr_invoice','', {method:data.method,lines:data.items.length,pages:data.pages||0});
   return reply.header('Cache-Control','no-store').send({provider:'invoice-control-ocr',requiresReview:true,...data});
  }catch(error){
@@ -110,44 +118,29 @@ app.get('/api/admin/ocr/invoices',async(req,reply)=>{
 });
 app.get('/api/admin/ocr/invoices/:id',async(req,reply)=>{
  if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ if(!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(req.params.id))return deny(reply,400,'Fatura kimliği geçersiz.');
  const result=await db.query('SELECT * FROM mindee_invoice_reviews WHERE id=$1',[req.params.id]);
  if(!result.rowCount)return deny(reply,404,'Fatura bulunamadı');
  return reply.header('Cache-Control','no-store').send({invoice:result.rows[0]});
 });
 app.post('/api/admin/ocr/invoices',{config:{rateLimit:{max:20,timeWindow:'1 minute'}}},async(req,reply)=>{
  if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
- const b=req.body||{},items=b.items;
- const supplier=String(b.supplier||'').trim(),number=String(b.invoiceNumber||'').trim();
- if(!supplier||supplier.length>160||!number||number.length>120)return deny(reply,400,'Tedarikçi ve fatura numarası gerekli.');
- if(!Array.isArray(items)||!items.length||items.length>400)return deny(reply,400,'En az bir ürün satırı gerekli.');
- const date=b.date||null,due=b.dueDate||null;
- if(date&&!invoiceDateOk(date)||due&&!invoiceDateOk(due))return deny(reply,400,'Fatura tarihi geçersiz.');
- for(const it of items){
-  if(!it||typeof it.name!=='string'||!it.name.trim()||it.name.length>500||
-   !(Number(it.qty)>0)||!Number.isFinite(Number(it.price))||Number(it.price)<0)
-   return deny(reply,400,'Ürün adı, miktarı veya birim fiyatı eksik.');
-  if(it.lineTotal!=null&&Math.abs(Number(it.qty)*Number(it.price)-Number(it.lineTotal))>.04)
-   return deny(reply,400,'Ürün satır toplamları uyuşmuyor. Önce düzelt.');
- }
- const parseAmount=value=>value==null||value===''?null:Number(value);
- const net=parseAmount(b.totalNet),tax=parseAmount(b.totalTax),gross=parseAmount(b.totalGross),discount=parseAmount(b.discount);
- if([net,tax,gross,discount].some(v=>v!==null&&(!Number.isFinite(v)||v<0||v>100000000)))
-  return deny(reply,400,'Fatura toplam tutarları geçersiz.');
- if(net!==null&&tax!==null&&gross!==null&&Math.abs(net+tax-gross)>.05)
-  return deny(reply,400,'Ara toplam + BTW genel toplamla uyuşmuyor.');
- const subtotal=items.reduce((sum,it)=>sum+Number(it.qty)*Number(it.price),0);
- if(net!==null&&Math.abs(subtotal-(discount||0)-net)>.05)
-  return deny(reply,400,'Ürün satır toplamı - iskonto faturanın ara toplamına eşit değil.');
- const compact=items.map(it=>({name:it.name.trim(),ean:String(it.ean||'').slice(0,80),
-  qty:Number(it.qty),price:Number(it.price),
-  lineTotal:it.lineTotal==null?null:Number(it.lineTotal),vatRate:it.vatRate==null?null:Number(it.vatRate)}));
- const warnings=Array.isArray(b.warnings)?b.warnings.filter(x=>typeof x==='string').slice(0,100).map(x=>x.slice(0,400)):[];
- const result=await db.query(
-  'INSERT INTO mindee_invoice_reviews(created_by,supplier_name,invoice_number,invoice_date,due_date,total_net,total_tax,total_gross,discount,items,warnings) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id',
-  [req.user.id,supplier,number,date,due,net,tax,gross,discount,JSON.stringify(compact),JSON.stringify(warnings)]
- );
- await audit(req.user.id,'create','mindee_invoice',result.rows[0].id,{items:compact.length});
- return reply.code(201).send({id:result.rows[0].id,status:'review',message:'Fatura inceleme listesine kaydedildi'});
+ const review=prepareReview(req.body);
+ if(review.errors.length)return reply.code(400).send({error:review.errors[0],errors:review.errors});
+ const b=review.value;
+ const client=await db.connect();
+ try{
+  await client.query('BEGIN');
+  const result=await client.query(
+   'INSERT INTO mindee_invoice_reviews(created_by,supplier_name,invoice_number,invoice_date,due_date,total_net,total_tax,total_gross,discount,items,warnings) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id',
+   [req.user.id,b.supplier,b.invoiceNumber,b.date,b.dueDate,b.totalNet,b.totalTax,b.totalGross,b.discount,JSON.stringify(b.items),JSON.stringify(b.warnings)]
+  );
+  await client.query('INSERT INTO audit_events(actor_id,action,target_type,target_id,details) VALUES($1,$2,$3,$4,$5)',
+   [req.user.id,'create','ocr_invoice',result.rows[0].id,JSON.stringify({items:b.items.length})]);
+  await client.query('COMMIT');
+  return reply.code(201).send({id:result.rows[0].id,status:'review',message:'Fatura inceleme listesine kaydedildi'});
+ }catch(error){await client.query('ROLLBACK');throw error;}
+ finally{client.release();}
 });
 app.post('/api/login',{config:{rateLimit:{max:10,timeWindow:'5 minutes'}}},async(req,reply)=>{
  const email=String(req.body?.email||'').trim().toLowerCase(),password=String(req.body?.password||'');
@@ -308,5 +301,11 @@ app.post('/api/credit-notes',async(req,reply)=>{
  const r=await db.query('INSERT INTO credit_notes(dispute_id,supplier_id,credit_number,amount,received_at) VALUES($1,$2,$3,$4,$5) RETURNING id',[dispute_id||null,supplier_id,credit_number,amount,received_at]);await audit(req.user.id,'create','credit_note',r.rows[0].id);return reply.code(201).send(r.rows[0])
 });
 app.get('/api/audit',async(req,reply)=>{if(req.user.role!=='system')return deny(reply,403,'Sistem admini gerekli');return{items:(await db.query('SELECT id,action,target_type,target_id,details,occurred_at FROM audit_events ORDER BY id DESC LIMIT 200')).rows}});
-const port=Number(process.env.PORT||3000);
-app.listen({port,host:process.env.HOST||'0.0.0.0'}).catch(err=>{app.log.error(err);process.exit(1)});
+return app;
+}
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
+ const app=await createApp();
+ try{await app.listen({port:Number(process.env.PORT||3000),host:process.env.HOST||'0.0.0.0'});}
+ catch(err){app.log.error(err);process.exit(1);}
+ for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>{app.close().catch(err=>{app.log.error(err);process.exitCode=1;});});
+}

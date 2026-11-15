@@ -1,96 +1,105 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Invoice Control Fatura Okuyucu | Invoice Control</title><style>*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#26354c;font:14px system-ui,Arial,sans-serif}header{background:white;border-bottom:1px solid #e1e7f1;padding:16px max(16px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}a{color:#3e4fc7}main{max-width:1100px;margin:auto;padding:20px 16px}.card{border:1px solid #e1e6f0;background:white;border-radius:14px;padding:22px;margin:15px 0}h1{font-size:25px;margin:0 0 7px}h2{font-size:17px;margin:0 0 12px}p{color:#708097;line-height:1.6}label{display:grid;gap:8px;font-weight:750;font-size:12px;margin:12px 0}input{padding:11px;border:1px solid #d8e0ed;border-radius:8px;width:100%;font:inherit;background:white;color:#22324a}input[type=file]{padding:18px;border:2px dashed #aebde2}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.btn{border:0;border-radius:9px;padding:12px 17px;font-weight:800;color:white;background:#4154c4;cursor:pointer}.btn:disabled{opacity:.45;cursor:wait}.btn.secondary{background:#e9eeff;color:#3448ba}.status{border-radius:10px;padding:12px 15px;margin:12px 0;background:#f0f4ff;color:#40517f}.status.err{background:#fff1f3;color:#a72d4a}.status.ok{background:#edfbf2;color:#0b784b}.preview{max-height:540px;width:100%;border-radius:10px;border:1px solid #dde5f0;object-fit:contain}table{width:100%;border-collapse:collapse;min-width:760px}td,th{border-bottom:1px solid #edf0f5;padding:9px;text-align:left}th{font-size:12px;color:#667895}td input{padding:7px;min-width:85px}.scroll{overflow:auto}.warn{border-left:4px solid #df4857;background:#fff5f6;padding:12px;margin:10px 0;color:#9f2c45}.good{border-left:4px solid #2b9567;background:#f1fbf5;padding:12px;color:#137a51}.hidden{display:none}.pill{display:inline-block;border-radius:20px;padding:7px 11px;font-weight:800;background:#fff0f2;color:#ac3850}.pill.green{background:#e5f9ef;color:#107a4c}.muted{font-size:12px;color:#8594a9}@media(max-width:650px){.grid{grid-template-columns:1fr}}</style></head><body>
-<header><strong>✓ Invoice Control — Invoice Control OCR</strong><div><a href="/admin/invoices">Kaydedilen Faturalar</a> · <a href="https://mfatihdumluu-eng.github.io/invoice-control/">Ana Panel</a></div></header>
-<main><div class="card"><h1>PDF / Resimden Fatura Oku</h1><p>Dosya Invoice Control sunucusunda okunur. Sonuçlar düzenlenebilir; kontrol etmeden kaydedilmez. Bu ekran belgeyi otomatik olarak başka kullanıcılarla paylaşmaz.</p><span id="connection" class="pill green">● Invoice Control OCR</span><div id="status" class="status">PDF veya fotoğraf seç. API anahtarı gerekmez. Sonuçları kontrol ederek kaydet.</div>
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Invoice Control Fatura Okuyucu | Invoice Control</title><style>*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#26354c;font:14px system-ui,Arial,sans-serif}header{background:white;border-bottom:1px solid #e1e7f1;padding:16px max(16px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;align-items:center;gap:12px}a{color:#3e4fc7}main{max-width:1100px;margin:auto;padding:20px 16px}.card{border:1px solid #e1e6f0;background:white;border-radius:14px;padding:22px;margin:15px 0}h1{font-size:25px;margin:0 0 7px}h2{font-size:17px;margin:0 0 12px}p{color:#708097;line-height:1.6}label{display:grid;gap:8px;font-weight:750;font-size:12px;margin:12px 0}input{padding:11px;border:1px solid #d8e0ed;border-radius:8px;width:100%;font:inherit;background:white;color:#22324a}input[type=file]{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%)}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.btn{border:0;border-radius:9px;padding:12px 17px;font-weight:800;color:white;background:#4154c4;cursor:pointer}.btn:disabled{opacity:.45;cursor:wait}.btn.secondary{background:#e9eeff;color:#3448ba}.status{border-radius:10px;padding:12px 15px;margin:12px 0;background:#f0f4ff;color:#40517f}.status.err{background:#fff1f3;color:#a72d4a}.status.ok{background:#edfbf2;color:#0b784b}.preview{max-height:540px;width:100%;border-radius:10px;border:1px solid #dde5f0;object-fit:contain}table{width:100%;border-collapse:collapse;min-width:760px}td,th{border-bottom:1px solid #edf0f5;padding:9px;text-align:left}th{font-size:12px;color:#667895}td input{padding:7px;min-width:85px}.scroll{overflow:auto}pre{white-space:pre-wrap;max-height:300px;overflow:auto;font-size:12px;background:#f6f8fc;padding:14px;border-radius:8px}.preview{max-height:320px}details{margin:14px 0}summary{cursor:pointer;font-weight:750}input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #9cacf7;outline-offset:2px}.confirm{display:flex;align-items:center;font-size:14px}.confirm input{width:auto}td:first-child input{min-width:180px}header{flex-wrap:wrap}.warn{border-left:4px solid #df4857;background:#fff5f6;padding:12px;margin:10px 0;color:#9f2c45}.good{border-left:4px solid #2b9567;background:#f1fbf5;padding:12px;color:#137a51}.hidden{display:none}.pill{display:inline-block;border-radius:20px;padding:7px 11px;font-weight:800;background:#fff0f2;color:#ac3850}.pill.green{background:#e5f9ef;color:#107a4c}.muted{font-size:12px;color:#8594a9}@media(max-width:650px){.grid{grid-template-columns:1fr}}</style></head><body>
+<header><strong>✓ Invoice Control · Fatura Okuyucu</strong><div><a href="/admin/invoices">Kaydedilen Faturalar</a> · <a href="https://mfatihdumluu-eng.github.io/invoice-control/">Ana Panel</a></div></header>
+<main><div class="card"><h1>PDF / Resimden Fatura Oku</h1><p>Dosya Invoice Control sunucusunda okunur. Sonuçlar düzenlenebilir; kontrol etmeden kaydedilmez. Bu ekran belgeyi otomatik olarak başka kullanıcılarla paylaşmaz.</p><span id="connection" class="pill green">● Invoice Control OCR</span><div id="status" class="status" role="status" aria-live="polite">PDF veya fotoğraf seç. API anahtarı gerekmez. Sonuçları kontrol ederek kaydet.</div>
 <label>Fatura dosyası (PDF, JPG, PNG, WebP; en fazla 10 MB)<input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"></label>
-<button class="btn" id="extract">Faturayı Oku</button> <span id="filename" class="muted"></span>
+<button class="btn secondary" id="chooseFile">Dosya Seç</button> <button class="btn" id="extract">Faturayı Oku</button> <span id="filename" class="muted">Henüz dosya seçilmedi</span><p><a id="originalFile" class="hidden" target="_blank" rel="noopener">Orijinal belgeyi aç ↗</a></p><img id="preview" class="preview hidden" alt="Seçilen fatura fotoğrafı">
 </div>
 <div class="card hidden" id="result">
-<h2>3 · Fatura Bilgilerini Kontrol Et</h2><div id="messages"></div>
+<h2>Fatura bilgilerini kontrol et</h2><div id="messages"></div>
 <div class="grid"><label>Tedarikçi<input id="supplier"></label><label>Fatura numarası<input id="invoiceNumber"></label><label>Fatura tarihi<input type="date" id="date"></label><label>Son ödeme tarihi<input type="date" id="dueDate"></label><label>Ara toplam (BTW hariç) €<input id="net" type="number" step=".01"></label><label>BTW toplamı €<input id="tax" type="number" step=".01"></label><label>İskonto €<input id="discount" type="number" step=".01"></label><label>Genel toplam €<input id="gross" type="number" step=".01"></label></div>
-<h2>Ürünler</h2><div class="scroll"><table><thead><tr><th>Ürün adı</th><th>Adet</th><th>Birim fiyat (€)</th><th>Satır toplamı (€)</th><th>BTW %</th><th>Kontrol</th></tr></thead><tbody id="items"></tbody></table></div><div id="reconcile"></div>
-<div style="margin-top:17px"><button class="btn secondary" id="add">+ Satır Ekle</button> <button class="btn" id="saveInvoice">Faturayı Listeye Kaydet</button> <button class="btn secondary" id="copy">Kontrol verilerini kopyala</button></div>
-<p class="muted">Fatura yalnızca <b>Faturayı Listeye Kaydet</b> düğmesine basıldığında özel sunucu arşivine alınır. Fiyat karşılaştırmasında kullanılmadan önce ayrıca inceleme gerektirir.</p>
+<h2>Ürünler</h2><p class="muted">Miktar, fiyat, iskonto ve BTW alanları için tabloyu sağa kaydırabilirsiniz.</p><div class="scroll"><table><thead><tr><th>Ürün adı</th><th>Ürün kodu</th><th>EAN</th><th>Miktar</th><th>Birim</th><th>Birim fiyat (€)</th><th>Satır iskontosu %</th><th>Satır iskontosu €</th><th>Satır toplamı (€)</th><th>BTW %</th><th>Kontrol</th><th>İşlem</th></tr></thead><tbody id="items"></tbody></table></div><div id="reconcile"></div>
+<div id="taxBreakdown"></div><details><summary>Okunan metin ve sayfa durumu</summary><p id="pageInfo"></p><pre id="rawText"></pre></details><label class="confirm"><input type="checkbox" id="reviewed">Bilgileri orijinal faturayla karşılaştırdım.</label><div style="margin-top:17px"><button class="btn secondary" id="add">+ Satır Ekle</button> <button class="btn" id="saveInvoice">Faturayı Listeye Kaydet</button> <button class="btn secondary" id="copy">Kontrol verilerini kopyala</button></div>
+<p class="muted">Kontrol edilmiş alanlar yalnızca <b>Faturayı Listeye Kaydet</b> düğmesine basıldığında özel sunucu arşivine alınır. Orijinal PDF veya fotoğraf kalıcı olarak saklanmaz; dosyanızı ayrıca koruyun. Fiyat karşılaştırmasında kullanılmadan önce ayrıca inceleme gerektirir.</p>
 </div></main>
-<script>
-const $=id=>document.getElementById(id),state={items:[],original:null};
+<script type="module">
+import {calculatedLineTotal,checkInvoice,prepareReview} from '/admin/ocr-review.mjs';
+const $=id=>document.getElementById(id),state={items:[],original:null,busy:false,saved:false,objectUrl:null};
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money=n=>new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(Number(n)||0);
+const money=n=>n==null?'—':new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(n);
 function show(message,error=false){$('status').className='status'+(error?' err':'');$('status').textContent=message}
+function payload(){return{
+ supplier:$('supplier').value.trim(),invoiceNumber:$('invoiceNumber').value.trim(),date:$('date').value,dueDate:$('dueDate').value,
+ totalNet:$('net').value,totalTax:$('tax').value,totalGross:$('gross').value,discount:$('discount').value,
+ items:state.items,warnings:state.original?.warnings||[],extractionComplete:state.original?.extractionComplete
+};}
 function row(item,i){
- const inputs=[['name','text'],['qty','number'],['price','number'],['lineTotal','number'],['vatRate','number']];
- return '<tr>'+inputs.map(([name,type])=>'<td><input data-i="'+i+'" data-field="'+name+'" type="'+type+'" '+(type==='number'?'step=".01"':'')+' value="'+escape(item[name]??'')+'"></td>').join('')+'<td id="check-'+i+'"></td></tr>';
+ const fields=['name','sku','ean','qty','unit','price','discountPercent','discountAmount','lineTotal','vatRate'];
+ const labels=['Ürün adı','Ürün kodu','EAN','Miktar','Birim','Birim fiyat','Satır iskontosu yüzde','Satır iskontosu tutar','Satır toplamı','BTW oranı'];
+ return '<tr>'+fields.map((name,j)=>{
+  const numeric=!['name','sku','ean','unit'].includes(name),step=['qty','price','discountPercent'].includes(name)?'.0001':'.01';
+  return '<td><input aria-label="'+(i+1)+'. ürün '+labels[j]+'" data-i="'+i+'" data-field="'+name+'" type="'+(numeric?'number':'text')+'" '+(numeric?'step="'+step+'" min="0"':'')+' value="'+escape(item[name]??'')+'"></td>';
+ }).join('')+'<td id="check-'+i+'"></td><td><button class="btn secondary" data-remove="'+i+'" aria-label="'+(i+1)+'. satırı kaldır">Kaldır</button></td></tr>';
 }
 function renderItems(){
  $('items').innerHTML=state.items.map(row).join('');
  document.querySelectorAll('[data-i]').forEach(el=>el.addEventListener('input',()=>{
-  const item=state.items[Number(el.dataset.i)];const v=el.value;
-  item[el.dataset.field]=el.dataset.field==='name'?v:(v===''?null:Number(v));
-  reconcile();
- }));reconcile();
+  state.items[Number(el.dataset.i)][el.dataset.field]=el.type==='number'?(el.value===''?null:Number(el.value)):el.value;
+  state.saved=false;reconcile();
+ }));
+ document.querySelectorAll('[data-remove]').forEach(el=>el.onclick=()=>{state.items.splice(Number(el.dataset.remove),1);state.saved=false;renderItems();});
+ reconcile();
 }
 function reconcile(){
- const errors=[];let subtotal=0,allComplete=true;
+ const invoice=payload(),check=checkInvoice(invoice);
+ $('file').disabled=state.busy;$('chooseFile').disabled=state.busy;$('extract').disabled=state.busy;
+ document.querySelectorAll('#result input,#result button').forEach(el=>el.disabled=state.busy);
  state.items.forEach((item,i)=>{
-  const actual=Number(item.qty)*Number(item.price),provided=item.lineTotal;
-  const bad=!(Number(item.qty)>0)||!(Number(item.price)>=0)||provided==null||Math.abs(actual-Number(provided))>.03;
-  const cell=$('check-'+i);if(cell){cell.style.color=bad?'#bb344c':'#13845a';cell.textContent=bad?'⚠ Kontrol':'✓ Eşleşti'}
-  if(bad){errors.push((i+1)+'. ürün: miktar × fiyat ≠ satır toplamı');allComplete=false}
-  if(item.qty!=null&&item.price!=null)subtotal+=actual;
+  const expected=calculatedLineTotal(item),bad=expected==null||item.lineTotal==null||Math.abs(expected-Number(item.lineTotal))>.011;
+  const cell=$('check-'+i);if(cell){cell.style.color=bad?'#bb344c':'#13845a';cell.textContent=bad?'Kontrol gerekli':'Hesap uyumlu';}
  });
- const net=Number($('net').value),tax=Number($('tax').value),gross=Number($('gross').value),discount=Number($('discount').value||0);
- const count=state.items.length;
- if(count&&$('net').value!==''&&Math.abs(subtotal-discount-net)>.05)errors.push('Ürün toplamı − iskonto, faturanın ara toplamına eşit değil');
- if($('net').value!==''&&$('tax').value!==''&&$('gross').value!==''&&Math.abs(net+tax-gross)>.05)errors.push('Ara toplam + BTW, genel toplam ile uyuşmuyor');
- if(!count)errors.push('Ürün satırı bulunamadı');
- const warn=[...(state.original?.warnings||[]),...errors];$('reconcile').innerHTML='<h2>Fatura Hesaplama Kontrolü</h2><p>Ürünlerin hesaplanan toplamı: <b>'+money(subtotal)+'</b></p>'+warn.map(s=>'<div class="warn">⚠ '+escape(s)+'</div>').join('')+(warn.length?'':'<div class="good">✓ Görünen satırlar hesaplamayla uyumlu. Yine de orijinal faturayla kontrol et.</div>');
+ const warnings=[...new Set([...(state.original?.warnings||[]),...check.errors])];
+ $('reconcile').innerHTML='<h2>Hesap kontrolü</h2><p>Satır toplamı: <b>'+money(check.subtotal)+'</b> · Fatura iskontosu: '+money(check.discount??0)+'</p>'+warnings.map(s=>'<div class="warn">'+escape(s)+'</div>').join('');
+ $('saveInvoice').disabled=state.busy||state.saved||!$('reviewed').checked||prepareReview(invoice).errors.length>0;
+ $('saveInvoice').textContent=state.saved?'Fatura Kaydedildi':'Faturayı Listeye Kaydet';
 }
 function render(data){
- state.original=data;state.items=(data.items||[]).map(x=>({...x}));
+ state.original=data;state.items=(data.items||[]).map(x=>({...x}));state.saved=false;$('reviewed').checked=false;
  for(const [key,val] of Object.entries({supplier:data.supplier,invoiceNumber:data.invoiceNumber,date:data.date,dueDate:data.dueDate,net:data.totalNet,tax:data.totalTax,discount:data.discount,gross:data.totalGross}))$(key).value=val==null?'':val;
  $('result').classList.remove('hidden');
- $('messages').innerHTML='<div class="status">Yerel OCR ile '+state.items.length+' ürün satırı alındı. Sonuç otomatik onaylanmadı.</div>';
+ $('messages').innerHTML='<div class="status">'+state.items.length+' ürün satırı alındı. Belgeyi kontrol edip onay kutusunu işaretleyin.</div>';
+ $('rawText').textContent=data.rawText||'';
+ const methods={'pdf-text':'PDF metni','scanned-pdf-ocr':'Taranmış PDF','mixed-pdf-ocr':'Metin ve tarama içeren PDF','image-ocr':'Fotoğraf'};
+ $('pageInfo').textContent=(methods[data.method]||'Belge')+' · Okunan sayfa: '+(data.processedPages??data.pages??1)+' / '+(data.pages??1)+(data.ocrConfidence!=null?' · OCR güven puanı: '+Math.round(data.ocrConfidence)+'/100':'');
+ $('taxBreakdown').innerHTML=(data.taxBreakdown||[]).length?'<h2>Okunan BTW dökümü</h2>'+data.taxBreakdown.map(t=>'<p>%'+escape(t.rate)+' BTW: '+money(t.amount)+'</p>').join(''):'';
  renderItems();$('result').scrollIntoView({behavior:'smooth'});
 }
 $('extract').onclick=async()=>{
- const file=$('file').files[0];if(!file){show('Önce PDF veya fotoğraf seç.',true);return}
- if(file.size>10*1024*1024){show('Dosya en fazla 10 MB olabilir.',true);return}
- $('extract').disabled=true;show('Invoice Control belgeni okuyor…');
+ if(state.busy)return;
+ const file=$('file').files[0];if(!file){show('Önce PDF veya fotoğraf seç.',true);return;}
+ if(file.size>10*1024*1024){show('Dosya en fazla 10 MB olabilir.',true);return;}
+ state.busy=true;$('extract').disabled=true;reconcile();show('Belge okunuyor. İlk okuma ve çok sayfalı taramalar birkaç dakika sürebilir…');
  try{
   const fd=new FormData();fd.append('file',file,file.name);
   const resp=await fetch('/api/admin/ocr/extract',{method:'POST',credentials:'same-origin',body:fd,cache:'no-store'});
   const data=await resp.json().catch(()=>({error:'Beklenmeyen sunucu yanıtı'}));
-  if(!resp.ok)throw Error(data.error||'Invoice Control isteği başarısız');
-  render(data);show('İşlem tamamlandı. Ürün satırlarını ve fatura toplamlarını kontrol et.');
- }catch(err){show(err.message,true)}
- finally{$('extract').disabled=false}
+  if(!resp.ok)throw Error(data.error||'Belge okunamadı');
+  render(data);show(data.extractionComplete===false?'Belgenin bir bölümü okunamadı. Sayfa durumunu kontrol edin.':'Okuma tamamlandı. Ürünleri ve toplamları orijinal belgeyle karşılaştırın.',data.extractionComplete===false);
+ }catch(err){show(err.message,true);}
+ finally{state.busy=false;$('extract').disabled=false;reconcile();}
 };
-$('add').onclick=()=>{state.items.push({name:'',qty:null,price:null,lineTotal:null,vatRate:null});renderItems()};
-['net','tax','gross','discount'].forEach(id=>$(id).addEventListener('input',reconcile));
-$('file').onchange=e=>{$('filename').textContent=e.target.files?.[0]?.name||''};
+$('add').onclick=()=>{state.items.push({name:'',qty:null,price:null,lineTotal:null,vatRate:null,unit:'',sku:'',ean:''});state.saved=false;renderItems();};
+['supplier','invoiceNumber','date','dueDate','net','tax','gross','discount'].forEach(id=>$(id).addEventListener('input',()=>{state.saved=false;reconcile();}));
+$('reviewed').onchange=reconcile;
+$('chooseFile').onclick=()=>$('file').click();
+$('file').onchange=e=>{
+ if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);
+ const file=e.target.files?.[0];state.original=null;state.items=[];state.saved=false;$('reviewed').checked=false;$('result').classList.add('hidden');
+ $('filename').textContent=file?.name||'Henüz dosya seçilmedi';$('originalFile').classList.add('hidden');$('preview').classList.add('hidden');
+ if(file){state.objectUrl=URL.createObjectURL(file);$('originalFile').href=state.objectUrl;$('originalFile').classList.remove('hidden');if(file.type.startsWith('image/')){$('preview').src=state.objectUrl;$('preview').classList.remove('hidden');}}
+ reconcile();
+};
 $('saveInvoice').onclick=async()=>{
- const btn=$('saveInvoice');btn.disabled=true;
- const invoice={
-  supplier:$('supplier').value.trim(),invoiceNumber:$('invoiceNumber').value.trim(),
-  date:$('date').value,dueDate:$('dueDate').value,
-  totalNet:$('net').value,totalTax:$('tax').value,totalGross:$('gross').value,
-  discount:$('discount').value,items:state.items,warnings:state.original?.warnings||[]
- };
+ const invoice=payload(),review=prepareReview(invoice);
+ if(state.busy||state.saved||!$('reviewed').checked||review.errors.length){show(review.errors[0]||'Önce bilgileri kontrol ettiğinizi onaylayın.',true);return;}
+ state.busy=true;reconcile();
  try{
-  const res=await fetch('/api/admin/ocr/invoices',{method:'POST',credentials:'same-origin',
-   headers:{'Content-Type':'application/json'},body:JSON.stringify(invoice)});
+  const res=await fetch('/api/admin/ocr/invoices',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(invoice)});
   const data=await res.json().catch(()=>({error:'Sunucu yanıtı çözümlenemedi'}));
   if(!res.ok)throw Error(data.error||'Kaydetme başarısız');
-  $('messages').innerHTML='<div class="good">✓ Fatura sunucuya kaydedildi. <a href="/admin/invoices">Kaydedilen Faturalara Git →</a></div>';
-  show('Fatura kaydedildi. İnceleme listesinde açabilirsin.');
- }catch(e){show('Fatura kaydedilemedi: '+e.message,true)}
- finally{btn.disabled=false}
+  state.saved=true;$('messages').innerHTML='<div class="good">Fatura sunucuya kaydedildi. <a href="/admin/invoices">Kaydedilen faturaları aç →</a></div>';show('Fatura kaydedildi. İnceleme listesinde açabilirsiniz.');
+ }catch(e){show('Fatura kaydedilemedi: '+e.message,true);}
+ finally{state.busy=false;reconcile();}
 };
-$('copy').onclick=async()=>{
- const invoice={supplier:$('supplier').value,invoiceNumber:$('invoiceNumber').value,date:$('date').value,dueDate:$('dueDate').value,
- totalNet:$('net').value,totalTax:$('tax').value,totalGross:$('gross').value,discount:$('discount').value,
- items:state.items};
- await navigator.clipboard.writeText(JSON.stringify(invoice,null,2));
- $('messages').textContent='Kontrol verileri panoya kopyalandı; kayıt yapılmadı.';
-};
-show('Okuyucu hazır. PDF veya fotoğraf yükleyerek başlayabilirsin.');
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(payload(),null,2));show('Kontrol verileri panoya kopyalandı.');}catch{show('Panoya erişilemedi. Tarayıcı izinlerini kontrol edin.',true);}};
+reconcile();show('Okuyucu hazır. PDF veya fotoğraf yükleyerek başlayabilirsiniz.');
 </script></body></html>

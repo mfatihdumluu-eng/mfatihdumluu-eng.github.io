@@ -1,5 +1,11 @@
 # Invoice Control
 
+## Gerçek fatura okuyucu
+
+[Özel fatura okuyucu](https://invoice-control-api.onrender.com/admin/invoice-reader) ve [kayıt arşivi](https://invoice-control-api.onrender.com/admin/invoices) Sistem Admini oturumu gerektirir. Invoice Control OCR, PDF metni ve Hollandaca/İngilizce Tesseract ile çalışır; harici Mindee API kullanılmaz. Kontrol edilmiş fatura alanları PostgreSQL veritabanında saklanır. Teknik ayrıntılar ve testler: [sunucu belgesi](server/README.md).
+
+GitHub Pages üzerindeki `index.html` karşılaştırma paneli hâlâ örnek verili demodur. Gerçek kayıtlar burada görünmez; yukarıdaki özel arşivde listelenir. Demo ile gerçek kayıtlar aynı veri kaynağına yazılmaz.
+
 Portable proof-of-concept for a Netherlands-based multi-branch supplier invoice comparison platform. Frontend demo lives in `index.html` and runs on GitHub Pages without a build step. **No Lovable dependency, vendor lock-in or proprietary frontend runtime.**
 
 ## Current demo (NOT a production accounting system)

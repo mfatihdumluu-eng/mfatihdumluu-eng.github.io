@@ -1,0 +1,5 @@
+node_modules/
+*.traineddata
+*.traineddata.gz
+.env
+coverage/

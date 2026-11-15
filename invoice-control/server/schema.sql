@@ -95,8 +95,7 @@ ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS phone text;
 ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS website text;
 ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS logo_path text;
 
--- System-only external integrations. Secrets are AES-256-GCM encrypted by the
--- server using MINDEE_ENCRYPTION_KEY; the encryption key is NEVER stored in SQL.
+-- Legacy integration table retained for compatibility. No external OCR API is used.
 CREATE TABLE IF NOT EXISTS service_integrations (
   provider text PRIMARY KEY,
   encrypted_secret text NOT NULL,
