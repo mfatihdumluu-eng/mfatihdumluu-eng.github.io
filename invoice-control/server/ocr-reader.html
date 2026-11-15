@@ -1,16 +1,13 @@
 <!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Fatura Okuyucu | Invoice Control</title><style>
 :root{font:14px system-ui,-apple-system,Arial,sans-serif;color:#223149;background:#f3f5f9}*{box-sizing:border-box}body{margin:0}header{padding:18px max(20px,calc((100vw - 1120px)/2));background:#fff;border-bottom:1px solid #e2e7ef;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}a{color:#4255b9}main{max-width:1160px;margin:28px auto;padding:0 20px 40px}h1{font-size:24px;margin:0 0 8px}h2{font-size:18px;margin:0 0 16px}p{line-height:1.6;color:#69778b}.upload,.paper{background:#fff;border:1px solid #dfe5ed;border-radius:14px;padding:26px;margin-bottom:24px}.upload>p{margin:0 0 16px}.paper{padding:32px;box-shadow:0 8px 26px #24324b06}label{display:block;color:#657389;font-size:12px;font-weight:650}input,textarea{font:inherit;color:#223149;background:#fff;border:1px solid #dde3ec;border-radius:6px;padding:9px 10px;max-width:100%;width:100%}input:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid #c6d1f5;outline-offset:1px}input[type=file]{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}input[type=checkbox]{width:auto}button{font:inherit;cursor:pointer}.btn{border:0;border-radius:8px;padding:11px 16px;background:#4055b9;color:#fff;font-weight:700}.btn.secondary{background:#eef1fa;color:#4055a5}.btn:disabled{opacity:.45;cursor:default}.upload-actions,.save-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.status{padding:12px 14px;background:#f0f4fc;border-radius:8px;color:#486183;line-height:1.5;margin:14px 0}.status.err,.warn{color:#a02d40;background:#fff2f3}.warn{border-left:3px solid #d35062;padding:11px 14px;margin:10px 0;line-height:1.5}.good{padding:12px;color:#187049;background:#eef8f2;border-radius:8px}.muted{font-size:12px;color:#7e8b9e}.hidden{display:none!important}.preview{display:block;max-height:680px;width:100%;object-fit:contain;border:1px solid #dfe5ed;margin-top:16px;background:#f9fafc;border-radius:8px}.original-pdf{width:100%;height:700px;border:1px solid #dfe5ed;border-radius:8px}.document-top{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #243b67;padding-bottom:18px;margin-bottom:24px}.document-top h2{font-size:27px;letter-spacing:2px;margin:0}.document-meta{display:grid;grid-template-columns:2fr 1.1fr 1fr 1fr;gap:18px;margin-bottom:30px}.document-meta input{margin-top:6px}.invoice-table{width:100%;border-collapse:collapse;table-layout:fixed}.invoice-table th{text-align:right;font-size:11px;color:#6b778b;background:#f7f8fb;padding:12px 8px;border-top:1px solid #e2e7ef;border-bottom:1px solid #d5ddeb}.invoice-table th:nth-child(1),.invoice-table th:nth-child(2){text-align:left}.invoice-table td{padding:16px 7px;vertical-align:top;border-bottom:1px solid #e7ebf1}.invoice-table .position{color:#9ba5b5;font-size:12px;padding-top:25px}.invoice-table input{padding:7px 6px;text-align:right;font-variant-numeric:tabular-nums;font-size:13px}.invoice-table textarea{resize:vertical;min-height:55px;line-height:1.5;padding:7px 8px;font-size:14px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere}.invoice-table .unit-input input{text-align:center;margin-top:5px;font-size:11px;color:#768397;padding:5px 3px}.row-check{font-size:11px;margin-top:6px;line-height:1.4;text-align:right}.row-details{font-size:11px;color:#65758d;margin-top:9px}.row-details summary{cursor:pointer}.row-details .fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.row-details input{text-align:left;font-weight:400}.row-details label{font-size:10px}.raw-line{white-space:pre-wrap;word-break:break-word;font-size:11px;color:#788599;margin-top:10px}.remove-row{border:0;color:#a74654;background:none;font-size:11px;padding:10px 0 0}.summary-area{display:grid;grid-template-columns:1fr 340px;gap:32px;margin:26px 0}.invoice-totals label{display:grid;grid-template-columns:1fr 140px;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #e8ecf2;font-size:13px;color:#4b5d77}.invoice-totals input{text-align:right;font-variant-numeric:tabular-nums}.invoice-totals .grand-total{font-size:17px;font-weight:800;color:#20365c;border-top:2px solid #243b67;border-bottom:0;padding-top:16px;margin-top:8px}.grand-total input{font-size:18px;font-weight:800}.tax-line{display:flex;justify-content:space-between;gap:16px;max-width:260px;color:#6f7f94;font-size:12px;padding:7px 0}.confirm{display:flex;gap:9px;align-items:flex-start;color:#3d4f69;font-size:13px;font-weight:500;margin:20px 0 14px}details.diagnostics{margin:22px 0;font-size:12px;color:#748198}details.diagnostics summary{cursor:pointer}pre{white-space:pre-wrap;max-height:300px;overflow:auto;line-height:1.6;background:#f6f8fb;border-radius:8px;padding:14px}#reconcile{margin:20px 0;font-size:13px}#reconcile h2{font-size:14px}#reconcile .status{font-size:12px}.table-scroll{overflow:auto}.footnote{font-size:11px;color:#8793a5;line-height:1.6;margin-top:18px}@media(max-width:800px){.paper{padding:20px}.document-meta{grid-template-columns:1fr 1fr}.invoice-table{min-width:670px}.summary-area{grid-template-columns:1fr 300px;gap:20px}.invoice-totals label{grid-template-columns:1fr 120px}}@media(max-width:560px){main{padding:0 12px;margin-top:18px}.upload,.paper{padding:18px}.document-top h2{font-size:23px}.document-meta{gap:12px}.summary-area{grid-template-columns:1fr}.invoice-totals{width:100%}.summary-area #taxBreakdown:empty{display:none}.document-meta label{font-size:11px}.original-pdf{height:480px}.save-actions .btn{width:100%}}
 </style></head><body>
-<header><strong>✓ Invoice Control</strong><nav><a href="/admin/invoices">Kaydedilen Faturalar</a> · <a href="/admin/nutrient">Nutrient API Ayarları</a> · <a href="https://mfatihdumluu-eng.github.io/invoice-control/">Demo Paneli</a></nav></header>
+<header><strong>✓ Invoice Control</strong><nav><a href="/admin/invoices">Kaydedilen Faturalar</a> · <a href="/admin/nutrient">Nutrient API Ayarları</a> · <a href="/admin/monthly-comparison">Aylık Fiyat Kıyaslama</a></nav></header>
 <main><section class="upload"><h1>Faturanızı okuyun</h1><p>Ürünleri faturadaki sırayla kontrol edin. Okunan bilgiler, onayınızdan sonra kaydedilir.</p><div id="status" class="status" role="status" aria-live="polite"></div>
-<label for="file">PDF, JPG, PNG veya WebP · En fazla 10 MB</label><input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"><div class="provider-select" style="padding:12px 14px;background:#f1f5ff;border-radius:10px;margin:14px 0;max-width:550px">
-<label for="ocrProvider">Fatura okuma yöntemi</label>
-<select id="ocrProvider" style="width:100%;padding:10px;border:1px solid #cad5eb;border-radius:8px;margin-top:6px">
-<option value="local">Yerel OCR — ücretsiz, belge dışarı gönderilmez</option>
-<option value="nutrient">Nutrient Data Extraction — gelişmiş fatura/ürün çıkarımı (kredi kullanır)</option>
-</select>
-<p id="nutrientNotice" style="display:none;margin:10px 0 0;color:#9c4450;font-size:12px">Nutrient seçildiğinde belge Nutrient sunucularına gönderilir. Ücretsiz planda belgeler model geliştirme amacıyla saklanabilir. Önce kişisel veri içermeyen örnek faturayla dene. Her yükleme kredi tüketir.</p>
-</div>
+<label for="file">PDF, JPG, PNG veya WebP · En fazla 10 MB</label><input type="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"><div style="background:#f1f5ff;border-radius:10px;padding:14px;margin:14px 0;max-width:600px">
+<label for="branchId">Faturanın ait olduğu şube <span style="color:#bd3049">*</span></label>
+<select id="branchId" style="display:block;width:100%;padding:11px;border:1px solid #ccd6ed;border-radius:8px;margin-top:7px"><option value="">Şube bilgileri yükleniyor…</option></select>
+<p class="muted" id="branchHelp" style="margin:9px 0 0">Şube kullanıcıları yalnızca kendi şubelerinin adına kaydedebilir.</p></div>
+<p class="muted">Faturalar yalnızca <strong>Nutrient Data Extraction</strong> ile okunur. Her okuma Nutrient kredisi kullanır ve belge Nutrient sunucusuna gönderilir.</p>
 <div class="upload-actions" style="margin-top:12px"><button class="btn secondary" id="chooseFile">Dosya Seç</button><button class="btn" id="extract">Faturayı Oku</button><span id="filename" class="muted">Henüz dosya seçilmedi</span></div>
 <details class="diagnostics hidden" id="originalPreview"><summary>Orijinal faturayı göster</summary><p><a id="originalFile" class="hidden" target="_blank" rel="noopener">Orijinal belgeyi ayrı sekmede aç ↗</a></p><img id="preview" class="preview hidden" alt="Orijinal fatura fotoğrafı"><object id="pdfPreview" class="original-pdf hidden" type="application/pdf"><p>PDF önizlemesi için yukarıdaki bağlantıyı kullanın.</p></object></details></section>
 <section class="paper hidden" id="result"><div class="document-top"><h2>FATURA</h2><span class="muted">Kontrol ve düzeltme</span></div><div id="messages"></div>
@@ -20,7 +17,7 @@
 <div class="summary-area"><div id="taxBreakdown"></div><div class="invoice-totals" id="invoiceTotals"><label>Ara toplam €<input id="net" type="number" step=".01"></label><label>Fatura iskontosu €<input id="discount" type="number" step=".01"></label><label>BTW toplamı €<input id="tax" type="number" step=".01"></label><label class="grand-total">Genel toplam €<input id="gross" type="number" step=".01"></label></div></div>
 <div id="reconcile"></div><details class="diagnostics"><summary>Okunan metin ve sayfa bilgileri</summary><p id="pageInfo"></p><pre id="rawText"></pre></details>
 <label class="confirm"><input type="checkbox" id="reviewed">Ürünleri, miktarları ve toplamları orijinal faturayla karşılaştırdım.</label><div class="save-actions"><button class="btn" id="saveInvoice">Faturayı Listeye Kaydet</button><button class="btn secondary" id="copy">Verileri kopyala</button></div>
-<p class="footnote">Yalnızca kontrol edilen bilgiler kaydedilir. Orijinal PDF veya fotoğrafı ayrıca saklayın. İnceleme kayıtları fiyat karşılaştırmasına otomatik katılmaz.</p></section></main>
+<p class="footnote">Kontrol edip kaydettiğin Nutrient faturaları ortak havuza, seçilen şubenin adına eklenir ve aynı ay içindeki karşılaştırmalara katılır. Ürün karşılaştırması yalnızca güvenilir EAN veya tedarikçi ürün kodu eşleşmesi olduğunda yapılır. Orijinal PDF veya fotoğrafı ayrıca saklayın.</p></section></main>
 <script type="module">
 import {calculatedLineTotal,checkInvoice,prepareReview} from '/admin/ocr-review.mjs';
 const $=id=>document.getElementById(id),state={items:[],original:null,busy:false,saved:false,objectUrl:null};
@@ -28,7 +25,7 @@ const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>'
 const money=n=>n==null?'—':new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(n);
 function show(message,error=false){$('status').className='status'+(error?' err':'');$('status').textContent=message}
 function payload(){return{
- supplier:$('supplier').value.trim(),invoiceNumber:$('invoiceNumber').value.trim(),date:$('date').value,dueDate:$('dueDate').value,
+ supplier:$('supplier').value.trim(),invoiceNumber:$('invoiceNumber').value.trim(),date:$('date').value,dueDate:$('dueDate').value,branchId:$('branchId').value,provider:state.original?.provider||'',
  totalNet:$('net').value,totalTax:$('tax').value,totalGross:$('gross').value,discount:$('discount').value,
  items:state.items,warnings:state.original?.warnings||[],extractionComplete:state.original?.extractionComplete
 };}
@@ -58,7 +55,7 @@ function reconcile(){
  });
  const warnings=[...new Set([...(state.original?.warnings||[]).filter(w=>!w.startsWith('OCR çıktısını')),...check.errors])];
  $('reconcile').innerHTML=warnings.map(s=>'<div class="warn">'+escape(s)+'</div>').join('')+(check.errors.length?'':'<div class="status">Satır hesapları ve girilen toplamlar uyumlu. Orijinal faturadaki ürünlerle karşılaştırarak onaylayın.</div>');
- $('saveInvoice').disabled=state.busy||state.saved||!$('reviewed').checked||prepareReview(invoice).errors.length>0;
+ $('saveInvoice').disabled=state.busy||state.saved||!$('reviewed').checked||!$('branchId').value||state.original?.provider!=='nutrient'||prepareReview(invoice).errors.length>0;
  $('saveInvoice').textContent=state.saved?'Fatura Kaydedildi':'Faturayı Listeye Kaydet';
 }
 function render(data){
@@ -76,12 +73,10 @@ $('extract').onclick=async()=>{
  if(state.busy)return;
  const file=$('file').files[0];if(!file){show('Önce PDF veya fotoğraf seç.',true);return;}
  if(file.size>10*1024*1024){show('Dosya en fazla 10 MB olabilir.',true);return;}
- state.busy=true;$('extract').disabled=true;reconcile();show($('ocrProvider').value==='nutrient'?'Nutrient belgeyi analiz ediyor; bu istek ücretsiz plan kredisi tüketir…':'Yerel OCR belgeyi okuyor…');
+ state.busy=true;$('extract').disabled=true;reconcile();show('Nutrient belgeyi analiz ediyor; bu işlem ücretsiz plan kredisi tüketir…');
  try{
   const fd=new FormData();fd.append('file',file,file.name);
-  const provider=$('ocrProvider').value;
-  const endpoint=provider==='nutrient'?'/api/admin/nutrient/extract':'/api/admin/ocr/extract';
-  const resp=await fetch(endpoint,{method:'POST',credentials:'same-origin',body:fd,cache:'no-store'});
+  const resp=await fetch('/api/admin/nutrient/extract',{method:'POST',credentials:'same-origin',body:fd,cache:'no-store'});
   const data=await resp.json().catch(()=>({error:'Beklenmeyen sunucu yanıtı'}));
   if(!resp.ok)throw Error(data.error||'Belge okunamadı');
   render(data);show(data.extractionComplete===false?'Belgenin bir bölümü okunamadı. Sayfa durumunu kontrol edin.':'Okuma tamamlandı. Ürünleri ve toplamları orijinal belgeyle karşılaştırın.',data.extractionComplete===false);
@@ -91,8 +86,29 @@ $('extract').onclick=async()=>{
 $('add').onclick=()=>{state.items.push({name:'',qty:null,price:null,lineTotal:null,vatRate:null,unit:'',sku:'',ean:''});state.saved=false;renderItems();};
 ['supplier','invoiceNumber','date','dueDate','net','tax','gross','discount'].forEach(id=>$(id).addEventListener('input',()=>{state.saved=false;reconcile();}));
 $('reviewed').onchange=reconcile;
+async function loadBranches(){
+ try{
+  const [a,b]=await Promise.all([
+   fetch('/api/me',{credentials:'same-origin',cache:'no-store'}),
+   fetch('/api/branches',{credentials:'same-origin',cache:'no-store'})
+  ]);
+  if(!a.ok||!b.ok)throw Error('Şube veya oturum bilgisi okunamadı.');
+  const user=(await a.json()).user,list=(await b.json()).items||[];
+  const select=$('branchId');select.innerHTML='<option value="">— Şube seç —</option>';
+  for(const branch of list){const el=document.createElement('option');el.value=String(branch.id);el.textContent=branch.name;select.append(el)}
+  if(user.role==='branch'){
+   select.value=String(user.branch_id);select.disabled=true;
+   $('branchHelp').textContent='Bu oturum '+(list.find(x=>Number(x.id)===Number(user.branch_id))?.name||'kendi şubeniz')+' adına kayıt yapar. Başka şubeye kaydetmek mümkün değildir.';
+  }else{
+   $('branchHelp').textContent='Sistem yöneticisi olarak faturanın ait olduğu şubeyi seçmeniz gerekiyor. Seçim kayıtla birlikte veritabanına işlenir.';
+  }
+  reconcile();
+ }catch(err){show('Şubeler getirilemedi: '+err.message,true)}
+}
+$('branchId').onchange=()=>{state.saved=false;reconcile();};
+loadBranches();
 $('chooseFile').onclick=()=>$('file').click();
-$('ocrProvider').onchange=()=>{const nutrient=$('ocrProvider').value==='nutrient';$('nutrientNotice').style.display=nutrient?'block':'none';show(nutrient?'Nutrient seçildi. Belgeler Nutrient hizmetine gönderilecek ve her okuma kredi kullanacak.':'Yerel OCR seçildi; fatura harici OCR sağlayıcısına gönderilmez.');};
+
 $('file').onchange=e=>{
  if(state.objectUrl)URL.revokeObjectURL(state.objectUrl);
  const file=e.target.files?.[0];state.original=null;state.items=[];state.saved=false;$('reviewed').checked=false;$('result').classList.add('hidden');
@@ -108,7 +124,7 @@ $('saveInvoice').onclick=async()=>{
   const res=await fetch('/api/admin/ocr/invoices',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(invoice)});
   const data=await res.json().catch(()=>({error:'Sunucu yanıtı çözümlenemedi'}));
   if(!res.ok)throw Error(data.error||'Kaydetme başarısız');
-  state.saved=true;$('messages').innerHTML='<div class="good">Fatura sunucuya kaydedildi. <a href="/admin/invoices">Kaydedilen faturaları aç →</a></div>';show('Fatura kaydedildi. İnceleme listesinde açabilirsiniz.');
+  state.saved=true;$('messages').innerHTML='<div class="good">Fatura sunucuya kaydedildi. <a href="/admin/invoices">Kaydedilen faturaları aç →</a></div>';show('Fatura '+data.branchName+' şubesinin adına ortak havuza kaydedildi. Aylık kıyaslamada kullanılabilir.');
  }catch(e){show('Fatura kaydedilemedi: '+e.message,true);}
  finally{state.busy=false;reconcile();}
 };
