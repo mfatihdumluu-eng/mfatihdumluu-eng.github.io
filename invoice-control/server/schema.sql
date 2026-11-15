@@ -109,16 +109,9 @@ CREATE TABLE IF NOT EXISTS service_integrations (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Preserve previously reviewed invoices while migrating the legacy table name.
-DO $
-BEGIN
- IF to_regclass('public.ocr_invoice_reviews') IS NULL AND to_regclass('public.mindee_invoice_reviews') IS NOT NULL THEN
-  ALTER TABLE mindee_invoice_reviews RENAME TO ocr_invoice_reviews;
- END IF;
-END $;
 -- Invoice Control OCR review records are persisted independently of price-comparison invoices.
 -- A record can only be created after the operator explicitly clicks Save.
-CREATE TABLE IF NOT EXISTS ocr_invoice_reviews (
+CREATE TABLE IF NOT EXISTS mindee_invoice_reviews (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  created_by uuid NOT NULL REFERENCES users(id),
  supplier_name text NOT NULL,
@@ -136,4 +129,4 @@ CREATE TABLE IF NOT EXISTS ocr_invoice_reviews (
  created_at timestamptz NOT NULL DEFAULT now(),
  updated_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_ocr_review_created ON ocr_invoice_reviews(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_mindee_review_created ON mindee_invoice_reviews(created_at DESC);
