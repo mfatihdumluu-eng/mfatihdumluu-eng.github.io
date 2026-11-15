@@ -129,3 +129,14 @@ CREATE TABLE IF NOT EXISTS mindee_invoice_reviews (
  updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_mindee_review_created ON mindee_invoice_reviews(created_at DESC);
+
+-- Shared, branch-attributed Nutrient invoice pool. Legacy reviews stay unassigned
+-- and excluded from comparisons until explicitly reviewed and attributed.
+ALTER TABLE mindee_invoice_reviews ADD COLUMN IF NOT EXISTS branch_id integer REFERENCES branches(id);
+ALTER TABLE mindee_invoice_reviews ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'legacy';
+ALTER TABLE mindee_invoice_reviews ADD COLUMN IF NOT EXISTS comparison_ready boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_pool_branch_month ON mindee_invoice_reviews(branch_id,invoice_date)
+ WHERE branch_id IS NOT NULL AND comparison_ready=true;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pool_unique_branch_invoice
+ ON mindee_invoice_reviews(branch_id,lower(trim(supplier_name)),invoice_number)
+ WHERE branch_id IS NOT NULL;
