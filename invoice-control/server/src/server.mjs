@@ -7,7 +7,8 @@ import {scryptSync,timingSafeEqual,randomBytes,createHash} from 'node:crypto';
 import {compareSupplierMonth} from './engine.mjs';
 import {readFile} from 'node:fs/promises';
 import {readInvoiceBuffer} from './local-ocr.mjs';
-import {sealApiKey,encryptionKey} from './nutrient-secret.mjs';
+import {sealApiKey,openApiKey,encryptionKey} from './nutrient-secret.mjs';
+import {extractWithNutrient,NutrientRequestError} from './nutrient-extract.mjs';
 import nodemailer from 'nodemailer';
 import {pathToFileURL} from 'node:url';
 import {prepareReview,validDate} from './invoice-review.mjs';
@@ -124,6 +125,48 @@ app.delete('/api/admin/nutrient/settings',async(req,reply)=>{
  await db.query("DELETE FROM service_integrations WHERE provider='nutrient'");
  await audit(req.user.id,'delete','integration','nutrient');
  return reply.header('Cache-Control','no-store').send({ok:true,configured:false});
+});
+
+// The user explicitly chooses Nutrient; local OCR remains the privacy-preserving default.
+// The document is sent only to the fixed Nutrient HTTPS endpoint, not an arbitrary URL.
+app.post('/api/admin/nutrient/extract',{config:{rateLimit:{max:4,timeWindow:'1 minute'}}},async(req,reply)=>{
+ if(req.user.role!=='system')return deny(reply,403,'Yalnızca Sistem Admini');
+ const stored=await db.query("SELECT encrypted_secret FROM service_integrations WHERE provider='nutrient'");
+ if(!stored.rowCount)return deny(reply,409,'Önce Nutrient API anahtarını Sistem Admini → Nutrient API Ayarları bölümünde kaydet.');
+ let apiKey;
+ try{apiKey=openApiKey(stored.rows[0].encrypted_secret,encryptionKey());}
+ catch{return deny(reply,503,'Kayıtlı Nutrient anahtarı çözülemiyor. Şifreleme ayarını kontrol et.');}
+ let part;
+ try{part=await req.file()}catch{return deny(reply,400,'Dosya yüklenemedi (en fazla 10 MB).')}
+ if(!part)return deny(reply,400,'Önce PDF veya fotoğraf seç.');
+ const mime=part.mimetype;
+ if(!['application/pdf','image/jpeg','image/png','image/webp'].includes(mime)){
+  part.file.resume();return deny(reply,415,'Yalnızca PDF, JPG, PNG ve WebP desteklenir.');
+ }
+ let buffer;
+ try{buffer=await part.toBuffer()}catch{return deny(reply,413,'Dosya okunamadı veya 10 MB sınırı aşıldı.')}
+ if(!buffer.length||buffer.length>10*1024*1024)return deny(reply,413,'Dosya 10 MB sınırını aşıyor.');
+ const valid=(mime==='application/pdf'&&buffer.subarray(0,5).toString()==='%PDF-')||
+  (mime==='image/jpeg'&&buffer[0]===255&&buffer[1]===216)||
+  (mime==='image/png'&&buffer.subarray(0,4).equals(Buffer.from([137,80,78,71])))||
+  (mime==='image/webp'&&buffer.subarray(0,4).toString()==='RIFF'&&buffer.subarray(8,12).toString()==='WEBP');
+ if(!valid)return deny(reply,415,'Dosya biçimi içerikle eşleşmiyor.');
+ try{
+  const result=await extractWithNutrient({apiKey,data:buffer,mime,filename:part.filename});
+  await audit(req.user.id,'extract','nutrient_invoice','',{items:result.items.length,pages:result.pages||0});
+  return reply.header('Cache-Control','no-store').send(result);
+ }catch(e){
+  const kind=e instanceof NutrientRequestError?e.kind:'INTERNAL';
+  const status=e instanceof NutrientRequestError?e.status:502;
+  req.log.warn({kind,httpStatus:status},'Nutrient extraction failed'); // no invoice data or key
+  const message=kind==='AUTH'?'Nutrient API anahtarı reddedildi. Sistem Admini → Nutrient ayarlarını kontrol et.':
+   kind==='QUOTA'?'Nutrient ücretsiz kredi veya istek sınırına ulaşıldı.':
+   kind==='VALIDATION'?'Nutrient belgeyi veya çıkarım şemasını kabul etmedi. Dosya türünü ve servis erişimini kontrol et.':
+   kind==='TIMEOUT'?'Nutrient yanıtı zaman aşımına uğradı.':
+   kind==='INVALID_DATA'?'Nutrient yanıtında beklenen fatura alanları yok; veri kaydedilmedi.':
+   'Nutrient işlemi tamamlanamadı. Sunucu kayıtlarında neden kodu var.';
+  return reply.code(status===401||status===403?502:status===429?429:502).send({error:message,code:kind});
+ }
 });
 let ocrProcessing=false;
 app.post('/api/admin/ocr/extract',{config:{rateLimit:{max:6,timeWindow:'1 minute'}}},async(req,reply)=>{
