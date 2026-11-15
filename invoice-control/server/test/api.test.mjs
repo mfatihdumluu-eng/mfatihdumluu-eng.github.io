@@ -98,3 +98,18 @@ test('monthly pool compares two attributed branches with matching SKU and unit',
  assert.equal(r.json().comparedGroups,1,r.body);
  assert.equal(r.json().items[0].branchCount,2);
 });
+
+test('System Admin can create a branch login; branch user gets own branch access',async t=>{
+ const {app,query,cookies}=await setup(t);
+ const password='Test-secure-only-password-2026';
+ const response=await app.inject({method:'POST',url:'/api/admin/branch-users',cookies,
+  payload:{name:'Şube Sorumlusu',email:'branch-new@example.invalid',branchId:2,password}});
+ assert.equal(response.statusCode,201,response.body);
+ const id=response.json().user.id;
+ const u=(await query('SELECT role,branch_id,password_hash FROM users WHERE id=$1',[id])).rows[0];
+ assert.equal(u.role,'branch');assert.equal(Number(u.branch_id),2);assert(!u.password_hash.includes(password));
+ const login=await app.inject({method:'POST',url:'/api/login',payload:{email:'branch-new@example.invalid',password}});
+ assert.equal(login.statusCode,200,login.body);assert.equal(login.json().user.role,'branch');
+ const denied=await app.inject({method:'POST',url:'/api/admin/branch-users',cookies:{invoice_sid:login.cookies.find(x=>x.name==='invoice_sid')?.value},payload:{name:'X',email:'x@example.invalid',branchId:1,password}});
+ assert.equal(denied.statusCode,403);
+});
