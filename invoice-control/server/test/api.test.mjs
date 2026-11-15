@@ -17,7 +17,7 @@ async function setup(t,{auditFailure=false}={}){
  await query("INSERT INTO users(id,email,name,password_hash,role) VALUES($1,'test@example.invalid','TEST System',$2,'system')",[id,'testsalt:'+scryptSync('test-only-password','testsalt',64).toString('hex')]);
  await query("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '1 hour')",[hash,id]);
  if(auditFailure)await db.exec("CREATE FUNCTION reject_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'TEST audit failure'; END $$; CREATE TRIGGER reject_audit BEFORE INSERT ON audit_events FOR EACH ROW EXECUTE FUNCTION reject_audit();");
- const app=await createApp({database:adapter,logger:false,readInvoice:async()=>fixture()});await app.ready();
+ const app=await createApp({database:adapter,logger:false});await app.ready();
  t.after(async()=>{await app.close();await db.close();});
  return{app,query,db,cookies:{invoice_sid:token},id};
 }
@@ -38,7 +38,7 @@ test('OCR save/list/detail roundtrip preserves codes, units, discounts and exist
  assert.equal(Number(invoice.branch_id),1);
  assert.equal(invoice.source,'nutrient');
  assert.equal(invoice.comparison_ready,true);
- assert.equal((await query("SELECT * FROM audit_events WHERE target_type='ocr_invoice'")).rowCount,1);
+ assert.equal((await query("SELECT * FROM audit_events WHERE target_type='shared_invoice'")).rowCount,1);
 });
 test('bad totals, invalid dates, nonfinite numbers and partial extraction never persist',async t=>{
  const {app,query,cookies}=await setup(t);
