@@ -65,6 +65,17 @@ async function requireInvoiceSession(req,reply,{redirectToLogin=false}={}){
  if(!r.rowCount){if(redirectToLogin)reply.redirect('/admin/login');else deny(reply,401,'Oturum süresi doldu');return null}
  return r.rows[0];
 }
+// AVANTAGE 2.0 responsive portal; only authenticated users can access it.
+app.get('/app',async(req,reply)=>{
+ const user=await requireInvoiceSession(req,reply,{redirectToLogin:true});if(!user)return;
+ const html=await readFile(new URL('../avantage-app.html',import.meta.url),'utf8');
+ return reply.type('text/html; charset=utf-8')
+  .header('Cache-Control','no-store, private')
+  .header('Referrer-Policy','no-referrer')
+  .header('X-Frame-Options','DENY')
+  .header('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'")
+  .send(html);
+});
 app.get('/admin/login',async(req,reply)=>{
  const html=await readFile(new URL('../ocr-login.html',import.meta.url),'utf8');
  return reply.type('text/html; charset=utf-8')

@@ -1,0 +1,1 @@
+{"expo":{"name":"AVANTAGE Invoice Control","slug":"avantage-invoice-control","scheme":"avantageinvoice","version":"0.1.0","orientation":"portrait","ios":{"supportsTablet":true,"bundleIdentifier":"nl.avantage.invoicecontrol"},"android":{"package":"nl.avantage.invoicecontrol"},"web":{"bundler":"metro"}}}
