@@ -1,7 +1,8 @@
 import React from 'react';
 import {SafeAreaView, View, Text, ActivityIndicator, StyleSheet} from 'react-native';
 import {WebView} from 'react-native-webview';
-const ROOT='https://invoice-control-api.onrender.com';
+import Constants from 'expo-constants';
+const ROOT=Constants.expoConfig.extra.invoiceOrigin;
 export default function App() {
   return <SafeAreaView style={styles.root}>
     <View style={styles.header}><Text style={styles.brand}>AVANTAGE</Text><Text style={styles.sub}>INVOICE CONTROL 2.0</Text></View>
