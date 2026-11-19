@@ -1,0 +1,28 @@
+name: AVANTAGE 2.0 checks
+on:
+  pull_request:
+    paths:
+      - 'invoice-control/avantage-v2/**'
+      - 'invoice-control/server/src/server.mjs'
+      - 'invoice-control/server/avantage-app.html'
+      - '.github/workflows/avantage-v2.yml'
+  push:
+    branches:
+      - feature/avantage-2-mobile-foundation
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate invoice checks
+        run: node --test invoice-control/avantage-v2/checks.test.mjs
+      - name: Check server syntax
+        run: node --check invoice-control/server/src/server.mjs
+      - name: Check Expo configuration JSON
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('invoice-control/avantage-v2/mobile/package.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('invoice-control/avantage-v2/mobile/app.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('invoice-control/avantage-v2/mobile/eas.json','utf8'))"
